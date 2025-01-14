@@ -20,16 +20,15 @@ const CameraAim = () => {
         console.log(event);
         const videoUrl = event.target.videoUrl.value;
 //         const videoUrl = "rtsp://nodeorcpi:8554/cam";
-        const feedUrl = `${api.defaults.baseURL}/video-feed/?video_url=${encodeURIComponent(videoUrl)}`; // Dynamically get it from Axios
+        const feedUrl = `${api.defaults.baseURL}/video/feed/?video_url=${encodeURIComponent(videoUrl)}`; // Dynamically get it from Axios
         // test the feed by doing an API call
-        const response = await api.head('/video-feed/?video_url=' + encodeURIComponent(videoUrl));
+        const response = await api.head('/video/feed/?video_url=' + encodeURIComponent(videoUrl));
         if (response.status === 200) {
             setVideoFeedUrl(feedUrl); // Set the dynamically generated URL
             console.log("Setting load status to false");
             setIsLoading(false);
 
         } else {
-            console.log("We have an error")
             throw new Error(`Invalid video feed. Status Code: ${response.status}`);
         }
       } catch (error) {

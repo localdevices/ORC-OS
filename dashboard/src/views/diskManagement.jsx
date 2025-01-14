@@ -1,195 +1,142 @@
 import React, {useState, useEffect} from 'react';
 import api from '../api';
 
-
 const DiskManagement = () => {
 
-    const [device, updateDevice] = useState([]);
-    const [deviceStatuses, setDeviceStatuses] = useState([]);
-    const [deviceStatus, setDeviceStatus] = useState(''); // State for the selected status
-    const [deviceFormStatus, setDeviceFormStatus] = useState(''); // State for the selected status
-    const [deviceFormStatuses, setDeviceFormStatuses] = useState([]);
+    const [diskManagement, updateDiskManagement] = useState([]);
     const [loading, setLoading] = useState(true); // State for loading indicator
-    const [error, setError] = useState(null); // State for error handling
+    const [message, setMessage] = useState(null); // State for message handling
+    const [messageType, setMessageType] = useState(null); // State for message type
+    const [folderName, setFolderName] = useState("");
     const [formData, setFormData] = useState({
-        name: '',
-        operating_system: '',
-        processor: '',
-        memory: '',
-        status: '',
-        form_status: '',
-        nodeorc_version: '',
-        message: ''
+        created_at: '',
+        home_folder: '',
+        min_free_space: '',
+        critical_space: '',
+        frequency: '',
     });
-    const fetchDevice = async () => {
-        const response = await api.get('/device/');
-        updateDevice(response.data)
-        setDeviceStatus(response.data.status);
-        setDeviceFormStatus(response.data.form_status);
-    };
-    const fetchDeviceStatuses = async () => {
-        try {
-            const response = await api.get('/device/statuses/');
-            setDeviceStatuses(response.data); // Assuming API returns array of statuses
-            setLoading(false);
-        } catch (err) {
-            setError('Failed to fetch device statuses.');
-            setLoading(false);
-        }
-    };
-    const fetchDeviceFormStatuses = async () => {
-        try {
-            const response = await api.get('/device/form_statuses/');
-            setDeviceFormStatuses(response.data); // Assuming API returns array of statuses
-            setLoading(false);
-        } catch (err) {
-            setError('Failed to fetch device form statuses.');
-            setLoading(false);
-        }
-    };
 
+    const fetchDiskManagement = async () => {
+        const response = await api.get('/disk_management/');
+        updateDiskManagement(response.data);
+    };
     useEffect(() => {
-        fetchDevice();
-        fetchDeviceStatuses();
-        fetchDeviceFormStatuses();
-
+        fetchDiskManagement();
     }, []);
     useEffect(() => {
-        if (device) {
+        if (diskManagement) {
+            if (diskManagement.created_at) {
+                diskManagement.created_at = diskManagement.created_at.slice(0, 19);
+                }
             setFormData({
-                name: device.name || '',
-                operating_system: device.operating_system || '',
-                processor: device.processor || '',
-                memory: device.memory || '',
-                status: device.status,
-                form_status: device.form_status || '',
-                nodeorc_version: device.nodeorc_version || '',
-                message: device.message || '',
+                created_at: diskManagement.created_at || '',
+                home_folder: diskManagement.home_folder || '',
+                min_free_space: diskManagement.min_free_space || '',
+                critical_space: diskManagement.critical_space || '',
+                frequency: diskManagement.frequency || ''
             });
         }
-    }, [device]);
-
+    }, [diskManagement]);
     const handleInputChange = (event) => {
-        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
-        setFormData({
-            ...formData,
-            [event.target.name]: value,
-        });
-    }
-    const handleInputIntChange = (event) => {
-        console.log(event.target);
         const { name, value, type } = event.target;
         event.target.value = value;
         setFormData({
             ...formData,
-            [name]: type === "number" | type === "select-one" ? parseInt(value) : value
+            [name]: type === "number" ? parseFloat(value) : value
         });
-    };
-    const handleStatusChange = (e) => {
-        setDeviceStatus(e.target.value); // Update selected status in state
-        handleInputIntChange(e); // Pass the change event to the parent handler
-    };
-    const handleFormStatusChange = (e) => {
-        setDeviceFormStatus(e.target.value); // Update selected status in state
-        handleInputIntChange(e); // Pass the change event to the parent handler
     };
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-        await api.post('/device/', formData);
-        // read back the device after posting
-        fetchDevice();
-        // set the form data to new device settings
-        setFormData({
-            name: '',
-            operating_system: '',
-            processor: '',
-            memory: '',
-            status: '',
-            form_status: '',
-            nodeorc_version: '',
-            message: ''
-        });
-        setDeviceStatus(device.status);
+        // get rid of created_at field as this must be autocompleted
+        try {
+            delete formData.created_at;
+            const response = await api.post('/disk_management/', formData);
+            if (response.status === 500) {
+                const errorData = await response.json()
+                throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
+            }
+            setMessage("Disk management updated successfully!");
+            setMessageType("success");
+            // read back the device after posting
+            fetchDiskManagement();
+            // set the form data to new device settings
+            setFormData({
+                name: '',
+                operating_system: '',
+                processor: '',
+                memory: '',
+                status: '',
+                form_status: '',
+                nodeorc_version: '',
+                message: ''
+            });
+        } catch (err) {
+            setMessage(err.response.data);
+            setMessageType("error")
+        } finally {
+            // Clear message after 5 seconds
+            setTimeout(() => {
+              setMessage("");
+              setMessageType("");
+            }, 5000);
+        }
+
 
     };
     return (
         <div className='container'>
-            Change your device details. You can only change a few fields. Most are set and controlled by NodeORC.
+            Change your disk management settings.
             <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='name' className='form-label'>
-                        Name
+                    <label htmlFor='created_at' className='form-label'>
+                        Date of creation
                     </label>
-                    <input type='text' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name}/>
+                    <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled/>
                 </div>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='operating_system' className='form-label'>
-                        Operating system
+                    <label htmlFor='home_folder' className='form-label'>
+                        Home folder
                     </label>
-                    <input type='text' className='form-control' id='operating_system' name='operating_system' onChange={handleInputChange} value={formData.operating_system} readOnly />
+                    <div className='input-group custom-file-button'>
+                      <label className='input-group-text' htmlFor='home_folder'>Type folder path:</label>
+                      <input type='str' className='form-control' id='home_folder' name='home_folder' onChange={handleInputChange} value={formData.home_folder} />
+                    </div>
+{/*                     <input type='file' className='form-control custom-file-button' directory='' webkitdirectory='' id='home_folder' name='home_folder' onChange={handleInputChange} value={formData.home_folder} /> */}
                 </div>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='processor' className='form-label'>
-                        Processor
+                    <label htmlFor='critical_space' className='form-label'>
+                        Critical space [GB] below which cleanup will take place
                     </label>
-                    <input type='text' className='form-control' id='processor' name='processor' onChange={handleInputChange} value={formData.processor} readOnly/>
+                    <input type='number' className='form-control' id='critical_space' name='critical_space' step="0.1" onChange={handleInputChange} value={formData.critical_space} />
                 </div>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='memory' className='form-label'>
-                        Memory
+                    <label htmlFor='min_free_space' className='form-label'>
+                        Minimum space [GB] below which service will be turned off.
                     </label>
-                    <input type='number' className='form-control' id='memory' name='memory' step="0.01" onChange={handleInputChange} value={formData.memory} readOnly/>
+                    <input type='number' className='form-control' id='min_free_space' name='min_free_space' step="0.1" onChange={handleInputChange} value={formData.min_free_space} />
                 </div>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='status' className='form-label'>
-                        Status
+                    <label htmlFor='frequency' className='form-label'>
+                        Frequency [s] for checking space and performing cleanup.
                     </label>
-                    {loading ? (
-                        <div>Loading...</div> // Show loading indicator
-                    ) : error ? (
-                        <div className="text-danger">{error}</div> // Show error message
-                    ) : (
-                    <select name="status" id="status" className="form-select" onChange={handleStatusChange} value={deviceStatus} disabled>
-                        {deviceStatuses.map((status) => (
-                            <option value={status.value}>{status.key}</option>
-                        ))}
-                    </select>
-                    )}
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='form_status' className='form-label'>
-                        NodeORC Task Form status
-                    </label>
-                    {loading ? (
-                        <div>Loading...</div> // Show loading indicator
-                    ) : error ? (
-                        <div className="text-danger">{error}</div> // Show error message
-                    ) : (
-                    <select name="form_status" id="form_status" className="form-select" onChange={handleFormStatusChange} value={deviceFormStatus} disabled>
-                        {deviceFormStatuses.map((status) => (
-                            <option value={status.value}>{status.key}</option>
-                        ))}
-                    </select>
-                    )}
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='nodeorc_version' className='form-label'>
-                        NodeORC version
-                    </label>
-                    <input type='text' className='form-control' id='nodeorc_version' name='nodeorc_version' onChange={handleInputChange} value={formData.nodeorc_version} readOnly/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='message' className='form-label'>
-                        Message
-                    </label>
-                    <input type='text' className='form-control' id='message' name='message' onChange={handleInputChange} value={formData.message}/>
+                    <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
                 </div>
                 <button type='submit' className='btn btn-primary'>
                     Submit
                 </button>
 
+                   <div>
+                </div>
+
             </form>
+
+          {message && (
+            <div style={{ color: messageType === "error" ? "red": "green", marginTop: "1rem" }}>
+              <p>{message}</p>
+            </div>
+          )}
+
        </div>
 
     );
