@@ -1,25 +1,33 @@
-import reactLogo from './assets/react.svg'
+import reactLogo from '/react.svg'
 import orcLogo from '/orc_favicon.svg'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import './App.css'
 import Navbar from './nav/Navbar';
+import Footer from './nav/Footer';
 import Home from './views/home';
-import DeviceForm from './views/deviceForm';
+import Device from './views/device';
+import DiskManagement from './views/diskManagement'
+import CameraAim from './views/cameraAim'
 import api from './api'
 
 const App = () => {
     return (
         <Router>
-            <div>
+            <div className="app-container">
                 {/* Navbar appears everywhere */}
                 <Navbar />
                 {/* Define the route structure */}
+                <div className="main-content">
                 <Routes>
                     <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
                     <Route path="/" element={<Home />} />
-                    <Route path="/device_form" element={<DeviceForm />} />
+                    <Route path="/device" element={<Device />} />
+                    <Route path="/disk_management" element={<DiskManagement />} />
+                    <Route path="/camera_aim" element={<CameraAim />} />
                 </Routes>
+                </div>
+                <Footer />
             </div>
         </Router>
     )

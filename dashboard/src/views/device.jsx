@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import api from '../api';
 
 
-const DeviceForm = () => {
+const Device = () => {
 
     const [device, updateDevice] = useState([]);
     const [deviceStatuses, setDeviceStatuses] = useState([]);
@@ -114,6 +114,8 @@ const DeviceForm = () => {
     };
     return (
         <div className='container'>
+            Change your device details. You can only change a few fields. Most are set and controlled by NodeORC.
+            <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='name' className='form-label'>
@@ -188,34 +190,35 @@ const DeviceForm = () => {
                 </button>
 
             </form>
-            <table className='table table-striped table-bordered table-hover'>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>OS</th>
-                    <th>Processor</th>
-                    <th>Memory [GB]</th>
-                    <th>Status</th>
-                    <th>Form status</th>
-                    <th>Version</th>
-                    <th>Message</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr key={device.id}>
-                    <td>{device.name}</td>
-                    <td>{device.operating_system}</td>
-                    <td>{device.processor}</td>
-                    <td>{device.memory}</td>
-                    <td>{device.status}</td>
-                    <td>{device.form_status}</td>
-                    <td>{device.nodeorc_version}</td>
-                    <td>{device.message}</td>
-                </tr>
-            </tbody>
-            </table>
+{/*             <hr/> */}
+{/*             <table className='table table-striped table-bordered table-hover'> */}
+{/*             <thead> */}
+{/*                 <tr> */}
+{/*                     <th>Name</th> */}
+{/*                     <th>OS</th> */}
+{/*                     <th>Processor</th> */}
+{/*                     <th>Memory [GB]</th> */}
+{/*                     <th>Status</th> */}
+{/*                     <th>Form status</th> */}
+{/*                     <th>Version</th> */}
+{/*                     <th>Message</th> */}
+{/*                 </tr> */}
+{/*             </thead> */}
+{/*             <tbody> */}
+{/*                 <tr key={device.id}> */}
+{/*                     <td>{device.name}</td> */}
+{/*                     <td>{device.operating_system}</td> */}
+{/*                     <td>{device.processor}</td> */}
+{/*                     <td>{device.memory}</td> */}
+{/*                     <td>{device.status}</td> */}
+{/*                     <td>{device.form_status}</td> */}
+{/*                     <td>{device.nodeorc_version}</td> */}
+{/*                     <td>{device.message}</td> */}
+{/*                 </tr> */}
+{/*             </tbody> */}
+{/*             </table> */}
         </div>
 
     );
 };
-export default DeviceForm;
+export default Device;

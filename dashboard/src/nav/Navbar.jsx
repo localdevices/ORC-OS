@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 const Navbar = () => {
+    const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
+    const handleToggle = () => {
+      setIsOpen(!isOpen); // Toggles the `isOpen` state
+    };
+    const handleClose = () => {
+      setIsOpen(false); // Closes the navbar when called
+    };
     return (
             <nav className='navbar navbar-dark bg-primary'>
                 <div className='container-fluid'>
@@ -24,8 +31,22 @@ const Navbar = () => {
                             <li className="nav-item">
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-                                    to="/device_form">
-                                    Device info
+                                    to="/device">
+                                    Device information
+                                </NavLink>
+                            </li>
+                            <li className="nav-item">
+                                <NavLink
+                                    className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+                                    to="/disk_management">
+                                    Disk management
+                                </NavLink>
+                            </li>
+                            <li className="nav-item">
+                                <NavLink
+                                    className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+                                    to="/camera_aim">
+                                    Camera aiming
                                 </NavLink>
                             </li>
                         </ul>

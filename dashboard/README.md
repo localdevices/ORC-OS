@@ -15,10 +15,12 @@ cd portal
 npm install
 
 # Get axios dependency
-npm install axios
-npm install react-router-dom
-# Start dev server
-npm run dev
+npm install axios  # for API connection
+npm install react-router-dom  # for organizing the router
+npm install dotenv  # for setting environment variables
+
+# Start dev server, ensuring the API url is added as environment variable
+VITE_API_BASE_URL="http://<name-of-server>:<port-of-server>" npm run dev
 ```
 
 Currently, two official plugins are available:
