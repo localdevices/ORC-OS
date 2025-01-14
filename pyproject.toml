@@ -1,0 +1,46 @@
+[build-system]
+requires = ["flit_core >=3.4.0,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "nodeorc_api"
+authors = [
+    {name = "Hessel Winsemius", email = "winsemius@rainbowsensing.com"},
+]
+dependencies = [
+#    "nodeorc",
+    "fastapi[standard]"
+]
+requires-python = ">=3.9" # fix tests to support older versions
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "License :: OSI Approved :: Image Processing",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
+]
+dynamic = ['version', 'description']
+
+[project.optional-dependencies]
+test = [
+	"pytest",
+	"pytest-cov",
+]
+
+[project.urls]
+Source = "https://github.com/localdevices//nodeorc-interface"
+
+
+[tool.flit.sdist]
+include = ["nodeorc_api"]
+exclude = ["gcloud_dist", "hack", "helm", "htmlcov", "junit", "tests", ".github"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
