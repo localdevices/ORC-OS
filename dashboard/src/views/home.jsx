@@ -6,41 +6,6 @@ import api from "../api"
 
 const Home = () => {
   const [count, setCount] = useState(0)
-  const [videoFeedUrl, setVideoFeedUrl] = useState("");
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  // Dynamically generate the stream URL
-  useEffect(() => {
-    setIsLoading(true);
-    setError(null); // reset errors before doing a new check
-    const getVideoFeed = async () => {
-      try {
-        const feedUrl = `${api.defaults.baseURL}/video-feed`; // Dynamically get it from Axios
-        // test the feed by doing an API call
-        const response = await api.head('/video-feed');
-        console.log(response);
-        if (response.status === 200) {
-            setVideoFeedUrl(feedUrl); // Set the dynamically generated URL
-            console.log("Setting load status to false");
-            setIsLoading(false);
-
-        } else {
-            console.log("We have an error")
-            throw new Error(`Invalid video feed. Status Code: ${response.status}`);
-        }
-      } catch (error) {
-          setError('Failed to load video feed. Ensure the camera is connected and available.');
-          console.error("Error generating video feed URL:", error);
-      } finally {
-          console.log("Setting load status to false")
-          setIsLoading(false);
-      }
-
-    };
-
-    getVideoFeed();
-  }, []); // Empty dependency to run this once after the component is mounted
-
   return (
     <>
       <div>
@@ -52,19 +17,6 @@ const Home = () => {
         </a>
       </div>
       <h1>NodeORC configuration</h1>
-        {isLoading && <p>Loading video feed...</p>}
-
-        {error ? (
-            <p className="text-danger">{error}</p>
-        ) : (
-        videoFeedUrl && (
-          <img
-            src={videoFeedUrl} // Dynamically set the URL
-            alt="Live Video Stream"
-            style={{ maxWidth: "100%", height: "auto" }}
-          />
-        )
-   )}
 
       <div className="card">
         <button onClick={() => setCount((count) => count + 1)}>

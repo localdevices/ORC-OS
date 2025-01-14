@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import './Navbar.css'
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
@@ -16,36 +17,36 @@ const Navbar = () => {
                         <img src="./public/orc_favicon.svg" alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
                     {' '} NodeORC
                     </a>
-                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" onClick={handleToggle}>
                         <span className="navbar-toggler-icon"></span>
                     </button>
-                    <div className="collapse navbar-collapse" id="navbarNav">
+                    <div className={`collapse navbar-collapse ${isOpen ? "open" : ""}`} id="navbarNav">
                         <ul className="navbar-nav">
                             <li className="nav-item">
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-                                    to="/">
+                                    to="/" onClick={handleClose}>
                                 Home
                                 </NavLink>
                             </li>
                             <li className="nav-item">
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-                                    to="/device">
+                                    to="/device" onClick={handleClose}>
                                     Device information
                                 </NavLink>
                             </li>
                             <li className="nav-item">
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-                                    to="/disk_management">
+                                    to="/disk_management" onClick={handleClose}>
                                     Disk management
                                 </NavLink>
                             </li>
                             <li className="nav-item">
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-                                    to="/camera_aim">
+                                    to="/camera_aim" onClick={handleClose}>
                                     Camera aiming
                                 </NavLink>
                             </li>
