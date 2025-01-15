@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import api from '../api';
+import Message from './message'
 
 const DiskManagement = () => {
 
@@ -73,15 +74,7 @@ const DiskManagement = () => {
         } catch (err) {
             setMessage(err.response.data);
             setMessageType("error")
-        } finally {
-            // Clear message after 5 seconds
-            setTimeout(() => {
-              setMessage("");
-              setMessageType("");
-            }, 5000);
         }
-
-
     };
     return (
         <div className='container'>
@@ -130,13 +123,14 @@ const DiskManagement = () => {
                 </div>
 
             </form>
-
-          {message && (
-            <div style={{ color: messageType === "error" ? "red": "green", marginTop: "1rem" }}>
-              <p>{message}</p>
-            </div>
-          )}
-
+              <Message
+                message={message}
+                messageType={messageType}
+                clearMessage={() => {
+                  setMessage("");
+                  setMessageType("");
+                }}
+              />
        </div>
 
     );

@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import api from '../api';
+import Message from './message'
 
 
 const Device = () => {
@@ -11,6 +12,8 @@ const Device = () => {
     const [deviceFormStatuses, setDeviceFormStatuses] = useState([]);
     const [loading, setLoading] = useState(true); // State for loading indicator
     const [error, setError] = useState(null); // State for error handling
+    const [message, setMessage] = useState(null); // State for message handling
+    const [messageType, setMessageType] = useState(null); // State for message type
     const [formData, setFormData] = useState({
         name: '',
         operating_system: '',
@@ -94,23 +97,35 @@ const Device = () => {
         handleInputIntChange(e); // Pass the change event to the parent handler
     };
     const handleFormSubmit = async (event) => {
-        event.preventDefault();
-        await api.post('/device/', formData);
-        // read back the device after posting
-        fetchDevice();
-        // set the form data to new device settings
-        setFormData({
-            name: '',
-            operating_system: '',
-            processor: '',
-            memory: '',
-            status: '',
-            form_status: '',
-            nodeorc_version: '',
-            message: ''
-        });
-        setDeviceStatus(device.status);
+        try {
+            event.preventDefault();
+            const response = await api.post('/device/', formData);
+            if (!response.status === 200) {
+                const errorData = await response.json()
+                throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
+            }
+            setMessage("Device information updated successfully!");
+            setMessageType("success");
 
+            // read back the device after posting
+            fetchDevice();
+            // set the form data to new device settings
+            setFormData({
+                name: '',
+                operating_system: '',
+                processor: '',
+                memory: '',
+                status: '',
+                form_status: '',
+                nodeorc_version: '',
+                message: ''
+            });
+            setDeviceStatus(device.status);
+
+        } catch (err) {
+            setMessage(err.response.data);
+            setMessageType("error")
+        }
     };
     return (
         <div className='container'>
@@ -190,6 +205,15 @@ const Device = () => {
                 </button>
 
             </form>
+            <Message
+                message={message}
+                messageType={messageType}
+                clearMessage={() => {
+                  setMessage("");
+                  setMessageType("");
+                }}
+              />
+
 {/*             <hr/> */}
 {/*             <table className='table table-striped table-bordered table-hover'> */}
 {/*             <thead> */}
