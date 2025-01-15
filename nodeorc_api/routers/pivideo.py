@@ -15,7 +15,7 @@ camera_streaming = False
 async def has_picam():
     """Test if the PiCamera is available."""
     try:
-        from picamera import PiCamera
+        from picamera2 import Picamera2
     except ImportError:
         return False
     else:
