@@ -55,7 +55,8 @@ const CameraAim = () => {
       }
     } catch (error) {
       console.error("Error or disabling PiCamera:", error);
-      setError('Failed to enable/disable PiCamera.');
+      setIsToggledOn(false);
+      setError('Failed to enable/disable PiCamera. Try to refresh this page to try again.');
     } finally {
       console.log("Setting load status to false")
       setIsLoading(false);
@@ -96,7 +97,10 @@ const CameraAim = () => {
 
   return (
     <>
-      <h1>NodeORC configuration</h1>
+      <h1>Aim your camera</h1>
+      While you are in the field, you need to carefully aim your camera to as much water as closeby as possible.
+      Use this view to either load the IP-camera stream, which usually reports on a rtsp or http location and port,
+      or (if used) switch on the Raspberrypi camera.
       {isLoading && <p>Loading video feed...</p>}
       {error ? (
         <p className="text-danger">{error}</p>
