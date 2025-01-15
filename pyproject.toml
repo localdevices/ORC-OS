@@ -29,6 +29,7 @@ classifiers = [
 dynamic = ['version', 'description']
 
 [project.optional-dependencies]
+pi = ["picamera2"]
 test = [
 	"pytest",
 	"pytest-cov",
