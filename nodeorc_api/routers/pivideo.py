@@ -39,12 +39,16 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps=30):
             main={"size": (width, height)},
             controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
         )
-        # video_config["controls"]["FrameDurationLimits"] = (int(1e6 / fps), int(1e6 / fps))
         picam.configure(video_config)
         picam.start()
         camera_streaming = True
         return {"message": "Camera stream started successfully"}
     except Exception as e:
+        camera_streaming = False
+        if picam is not None:
+            picam.stop()
+            picam.close()
+        picam = None
         raise HTTPException(status_code=500, detail=f"Error starting camera stream: {str(e)}")
 
 
