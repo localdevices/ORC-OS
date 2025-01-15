@@ -27,7 +27,7 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
     global picam, camera_streaming
 
     if camera_streaming:
-        raise HTTPException(status_code=400, detail="Camera stream is already running.")
+        return {"message": "Camera stream was already available."}
 
     try:
         from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
