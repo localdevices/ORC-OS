@@ -5,4 +5,4 @@ def get(db: Session):
     # there should always only be one disk management config. Hence retrieve the first.
     dms = db.query(models.DiskManagement)
     if dms.count() > 0:
-        return db.query(models.DiskManagement).first()
+        return dms.first()
