@@ -23,7 +23,7 @@ async def has_picam():
 
 # Start video stream
 @router.post("/start")
-async def start_camera_stream(width: int = 1920, height: int = 1080, fps=30):
+async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 30):
     global picam, camera_streaming
 
     if camera_streaming:
