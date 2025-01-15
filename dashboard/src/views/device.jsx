@@ -80,7 +80,6 @@ const Device = () => {
         });
     }
     const handleInputIntChange = (event) => {
-        console.log(event.target);
         const { name, value, type } = event.target;
         event.target.value = value;
         setFormData({

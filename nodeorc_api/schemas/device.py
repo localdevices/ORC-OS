@@ -19,7 +19,7 @@ class DeviceResponse(DeviceBase):
     id: uuid.UUID# = Field(description="Device ID")
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class DeviceCreate(DeviceBase):
     pass

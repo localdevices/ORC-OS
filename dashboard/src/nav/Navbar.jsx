@@ -40,14 +40,21 @@ const Navbar = () => {
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
                                     to="/disk_management" onClick={handleClose}>
-                                    Disk management
+                                    Disk management settings
+                                </NavLink>
+                            </li>
+                            <li className="nav-item">
+                                <NavLink
+                                    className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+                                    to="/water_level" onClick={handleClose}>
+                                    Water level settings
                                 </NavLink>
                             </li>
                             <li className="nav-item">
                                 <NavLink
                                     className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
                                     to="/camera_aim" onClick={handleClose}>
-                                    Camera aiming
+                                    Aim your camera in the field
                                 </NavLink>
                             </li>
                         </ul>

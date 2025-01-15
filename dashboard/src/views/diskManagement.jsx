@@ -5,10 +5,8 @@ import Message from './message'
 const DiskManagement = () => {
 
     const [diskManagement, updateDiskManagement] = useState([]);
-    const [loading, setLoading] = useState(true); // State for loading indicator
     const [message, setMessage] = useState(null); // State for message handling
     const [messageType, setMessageType] = useState(null); // State for message type
-    const [folderName, setFolderName] = useState("");
     const [formData, setFormData] = useState({
         created_at: '',
         home_folder: '',
