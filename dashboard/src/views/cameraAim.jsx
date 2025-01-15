@@ -130,7 +130,7 @@ const CameraAim = () => {
                 role="switch"
                 id="picamSwitch"
                 onClick={handleToggle}
-                disabled={isSwitchDisabled}
+                {...(isSwitchDisabled ? { disabled: "" } : {})}
               />
             </div>
           </div>
