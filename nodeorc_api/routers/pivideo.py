@@ -8,7 +8,7 @@ from threading import Thread
 router = APIRouter(prefix="/pivideo", tags=["pivideo"])
 
 # Globals for managing the camera
-picamera_instance = None
+picam = None
 camera_streaming = False
 
 @router.get("/has_picam", response_model=bool)
@@ -23,8 +23,8 @@ async def has_picam():
 
 # Start video stream
 @router.post("/start")
-async def start_camera_stream():
-    global picamera_instance, camera_streaming
+async def start_camera_stream(width: int = 1920, height: int = 1080, fps=30):
+    global picam, camera_streaming
 
     if camera_streaming:
         raise HTTPException(status_code=400, detail="Camera stream is already running.")
@@ -34,9 +34,14 @@ async def start_camera_stream():
     except ImportError:
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     try:
-        picamera_instance = Picamera2()  # Replace with PiCamera() if using older picamera
-        picamera_instance.configure(picamera_instance.create_preview_configuration())
-        picamera_instance.start()
+        picam = Picamera2()  # Replace with PiCamera() if using older picamera
+        video_config = picam.create_video_configuration(
+            main={"size": (width, height)},
+            controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
+        )
+        # video_config["controls"]["FrameDurationLimits"] = (int(1e6 / fps), int(1e6 / fps))
+        picam.configure(video_config)
+        picam.start()
         camera_streaming = True
         return {"message": "Camera stream started successfully"}
     except Exception as e:
@@ -46,16 +51,16 @@ async def start_camera_stream():
 # Stop video stream
 @router.post("/stop")
 async def stop_camera_stream():
-    global picamera_instance, camera_streaming
+    global picam, camera_streaming
 
     if not camera_streaming:
         raise HTTPException(status_code=400, detail="Camera stream is not currently running.")
 
     try:
-        picamera_instance.stop()
-        picamera_instance.close()
+        picam.stop()
+        picam.close()
         camera_streaming = False
-        picamera_instance = None
+        picam = None
         return {"message": "Camera stream stopped successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error stopping camera stream: {str(e)}")
@@ -63,14 +68,14 @@ async def stop_camera_stream():
 
 # Generator for streaming video frames (MJPEG)
 def generate_camera_frames():
-    global picamera_instance
-    if picamera_instance is None:
+    global picam
+    if picam is None:
         raise StopIteration
 
     while camera_streaming:
         stream = io.BytesIO()
         try:
-            picamera_instance.capture_file(stream, format="jpeg")
+            picam.capture_file(stream, format="jpeg")
             stream.seek(0)
             yield (
                     b"--frame\r\n"
@@ -91,5 +96,5 @@ async def stream_camera_video():
 
 
 
-picamera_instance = None
+picam = None
 camera_streaming = False
