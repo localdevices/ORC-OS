@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from nodeorc.db import Session, WaterLevelSettings
 from typing import List, Union
 
@@ -17,18 +17,21 @@ async def get_device(db: Session = Depends(get_db)):
 @router.post("/", response_model=WaterLevelResponse, status_code=201, description="Update water level configuration")
 async def update_device(water_level_settings: WaterLevelCreate, db: Session = Depends(get_db)):
     # Check if there is already a device
-    existing_wl_settings = crud.water_level.get(db)
-    if existing_wl_settings:
-        # Update the existing record's fields
-        for key, value in water_level_settings.model_dump(exclude_none=True).items():
-            setattr(existing_wl_settings, key, value)
-        db.commit()
-        db.refresh(existing_wl_settings)  # Refresh to get the updated fields
-        return existing_wl_settings
-    else:
-        # Create a new device record if none exists
-        new_wl_settings = WaterLevelSettings(**water_level_settings.model_dump(exclude_none=True, exclude={"id"}))
-        db.add(new_wl_settings)
-        db.commit()
-        db.refresh(new_wl_settings)
-        return new_wl_settings
+    try:
+        existing_wl_settings = crud.water_level.get(db)
+        if existing_wl_settings:
+            # Update the existing record's fields
+            for key, value in water_level_settings.model_dump(exclude_none=True).items():
+                setattr(existing_wl_settings, key, value)
+            db.commit()
+            db.refresh(existing_wl_settings)  # Refresh to get the updated fields
+            return existing_wl_settings
+        else:
+            # Create a new device record if none exists
+            new_wl_settings = WaterLevelSettings(**water_level_settings.model_dump(exclude_none=True, exclude={"id"}))
+            db.add(new_wl_settings)
+            db.commit()
+            db.refresh(new_wl_settings)
+            return new_wl_settings
+    except Exception as e:
+        return Response(f"Error: {e}", status_code=500)

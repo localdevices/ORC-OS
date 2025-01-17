@@ -65,7 +65,7 @@ const Device = () => {
                 processor: device.processor || '',
                 memory: device.memory || '',
                 status: device.status,
-                form_status: device.form_status || '',
+                form_status: device.form_status,
                 nodeorc_version: device.nodeorc_version || '',
                 message: device.message || '',
             });
@@ -98,6 +98,7 @@ const Device = () => {
     const handleFormSubmit = async (event) => {
         try {
             event.preventDefault();
+            console.log(formData);
             const response = await api.post('/device/', formData);
             if (!response.status === 200) {
                 const errorData = await response.json()
@@ -212,34 +213,6 @@ const Device = () => {
                   setMessageType("");
                 }}
               />
-
-{/*             <hr/> */}
-{/*             <table className='table table-striped table-bordered table-hover'> */}
-{/*             <thead> */}
-{/*                 <tr> */}
-{/*                     <th>Name</th> */}
-{/*                     <th>OS</th> */}
-{/*                     <th>Processor</th> */}
-{/*                     <th>Memory [GB]</th> */}
-{/*                     <th>Status</th> */}
-{/*                     <th>Form status</th> */}
-{/*                     <th>Version</th> */}
-{/*                     <th>Message</th> */}
-{/*                 </tr> */}
-{/*             </thead> */}
-{/*             <tbody> */}
-{/*                 <tr key={device.id}> */}
-{/*                     <td>{device.name}</td> */}
-{/*                     <td>{device.operating_system}</td> */}
-{/*                     <td>{device.processor}</td> */}
-{/*                     <td>{device.memory}</td> */}
-{/*                     <td>{device.status}</td> */}
-{/*                     <td>{device.form_status}</td> */}
-{/*                     <td>{device.nodeorc_version}</td> */}
-{/*                     <td>{device.message}</td> */}
-{/*                 </tr> */}
-{/*             </tbody> */}
-{/*             </table> */}
         </div>
 
     );

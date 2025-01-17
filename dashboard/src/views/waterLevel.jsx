@@ -30,11 +30,11 @@ const WaterLevel = () => {
                 }
             setFormData({
                 created_at: waterLevel.created_at || '',
-                datetime_fmt: waterLevel.datetime_fmt || '',
-                file_template: waterLevel.file_template || '',
-                frequency: waterLevel.frequency || '',
-                script_type: waterLevel.script_type || '',
-                script: waterLevel.script || ''
+                datetime_fmt: waterLevel.datetime_fmt,
+                file_template: waterLevel.file_template,
+                frequency: waterLevel.frequency || null,
+                script_type: waterLevel.script_type || null,
+                script: waterLevel.script
             });
         }
     }, [waterLevel]);
@@ -69,6 +69,7 @@ const WaterLevel = () => {
             const response = await api.post('/water_level/', formData);
             if (response.status === 500) {
                 const errorData = await response.json()
+                console.log(response);
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
             setMessage("Water level settings updated successfully!");
@@ -85,6 +86,7 @@ const WaterLevel = () => {
                 script: ''
             });
         } catch (err) {
+            console.log(err);
             setMessage(err.response.data);
             setMessageType("error")
         }

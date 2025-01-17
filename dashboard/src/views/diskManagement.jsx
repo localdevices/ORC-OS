@@ -12,7 +12,7 @@ const DiskManagement = () => {
         home_folder: '',
         min_free_space: '',
         critical_space: '',
-        frequency: '',
+        frequency: ''
     });
 
     const fetchDiskManagement = async () => {
@@ -46,11 +46,19 @@ const DiskManagement = () => {
     };
     const handleFormSubmit = async (event) => {
         event.preventDefault();
+        console.log(formData);
+        // Dynamically filter only fields with non-empty values
+        const filteredData = Object.fromEntries(
+            Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
+        );
+
+        console.log(filteredData);
         // get rid of created_at field as this must be autocompleted
         try {
-            delete formData.created_at;
-            const response = await api.post('/disk_management/', formData);
-            if (response.status === 500) {
+            delete filteredData.created_at;
+            const response = await api.post('/disk_management/', filteredData);
+            console.log(response);
+            if (!response.status === 200) {
                 const errorData = await response.json()
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
@@ -60,14 +68,11 @@ const DiskManagement = () => {
             fetchDiskManagement();
             // set the form data to new device settings
             setFormData({
-                name: '',
-                operating_system: '',
-                processor: '',
-                memory: '',
-                status: '',
-                form_status: '',
-                nodeorc_version: '',
-                message: ''
+                created_at: '',
+                home_folder: '',
+                min_free_space: '',
+                critical_space: '',
+                frequency: '',
             });
         } catch (err) {
             setMessage(err.response.data);
@@ -77,6 +82,15 @@ const DiskManagement = () => {
     return (
         <div className='container'>
             Change your disk management settings.
+            <Message
+              message={message}
+              messageType={messageType}
+              clearMessage={() => {
+                setMessage("");
+                setMessageType("");
+              }}
+            />
+
             <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
@@ -121,14 +135,6 @@ const DiskManagement = () => {
                 </div>
 
             </form>
-              <Message
-                message={message}
-                messageType={messageType}
-                clearMessage={() => {
-                  setMessage("");
-                  setMessageType("");
-                }}
-              />
        </div>
 
     );
