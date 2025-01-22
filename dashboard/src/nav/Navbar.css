@@ -2,9 +2,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #2c3e50;
+  padding: 10px 20px;
+  background-color: #007bff;
   color: white;
+}
+
+.navbar-toggler {
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: white;
 }
 
 .navbar-logo {
@@ -49,3 +56,115 @@
   color: lightgray;
 }
 
+/* Navbar Styles */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+}
+
+.navbar-toggler {
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: white;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-right {
+    position: relative;
+}
+
+.wifi-button {
+    font-size: 22px;
+    color: white;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+}
+
+.wifi-button:hover {
+    color: #e0e0e0;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -250px; /* Start hidden */
+    width: 250px;
+    height: 100%;
+    background-color: #343a40;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    padding: 20px;
+    overflow-y: auto;
+    transition: left 0.3s ease;
+    z-index: 1050;
+}
+
+.sidebar.open {
+    left: 0; /* Slide in */
+}
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    width: 100%;
+}
+
+.sidebar-nav li {
+    margin-bottom: 10px;
+}
+
+.sidebar-link {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    display: block;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-link:hover {
+    background-color: #495057;
+}
+
+.sidebar-link.active {
+    background-color: #007bff;
+}
+
+/* Sidebar Close Button */
+.close-sidebar {
+    align-self: flex-end;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+/* Overlay for the Sidebar */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    cursor: pointer;
+}

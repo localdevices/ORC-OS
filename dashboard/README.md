@@ -18,6 +18,7 @@ npm install
 npm install axios  # for API connection
 npm install react-router-dom  # for organizing the router
 npm install dotenv  # for setting environment variables
+npm install react-icons
 
 # Start dev server, ensuring the API url is added as environment variable
 VITE_API_BASE_URL="http://<name-of-server>:<port-of-server>" npm run dev
