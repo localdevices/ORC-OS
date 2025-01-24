@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import VideoTab from './calibrationTabs/videoTab'
+import XYZWidget from './calibrationTabs/XyzWidget';
+
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 
 const Calibration = () => {
   const [activeTab, setActiveTab] = useState('video');
+  const [widgets, setWidgets] = useState([]);
+  const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
+  const [nextId, setNextId] = useState(1);  // widget ids increment automatically
+  const [dots, setDots] = useState([]); // Array of { x, y, id } objects
+
   const [formData, setFormData] = useState({
     video: '',
     controlPoints: '',
@@ -24,8 +31,37 @@ const Calibration = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Form submitted:', formData);
-    alert('Form submitted successfully!');
   };
+
+  const addWidget = () => {
+    setWidgets((prevWidgets) => [
+      ...prevWidgets,
+      { id: nextId, coordinates: { x: '', y: '', z: '', row: '', col: ''  } },
+    ]);
+    setNextId((prevId) => prevId + 1); // increment the unique id for the next widget
+  };
+
+  const updateWidget = (id, updatedCoordinates) => {
+    setWidgets((prevWidgets) =>
+      prevWidgets.map((widget) =>
+        widget.id === id ? { ...widget, coordinates: updatedCoordinates } : widget
+      )
+    );
+  };
+
+  const deleteWidget = (id) => {
+    setWidgets((prevWidgets) => prevWidgets.filter((widget) => widget.id !== id));
+    console.log(dots.filter);
+    // also delete the dot
+    setDots((prevDots) => {
+      // Copy the previous state object
+      const newDots = { ...prevDots };
+      delete newDots[id];
+      return newDots;
+    });
+
+  };
+
 
   return (
     <div className="tabbed-form-container">
@@ -68,6 +104,11 @@ const Calibration = () => {
         <div className="tab-content">
           {activeTab === 'video' && (
               <VideoTab
+                widgets={widgets}
+                selectedWidgetId={selectedWidgetId}
+                updateWidget={updateWidget}
+                dots={dots}
+                setDots={setDots}
               />
           )}
           {activeTab === 'threed' && (
@@ -92,6 +133,35 @@ const Calibration = () => {
             </div>
           )}
         </div>
+        <div className="tabs-column" style={{width:"300px"}}>
+      <div style={{ flex: 1 }}>
+          <button onClick={addWidget} className="active-tab">Add GCP</button>
+          {widgets.map((widget) => (
+            <div key={widget.id} onClick={(event) =>
+                setSelectedWidgetId(widget.id)
+              }
+              style={{
+                border: selectedWidgetId === widget.id ? '4px solid red' : '1px solid black',
+                marginTop: '10px',
+                marginBottom: '10px',
+                padding: '5px',
+                color: 'white',
+                cursor: 'pointer',
+              }}
+            >
+              <XYZWidget
+                id={widget.id}
+                coordinates={widget.coordinates}
+                onUpdate={(id, coordinates) => updateWidget(id, coordinates)}
+                onDelete={deleteWidget}
+              />
+            </div>
+          ))}
+      </div>
+
+        </div>
+
+
       </form>
 
       {/* Submit button section */}

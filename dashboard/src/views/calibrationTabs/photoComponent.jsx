@@ -1,9 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { TransformComponent, useTransformEffect, useTransformInit } from 'react-zoom-pan-pinch';
 
-const PhotoComponent = ({imageRef, selectedWidgetId, updateWidget, widgets, scale}) => {
+const PhotoComponent = ({imageRef, selectedWidgetId, updateWidget, widgets, scale, dots, setDots}) => {
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
-  const [dots, setDots] = useState([]); // Array of { x, y, id } objects
 
   useTransformInit(({state, instance}) => {
     // ensure the zoom/pan state is stored in a react state at the mounting of the photo element
@@ -45,7 +44,7 @@ const PhotoComponent = ({imageRef, selectedWidgetId, updateWidget, widgets, scal
     // Calculate the row and column on the **original image** (as percentages)
     const originalRow = Math.round(normalizedY * originalHeight * 100) / 100;
     const originalCol = Math.round(normalizedX * originalWidth * 100) / 100;
-
+    console.log(widgets);
    // Add the new dot to the state with the ID of the associated widget
   if (!selectedWidgetId) {
     alert("Please select a widget to update its row/column.");
@@ -76,8 +75,6 @@ const PhotoComponent = ({imageRef, selectedWidgetId, updateWidget, widgets, scal
       {/* Render colored dots */}
       {Object.entries(dots).map(([widgetId, dot]) => {
         const imgElement = imageRef.current;
-        const boundingBox = imgElement.getBoundingClientRect();
-//         console.log(boundingBox);
         return (
           <div
             key={widgetId}
