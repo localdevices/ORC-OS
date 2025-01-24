@@ -13,7 +13,34 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete }) => {
 
   return (
     <div className="widget">
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ marginTop: '5px', display: 'flex', gap: '15px' }}>
+          <label>
+            row:
+            <input
+              type="number"
+              name="row"
+              step="1"
+              value={coordinates.row || ''}
+              onChange={handleChange}
+              disabled
+            />
+          </label>
+          <label>
+            column:
+            <input
+              type="number"
+              name="col"
+              step="1"
+              value={coordinates.col || ''}
+              onChange={handleChange}
+              disabled
+            />
+          </label>
+          <button className="close-button" onClick={handleDelete}>
+            &times;
+          </button>
+      </div>
+      <div style={{ display: 'flex', gap: '5px', marginTop: '0px'}}>
           <label>
             X:
             <input
@@ -42,31 +69,7 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete }) => {
             />
           </label>
       </div>
-      <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-          <label>
-            row:
-            <input
-              type="number"
-              name="row"
-              step="1"
-              value={coordinates.row || ''}
-              onChange={handleChange}
-            />
-          </label>
-          <label>
-            column:
-            <input
-              type="number"
-              name="col"
-              step="1"
-              value={coordinates.col || ''}
-              onChange={handleChange}
-            />
-          </label>
-          <button className="close-button" onClick={handleDelete}>
-            &times;
-          </button>
-      </div>
+
     </div>
   );
 };

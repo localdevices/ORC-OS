@@ -1,10 +1,24 @@
 .widget {
   border: 1px solid black;
-  margin: 10px;
-  padding: 10px;
+  margin: 0px;
+  padding: 5px;
   background-color: #0a4777;
   color: white;
-  fontSize: 6px;
-  borderRadius: 5px;
-
+  font-size: 10px;
 }
+
+.widget input {
+  font-size: 14px; /* Smaller text size */
+  padding: 2px 2px; /* Compact padding for inputs */
+  width: 70px; /* Smaller input width */
+  margin-left: 5px; /* Spacing between label and input */
+  border: 1px solid #ddd; /* Subtle border */
+  border-radius: 3px; /* Rounded input borders */
+  background-color: #fff; /* White background */
+}
+
+.widget input:disabled {
+  background-color: #555;
+  color: white;
+}
+

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ControlPointsTab from './calibrationTabs/controlPointsTab'
+import VideoTab from './calibrationTabs/videoTab'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 
 const Calibration = () => {
@@ -29,6 +29,8 @@ const Calibration = () => {
 
   return (
     <div className="tabbed-form-container">
+      <h1>Camera calibration</h1>
+
       {/* Form container */}
       <form onSubmit={handleSubmit} className="tabbed-layout">
         {/* Tabs column */}
@@ -40,51 +42,51 @@ const Calibration = () => {
               handleTabChange('video');
             }}
           >
-            Video
+            Video view
           </button>
           <button
-            className={activeTab === 'controlPoints' ? 'active-tab' : ''}
+            className={activeTab === 'threed' ? 'active-tab' : ''}
             onClick={(e) => {
               e.preventDefault();
-              handleTabChange('controlPoints');
+              handleTabChange('threed');
             }}
           >
-            Control Points
+            3D View
           </button>
           <button
-            className={activeTab === 'recipe' ? 'active-tab' : ''}
+            className={activeTab === 'map' ? 'active-tab' : ''}
             onClick={(e) => {
               e.preventDefault();
-              handleTabChange('recipe');
+              handleTabChange('map');
             }}
           >
-            Recipe
+            Map View
           </button>
         </div>
 
         {/* Tab content */}
         <div className="tab-content">
           {activeTab === 'video' && (
+              <VideoTab
+              />
+          )}
+          {activeTab === 'threed' && (
             <div>
-              <label>Video URL</label>
+              <label>3D view</label>
               <input
                 type="text"
-                value={formData.video}
-                onChange={(e) => handleInputChange('video', e.target.value)}
+                value={formData.threed}
+                onChange={(e) => handleInputChange('threed', e.target.value)}
               />
             </div>
           )}
-          {activeTab === 'controlPoints' && (
-              <ControlPointsTab
-              />
-          )}
-          {activeTab === 'recipe' && (
+          {activeTab === 'map' && (
             <div>
-              <label>Recipe Details</label>
+              <label>Map view</label>
               <textarea
-                value={formData.recipe}
+                value={formData.map}
                 onChange={(e) =>
-                  handleInputChange('recipe', e.target.value)
+                  handleInputChange('map', e.target.value)
                 }
               ></textarea>
             </div>

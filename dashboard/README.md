@@ -20,6 +20,7 @@ npm install react-router-dom  # for organizing the router
 npm install dotenv  # for setting environment variables
 npm install react-icons
 npm install react-zoom-pan-pinch
+npm install react-draggable
 
 # Start dev server, ensuring the API url is added as environment variable
 VITE_API_BASE_URL="http://<name-of-server>:<port-of-server>" npm run dev
