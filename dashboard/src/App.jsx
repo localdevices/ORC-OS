@@ -10,6 +10,7 @@ import Device from './views/device';
 import DiskManagement from './views/diskManagement'
 import WaterLevel from './views/waterLevel'
 import CameraAim from './views/cameraAim'
+import Calibration from './views/calibration'
 import api from './api'
 
 const App = () => {
@@ -27,6 +28,8 @@ const App = () => {
                     <Route path="/disk_management" element={<DiskManagement />} />
                     <Route path="/water_level" element={<WaterLevel />} />
                     <Route path="/camera_aim" element={<CameraAim />} />
+                    <Route path="/calibration" element={<Calibration />} />
+
                 </Routes>
                 </div>
                 <Footer />

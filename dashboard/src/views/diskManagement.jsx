@@ -127,7 +127,7 @@ const DiskManagement = () => {
                     </label>
                     <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
                 </div>
-                <button type='submit' className='btn btn-primary'>
+                <button type='submit' className='btn'>
                     Submit
                 </button>
 

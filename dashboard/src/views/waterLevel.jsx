@@ -148,7 +148,7 @@ const WaterLevel = () => {
 {/*                     <input type='text' className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/> */}
                     <textarea className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/>
                 </div>
-                <button type='submit' className='btn btn-primary'>
+                <button type='submit' className='btn'>
                     Submit
                 </button>
             </form>

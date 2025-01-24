@@ -1,60 +1,4 @@
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-}
 
-.navbar-toggler {
-    cursor: pointer;
-    border: none;
-    background: none;
-    color: white;
-}
-
-.navbar-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.navbar-logo img {
-  width: 40px;
-  height: 40px;
-}
-
-.navbar-toggle {
-  display: none; /* Hidden by default */
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-/* Default Full-Width Navbar */
-.navbar-collapse {
-  display: flex;
-}
-
-.navbar-collapse ul {
-  list-style: none;
-  display: flex;
-  margin: 0;
-  padding: 0;
-}
-
-.navbar-collapse a {
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.navbar-collapse a:hover {
-  color: lightgray;
-}
 
 /* Navbar Styles */
 .navbar {
@@ -62,16 +6,33 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color: #0a4777;
     color: white;
+    height: 70px;
 }
 
 .navbar-toggler {
+    position: relative;
     cursor: pointer;
+    z-index: 1;
     border: none;
     background: none;
     color: white;
 }
+
+.navbar-toggler:hover::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px; /* Adjust the size of the circle */
+    height: 50px; /* Same as width for a circular shape */
+    background-color: rgba(255, 255, 255, 0.1); /* Light-colored translucent circle */
+    border-radius: 50%; /* Makes it a perfect circle */
+    z-index: -1; /* Ensures the circle is behind the icon */
+}
+
 
 .navbar-brand {
     display: flex;
@@ -145,16 +106,11 @@
     background-color: #007bff;
 }
 
-/* Sidebar Close Button */
-.close-sidebar {
-    align-self: flex-end;
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-    background: none;
-    border: none;
-    cursor: pointer;
-    margin-bottom: 20px;
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensures space between the button and brand */
+    padding: 0.5rem 1rem;
 }
 
 /* Overlay for the Sidebar */

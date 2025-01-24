@@ -1,0 +1,46 @@
+.tabbed-form-container {
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tabbed-layout {
+  display: flex;
+  border: 1px solid #ccc;
+}
+
+.tabs-column {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  background-color: #f9f9f9;
+  border-right: 1px solid #ccc;
+}
+
+.tabs-column button {
+  padding: 15px 10px;
+  text-align: left;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  border-bottom: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.tabs-column button.active-tab {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.tab-content {
+  flex: 1;
+  padding: 20px;
+}
+.img-calibration {
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  pointer-events: auto !important;
+}

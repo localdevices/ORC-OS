@@ -15,6 +15,24 @@
   overflow-y: auto; /* scrollable with overflowing content */
   padding: 1rem; /* Optional: Add some padding */
 }
+.btn {
+  background-color: #0a4777;
+  border-color: #0a4777;
+  color: #fff;
+  marginBottom: 10px;
+}
+/* Close Button for menus and widgets */
+.close-button {
+    align-self: flex-end;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
 
 
 .logo {

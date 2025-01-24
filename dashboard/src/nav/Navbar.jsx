@@ -18,15 +18,11 @@ const Navbar = () => {
 
     return (
         <>
-            <nav className='navbar navbar-dark bg-primary'>
+            <nav className='navbar navbar-dark'>
                 <div className='container-fluid'>
                     <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" onClick={handleToggle}>
                         <span className="navbar-toggler-icon"></span>
                     </button>
-                    <a className='navbar-brand' href="#">
-                        <img src="./public/orc_favicon.svg" alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
-                    {' '} NodeORC
-                    </a>
                     <div className="navbar-right">
                         <FaWifi className="wifi-button" onClick={handleWiFiButtonClick}
                         />
@@ -35,11 +31,17 @@ const Navbar = () => {
                 </div>
             </nav>
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-                <button className="close-sidebar" onClick={handleToggle}>
-                    &times;
-                </button>
-
+                <div className="sidebar-header">
+                    <a className='navbar-brand' href="#">
+                        <img src="./public/orc_favicon.svg" alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
+                    {' '} NodeORC
+                    </a>
+                    <button className="close-button" onClick={handleToggle}>
+                        &times;
+                    </button>
+                </div>
                 <ul className="sidebar-nav">
+                    <hr/>
                     <li>
                         <NavLink
                             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
@@ -75,6 +77,8 @@ const Navbar = () => {
                             Aim your camera in the field
                         </NavLink>
                     </li>
+                    <hr/>
+
                 </ul>
             </div>
             {isOpen && <div className="sidebar-overlay" onClick={handleToggle}></div>}

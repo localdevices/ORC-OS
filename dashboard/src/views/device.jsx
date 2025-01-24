@@ -2,7 +2,6 @@ import React, {useState, useEffect} from 'react';
 import api from '../api';
 import Message from './message'
 
-
 const Device = () => {
 
     const [device, updateDevice] = useState([]);
@@ -200,7 +199,7 @@ const Device = () => {
                     </label>
                     <input type='text' className='form-control' id='message' name='message' onChange={handleInputChange} value={formData.message}/>
                 </div>
-                <button type='submit' className='btn btn-primary'>
+                <button type='submit' className='btn'>
                     Submit
                 </button>
 
