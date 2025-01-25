@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import VideoTab from './calibrationTabs/videoTab'
 import XYZWidget from './calibrationTabs/XyzWidget';
-
+import '../nav/Navbar.css'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 
 const Calibration = () => {
@@ -10,6 +11,8 @@ const Calibration = () => {
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
   const [nextId, setNextId] = useState(1);  // widget ids increment automatically
   const [dots, setDots] = useState([]); // Array of { x, y, id } objects
+  const [GCPsVisible, setGCPsVisible] = useState(false); // State to toggle GCP menu right-side
+
 
   const [formData, setFormData] = useState({
     video: '',
@@ -62,9 +65,21 @@ const Calibration = () => {
 
   };
 
+// Toggles the right menu
+  const toggleMenu = () => {
+    setGCPsVisible((prev) => !prev);
+  };
+  // Detects clicks outside the menu and closes it
+  const handleBackgroundClick = (e) => {
+    if (menuVisible) {
+      setMenuVisible(false);
+    }
+  };
+
 
   return (
     <div className="tabbed-form-container">
+    {GCPsVisible && <div className="sidebar-overlay" onClick={toggleMenu}></div>}
       <h1>Camera calibration</h1>
 
       {/* Form container */}
@@ -133,8 +148,37 @@ const Calibration = () => {
             </div>
           )}
         </div>
-        <div className="tabs-column" style={{width:"300px"}}>
-      <div style={{ flex: 1 }}>
+      </form>
+      {/* Right-side button to toggle the menu */}
+      <button
+        onClick={toggleMenu}
+        style={{
+          position: 'fixed',
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1060,
+          backgroundColor: '#333',
+          color: 'white',
+          padding: '10px',
+          borderRadius: '5px 0 0 5px',
+          cursor: 'pointer',
+          border: 'none',
+          fontSize: '18px',
+        }}
+      >
+        {GCPsVisible ? <FaChevronRight /> : <FaChevronLeft />}
+      </button>
+      {/* Sliding menu (right tabs column) */}
+      <div className={`sidebar-right ${GCPsVisible ? 'visible' : 'hidden'}`}>
+      <a className='navbar-brand' href="#">
+        <img src="./public/orc_favicon.svg" alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
+        {' '} GCPs
+      </a>
+      <div>
+{/*       <div className="tabs-column" style={{width:"300px"}}> */}
+{/*       <div style={{ flex: 1 }}> */}
+
           <button onClick={addWidget} className="active-tab">Add GCP</button>
           {widgets.map((widget) => (
             <div key={widget.id} onClick={(event) =>
@@ -158,11 +202,8 @@ const Calibration = () => {
             </div>
           ))}
       </div>
+      </div>
 
-        </div>
-
-
-      </form>
 
       {/* Submit button section */}
       <div className="form-actions">

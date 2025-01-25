@@ -72,6 +72,7 @@
     overflow-y: auto;
     transition: left 0.3s ease;
     z-index: 1050;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.5);
 }
 
 .sidebar.open {
@@ -123,4 +124,28 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1040;
     cursor: pointer;
+}
+
+.sidebar-right {
+  position: fixed;
+  top: 0;
+  height: 100%;
+  width: 300px;
+  background-color: #343a40;
+  transition: right 0.3s ease;
+  color: white;
+  z-index: 1050;
+  padding: 20px;
+  right: 0px;
+  overflow-y: auto;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+}
+
+.sidebar-right.hidden {
+  right: -320px;
+  box-shadow: none;
+}
+
+.sidebar-right.visible {
+  right: 0px;
 }
