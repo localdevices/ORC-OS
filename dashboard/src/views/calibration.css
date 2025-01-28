@@ -1,9 +1,10 @@
 .tabbed-form-container {
-  margin: 20px;
-  display: flex;
+  display: block;
+  position: relative;
   flex-direction: column;
-  align-items: stretch;
-
+  max-height: 100%;
+  box-sizing: border-box;
+  margin: 0px;
 }
 
 .tabbed-layout {
@@ -12,34 +13,56 @@
   margin-bottom: 10px;
 }
 
-.tabs-column {
+/* tab row layout */
+.tabs-row {
   display: flex;
-  flex-direction: column;
-  width: 200px;
-  background-color: #f9f9f9;
-  border-right: 1px solid #ccc;
+  justify-content: start; /* Align tabs to the left */
+  padding: 5px;
+  background-color: #f8f9fa; /* Light background for tabs row */
+  border-bottom: 2px solid #ccc; /* Underline divider */
 }
 
-.tabs-column button {
-  padding: 15px 10px;
-  text-align: left;
-  background-color: transparent;
-  border: none;
+/* Style for individual tabs */
+.tabs-row button {
+  border: 0px solid #ccc;
+  border-radius: 5px 5px 0 0; /* Rounded top corners */
+  padding: 10px 20px;
+  margin-right: 5px; /* Space between tabs */
+  background: #e9ecef; /* Default background color */
+  color: #000;
   cursor: pointer;
-  border-bottom: 1px solid #ccc;
-  font-size: 16px;
-  width: 100%; // button span over the entire width of the
+  transition: all 0.3s ease;
+  font-size: 13px;
 }
 
-.tabs-column button.active-tab {
-  background-color: #007bff;
-  color: white;
-  font-weight: bold;
+/* Hover effect for tabs */
+.tabs-row button:hover {
+  background: #d6dade; /* Slightly darker hover color */
 }
 
-.tab-content {
+/* Active tab styling */
+.tabs-row .active-tab {
+  background: #fff; /* Active tab matches content background */
+  border-bottom: 2px solid white; /* Matches the background */
+  font-weight: bold; /* Highlight active tab with bold text */
+}
+
+
+
+/* .tab-content {
   flex: 1;
   padding: 0px;
+} */
+
+.tab-content {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  position: relative;
+  height: 100%;
+  padding: 0px;
+  background: #fff;
+  /*border: 1px solid #ccc;
+  /*border-radius: 0 5px 5px 5px; /* Rounded bottom corners (Excel style) */
 }
 
 .img-calibration {

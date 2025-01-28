@@ -8,8 +8,8 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, setDots}) => {
 
   return (
     <div>
-      <div style={{ display: 'flex', margin: '5px' }}>
-          <div style={{ flex: 1, border: '1px solid black', position: 'relative' }}>
+      <div>
+          <div style={{ flex: 1}}>
              <TransformWrapper
                // ensure the scale is tracked all the time
                onTransformed={(e) => {

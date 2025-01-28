@@ -7,13 +7,20 @@
 .app-container {
   display: flex;
   flex-direction: column; /* Stack Navbar, Main Content, and Footer */
+  margin: 0;
+  padding: 0;
   height: 100vh; /* Ensure the container fills the entire viewport */
+  width: 100%;
   overflow: hidden; /* prevent body from scrolling */
+  box-sizing: border-box;
+
 }
 .main-content {
-  flex: 1; /* This makes the main content area take up the remaining space */
+  flex: 1 1 auto; /* This makes the main content area take up the remaining space */
   overflow-y: auto; /* scrollable with overflowing content */
-  padding: 1rem; /* Optional: Add some padding */
+  position: relative;
+  padding: 1rem 1rem; /* Optional: Add some padding */
+  height: 100%;
 }
 .btn {
   background-color: #0a4777;

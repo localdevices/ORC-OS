@@ -1,4 +1,5 @@
 .footer {
+  flex: 0 0 auto;
   background-color: #0a4777; /* Consistent color */
   color: white;
   text-align: center;

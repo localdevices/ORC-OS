@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import VideoTab from './calibrationTabs/videoTab'
 import XYZWidget from './calibrationTabs/XyzWidget';
+import MapTab from './calibrationTabs/mapTab';
 import '../nav/Navbar.css'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 
@@ -12,7 +13,7 @@ const Calibration = () => {
   const [nextId, setNextId] = useState(1);  // widget ids increment automatically
   const [dots, setDots] = useState([]); // Array of { x, y, id } objects
   const [GCPsVisible, setGCPsVisible] = useState(false); // State to toggle GCP menu right-side
-
+  const [epsgCode, setEpsgCode] = useState(4326);
 
   const [formData, setFormData] = useState({
     video: '',
@@ -82,10 +83,8 @@ const Calibration = () => {
     {GCPsVisible && <div className="sidebar-overlay" onClick={toggleMenu}></div>}
       <h1>Camera calibration</h1>
 
-      {/* Form container */}
-      <form onSubmit={handleSubmit} className="tabbed-layout">
-        {/* Tabs column */}
-        <div className="tabs-column">
+        {/* Tabs row */}
+        <div className="tabs-row">
           <button
             className={activeTab === 'video' ? 'active-tab' : ''}
             onClick={(e) => {
@@ -137,18 +136,14 @@ const Calibration = () => {
             </div>
           )}
           {activeTab === 'map' && (
-            <div>
-              <label>Map view</label>
-              <textarea
-                value={formData.map}
-                onChange={(e) =>
-                  handleInputChange('map', e.target.value)
-                }
-              ></textarea>
-            </div>
+            <MapTab
+              epsgCode={epsgCode}
+              widgets={widgets}
+              selectedWidgetId={selectedWidgetId}
+              updateWidget={updateWidget}
+            />
           )}
         </div>
-      </form>
       {/* Right-side button to toggle the menu */}
       <button
         onClick={toggleMenu}
@@ -175,9 +170,20 @@ const Calibration = () => {
         <img src="./public/orc_favicon.svg" alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
         {' '} GCPs
       </a>
+      <hr/>
       <div>
-{/*       <div className="tabs-column" style={{width:"300px"}}> */}
-{/*       <div style={{ flex: 1 }}> */}
+        {/* CRS Input */}
+        <div style={{ marginBottom: '1rem' }}>
+          <label htmlFor="epsgCode" style={{ marginRight: '10px' }}>Coordinate reference system (e.g. EPSG code or Proj4 string):</label>
+          <input
+            type="text"
+            id="epsgCode"
+            value={epsgCode}
+            onChange={(e) => setEpsgCode(e.target.value)}
+            placeholder="4326"
+            style={{ width: '300px' }}
+          />
+        </div>
 
           <button onClick={addWidget} className="active-tab">Add GCP</button>
           {widgets.map((widget) => (
