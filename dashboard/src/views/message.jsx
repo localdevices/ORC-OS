@@ -1,4 +1,7 @@
-import React, { useEffect } from "react";
+import React, { createContext, useState, useContext } from "react";
+
+const MessageContext = createContext();
+
 
 function Message({ message, messageType, clearMessage }) {
   // Auto-clear message after 5 seconds

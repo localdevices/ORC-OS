@@ -55,6 +55,7 @@
 } */
 
 .tab-content {
+  display: flex;
   margin-top: 0px;
   margin-bottom: 0px;
   position: relative;
@@ -70,4 +71,5 @@
   height: auto;
   cursor: crosshair;
   pointer-events: auto !important;  // necessary to ensure that styling and click events are picked up within a transform view
+  touch-action: manipulation;
 }

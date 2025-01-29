@@ -11,6 +11,11 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, setDots}) => {
       <div>
           <div style={{ flex: 1}}>
              <TransformWrapper
+               pinchEnabled={true}
+               wheelEnabled={false}
+               touchEnabled={true}
+               panEnabled={true}
+               preventWheel={true}
                // ensure the scale is tracked all the time
                onTransformed={(e) => {
                  setScale(e.state.scale)

@@ -1,7 +1,4 @@
-//window.process = {};
 import axios from 'axios'
-//import dotenv from 'dotenv';
-//dotenv.config();
 
 // Ensure API_BASE_URL is defined
 if (!import.meta.env.VITE_API_BASE_URL) {

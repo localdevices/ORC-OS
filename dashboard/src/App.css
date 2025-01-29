@@ -3,6 +3,7 @@
   padding: 0 auto;
   // text-align: center;
   height: 100%;
+  font-family: Barlow;
 }
 .app-container {
   display: flex;

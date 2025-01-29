@@ -10,6 +10,8 @@
     background-color: #0a4777;
     color: white;
     height: 60px;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.5);
+
 }
 
 .navbar-toggler {
@@ -128,7 +130,8 @@
 }
 
 .sidebar-right {
-  position: fixed;
+  position: absolute;
+  overflow-x: none;
   top: 0;
   height: 100%;
   width: 300px;

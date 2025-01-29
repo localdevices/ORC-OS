@@ -1,8 +1,10 @@
+import {useState, useEffect} from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import reactLogo from '/react.svg'
 import orcLogo from '/orc_favicon.svg'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import './App.css'
+import { MessageProvider } from './messageContext';
 import Navbar from './nav/Navbar';
 import Footer from './nav/Footer';
 import Home from './views/home';
@@ -14,7 +16,9 @@ import Calibration from './views/calibration'
 import api from './api'
 
 const App = () => {
+
     return (
+        <MessageProvider>
         <Router>
             <div className="app-container">
                 {/* Navbar appears everywhere */}
@@ -35,6 +39,7 @@ const App = () => {
                 <Footer />
             </div>
         </Router>
+        </MessageProvider>
     )
 }
 
