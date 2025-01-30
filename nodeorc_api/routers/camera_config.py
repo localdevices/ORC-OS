@@ -7,6 +7,7 @@ from nodeorc_api.schemas.camera_config import CameraConfigCreate, CameraConfigRe
 from nodeorc_api.database import get_db
 from nodeorc_api import crud
 from pyorc.cli.cli_utils import get_gcps_optimized_fit
+from pyorc.cv import solvepnp
 from pyproj import CRS, Proj
 
 router: APIRouter = APIRouter(prefix="/camera_config", tags=["camera_config"])
@@ -71,17 +72,21 @@ async def fit_perspective(gcps: GCPs = Body(
     if len(src) != len(dst):
         raise HTTPException(status_code=400, detail="The number of source and destination points must be the same")
 
+    if len(src) < 6:
+        raise HTTPException(status_code=400, detail="The number of control points must be at least 6")
+
     # Example response (you can customize this behavior)
     try:
-        src_est, dst_est, camera_matrix, dist_coeffs, error = get_gcps_optimized_fit(src, dst, height, width)
+        src_est, dst_est, camera_matrix, dist_coeffs, rvec, tvec, error = get_gcps_optimized_fit(src, dst, height, width)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Perspective constraints failed: {str(e)}")
-
     return FittedPoints(
         src_est=src_est,
         dst_est=dst_est,
         camera_matrix=camera_matrix,
         dist_coeffs=dist_coeffs,
+        rvec=rvec,
+        tvec=tvec,
         error=error
     )
 

@@ -33,4 +33,6 @@ class FittedPoints(BaseModel):
     dst_est: List[List[float]]
     camera_matrix: List[List[float]]
     dist_coeffs: List[List[float]]
+    rvec: List[float]
+    tvec: List[float]
     error: float

@@ -24,52 +24,37 @@ def gcps_data():
             [192105.2958125107, 313172.0257530752, 150.616],
             [192110.35620407888, 313162.5371485311, 150.758],
         ],
-        "crs": None
+        "crs": None,
+        "height": 1080,
+        "width": 1920
+
     }
 
 def test_fit_perspective_success(gcps_data):
     response = client.post("/camera_config/fit_perspective", json=gcps_data)
     assert response.status_code == 200
-    assert response.json()["message"] == "Perspective fit successfully"
-    assert response.json()["src"] == gcps_data["src"]
-    assert response.json()["dst"] == gcps_data["dst"]
+    assert "src_est" in response.json()
+    assert "dst_est" in response.json()
 
-    def test_fit_perspective_mismatched_input_lengths():
-        gcps_data = {
-            "src": [[10.0, 20.0], [30.0, 40.0]],
-            "dst": [[15.0, 25.0]],
-            "crs": "EPSG:4326"
-        }
-        response = client.post("/fit_perspective", json=gcps_data)
-        assert response.status_code == 400
-        assert "must be the same" in response.json()["detail"]
+def test_fit_perspective_mismatched_input_lengths(gcps_data):
+    # reduce nr of points
+    gcps_data["src"] = gcps_data["src"][:-1]
 
-    def test_fit_perspective_invalid_crs():
-        gcps_data = {
-            "src": [[10.0, 20.0], [30.0, 40.0]],
-            "dst": [[15.0, 25.0], [35.0, 45.0]],
-            "crs": "INVALID_CRS"
-        }
-        response = client.post("/fit_perspective", json=gcps_data)
-        assert response.status_code == 400
-        assert "Invalid CRS" in response.json()["detail"]
+    response = client.post("/camera_config/fit_perspective", json=gcps_data)
+    assert response.status_code == 400
+    assert "must be the same" in response.json()["detail"]
 
-    def test_fit_perspective_unsupported_geographic_crs():
-        gcps_data = {
-            "src": [[10.0, 20.0], [30.0, 40.0]],
-            "dst": [[15.0, 25.0], [35.0, 45.0]],
-            "crs": "EPSG:3857"
-        }
-        response = client.post("/fit_perspective", json=gcps_data)
-        assert response.status_code == 400
-        assert "Only lat lon is supported if CRS is geographic" in response.json()["detail"]
+def test_fit_perspective_invalid_crs(gcps_data):
+    gcps_data["crs"] = "invalid"
+    response = client.post("/camera_config/fit_perspective", json=gcps_data)
+    assert response.status_code == 400
+    assert "Invalid CRS" in response.json()["detail"]
 
-    def test_fit_perspective_insufficient_src_coordinates():
-        gcps_data = {
-            "src": [],
-            "dst": [[15.0, 25.0], [35.0, 45.0]],
-            "crs": "EPSG:4326"
-        }
-        response = client.post("/fit_perspective", json=gcps_data)
-        assert response.status_code == 400
-        assert "The number of source and destination points must be the same" in response.json()["detail"]
+
+def test_fit_perspective_insufficient_src_coordinates(gcps_data):
+    # reduce nr of points by one
+    gcps_data["src"] = gcps_data["src"][:-1]
+    gcps_data["dst"] = gcps_data["dst"][:-1]
+    response = client.post("/camera_config/fit_perspective", json=gcps_data)
+    assert response.status_code == 400
+    assert "The number of control points must be at least" in response.json()["detail"]
