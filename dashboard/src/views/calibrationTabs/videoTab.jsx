@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { TransformWrapper, TransformComponent, useTransformEffect, useTransformInit } from 'react-zoom-pan-pinch';
+import { useState, useRef } from 'react';
+import { TransformWrapper } from 'react-zoom-pan-pinch';
 import PhotoComponent from './photoComponent';
 
-const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, setDots}) => {
+import PropTypes from 'prop-types';
+
+const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, imgDims, setDots, setImgDims}) => {
   const [scale, setScale] = useState(1);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
 
@@ -28,20 +30,30 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, setDots}) => {
                    widgets={widgets}
                    scale={scale}
                    dots={dots}
+                   imgDims={imgDims}
                    setDots={setDots}
+                   setImgDims={setImgDims}
                  />
             </TransformWrapper>
             <div style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
               Click on the photo to select row/column
             </div>
           </div>
-      <div>
-        </div>
       </div>
-      <h2>Current Coordinates:</h2>
-      <pre>{JSON.stringify(widgets, null, 2)}</pre>
+{/*       <h2>Current Coordinates:</h2> */}
+{/*       <pre>{JSON.stringify(widgets, null, 2)}</pre> */}
     </div>
   );
+};
+
+VideoTab.propTypes = {
+  widgets: PropTypes.array.isRequired,
+  selectedWidgetId: PropTypes.oneOfType([PropTypes.number]),
+  updateWidget: PropTypes.func.isRequired,
+  dots: PropTypes.object.isRequired,
+  imgDims: PropTypes.object,
+  setDots: PropTypes.func.isRequired,
+  setImgDims: PropTypes.func.isRequired,
 };
 
 export default VideoTab;

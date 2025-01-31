@@ -6,7 +6,7 @@
     flex: 0 0 auto;
     justify-content: space-between;
     align-items: center;
-    padding: 0px 0px;
+    padding: 0 0;
     background-color: #0a4777;
     color: white;
     height: 60px;
@@ -131,25 +131,26 @@
 
 .sidebar-right {
   position: absolute;
-  overflow-x: none;
   top: 0;
+  right: 0;
   height: 100%;
-  width: 300px;
+  width: 0;
   background-color: #343a40;
-  transition: right 0.3s ease;
+  transition: all 0.3s ease;
   color: white;
-  z-index: 1050;
-  padding: 20px;
-  right: 0px;
-  overflow-y: auto;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.5);
-}
-
-.sidebar-right.hidden {
-  right: -320px;
-  box-shadow: none;
+  z-index: -1;
+  padding: 10px;
+  overflow: auto; // hide when width is zero
+  max-height: 100%;  // will not exceed content height
+  box-shadow: -5px 0 5px rgba(0,0,0,0.5);
 }
 
 .sidebar-right.visible {
-  right: 0px;
+  width: 300px;
+  z-index: 1050;
+}
+
+.sidebar-right input {
+  width: 100px; /* Smaller input width */
+
 }

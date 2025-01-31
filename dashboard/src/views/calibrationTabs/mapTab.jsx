@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import proj4 from 'proj4';
-import epsg from 'epsg-index';
-import epsgDB from '../../proj-db.json'; // Adjust the path as needed
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { createCustomMarker } from '../../utils/leafletUtils';
+import L from 'leaflet';
+
 import "leaflet/dist/leaflet.css";
+import epsgDB from '../../proj-db.json'; // Adjust the path as needed
 
 
 // Ensure proj4 is set up to convert between CRS definitions
@@ -14,10 +14,10 @@ proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
 console.log(proj4.defs['EPSG:4326']); // Output: "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
 console.log(proj4.defs[epsgDB[28992]]); // Output: "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
 
-const MapTab = ({epsgCode, widgets, selectedWidgetId, updateWidget, mapIsVisible}) => {
+import PropTypes from "prop-types";
+
+const MapTab = ({epsgCode, widgets, mapIsVisible}) => {
   const [mapLayers, setMapLayers] = useState("OSM"); // Map layer type
-  const [controlPoints, setControlPoints] = useState([]); // Coordinate set
-  const [coordinateForms, setCoordinateForms] = useState([]); // Track widgets
   const mapRef = useRef(null);
   // Define the default CRS as WGS84
   const defaultCrs = 'EPSG:4326';
@@ -78,12 +78,12 @@ const MapTab = ({epsgCode, widgets, selectedWidgetId, updateWidget, mapIsVisible
           // try to get the proj4 from the defs directly
           try {
             proj4Def = proj4.defs[`EPSG:${sourceCrs.toString()}`]
-          } catch (error) {
-            console.error(`Projection ${sourceCode} not found in proj4 lib`)
+          } catch {
+            console.error(`Projection ${sourceCrs} not found in proj4 lib`)
           }
         }
-      } catch (error) {
-        console.error(`Projection ${sourceCode} not found in proj4 or EPSG database`);
+      } catch {
+        console.error(`Projection ${sourceCrs} not found in proj4 or EPSG database`);
         return null;
       }
     } else {
@@ -100,24 +100,25 @@ const MapTab = ({epsgCode, widgets, selectedWidgetId, updateWidget, mapIsVisible
   };
 /* first div is problematic, makes the page overflow */
   return (
-    <div style={{ height: "100%", width: "100%" }}>
+    <div style={{overflow: "hidden", height: "100vh", width: "100%" }}>
       {/* Map container */}
         <MapContainer
           ref={mapRef}
           center={[0, 0]}
           zoom={3}
-          style={{ height: "70vh", width: "100%", position: "absolute"}}
+          style={{ height: "70vh", width: "100%", position: "relative"}}
         >
           {/* Tile layers */}
           {mapLayers === "OSM" && (
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-
+              maxZoom={22} maxNativeZoom={19}
             />
           )}
           {mapLayers === "Satellite" && (
-            <TileLayer url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}" />
+            <TileLayer url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}" maxZoom={22} maxNativeZoom={19}/>
+
           )}
 
           {/* Render dynamically added markers */}
@@ -144,8 +145,8 @@ const MapTab = ({epsgCode, widgets, selectedWidgetId, updateWidget, mapIsVisible
         <div
           style={{
             position: "absolute",
-            top: "10px",
-            right: "10px",
+            top: "90px",
+            left: "10px",
             zIndex: 1000,
             background: "white",
             padding: "10px",
@@ -178,6 +179,19 @@ const MapTab = ({epsgCode, widgets, selectedWidgetId, updateWidget, mapIsVisible
         </MapContainer>
       </div>
   );
+};
+
+MapTab.propTypes = {
+    epsgCode: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    widgets: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        coordinates: PropTypes.shape({
+            x: PropTypes.number.isRequired,
+            y: PropTypes.number.isRequired,
+        }).isRequired,
+        icon: PropTypes.object, // Assuming icon is an object (Leaflet icons are objects)
+    })).isRequired,
+    mapIsVisible: PropTypes.bool.isRequired,
 };
 
 export default MapTab;

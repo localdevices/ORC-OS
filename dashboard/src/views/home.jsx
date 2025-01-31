@@ -1,8 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import { useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import reactLogo from '/react.svg'
 import orcLogo from '/orc_favicon.svg'
-import api from "../api"
 
 const Home = () => {
   const [count, setCount] = useState(0)

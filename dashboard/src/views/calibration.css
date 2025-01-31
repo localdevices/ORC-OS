@@ -4,7 +4,7 @@
   flex-direction: column;
   max-height: 100%;
   box-sizing: border-box;
-  margin: 0px;
+  margin: 0;
 }
 
 .tabbed-layout {
@@ -24,7 +24,7 @@
 
 /* Style for individual tabs */
 .tabs-row button {
-  border: 0px solid #ccc;
+  border: 0 solid #ccc;
   border-radius: 5px 5px 0 0; /* Rounded top corners */
   padding: 10px 20px;
   margin-right: 5px; /* Space between tabs */
@@ -47,23 +47,31 @@
   font-weight: bold; /* Highlight active tab with bold text */
 }
 
+.tab-container {
+  display: flex; /* Enables flexbox layout */
+  width: 100%; /* Full width of the container */
+  height: 100%; /* Optional, depending on the layout */
+  overflow: hidden; /* Ensures no extra content spills outside */
+  position: relative; /* Optional for contextual positioning */
+}
 
-
-/* .tab-content {
-  flex: 1;
-  padding: 0px;
-} */
 
 .tab-content {
-  display: flex;
-  margin-top: 0px;
-  margin-bottom: 0px;
+  flex: 1; /* Fills the remaining space by default */
+  overflow: hidden; // to ensure side bar is not visible.
+  transition: all 0.3 ease;
+  margin-top: 0;
+  margin-bottom: 0;
   position: relative;
-  height: 100%;
-  padding: 0px;
+  height: 80vh;
+  padding: 0;
   background: #fff;
   /*border: 1px solid #ccc;
   /*border-radius: 0 5px 5px 5px; /* Rounded bottom corners (Excel style) */
+}
+
+.tab-content.shifting {
+  margin-right: 300px;
 }
 
 .img-calibration {
