@@ -4,6 +4,16 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 In case reproductivity is required, the template was set up as follows:
 
+Install necessary npm dependency in latest version
+```shell
+sudo apt install npm
+# get the latest version
+sudo npm install -g npm@latest
+sudo npm install -g node@latest
+```
+
+sudo npm install -g npm@latest
+
 ```shell
 # Create new Vite project
 npm create vite@latest portal

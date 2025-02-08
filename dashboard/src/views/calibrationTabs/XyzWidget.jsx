@@ -3,8 +3,14 @@ import './widget.css'
 
 const XYZWidget = ({ id, coordinates, onUpdate, onDelete }) => {
   const handleChange = (e) => {
+    console.log(e);
     const { name, value } = e.target;
-    onUpdate(id, { ...coordinates, [name]: value });
+
+    if (name === 'row' || name === 'col') {
+      onUpdate(id, {...coordinates, [name]: value });
+    } else {
+      onUpdate(id, {...coordinates, [name]: value});
+    }
   };
 
   const handleDelete = () => {

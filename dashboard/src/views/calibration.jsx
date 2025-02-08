@@ -63,7 +63,7 @@ const Calibration = () => {
         {
           id: nextId,
           color: color,
-          coordinates: {x: '', y: '', z: '', row: '', col: ''},
+          coordinates: { x: '', y: '', z:'', row: '', col: ''},
           icon: createCustomMarker(color, nextId)
         },
       ]
@@ -72,9 +72,10 @@ const Calibration = () => {
   };
 
   const updateWidget = (id, updatedCoordinates) => {
+
     setWidgets((prevWidgets) =>
       prevWidgets.map((widget) =>
-        widget.id === id ? {...widget, coordinates: updatedCoordinates} : widget
+        widget.id === id ? {...widget, coordinates: updatedCoordinates } : widget
       )
     );
   };
@@ -134,9 +135,16 @@ const Calibration = () => {
         }
 
         // Parse EPSG code
-        const geoEpsgCode = geojson?.epsgCode || epsgCode;
-        setEpsgCode(geoEpsgCode);
-
+        const crs_str = geojson?.crs?.properties?.name;
+        // Regex to find "EPSG::" followed by digits
+        const epsgMatch = crs_str.match(/EPSG::(\d+)/);
+        if (epsgMatch) {
+          const epsgNumber = epsgMatch[1]; // Extract the captured group (digits after "EPSG::")
+          console.log(`EPSG code found: ${epsgNumber}`);
+          setEpsgCode(epsgNumber);
+        } else {
+          console.log("EPSG not found in the string.");
+        }
         // Clear existing widgets before adding new ones
         clearWidgets();
 
