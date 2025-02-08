@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import api from '../api';
-import Message from './message'
+import MessageBox from '../messageBox';
+import {useMessage} from '../messageContext';
 
 const Device = () => {
 
@@ -11,8 +12,6 @@ const Device = () => {
     const [deviceFormStatuses, setDeviceFormStatuses] = useState([]);
     const [loading, setLoading] = useState(true); // State for loading indicator
     const [error, setError] = useState(null); // State for error handling
-    const [message, setMessage] = useState(null); // State for message handling
-    const [messageType, setMessageType] = useState(null); // State for message type
     const [formData, setFormData] = useState({
         name: '',
         operating_system: '',
@@ -23,6 +22,9 @@ const Device = () => {
         nodeorc_version: '',
         message: ''
     });
+    // set message box
+    const {setMessageInfo} = useMessage();
+
     const fetchDevice = async () => {
         const response = await api.get('/device/');
         updateDevice(response.data)
@@ -103,8 +105,7 @@ const Device = () => {
                 const errorData = await response.json()
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
-            setMessage("Device information updated successfully!");
-            setMessageType("success");
+            setMessageInfo('success', 'Device information updated successfully!');
 
             // read back the device after posting
             fetchDevice();
@@ -122,12 +123,12 @@ const Device = () => {
             setDeviceStatus(device.status);
 
         } catch (err) {
-            setMessage(err.response.data);
-            setMessageType("error")
+            setMessageInfo('error', err.response.data);
         }
     };
     return (
         <div className='container'>
+            <MessageBox/>
             Change your device details. You can only change a few fields. Most are set and controlled by NodeORC.
             <hr/>
             <form onSubmit={handleFormSubmit}>

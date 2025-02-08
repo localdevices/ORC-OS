@@ -1,12 +1,11 @@
-import React, {useState, useEffect} from 'react';
+import {useState, useEffect} from 'react';
 import api from '../api';
-import Message from './message'
+import {useMessage} from '../messageContext';
+import MessageBox from '../messageBox';
 
 const DiskManagement = () => {
 
     const [diskManagement, updateDiskManagement] = useState([]);
-    const [message, setMessage] = useState(null); // State for message handling
-    const [messageType, setMessageType] = useState(null); // State for message type
     const [formData, setFormData] = useState({
         created_at: '',
         home_folder: '',
@@ -14,6 +13,8 @@ const DiskManagement = () => {
         critical_space: '',
         frequency: ''
     });
+    // set message box
+    const {setMessageInfo} = useMessage();
 
     const fetchDiskManagement = async () => {
         const response = await api.get('/disk_management/');
@@ -62,8 +63,7 @@ const DiskManagement = () => {
                 const errorData = await response.json()
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
-            setMessage("Disk management updated successfully!");
-            setMessageType("success");
+            setMessageInfo('success', 'Disk management updated successfully');
             // read back the device after posting
             fetchDiskManagement();
             // set the form data to new device settings
@@ -75,21 +75,13 @@ const DiskManagement = () => {
                 frequency: '',
             });
         } catch (err) {
-            setMessage(err.response.data);
-            setMessageType("error")
+            setMessageInfo('Error while updating Disk Management', err.response.data);
         }
     };
     return (
         <div className='container'>
             Change your disk management settings.
-            <Message
-              message={message}
-              messageType={messageType}
-              clearMessage={() => {
-                setMessage("");
-                setMessageType("");
-              }}
-            />
+            <MessageBox/>
 
             <hr/>
             <form onSubmit={handleFormSubmit}>

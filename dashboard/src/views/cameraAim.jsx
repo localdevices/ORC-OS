@@ -1,7 +1,4 @@
 import React, {useState, useEffect} from 'react';
-
-import reactLogo from '/react.svg'
-import orcLogo from '/orc_favicon.svg'
 import api from "../api"
 import './cameraAim.css'
 

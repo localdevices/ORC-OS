@@ -72,6 +72,13 @@ const Navbar = () => {
                     </li>
                     <li>
                         <NavLink
+                          className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                          to="/callback_url" onClick={handleClose}>
+                            Set up LiveORC link
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink
                             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                             to="/camera_aim" onClick={handleClose}>
                             Aim your camera in the field

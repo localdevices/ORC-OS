@@ -1,12 +1,11 @@
-import React, {useState, useEffect} from 'react';
+import {useState, useEffect} from 'react';
 import api from '../api';
-import Message from './message'
+import {useMessage} from '../messageContext';
+import MessageBox from '../messageBox';
 
 const WaterLevel = () => {
     const [scriptTypeStatus, setScriptTypeStatus] = useState([]);
     const [waterLevel, updateWaterLevel] = useState([]);
-    const [message, setMessage] = useState(null); // State for message handling
-    const [messageType, setMessageType] = useState(null); // State for message type
     const [formData, setFormData] = useState({
         created_at: '',
         datetime_fmt: '',
@@ -15,6 +14,8 @@ const WaterLevel = () => {
         script_type: '',
         script: ''
     });
+    // set up message box
+    const {setMessageInfo} = useMessage();
 
     const fetchWaterLevel = async () => {
         const response = await api.get('/water_level/');
@@ -72,8 +73,7 @@ const WaterLevel = () => {
                 console.log(response);
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
-            setMessage("Water level settings updated successfully!");
-            setMessageType("success");
+            setMessageInfo("success", "Water level settings updated successfully!");
             // read back the device after posting
             fetchWaterLevel();
             // set the form data to new device settings
@@ -86,23 +86,14 @@ const WaterLevel = () => {
                 script: ''
             });
         } catch (err) {
-            console.log(err);
-            setMessage(err.response.data);
-            setMessageType("error")
+            setMessageInfo("error", err.response.data);
         }
     };
     return (
         <div className='container'>
             Change your water level settings. You can let NodeORC read and store water levels automatically using
             a user-defined script or as fall-back, read water levels from a file or files with a datetime template.
-            <Message
-                message={message}
-                messageType={messageType}
-                clearMessage={() => {
-                  setMessage("");
-                  setMessageType("");
-                }}
-            />
+            <MessageBox/>
 
             <hr/>
             <form onSubmit={handleFormSubmit}>

@@ -1,7 +1,4 @@
-import {useState, useEffect} from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import reactLogo from '/react.svg'
-import orcLogo from '/orc_favicon.svg'
 
 import './App.css'
 import { MessageProvider } from './messageContext';
@@ -13,7 +10,7 @@ import DiskManagement from './views/diskManagement'
 import WaterLevel from './views/waterLevel'
 import CameraAim from './views/cameraAim'
 import Calibration from './views/calibration'
-import api from './api'
+import CallbackUrl from "./views/callbackUrl.jsx";
 
 const App = () => {
 
@@ -32,6 +29,7 @@ const App = () => {
                     <Route path="/disk_management" element={<DiskManagement />} />
                     <Route path="/water_level" element={<WaterLevel />} />
                     <Route path="/camera_aim" element={<CameraAim />} />
+                    <Route path="/callback_url" element={<CallbackUrl />} />
                     <Route path="/calibration" element={<Calibration />} />
 
                 </Routes>
