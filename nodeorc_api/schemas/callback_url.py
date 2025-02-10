@@ -24,10 +24,18 @@ class CallbackUrlCreate(CallbackUrlBase):
     password: str = Field(description="Password for the callback URL")
 
     def get_tokens(self):
-        url = urljoin(self.url, "/api/token/")
+        url = urljoin(str(self.url), "/api/token/")
         data = {
             "email": self.user,
             "password": self.password
+        }
+        response = requests.post(url, data=data)
+        return response
+
+    def get_refresh_tokens(self):
+        url = urljoin(str(self.url), "/api/token/refresh")
+        data = {
+            "refresh": self.token_refresh
         }
         response = requests.post(url, data=data)
         return response

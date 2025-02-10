@@ -13,8 +13,6 @@ const CallbackUrl = () => {
     // const [tokenExpiration, setTokenExpiration] = useState([]);
     const [loading, setLoading] = useState(true); // State for loading indicator
     const [error, setError] = useState(null); // State for error handling
-    const [message, setMessage] = useState(null); // State for message handling
-    const [messageType, setMessageType] = useState(null); // State for message type
     const [formData, setFormData] = useState({
         url: '',
         user: '',
@@ -23,15 +21,15 @@ const CallbackUrl = () => {
         tokenAccess: '',
         tokenExpiration: ''
     });
+    const {setMessageInfo} = useMessage();
+
     const fetchCallbackUrl = async () => {
         const response = await api.get('/callback_url/');
-        setUrl(response.data)
-        setUser(response.data);
-        setTokenRefresh(response.data);
-        setTokenAccess(response.data);
-        setTokenExpiration(response.data);
+        if (response.data != null) {
+            setCallbackUrl(response.data)
+        }
+
     };
-    const {setMessageInfo} = useMessage();
 
     useEffect(() => {
         fetchCallbackUrl();
@@ -61,7 +59,9 @@ const CallbackUrl = () => {
         try {
             event.preventDefault();
             console.log(formData);
-            const response = await api.post('/callback_url/', formData);
+            // get only the url, user and password
+            const submitData = { url: formData.url, user: formData.user, password: formData.password}
+            const response = await api.post('/callback_url/', submitData);
             if (!response.status === 200) {
                 const errorData = await response.json()
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
@@ -80,7 +80,8 @@ const CallbackUrl = () => {
                 tokenExpiration: ''
             });
         } catch (err) {
-            setMessageInfo('error', `GCPs successfully fitted, but with a large average error: ${err.response.data} m.`);
+            console.log("ERROR: ", err);
+            setMessageInfo('error', `problem updating LiveORC information. ${err.message}`);
         }
     };
     return (

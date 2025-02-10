@@ -205,14 +205,6 @@ const Device = () => {
                 </button>
 
             </form>
-            <Message
-                message={message}
-                messageType={messageType}
-                clearMessage={() => {
-                  setMessage("");
-                  setMessageType("");
-                }}
-              />
         </div>
 
     );
