@@ -1,6 +1,10 @@
 import uuid
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
+import warnings
+
+# Alternatively, print traceback for warnings without halting execution
+warnings.simplefilter("always", DeprecationWarning)
 
 # Pydantic model for responses
 class CameraConfigBase(BaseModel):
@@ -10,8 +14,9 @@ class CameraConfigBase(BaseModel):
 class CameraConfigResponse(CameraConfigBase):
     id: int = Field(description="Camera configuration ID")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+    # class Config:
+    #     from_attributes = True
 
 class CameraConfigCreate(CameraConfigBase):
     pass
@@ -33,6 +38,6 @@ class FittedPoints(BaseModel):
     dst_est: List[List[float]]
     camera_matrix: List[List[float]]
     dist_coeffs: List[List[float]]
-    rvec: List[float]
-    tvec: List[float]
+    rvec: List[List[float]]
+    tvec: List[List[float]]
     error: float

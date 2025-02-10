@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal
 
 from nodeorc.db import ScriptType
@@ -18,8 +18,7 @@ class WaterLevelResponse(WaterLevelBase):
     id: int = Field(description="Water level settings ID")
     created_at: datetime = Field(description="Creation date")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WaterLevelCreate(WaterLevelBase):

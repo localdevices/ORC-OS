@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from nodeorc.db import Session, CallbackUrl
 from typing import List, Dict
 
@@ -6,7 +6,7 @@ from nodeorc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlRespo
 from nodeorc_api.database import get_db
 from nodeorc_api import crud
 
-router: APIRouter = APIRouter(prefix="/device", tags=["device"])
+router: APIRouter = APIRouter(prefix="/callback_url", tags=["callback_url"])
 
 @router.get("/", response_model=CallbackUrlResponse, description="Get LiveORC callback URL information for callback")
 async def get_callback_url(db: Session = Depends(get_db)):
@@ -17,20 +17,25 @@ async def get_callback_url(db: Session = Depends(get_db)):
 @router.post("/", response_model=CallbackUrlResponse, status_code=201, description="Post or update LiveORC callback URL information")
 async def update_device(callback_url: CallbackUrlCreate, db: Session = Depends(get_db)):
     # check if the LiveORC server can be reached and returns a valid response
-    token_access, token_refresh = callback_url.get_tokens()
+    r = callback_url.get_tokens()
+    if not r.status_code == 200:
+        return Response(f"Error: {r.text}", status_code=r.status_code)
+
+    data = r.json()
+    token_access = data["access"]
+    token_refresh = data["refresh"]
     # create a new callback with the refresh tokens
-    token_expiry = callback_url.get_token_expiry()
-
-
-    # Check if there is already a device
-    existing_callback_url = crud.callback_url.get(db)
-
-    if existing_callback_url:
-        # delete existing
-        crud.callback_url.delete(db)
-    # # Create a new device record if none exists
-    # new_device = Device(**device.model_dump(exclude_none=True, exclude={"id"}))
-    # db.add(new_device)
-    # db.commit()
-    # db.refresh(new_device)
-    #     return new_device
+    token_expiration = callback_url.get_token_expiration()
+    # make a new record stripping the provided secret
+    new_callback_dict = callback_url.model_dump(exclude_none=True, mode="json", exclude={"id", "password", "user"})
+    # add our newly found information from LiveORC server
+    new_callback_dict.update(
+        {
+            "token_access": token_access,
+            "token_refresh": token_refresh,
+            "token_expiration": token_expiration,
+        }
+    )
+    new_callback_url = CallbackUrl(**new_callback_dict)
+    new_callback_url = crud.callback_url.add(db, new_callback_url)
+    return new_callback_url

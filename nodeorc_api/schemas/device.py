@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from nodeorc.db import DeviceStatus, DeviceFormStatus
 
@@ -18,8 +18,7 @@ class DeviceBase(BaseModel):
 class DeviceResponse(DeviceBase):
     id: uuid.UUID# = Field(description="Device ID")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DeviceCreate(DeviceBase):
     pass
