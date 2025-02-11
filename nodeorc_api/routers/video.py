@@ -1,67 +1,104 @@
-from fastapi import Response, Request, APIRouter
-from fastapi.responses import StreamingResponse
+import mimetypes
+import os
+from datetime import datetime
+from fastapi import APIRouter, UploadFile, Form, Depends, HTTPException
+from fastapi.responses import FileResponse
+from nodeorc.db import Video
+from sqlalchemy.orm import Session
+from typing import Optional
 
-import cv2
-
+from nodeorc_api.database import get_db
+from nodeorc_api.schemas.video import VideoCreate, VideoResponse
+from nodeorc_api.utils import create_thumbnail
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
+# Directory to save uploaded files
+UPLOAD_DIRECTORY = "uploads/videos"
 
+# Ensure the upload directory exists
+os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-@router.get("/feed/", response_class=StreamingResponse, description="Get video stream from user-defined URL")
-async def video_feed(request: Request, video_url: str):
-    async def generate_frames():
-        if not video_url:
-            raise ValueError("No video URL provided")
-        cap = cv2.VideoCapture(video_url)
-        print(f"VIDEO URL IS: {video_url}")
-        if not cap.isOpened():
-            # return Response("Unable to open RTSP stream", status_code=500)
-            raise RuntimeError("Unable to open RTSP stream")
+@router.get("/{id}/thumbnail/", response_class=FileResponse, status_code=200)
+async def get_thumbnail(id: int, db: Session = Depends(get_db)):
+    """Retrieve a thumbnail for a video."""
+    video = db.query(Video).filter(Video.id == id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
+    if not video.thumbnail:
+        raise HTTPException(status_code=404, detail="Video is found, but thumbnail is not found.")
+    # convert into schema and return data
+    video = VideoResponse.model_validate(video)
+    # Determine the MIME type of the file
+    file_path = video.get_thumbnail(base_path=UPLOAD_DIRECTORY)
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = "application/octet-stream"  # Fallback MIME type
 
-        try:
-            from collections import deque
-            frame_buffer = deque(maxlen=10)  # Adjust maxlen based on desired buffer size
-            while True:
-                if await request.is_disconnected():
-                    break
-                success, frame = cap.read()
-                if not success:
-                    break
-                frame_buffer.append(frame)
-                # Encode the frame as JPEG
-                _, buffer = cv2.imencode(".jpg", frame_buffer.pop())
+    return FileResponse(video.get_thumbnail(base_path=UPLOAD_DIRECTORY), media_type=mime_type)
 
-                # Yield the frame as part of an MJPEG stream
-                yield (
-                    b"--frame\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-                )
-                # Add a small delay to avoid overloading the server, probably not required.
-                # await asyncio.sleep(0.03)
-        finally:
-            print("Releasing the video capture object")
-            cap.release()
-            del cap
+@router.get("/{id}/play/", response_class=FileResponse, status_code=200)
+async def play_video(id: int, db: Session = Depends(get_db)):
+    """Retrieve a video file and stream it to the client."""
+    video = db.query(Video).filter(Video.id == id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
 
-    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+    if not video.file:  # Assuming `file_path` is the attribute storing the video's path
+        raise HTTPException(status_code=404, detail="Video file not found.")
+    # convert into schema and return data
+    video = VideoResponse.model_validate(video)
 
-@router.head("/feed/", response_class=Response, description="Check if the video feed in the user defined URL is available")
-async def check_video_feed(response: Response, video_url: str):
-    """
-    HEAD endpoint to check if the video feed is available.
-    """
-    print(f"VIDEO URL IS: {video_url}")
-    if not video_url:
-        raise ValueError("No video URL provided")
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+    # Ensure the file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Video file not found.")
 
-    try:
-        # RTSP_URL = "rtsp://nodeorcpi:8554/cam"
-        cap = cv2.VideoCapture(video_url)
+    # Determine the MIME type of the file based on the extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = "video/mp4"  # Fallback MIME type for unknown files, if that fails, probably file is downloaded
 
-        if not cap.isOpened():
-            return Response("Unable to open RTSP stream", status_code=500)
-        else:
-            return Response("Video feed is available", status_code=200)
-    finally:
-        cap.release()
-        del cap
+    # Return the video file using FileResponse
+    return FileResponse(file_path, media_type=mime_type)
 
+@router.post("/upload_video/", response_model=VideoResponse, status_code=201)
+async def upload_video(
+    file: UploadFile,
+    timestamp: datetime = Form(...),
+    camera_config: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+):
+    # validate the individual inputs
+    video = VideoCreate(timestamp=timestamp, camera_config=camera_config)
+    # Create a new Video instance to retrieve an id
+    video_instance = Video(**video.model_dump())
+
+    # Save to database
+    db.add(video_instance)
+    db.commit()
+    db.refresh(video_instance)
+
+    # now the video has an ID and we can create a logical storage location
+    file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", str(video_instance.id))
+    os.makedirs(file_dir, exist_ok=True)
+    # Save file to disk
+    rel_file_path = os.path.join("videos", str(video_instance.id), file.filename)
+    abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
+    with open(abs_file_path, "wb") as f:
+        f.write(await file.read())
+    # now make a thumbnail and store
+    os.path.splitext(str(file.filename))[0]
+    rel_thumb_path = os.path.join(
+        "videos", str(video_instance.id),
+        f"{os.path.splitext(str(file.filename))[0]}_thumb.jpg"
+    )
+    abs_thumb_path = os.path.join(UPLOAD_DIRECTORY, rel_thumb_path)
+    thumb = create_thumbnail(abs_file_path)
+    thumb.save(abs_thumb_path, "JPEG")
+
+    # now update the video instance
+    video_instance.file = rel_file_path
+    video_instance.thumbnail = rel_thumb_path
+    db.commit()
+
+    # return a VideoResponse instance
+    return VideoResponse.model_validate(video_instance)
