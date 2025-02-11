@@ -23,3 +23,4 @@ def add(db: Session, callback_url: models.CallbackUrl):
 
 def delete(db: Session):
     db.query(models.CallbackUrl).delete()
+    db.commit()

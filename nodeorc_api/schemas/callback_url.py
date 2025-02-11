@@ -106,6 +106,6 @@ class CallbackUrlCreate(CallbackUrlBase):
 
 
 class CallbackUrlHealth(BaseModel):
-    serverOnline: bool
-    tokenValid: bool
+    serverOnline: Optional[bool] = None
+    tokenValid: Optional[bool] = None
     error: Optional[str] = None

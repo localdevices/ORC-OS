@@ -17,6 +17,13 @@ async def get_callback_url(db: Session = Depends(get_db)):
 
 @router.get("/health", response_model=CallbackUrlHealth, description="Check the online status and token health of LiveORC callback URL")
 async def get_callback_url_health(db: Session = Depends(get_db)):
+    callback_url = crud.callback_url.get(db)
+    if not callback_url:
+        return CallbackUrlHealth(
+            serverOnline=None,
+            tokenValid=None,
+            error="No callback URL found"
+        )
     callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(db))
     callback_url_health = callback_url.get_online_status()
     return callback_url_health
@@ -28,6 +35,10 @@ async def refresh_callback_url_token(db: Session = Depends(get_db)):
     new_callback_url = callback_url.get_set_refresh_tokens()
     return new_callback_url
 
+@router.delete("/", response_model=None, status_code=204, description="Delete LiveORC callback URL information")
+async def delete_device(db: Session = Depends(get_db)):
+    crud.callback_url.delete(db)
+    return
 
 @router.post("/", response_model=CallbackUrlResponse, status_code=201, description="Post or update LiveORC callback URL information")
 async def update_device(callback_url: CallbackUrlCreate, db: Session = Depends(get_db)):
