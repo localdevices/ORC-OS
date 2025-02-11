@@ -27,6 +27,13 @@
   background-color: #0a4777;
   border-color: #0a4777;
   color: #fff;
+  margin: 10px;
+}
+
+button.btn-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff;
   marginBottom: 10px;
 }
 /* Close Button for menus and widgets */
