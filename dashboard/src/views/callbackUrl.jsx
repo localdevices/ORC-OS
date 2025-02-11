@@ -6,17 +6,15 @@ import MessageBox from '../messageBox';
 const CallbackUrl = () => {
 
     const [callbackUrl, setCallbackUrl] = useState([]);
-    // const [user, setUser] = useState([]);
-    // const [password, setPassword] = useState([]);
-    // const [tokenRefresh, setTokenRefresh] = useState([]);
-    // const [tokenAccess, setTokenAccess] = useState([]);
-    // const [tokenExpiration, setTokenExpiration] = useState([]);
-    const [loading, setLoading] = useState(true); // State for loading indicator
-    const [error, setError] = useState(null); // State for error handling
+    const [serverStatus, setServerStatus] = useState({
+        serverOnline: false,
+        tokenValid: false
+    });
     const [formData, setFormData] = useState({
         url: '',
         user: '',
         password: '',
+        createdAt: '',
         tokenRefresh: '',
         tokenAccess: '',
         tokenExpiration: ''
@@ -26,21 +24,38 @@ const CallbackUrl = () => {
     const fetchCallbackUrl = async () => {
         const response = await api.get('/callback_url/');
         if (response.data != null) {
-            setCallbackUrl(response.data)
+            const received_data = {
+                "url": response.data.url,
+                "user": '',
+                "password": '',
+                "createdAt": response.data.created_at,
+                "tokenRefresh": response.data.token_refresh,
+                "tokenAccess": response.data.token_access,
+                "tokenExpiration": response.data.token_expiration
+            }
+            setCallbackUrl(received_data)
         }
 
     };
+    const fetchServerStatus = async () => {
+        const response = await api.get('/callback_url/health/');
+        if (response.data != null) {
+            setServerStatus(response.data);
+        }
+    }
 
     useEffect(() => {
         fetchCallbackUrl();
+        fetchServerStatus();
 
     }, []);
     useEffect(() => {
-        if (url) {
+        if (callbackUrl) {
             setFormData({
                 url: callbackUrl.url || '',
                 user: callbackUrl.user || '',
                 password: '',
+                createdAt: callbackUrl.createdAt,
                 tokenRefresh: callbackUrl.tokenRefresh || '',
                 tokenAccess: callbackUrl.tokenAccess || '',
                 tokenExpiration: callbackUrl.tokenExpiration,
@@ -86,7 +101,7 @@ const CallbackUrl = () => {
     };
     return (
         <div className='container'>
-            Setup a Live connection with a LiveOpenRiverCam server to exchange videos, and receive task forms.
+            Setup or change a Live connection with a LiveOpenRiverCam server to exchange videos, and receive task forms.
             <hr/>
             <MessageBox/>
             <form onSubmit={handleFormSubmit}>
@@ -126,6 +141,38 @@ const CallbackUrl = () => {
                     </label>
                     <input type='text' className='form-control' id='tokenExpiration' name='tokenExpiration' onChange={handleInputChange} value={formData.tokenExpiration} readOnly/>
                 </div>
+                <div className='mb-3 mt-3'>
+                    <label htmlFor='serverStatus' className='form-label'>
+                        Server status:
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {/* Indicator for server online/offline */}
+                        <div
+                          style={{
+                              width: '15px',
+                              height: '15px',
+                              borderRadius: '50%',
+                              backgroundColor: serverStatus.serverOnline ? 'green' : 'red', // Green if server is online, red otherwise
+                          }}
+                          title={serverStatus.serverOnline ? 'online' : 'offline'}
+                        ></div>
+                        <span>{serverStatus.serverOnline ? 'Server is online' : 'Server is offline or your computer is not connected to the internet'}</span>
+
+                        {/* Indicator for token validity */}
+                        <div
+                          style={{
+                              width: '15px',
+                              height: '15px',
+                              borderRadius: '50%',
+                              backgroundColor: serverStatus.tokenValid ? 'green' : 'red', // Green if token is valid, red otherwise
+                          }}
+                          title={serverStatus.tokenValid ? 'Token is valid' : 'Token is invalid or expired'}
+                        ></div>
+                        <span>{serverStatus.tokenValid ? 'Token is valid' : 'Token is invalid or expired'}</span>
+                    </div>
+
+                </div>
+
                 <button type='submit' className='btn'>
                     Submit
                 </button>

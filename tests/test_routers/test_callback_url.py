@@ -34,7 +34,6 @@ app.dependency_overrides[get_db] = get_db_override
 
 client = TestClient(app)
 
-
 @pytest.fixture
 def mocked_db_response():
     return {
@@ -162,5 +161,40 @@ def test_update_callback_url_real_input():
     response = client.post("/callback_url/", json=request_body)
     print(response.json())
     assert response.status_code == 201
-    # mock_add_callback.assert_called_once()
+
+from requests.models import Response
+
+def test_get_set_refresh_tokens_success(mocker):
+    mock_get_tokens = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
+    mock_get_tokens.return_value.status_code = 200
+    mock_get_tokens.return_value.json.return_value = {
+        "access": "token_access_value",
+        "refresh": "token_refresh_value"
+    }
+    mock_get_token_expiration = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
+    mock_get_token_expiration.return_value = datetime(2024, 1, 1, 0, 0, 0)
+    # mock_add_callback = mocker.patch("nodeorc_api.crud.callback_url.add")
+
+    request_body = {
+        "url": "https://example.com/callback",
+        "user": "some_user@some_host.com",
+        "password": "secure_password",
+    }
+    _ = client.post("/callback_url/", json=request_body)
+
+    # create a mocked response, which should then be stored in the database
+    mock_response = mocker.MagicMock(spec=Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "access": "new_access_token",
+        "refresh": "new_refresh_token"
+    }
+    mock_post = mocker.patch("requests.post", return_value=mock_response)
+    # once token is stored refresh it!
+    response = client.get("/callback_url/refresh_tokens/")
+    assert response.status_code == 200
+    assert response.json()["token_access"] == "new_access_token"
+
+
+
 
