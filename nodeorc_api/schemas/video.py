@@ -1,12 +1,12 @@
 import os
-from datetime import datetime, timedelta
-from io import BytesIO
+from datetime import datetime
+
+from nodeorc.db import TimeSeries
 from pydantic import BaseModel, Field, ConfigDict
-from urllib.parse import urljoin
 from nodeorc import db as models
-from nodeorc_api import crud
-from nodeorc_api.database import get_db
-from typing import Optional
+from typing import Optional, Union
+
+from nodeorc_api.schemas.time_series import TimeSeriesResponse, TimeSeriesBase
 
 # Pydantic model for responses
 class VideoBase(BaseModel):
@@ -21,6 +21,8 @@ class VideoResponse(VideoBase):
     file: Optional[str] = Field(default=None, description="File name of the video.")
     image: Optional[str] = Field(description="Image file name of the video.")
     thumbnail: Optional[str] = Field(default=None, description="Thumbnail file name of the video.")
+    status: Optional[models.VideoStatus] = Field(default=models.VideoStatus.NEW, description="Status of the video.")
+    time_series: Optional[Union[TimeSeriesResponse, TimeSeriesBase]] = TimeSeriesBase()
 
     model_config = ConfigDict(from_attributes=True)
     def get_thumbnail(self, base_path: str):

@@ -46,6 +46,12 @@ def mocked_db_response():
         "created_at": datetime(2024, 1, 1, 0, 0, 0)
     }
 
+def test_get_callback_url_empty():
+    response = client.get("/callback_url/")
+    assert response.status_code == 200
+    assert response.json() is None
+
+
 def test_get_callback_url_success(mocked_db_response):
     # create one record
     callback_url_response = CallbackUrlResponse(**mocked_db_response)
@@ -58,13 +64,6 @@ def test_get_callback_url_success(mocked_db_response):
     response = client.get("/callback_url/")
     assert response.status_code == 200
     assert response.json()["token_access"] == mocked_db_response["token_access"]
-
-
-def test_get_callback_url_empty():
-    response = client.get("/callback_url/")
-    assert response.status_code == 200
-    assert response.json() is None
-
 
 def test_update_callback_url_success(mocker):
     mock_get_tokens = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")

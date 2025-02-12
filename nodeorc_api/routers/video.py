@@ -5,11 +5,12 @@ from fastapi import APIRouter, UploadFile, Form, Depends, HTTPException
 from fastapi.responses import FileResponse
 from nodeorc.db import Video
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 
 from nodeorc_api.database import get_db
 from nodeorc_api.schemas.video import VideoCreate, VideoResponse
 from nodeorc_api.utils import create_thumbnail
+from nodeorc_api import crud
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 # Directory to save uploaded files
 UPLOAD_DIRECTORY = "uploads/videos"
@@ -20,7 +21,7 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 @router.get("/{id}/thumbnail/", response_class=FileResponse, status_code=200)
 async def get_thumbnail(id: int, db: Session = Depends(get_db)):
     """Retrieve a thumbnail for a video."""
-    video = db.query(Video).filter(Video.id == id).first()
+    video = crud.video.get(db=db, id=id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found.")
     if not video.thumbnail:
@@ -35,10 +36,30 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
 
     return FileResponse(video.get_thumbnail(base_path=UPLOAD_DIRECTORY), media_type=mime_type)
 
+@router.get("/", response_model=List[VideoResponse], status_code=200)
+async def get_list_video(db: Session = Depends(get_db)):
+    """Retrieve a thumbnail for a video."""
+    list_videos = crud.video.get_list(db)
+    return list_videos
+
+@router.get("/{id}/", response_model=VideoResponse, status_code=200)
+async def get_video(id: int, db: Session = Depends(get_db)):
+    """Retrieve a thumbnail for a video."""
+    video = crud.video.get(db=db, id=id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
+    return video
+
+@router.delete("/{id}/", status_code=204, response_model=None)
+async def delete_video(id: int, db: Session = Depends(get_db)):
+    """Delete a video."""
+    _ = crud.video.delete(db=db, id=id)
+    return
+
 @router.get("/{id}/play/", response_class=FileResponse, status_code=200)
 async def play_video(id: int, db: Session = Depends(get_db)):
     """Retrieve a video file and stream it to the client."""
-    video = db.query(Video).filter(Video.id == id).first()
+    video = crud.video.get(db=db, id=id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found.")
 
@@ -60,7 +81,7 @@ async def play_video(id: int, db: Session = Depends(get_db)):
     # Return the video file using FileResponse
     return FileResponse(file_path, media_type=mime_type)
 
-@router.post("/upload_video/", response_model=VideoResponse, status_code=201)
+@router.post("/", response_model=VideoResponse, status_code=201)
 async def upload_video(
     file: UploadFile,
     timestamp: datetime = Form(...),
