@@ -11,6 +11,7 @@ import WaterLevel from './views/waterLevel'
 import CameraAim from './views/cameraAim'
 import Calibration from './views/calibration'
 import CallbackUrl from "./views/callbackUrl.jsx";
+import ListVideo from "./views/listVideo.jsx";
 
 const App = () => {
 
@@ -31,6 +32,7 @@ const App = () => {
                     <Route path="/camera_aim" element={<CameraAim />} />
                     <Route path="/callback_url" element={<CallbackUrl />} />
                     <Route path="/calibration" element={<Calibration />} />
+                    <Route path="/video" element={<ListVideo />} />
 
                 </Routes>
                 </div>
