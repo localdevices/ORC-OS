@@ -31,4 +31,6 @@ class VideoResponse(VideoBase):
     def get_video_file(self, base_path: str):
         return os.path.join(base_path, self.file)
 
+    def get_image_file(self, base_path: str):
+        return os.path.join(base_path, self.image)
 

@@ -37,9 +37,13 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
     return FileResponse(video.get_thumbnail(base_path=UPLOAD_DIRECTORY), media_type=mime_type)
 
 @router.get("/", response_model=List[VideoResponse], status_code=200)
-async def get_list_video(db: Session = Depends(get_db)):
+async def get_list_video(
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    db: Session = Depends(get_db)
+):
     """Retrieve a thumbnail for a video."""
-    list_videos = crud.video.get_list(db)
+    list_videos = crud.video.get_list(db, start=start, stop=stop)
     return list_videos
 
 @router.get("/{id}/", response_model=VideoResponse, status_code=200)
@@ -64,14 +68,14 @@ async def play_video(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Video not found.")
 
     if not video.file:  # Assuming `file_path` is the attribute storing the video's path
-        raise HTTPException(status_code=404, detail="Video file not found.")
+        raise HTTPException(status_code=404, detail="Video file field not available.")
     # convert into schema and return data
     video = VideoResponse.model_validate(video)
 
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
     # Ensure the file exists
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Video file not found.")
+        raise HTTPException(status_code=404, detail="Video file not found on local data store. Please check your upload directory and try again. If the problem persists, please contact the administrator for assistance.")
 
     # Determine the MIME type of the file based on the extension
     mime_type, _ = mimetypes.guess_type(file_path)
@@ -80,6 +84,32 @@ async def play_video(id: int, db: Session = Depends(get_db)):
 
     # Return the video file using FileResponse
     return FileResponse(file_path, media_type=mime_type)
+
+@router.get("/{id}/image/", response_class=FileResponse, status_code=200)
+async def get_image(id: int, db: Session = Depends(get_db)):
+    """Retrieve an image result from video record."""
+    video = crud.video.get(db=db, id=id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
+
+    if not video.image:  # Assuming `file_path` is the attribute storing the video's path
+        raise HTTPException(status_code=404, detail="Image file field not available.")
+    # convert into schema and return data
+    video = VideoResponse.model_validate(video)
+
+    file_path = video.get_image_file(base_path=UPLOAD_DIRECTORY)
+    # Ensure the file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image file not found on local data store. Please check your upload directory and try again. If the problem persists, please contact the administrator for assistance.")
+
+    # Determine the MIME type of the file based on the extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = "image/jpeg"  # Fallback MIME type for unknown files, if that fails, probably file is downloaded
+
+    # Return the video file using FileResponse
+    return FileResponse(file_path, media_type=mime_type)
+
 
 @router.post("/", response_model=VideoResponse, status_code=201)
 async def upload_video(
