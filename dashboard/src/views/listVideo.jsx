@@ -5,13 +5,20 @@ import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
 
 const ListVideo = () => {
   const [videoData, setVideoData] = useState([]); // Stores video metadata
-  const [currentPage, setCurrentPage] = useState(1); // tracks which page is shown
-  const rowsPerPage = 2;
-  const currentVideoRecords = [] //videoData.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
+
+  // Default: One day back until now
+  const defaultEndDate = new Date();
+  const defaultStartDate = new Date();
+  defaultStartDate.setDate(defaultStartDate.getDate() - 3); // 1 day back
+
+  // Date filter states
+  const [startDate, setStartDate] = useState(defaultStartDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
+  const [endDate, setEndDate] = useState(defaultEndDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
+
 
   // Fetch video metadata from API
   useEffect(() => {
-    api.get('/video/') // Retrieve list from api
+    api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
       .then((response) => {
         setVideoData(response.data);
         // Calculate the index range for records to display
@@ -27,7 +34,13 @@ const ListVideo = () => {
       <h1>Video </h1>
       Browse through your videos, delete them, view details, download, or perform single runs tasks.
 
-      <PaginatedVideos initialData={videoData}/>
+      <PaginatedVideos
+        initialData={videoData}
+        startDate={startDate}
+        endDate={endDate}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+      />
     </div>
   );
 };

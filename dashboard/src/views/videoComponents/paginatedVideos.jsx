@@ -1,18 +1,24 @@
-import { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import api from "../../api.js";
-import {FaEye, FaPlay, FaTrash} from "react-icons/fa";
+import {FaEye, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
+} from "react-icons/fa";
+import {RiPencilFill} from "react-icons/ri";
+import Paginate from "../../utils/paginate.jsx";
+import FilterDates from "../../utils/filterDates.jsx";
 
-const PaginatedVideos = ({ initialData }) => {
+const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndDate}) => {
   const [data, setData] = useState(initialData);  // initialize data with currently available
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
   const [rowsPerPage, setRowsPerPage] = useState(25); // Rows per page (default 25)
-  const [selectedVideo, setSelectedVideo] = useState(null); // For modal view
+  const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
+  const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
+  const [selectedVideo, setSelectedVideo] = useState(null); // For modal view, to select the right video
   const [showModal, setShowModal] = useState(false); // State for modal visibility
 
   // Calculate the index range for records to display
   const idxLast = currentPage * rowsPerPage;
   const idxFirst = idxLast - rowsPerPage;
-// Protect against empty data / Async updates
+  // Protect against empty data / Async updates
   const currentRecords = data.length
     ? data.slice(idxFirst, idxLast)
     : [];
@@ -22,9 +28,25 @@ const PaginatedVideos = ({ initialData }) => {
   // Optional: Watch for external updates to initialData and update `data` state
   useEffect(() => {
     setData(initialData);
-    setCurrentPage(1); // Reset pagination when new data arrives
+    setCurrentPage(1);
   }, [initialData]);
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 3:
+        return <div><FaSpinner style={{ color: "blue" }} className="spinner" /> running</div>// Spinner for processing
+      case 4:
+        return <div><FaCheck style={{ color: "green" }} /> done</div>; // Success
+      case 5:
+        return <div><FaTimes style={{ color: "red" }} /> error</div>; // Error
+      case 1:
+        return <div><FaStar style={{ color: "gold" }} /> new</div>; // Warning
+      case 2:
+        return <div><FaHourglass style={{ color: "purple" }} /> queue</div>; // Pending
+      default:
+        return <FaSpinner style={{ color: "gray" }} className="spinner" />; // Default spinner
+    }
+  };
 
   // Handle the "Run" button action
   const handleRun = (id) => {
@@ -58,41 +80,36 @@ const PaginatedVideos = ({ initialData }) => {
         });
     }
   };
-
+  const handleDateFilter = () => {
+    api.get('/video/', {params: {start: startDate, stop: endDate}}) // Retrieve list from api
+      .then((response) => {
+        setData(response.data);
+        // Calculate the index range for records to display
+      })
+      .catch((error) => {
+        console.error('Error fetching video metadata:', error);
+      });
+  }
   // TODO: modal for "View" button action
   const handleView = (video) => {
     setSelectedVideo(video);
     setShowModal(true);
   };
 
-  // Handler to go to the next page
-  const handleNext = () => {
-    if (currentPage < Math.ceil(data.length / rowsPerPage)) {
-      setCurrentPage((prevPage) => prevPage + 1);
-    }
-  };
-
-  // Handler to go to the previous page
-  const handlePrevious = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prevPage) => prevPage - 1);
-    }
-  };
-  const handleRowsPerPageChange = (e) => {
-    setRowsPerPage(parseInt(e.target.value, 10)); // Update rows per page
-    setCurrentPage(1); // Reset to the first page
-  };
   // Close modal
   const closeModal = () => {
     setSelectedVideo(null);
     setShowModal(false);
+    setImageError(false);
+    setVideoError(false);
   };
 
   return (
-    <div>
-      {/* Table */}
-      <table className="table table-bordered table-striped">
-        <thead>
+    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px"}}>
+      <div>
+        {/* Table */}
+        <table className="table table-bordered table-striped">
+          <thead>
           <tr>
             <th>ID</th>
             <th>File</th>
@@ -100,90 +117,62 @@ const PaginatedVideos = ({ initialData }) => {
             <th>Thumbnail</th>
             <th>Time series</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th style={{width: "150px", whiteSpace: "nowrap"}}>Actions</th>
           </tr>
-        </thead>
-        <tbody>
-        {currentRecords.map((video, index) => (
+          </thead>
+          <tbody>
+          {currentRecords.map((video, index) => (
 
-          <tr key={idxFirst + index + 1}>
-            <td>{video.id}</td>
-            <td>{video.file}</td>
-            <td>{video.timestamp}</td>
-            <td><img src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}/></td>
-            <td>h: {video.time_series ? video.time_series.h + " m" : "N/A"} Q: {video.time_series ? video.time_series.q_50 + " m3/s" : "N/A"}</td>
-            <td>{video.status}</td>
-            <td>
-              <button
-                className="btn btn-success btn-sm"
-                onClick={() => handleRun(video.id)}
-              >
-                <FaPlay />
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => handleView(video)}
-              >
-                <FaEye />
-              </button>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => handleDelete(video.id)}
-              >
-                <FaTrash />
-              </button>
-            </td>
-          </tr>
-        ))}
-        </tbody>
-      </table>
+            <tr key={idxFirst + index + 1}>
+              <td>{video.id}</td>
+              <td>{video.file.split(`/${video.id}/`)[1]}</td>
+              <td>{video.timestamp.slice(0, 19)}</td>
+              <td><img src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}/></td>
+              <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
+              <td>{getStatusIcon(video.status)}</td>
+              <td>
+                <button className="btn-icon"
+                        onClick={() => handleView(video)}
+                >
+                  <FaPlay className="run"/>
+                </button>
 
-      {/* Pagination Controls */}
-      <div className="d-flex justify-content-between align-items-center">
-        {/* Rows Per Page Selector */}
-        <div>
-          <label htmlFor="rowsPerPage" className="me-2">Rows per page:</label>
-          <select
-            id="rowsPerPage"
-            className="form-select d-inline-block w-auto"
-            value={rowsPerPage}
-            onChange={handleRowsPerPageChange}
-          >
-            {/* Options for Rows Per Page */}
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-        </div>
-
-        {/* Previous Button */}
-        <button
-          className="btn btn-secondary"
-          onClick={handlePrevious}
-          disabled={currentPage === 1} // Disable if on the first page
-        >
-          Previous
-        </button>
-
-        {/* Current Page Indicator */}
-        <span>
-          Page {currentPage} of {Math.ceil(data.length / rowsPerPage)}
-        </span>
-
-        {/* Next Button */}
-        <button
-          className="btn btn-secondary"
-          onClick={handleNext}
-          disabled={currentPage === Math.ceil(data.length / rowsPerPage)} // Disable if on the last page
-        >
-          Next
-        </button>
+                <button className="btn-icon"
+                        onClick={() => handleView(video)}
+                >
+                  <RiPencilFill className="edit"/>
+                </button>
+                <button className="btn-icon"
+                        onClick={() => handleDelete(video.id)}
+                >
+                  <FaTrash className="danger"/>
+                </button>
+              </td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+        <Paginate
+          data={data}
+          currentPage={currentPage}
+          rowsPerPage={rowsPerPage}
+          setCurrentPage={setCurrentPage}
+          setRowsPerPage={setRowsPerPage}
+        />
       </div>
-      {/* Modal */}
+      <FilterDates
+        startDate={startDate}
+        endDate={endDate}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+        handleDateFilter={handleDateFilter}
+      />
+      {/*Modal*/}
       {showModal && selectedVideo && (
+        <>
+        <div className="sidebar-overlay"></div>
         <div className="modal fade show d-block" tabIndex="-1">
-          <div className="modal-dialog">
+          <div className="modal-dialog" style={{maxWidth: "1200px"}}>  {/*ensure modal spans a broad screen size*/}
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Video Details</h5>
@@ -194,42 +183,69 @@ const PaginatedVideos = ({ initialData }) => {
                 ></button>
               </div>
               <div className="modal-body">
-                <form>
-                  <div className="mb-3">
-                    <label htmlFor="modal-title" className="form-label">
-                      Title:
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="modal-title"
-                      value={selectedVideo.title}
-                      onChange={(e) =>
-                        setSelectedVideo({
-                          ...selectedVideo,
-                          title: e.target.value,
-                        })
-                      }
-                    />
+                <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px"}}>
+                  <div style={{width: "70%"}}>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row", gap: "10px"}}>
+                      <label style={{minWidth: "100px"}}>Video</label>
+                      <hr/>
+                      <div className="readonly">
+                        {videoError ? (
+                          <div>Video file not found on system</div>
+                        ) : (
+                        <video
+                          src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play`}
+                          controls
+                          width="100%"
+                          onError={() => setVideoError(true)}
+                        />
+                        )}
+                      </div>
+                    </div>
+                    <hr/>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row", gap: "10px"}}>
+                      <label style={{minWidth: "100px"}}>Analysis results</label>
+                      <hr/>
+                      <div className="readonly">
+                        {imageError ? (
+                          <div>Image not found on system</div>
+                        ) : (
+                        <img
+                          src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image`}
+                          width="100%"
+                          onError={() => setImageError(true)}/>
+                          )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="mb-3">
-                    <label htmlFor="modal-description" className="form-label">
-                      Description:
-                    </label>
-                    <textarea
-                      className="form-control"
-                      id="modal-description"
-                      rows="3"
-                      value={selectedVideo.description}
-                      onChange={(e) =>
-                        setSelectedVideo({
-                          ...selectedVideo,
-                          description: e.target.value,
-                        })
-                      }
-                    ></textarea>
+                  <div style={{minWidth: "30%"}}>
+                    <div className="form-row">
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                      <label style={{minWidth: "100px"}}>
+                        File:
+                      </label>
+                      <div className="readonly">{selectedVideo.file.split(`/${selectedVideo.id}/`)[1]}</div>
+                    </div>
+                      <hr/>
+                    </div>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row", gap: "50px"}}>
+                      <label>
+                        Status:
+                      </label>
+                      <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
+                    </div>
+                    <hr/>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                      <label style={{minWidth: "100px"}}>
+                        Time Series:
+                      </label>
+                      <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
+                        <div className="readonly">Water level: {selectedVideo.time_series ? selectedVideo.time_series.h : "-"}</div>
+                        <div className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
+                      </div>
+                    </div>
+                    <hr/>
                   </div>
-                </form>
+                </div>
               </div>
               <div className="modal-footer">
                 <button
@@ -239,23 +255,23 @@ const PaginatedVideos = ({ initialData }) => {
                 >
                   Close
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    // Save the changes (optional Axios PUT/POST call)
-                    console.log('Updated video:', selectedVideo);
-                    closeModal();
-                  }}
-                >
-                  Save Changes
-                </button>
+                {/*<button*/}
+                {/*  type="button"*/}
+                {/*  className="btn btn-primary"*/}
+                {/*  onClick={() => {*/}
+                {/*    // Save the changes (optional Axios PUT/POST call)*/}
+                {/*    console.log('Updated video:', selectedVideo);*/}
+                {/*    closeModal();*/}
+                {/*  }}*/}
+                {/*>*/}
+                {/*  Save Changes*/}
+                {/*</button>*/}
               </div>
             </div>
           </div>
         </div>
+        </>
       )}
-
     </div>
   );
 };
