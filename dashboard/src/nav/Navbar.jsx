@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FaWifi } from 'react-icons/fa'; // Import WiFi icon
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
+import orcLogo from '/orc_favicon.svg'
+
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
@@ -33,7 +35,7 @@ const Navbar = () => {
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <a className='navbar-brand' href="#">
-                        <img src="./public/orc_favicon.svg" alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
+                        <img src={orcLogo} alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
                     {' '} NodeORC
                     </a>
                     <button className="close-button" onClick={handleToggle}>
@@ -42,6 +44,7 @@ const Navbar = () => {
                 </div>
                 <ul className="sidebar-nav">
                     <hr/>
+                    <li className="sidebar-brand">Menu</li>
                     <li>
                         <NavLink
                             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
@@ -49,6 +52,15 @@ const Navbar = () => {
                         Home
                         </NavLink>
                     </li>
+                    <li>
+                        <NavLink
+                          className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                          to="/video" onClick={handleClose}>
+                            Videos
+                        </NavLink>
+                    </li>
+                    <li className="sidebar-brand">Settings</li>
+                    <hr/>
                     <li>
                         <NavLink
                             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}

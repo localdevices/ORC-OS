@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from "react";
 import api from "../../api.js";
-import {FaEye, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
+import {FaEye, FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
 } from "react-icons/fa";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
@@ -47,6 +47,20 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         return <FaSpinner style={{ color: "gray" }} className="spinner" />; // Default spinner
     }
   };
+  const getSyncStatusIcon = (status) => {
+    switch (status) {
+      case null:
+        return <div><FaSync style={{ color: "grey" }} /> not synced yet</div>// Spinner for processing
+      case true:
+        return <div><FaCheck style={{ color: "green" }} /> done</div>; // Success
+      case false:
+        return <div><FaSync style={{ color: "cadetblue" }} className="spinner" /> out of sync</div>; // Error
+      default:
+        return <FaSync style={{ color: "grey" }} />; // Default spinner
+    }
+  };
+
+
 
   // Handle the "Run" button action
   const handleRun = (id) => {
@@ -105,8 +119,9 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   };
 
   return (
-    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px"}}>
-      <div>
+    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
+      <div style={{minWidth: "80%", flex: 0}}>
+       <div>
         {/* Table */}
         <table className="table table-bordered table-striped">
           <thead>
@@ -152,6 +167,8 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
           ))}
           </tbody>
         </table>
+        </div>
+        <div>
         <Paginate
           data={data}
           currentPage={currentPage}
@@ -159,6 +176,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
           setCurrentPage={setCurrentPage}
           setRowsPerPage={setRowsPerPage}
         />
+        </div>
       </div>
       <FilterDates
         startDate={startDate}
@@ -227,21 +245,42 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
                     </div>
                       <hr/>
                     </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row", gap: "50px"}}>
-                      <label>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                      <label style={{minWidth: "120px"}}>
                         Status:
                       </label>
                       <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
                     </div>
                     <hr/>
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "100px"}}>
+                      <label style={{minWidth: "120px"}}>
                         Time Series:
                       </label>
                       <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
                         <div className="readonly">Water level: {selectedVideo.time_series ? selectedVideo.time_series.h : "-"}</div>
                         <div className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
                       </div>
+                    </div>
+                    <hr/>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                      <label style={{minWidth: "120px"}}>
+                        LiveORC sync:
+                      </label>
+                      <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
+                    </div>
+                    <hr/>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                      <label style={{minWidth: "120px"}}>
+                        LiveORC video id:
+                      </label>
+                      <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A" }</div>
+                    </div>
+                    <hr/>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                      <label style={{minWidth: "120px"}}>
+                        LiveORC site id:
+                      </label>
+                      <div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>
                     </div>
                     <hr/>
                   </div>
