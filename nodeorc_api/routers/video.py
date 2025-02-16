@@ -1,8 +1,12 @@
 import mimetypes
 import os
+from zipfile import ZIP_DEFLATED
+
+import zipstream
+
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, Form, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from nodeorc.db import Video
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -17,6 +21,16 @@ UPLOAD_DIRECTORY = "uploads/videos"
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
+
+# helpers
+async def zip_generator(files):
+    """Async generator to stream the zip file content."""
+    z = zipstream.ZipFile(mode="w", compression=ZIP_DEFLATED)  #, compression=ZIP_DEFLATED  # 64KB chunks
+    for f in files:
+        z.write(f, arcname=f)
+    for chunk in z:
+        yield chunk
+
 
 @router.get("/{id}/thumbnail/", response_class=FileResponse, status_code=200)
 async def get_thumbnail(id: int, db: Session = Depends(get_db)):
@@ -58,6 +72,16 @@ async def get_video(id: int, db: Session = Depends(get_db)):
 async def delete_video(id: int, db: Session = Depends(get_db)):
     """Delete a video."""
     _ = crud.video.delete(db=db, id=id)
+    return
+
+@router.delete("/", status_code=204, response_model=None)
+async def delete_list_videos(ids: List[int], db: Session = Depends(get_db)):
+    """Delete a list of videos. """
+    for id in ids:
+        try:
+            _ = crud.video.delete(db=db, id=id)
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
     return
 
 @router.get("/{id}/play/", response_class=FileResponse, status_code=200)
@@ -154,10 +178,9 @@ async def upload_video(
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
 
-@router.get("/download", response_class=FileResponse, status_code=200)
-async def download_videos(
-    start: Optional[datetime] = None,
-    stop: Optional[datetime] = None,
+@router.post("/download", status_code=200)
+async def download_videos_on_ids(
+    ids: List[int] = None,
     get_image: bool = True,
     get_video: bool = True,
     get_netcdfs: bool = True,
@@ -165,12 +188,13 @@ async def download_videos(
     db: Session = Depends(get_db)
 ):
     """Retrieve files from server and create a streaming zip towards the client."""
-    videos = crud.video.get_list(db=db, start=start, stop=stop)
+    videos = crud.video.get_ids(db=db, ids=ids)
     if len(videos) == 0:
-        raise HTTPException(status_code=404, detail="No videos found in selected time span in database.")
+        raise HTTPException(status_code=404, detail="No videos found in database with selected ids.")
     # create a list of files that must be zipped
     files_to_zip = []
     for video in videos:
+        video = VideoResponse.model_validate(video)
         if get_image and video.get_image_file(base_path=UPLOAD_DIRECTORY):
             files_to_zip.append(video.get_image_file(base_path=UPLOAD_DIRECTORY))
         if get_video and video.get_video_file(base_path=UPLOAD_DIRECTORY):
@@ -178,5 +202,14 @@ async def download_videos(
         if get_netcdfs and video.get_netcdf_files(base_path=UPLOAD_DIRECTORY):
             files_to_zip +=video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
         if get_log:
+            # TODO: figure out default name for .log file and also return that
             pass
+    print(files_to_zip)
+    files = [(os.path.basename(f), f) for f in files_to_zip]
+
+    return StreamingResponse(
+        zip_generator(files_to_zip),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=files.zip"}
+    )
 

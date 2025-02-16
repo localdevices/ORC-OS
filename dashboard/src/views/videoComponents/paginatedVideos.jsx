@@ -14,6 +14,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal view, to select the right video
   const [showModal, setShowModal] = useState(false); // State for modal visibility
+  const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
   // Calculate the index range for records to display
   const idxLast = currentPage * rowsPerPage;
@@ -60,6 +61,62 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds((prevSelectedIds) =>
+      prevSelectedIds.includes(id)
+        ? prevSelectedIds.filter((selectedId) => selectedId !== id) // Deselect if already selected
+        : [...prevSelectedIds, id] // Add if not already selected
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) {
+      alert("No videos selected to delete.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} videos?`)) {
+      Promise.all(
+        selectedIds.map((id) => api.delete(`/video/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
+      )
+        .then(() => {
+          // Remove deleted videos from the state
+          const updatedData = data.filter((video) => !selectedIds.includes(video.id));
+          setData(updatedData);
+          setSelectedIds([]);
+          // Adjust current page if necessary
+          if (updatedData.length <= idxFirst) {
+            setCurrentPage((prev) => Math.max(prev - 1, 1));
+          }
+        })
+        .catch((error) => {
+          console.error("Error deleting videos:", error);
+        });
+    }
+  };
+
+
+  const handleDownloadSelected = () => {
+    if (selectedIds.length === 0) {
+      alert("No videos selected to download.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} videos?`)) {
+      api.delete(`/video/${id}`) // Retrieve zip-file for selection
+        .then(() => {
+          // Remove deleted videos from the state
+          const updatedData = data.filter((video) => !selectedIds.includes(video.id));
+          setData(updatedData);
+          setSelectedIds([]);
+          // Adjust current page if necessary
+          if (updatedData.length <= idxFirst) {
+            setCurrentPage((prev) => Math.max(prev - 1, 1));
+          }
+        })
+        .catch((error) => {
+          console.error("Error deleting videos:", error);
+        });
+    }
+  };
 
 
   // Handle the "Run" button action
@@ -120,12 +177,23 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
 
   return (
     <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
-      <div style={{minWidth: "80%", flex: 0}}>
+      <div style={{width: "80%", flex: 1, overflow: "auto", padding: "20px"}}>
        <div>
         {/* Table */}
         <table className="table table-bordered table-striped">
           <thead>
           <tr>
+            <th>
+              <input
+                type="checkbox"
+                onChange={(e) =>
+                  e.target.checked
+                    ? setSelectedIds(currentRecords.map((record) => record.id)) // Select all visible records
+                    : setSelectedIds([]) // Deselect all
+                }
+                checked={currentRecords.every((record) => selectedIds.includes(record.id)) && currentRecords.length > 0}
+              />
+            </th>
             <th>ID</th>
             <th>File</th>
             <th>Timestamp</th>
@@ -139,6 +207,13 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
           {currentRecords.map((video, index) => (
 
             <tr key={idxFirst + index + 1}>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(video.id)}
+                  onChange={() => toggleSelect(video.id)}
+                />
+              </td>
               <td>{video.id}</td>
               <td>{video.file.split(`/${video.id}/`)[1]}</td>
               <td>{video.timestamp.slice(0, 19)}</td>
@@ -178,13 +253,32 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         />
         </div>
       </div>
-      <FilterDates
-        startDate={startDate}
-        endDate={endDate}
-        setStartDate={setStartDate}
-        setEndDate={setEndDate}
-        handleDateFilter={handleDateFilter}
-      />
+      <div style={{flexDirection: "column", flex: 0}}>
+        <FilterDates
+          startDate={startDate}
+          endDate={endDate}
+          setStartDate={setStartDate}
+          setEndDate={setEndDate}
+          handleDateFilter={handleDateFilter}
+        />
+        <div style={{minWidth: "20%", flex: 0, padding: "20px"}}>
+          <button
+            className="btn"
+            onClick={handleDownloadSelected}
+            disabled={selectedIds.length === 0}
+          >
+            Download
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={handleDeleteSelected}
+            disabled={selectedIds.length === 0}
+          >
+            Delete
+          </button>
+
+        </div>
+      </div>
       {/*Modal*/}
       {showModal && selectedVideo && (
         <>

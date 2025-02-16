@@ -23,6 +23,10 @@ def get(db: Session, id: int):
         return
     return query.first()
 
+def get_ids(db: Session, ids: List[int] = []) -> List[models.Video]:
+    """List videos from provided ids."""
+    query = db.query(models.Video).filter(models.Video.id.in_(ids))
+    return query.all()
 
 def get_list(db: Session, start: Optional[datetime] = None, stop: Optional[datetime] = None) -> List[models.Video]:
     """List videos within time span of start and stop."""
