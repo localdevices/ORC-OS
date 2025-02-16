@@ -16,8 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 app.include_router(device.router)
 app.include_router(callback_url.router)
 app.include_router(video.router)

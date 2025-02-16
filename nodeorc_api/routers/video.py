@@ -153,3 +153,30 @@ async def upload_video(
 
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
+
+@router.get("/download", response_class=FileResponse, status_code=200)
+async def download_videos(
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    get_image: bool = True,
+    get_video: bool = True,
+    get_netcdfs: bool = True,
+    get_log: bool = True,
+    db: Session = Depends(get_db)
+):
+    """Retrieve files from server and create a streaming zip towards the client."""
+    videos = crud.video.get_list(db=db, start=start, stop=stop)
+    if len(videos) == 0:
+        raise HTTPException(status_code=404, detail="No videos found in selected time span in database.")
+    # create a list of files that must be zipped
+    files_to_zip = []
+    for video in videos:
+        if get_image and video.get_image_file(base_path=UPLOAD_DIRECTORY):
+            files_to_zip.append(video.get_image_file(base_path=UPLOAD_DIRECTORY))
+        if get_video and video.get_video_file(base_path=UPLOAD_DIRECTORY):
+            files_to_zip.append(video.get_video_file(base_path=UPLOAD_DIRECTORY))
+        if get_netcdfs and video.get_netcdf_files(base_path=UPLOAD_DIRECTORY):
+            files_to_zip +=video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
+        if get_log:
+            pass
+
