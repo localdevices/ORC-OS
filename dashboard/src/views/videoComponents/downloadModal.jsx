@@ -6,10 +6,10 @@ const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}
   const [downloadStartDate, setDownloadStartDate] = useState(null);
   const [downloadEndDate, setDownloadEndDate] = useState(null);
   const [downloadSettings, setDownloadSettings] = useState({
-    downloadImage: true,
-    downloadVideo: true,
-    downloadNetcdf: true,
-    downloadLog: true,
+    "downloadImage": true,
+    "downloadVideo": true,
+    "downloadNetcdf": true,
+    "downloadLog": true,
   });
   const closeDownloadModal = () => {
     setShowDownloadModal(false); // Close the download modal
@@ -29,23 +29,7 @@ const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}
     //   return;
     // }
     get_videos(api, downloadStartDate, downloadEndDate, downloadSettings, setMessageInfo);
-    // Example API call for handling download
-    // api.post("/video/download", {
-    //   start: downloadStartDate,
-    //   stop: downloadEndDate,
-    //   get_image: downloadSettings.downloadImage,
-    //   get_video: downloadSettings.downloadVideo,
-    //   get_netcdf: downloadSettings.downloadNetcdf,
-    //   get_log: downloadSettings.downloadLog,
-    // })
-    //   .then(() => {
-    //     alert("Download started successfully!");
     setShowDownloadModal(false); // Close modal on success
-      // })
-      // .catch((error) => {
-      //   console.error("Error during download:", error);
-      //   alert("Failed to start download.");
-      // });
   };
 
 

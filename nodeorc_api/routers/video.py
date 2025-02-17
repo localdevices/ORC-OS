@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 
 from nodeorc_api.database import get_db
-from nodeorc_api.schemas.video import VideoCreate, VideoResponse
+from nodeorc_api.schemas.video import VideoCreate, VideoResponse, DownloadVideosRequest, DeleteVideosRequest
 from nodeorc_api.utils import create_thumbnail
 from nodeorc_api import crud
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
@@ -77,15 +77,17 @@ async def delete_video(id: int, db: Session = Depends(get_db)):
     _ = crud.video.delete(db=db, id=id)
     return
 
-@router.delete("/", status_code=204, response_model=None)
-async def delete_list_videos(ids: List[int], db: Session = Depends(get_db)):
+@router.post("/delete/", status_code=204, response_model=None)
+async def delete_list_videos(request: DeleteVideosRequest, db: Session = Depends(get_db)):
     """Delete a list of videos. """
-    for id in ids:
-        try:
-            _ = crud.video.delete(db=db, id=id)
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e))
-    return
+    start = request.start
+    stop = request.stop
+    try:
+        _ = crud.video.delete_start_stop(db=db, start=start, stop=stop)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return None
+
 
 @router.get("/{id}/play/", response_class=FileResponse, status_code=200)
 async def play_video(id: int, db: Session = Depends(get_db)):
@@ -183,14 +185,16 @@ async def upload_video(
 
 @router.post("/download/", status_code=200, response_class=StreamingResponse)
 async def download_videos(
-    get_image: bool,
-    get_video: bool,
-    get_netcdfs: bool,
-    get_log: bool,
-    start: Optional[datetime] = None,
-    stop: Optional[datetime] = None,
+    request: DownloadVideosRequest,
     db: Session = Depends(get_db)
 ):
+    get_image = request.get_image
+    get_video = request.get_video
+    get_netcdfs = request.get_netcdfs
+    get_log = request.get_log
+    start = request.start
+    stop = request.stop
+
     """Retrieve files from server and create a streaming zip towards the client."""
     videos = crud.video.get_list(db=db, start=start, stop=stop)
     if len(videos) == 0:

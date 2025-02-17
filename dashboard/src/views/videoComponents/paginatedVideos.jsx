@@ -8,6 +8,7 @@ import FilterDates from "../../utils/filterDates.jsx";
 import DownloadModal from "./downloadModal.jsx";
 import {useMessage} from "../../messageContext.jsx";
 import {get_videos_ids} from "../../utils/apiCalls.jsx";
+import DeleteModal from "./deleteModal.jsx";
 
 const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndDate}) => {
   const [data, setData] = useState(initialData);  // initialize data with currently available
@@ -18,6 +19,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal view, to select the right video
   const [showModal, setShowModal] = useState(false); // State for modal visibility
   const [showDownloadModal, setShowDownloadModal] = useState(false); // State for modal visibility
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // State for modal visibility
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
   // Calculate the index range for records to display
@@ -107,38 +109,12 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
       return;
     }
     get_videos_ids(api, selectedIds, setMessageInfo);
-    // try {
-    //   const response = await api.post(
-    //     `/video/download_ids/`,
-    //     selectedIds,
-    //     {
-    //       responseType: "blob",
-    //     }
-    //   ) // Retrieve zip-file for selection
-    //
-    //   // Create a link element to trigger the file download
-    //   const url = window.URL.createObjectURL(new Blob([response.data]));
-    //   const link = document.createElement('a');
-    //   link.href = url;
-    //
-    //   // Set the download filename from the Content-Disposition (if provided) or use a fallback
-    //   const contentDisposition = response.headers['content-disposition'];
-    //   console.log(response.headers);
-    //   const filename = contentDisposition
-    //     ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
-    //     : 'download.zip'; // Fallback filename if header doesn't exist.
-    //   console.log(filename);
-    //   link.setAttribute('download', filename);
-    //   document.body.appendChild(link);
-    //   link.click();
-    //   link.parentNode.removeChild(link); // Clean up the temporary DOM element
-    // } catch (error) {
-    //   setMessageInfo("error: ", error);
-    // }
-    // setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
   };
-const handleDownloadBulk = () => {
+const handleDownloadBulk = async () => {
   setShowDownloadModal(true);
+}
+const handleDeleteBulk = async () => {
+  setShowDeleteModal(true);
 }
   //   // Handle the "Run" button action
   // const handleRun = (id) => {
@@ -313,8 +289,7 @@ const handleDownloadBulk = () => {
           </button>
           <button
             className="btn btn-danger"
-            onClick={handleDeleteSelected}
-            disabled={selectedIds.length === 0}
+            onClick={handleDeleteBulk}
           >
             Delete
           </button>
@@ -328,6 +303,14 @@ const handleDownloadBulk = () => {
           setMessageInfo={setMessageInfo}
         />
       )}
+      {showDeleteModal && (
+        <DeleteModal
+          showDeleteModal={showDeleteModal}
+          setShowDeleteModal={setShowDeleteModal}
+          setMessageInfo={setMessageInfo}
+        />
+      )}
+
       {/*Modal*/}
       {showModal && selectedVideo && (
         <>

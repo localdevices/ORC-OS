@@ -114,17 +114,20 @@ export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
 
 export const get_videos = async (api, downloadStartDate, downloadEndDate, downloadSettings, setMessageInfo) => {
   try {
-    const body = {
-      start: downloadStartDate,
-      stop: downloadEndDate,
-      get_image: downloadSettings.downloadImage,
-      get_video: true,  //downloadSettings.downloadVideo,
-      get_netcdf: downloadSettings.downloadNetcdf,
-      get_log: downloadSettings.downloadLog,
-    }
-    console.log(body);
-    const response = await api.post("/video/download/", body) // Retrieve zip-file for selection
-    if ( response.code === 200 ) {
+    const response = await api.post(
+      "/video/download/", {
+        get_image: downloadSettings.downloadImage,       // Set to true if you want the image files
+        get_video: downloadSettings.downloadVideo,       // Set to true if you want video files
+        get_netcdfs: downloadSettings.downloadNetcdf,    // Set to true if you want netCDF files
+        get_log: downloadSettings.downloadLog,
+        start: downloadStartDate,
+        stop: downloadEndDate,
+      },
+      {
+        responseType: "blob"
+      }
+    ) // Retrieve zip-file for selection
+    if ( response.status === 200 ) {
       // Create a link element to trigger the file download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -141,12 +144,32 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link); // Clean up the temporary DOM element
+      setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
     } else {
       new Error("Error downloading videos");
     }
   } catch (error) {
     setMessageInfo("error: ", error);
   }
-  setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
+}
 
+export const delete_videos = async (api, deleteStartDate, deleteEndDate, setMessageInfo) => {
+  try {
+    const response = await api.post(
+      "/video/delete/", {
+        start: deleteStartDate,
+        stop: deleteEndDate,
+      }
+    )
+    if ( response.status === 204 ) {
+      setMessageInfo("success", "Videos deleted.");
+    } else {
+      new Error("Error deleting videos");
+    }
+  } catch (error) {
+    setMessageInfo("error", error);
+  } finally {
+    // ensure deletes are administered to the application
+    window.location.reload()
+  }
 }

@@ -47,3 +47,17 @@ class VideoResponse(VideoBase):
     def get_netcdf_files(self, base_path: str):
         path = os.path.join(base_path, "OUTPUT", "*.nc")
         return glob.glob(path)
+
+
+class DownloadVideosRequest(BaseModel):
+    get_image: Optional[bool] = False
+    get_video: Optional[bool] = False
+    get_netcdfs: Optional[bool] = False
+    get_log: Optional[bool] = False
+    start: Optional[datetime] = None
+    stop: Optional[datetime] = None
+
+# Define the request body schema
+class DeleteVideosRequest(BaseModel):
+    start: datetime = None
+    stop: datetime = None

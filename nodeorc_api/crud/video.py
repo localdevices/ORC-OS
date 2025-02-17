@@ -44,6 +44,14 @@ def delete(db: Session, id: int):
     db.commit()
     return
 
+def delete_start_stop(db: Session, start: datetime, stop: datetime):
+    """Delete all videos between start and stop datetime."""
+    query = db.query(models.Video)
+    query = filter_start_stop(query, start, stop)
+    query.delete()
+    db.commit()
+    return
+
 def create(db: Session, video: models.Video) -> models.Video:
     """Add a video to the database."""
     db.add(video)
