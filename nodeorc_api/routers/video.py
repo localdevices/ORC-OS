@@ -17,7 +17,7 @@ from nodeorc_api.utils import create_thumbnail
 from nodeorc_api import crud
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 # Directory to save uploaded files
-UPLOAD_DIRECTORY = "uploads/videos"
+UPLOAD_DIRECTORY = "uploads"
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
@@ -27,6 +27,9 @@ async def zip_generator(files):
     """Async generator to stream the zip file content."""
     z = zipstream.ZipFile(mode="w", compression=ZIP_DEFLATED)  #, compression=ZIP_DEFLATED  # 64KB chunks
     for f in files:
+        if not os.path.isfile(f):
+            print(f"File {f} does not exist. Skipping.")
+            continue
         z.write(f, arcname=f)
     for chunk in z:
         yield chunk
@@ -178,7 +181,43 @@ async def upload_video(
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
 
-@router.post("/download", status_code=200)
+@router.post("/download/", status_code=200, response_class=StreamingResponse)
+async def download_videos(
+    get_image: bool,
+    get_video: bool,
+    get_netcdfs: bool,
+    get_log: bool,
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    db: Session = Depends(get_db)
+):
+    """Retrieve files from server and create a streaming zip towards the client."""
+    videos = crud.video.get_list(db=db, start=start, stop=stop)
+    if len(videos) == 0:
+        raise HTTPException(status_code=404, detail="No videos found in database with selected ids.")
+    # create a list of files that must be zipped
+    files_to_zip = []
+    for video in videos:
+        video = VideoResponse.model_validate(video)
+        if get_image and video.get_image_file(base_path=UPLOAD_DIRECTORY):
+            files_to_zip.append(video.get_image_file(base_path=UPLOAD_DIRECTORY))
+        if get_video and video.get_video_file(base_path=UPLOAD_DIRECTORY):
+            files_to_zip.append(video.get_video_file(base_path=UPLOAD_DIRECTORY))
+        if get_netcdfs and video.get_netcdf_files(base_path=UPLOAD_DIRECTORY):
+            files_to_zip +=video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
+        if get_log:
+            # TODO: figure out default name for .log file and also return that
+            pass
+    print(files_to_zip)
+
+    return StreamingResponse(
+        zip_generator(files_to_zip),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="files.zip"'}
+    )
+
+
+@router.post("/download_ids/", status_code=200, response_class=StreamingResponse)
 async def download_videos_on_ids(
     ids: List[int] = None,
     get_image: bool = True,
@@ -210,6 +249,6 @@ async def download_videos_on_ids(
     return StreamingResponse(
         zip_generator(files_to_zip),
         media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=files.zip"}
+        headers={"Content-Disposition": 'attachment; filename="files.zip"'}
     )
 
