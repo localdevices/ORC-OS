@@ -1,3 +1,5 @@
+// import api from "../api.js";
+
 export const fitGcps = async (api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo) => {
 
   // // temporary test function;
@@ -38,7 +40,6 @@ export const fitGcps = async (api, widgets, imgDims, epsgCode, setWidgets, setMe
       setMessageInfo('error', 'GCPs must have valid row and column coordinates. Please click the GCPs into the image frame to fix this.');
       return;
     }
-
     const payload = {
       "src": src,
       "dst": dst,
@@ -46,9 +47,6 @@ export const fitGcps = async (api, widgets, imgDims, epsgCode, setWidgets, setMe
       "width": imgDims.width,
       "crs": epsgCode.toString()
     };
-
-    console.log('Sending payload:', payload);
-    // Send data to API endpoint
     const response = await api.post('/camera_config/fit_perspective', payload);
     // Extract `src_est` and `dst_est` from API response
     const { src_est, dst_est, error } = response.data;
@@ -80,3 +78,75 @@ export const fitGcps = async (api, widgets, imgDims, epsgCode, setWidgets, setMe
     // Optionally, handle errors (e.g., display an error message)
   }
 };
+
+export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
+  try {
+    const response = await api.post(
+      `/video/download_ids/`,
+      selectedIds,
+      {
+        responseType: "blob",
+      }
+    ) // Retrieve zip-file for selection
+
+    // Create a link element to trigger the file download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Set the download filename from the Content-Disposition (if provided) or use a fallback
+    const contentDisposition = response.headers['content-disposition'];
+    console.log(response.headers);
+    const filename = contentDisposition
+      ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
+      : 'download.zip'; // Fallback filename if header doesn't exist.
+    console.log(filename);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link); // Clean up the temporary DOM element
+  } catch (error) {
+    setMessageInfo("error: ", error);
+  }
+  setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
+
+}
+
+export const get_videos = async (api, downloadStartDate, downloadEndDate, downloadSettings, setMessageInfo) => {
+  try {
+    const body = {
+      start: downloadStartDate,
+      stop: downloadEndDate,
+      get_image: downloadSettings.downloadImage,
+      get_video: true,  //downloadSettings.downloadVideo,
+      get_netcdf: downloadSettings.downloadNetcdf,
+      get_log: downloadSettings.downloadLog,
+    }
+    console.log(body);
+    const response = await api.post("/video/download/", body) // Retrieve zip-file for selection
+    if ( response.code === 200 ) {
+      // Create a link element to trigger the file download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Set the download filename from the Content-Disposition (if provided) or use a fallback
+      const contentDisposition = response.headers['content-disposition'];
+      console.log(response.headers);
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
+        : 'download.zip'; // Fallback filename if header doesn't exist.
+      console.log(filename);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link); // Clean up the temporary DOM element
+    } else {
+      new Error("Error downloading videos");
+    }
+  } catch (error) {
+    setMessageInfo("error: ", error);
+  }
+  setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
+
+}

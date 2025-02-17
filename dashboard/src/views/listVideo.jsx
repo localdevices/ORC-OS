@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { FaPlay, FaEye, FaTrash } from 'react-icons/fa'; // Icons from FontAwesome
 import api from '../api';
 import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
+import {useMessage} from '../messageContext';
+import MessageBox from '../messageBox';
 
 const ListVideo = () => {
   const [videoData, setVideoData] = useState([]); // Stores video metadata
@@ -32,6 +33,7 @@ const ListVideo = () => {
   return (
     <div className="container mt-4">
       <h1>Video </h1>
+      <MessageBox />
       Browse through your videos, delete them, view details, download, or perform single runs tasks.
 
       <PaginatedVideos

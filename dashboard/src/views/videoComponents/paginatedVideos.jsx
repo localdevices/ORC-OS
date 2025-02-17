@@ -1,10 +1,13 @@
-import React, {useState, useEffect} from "react";
+import {useState, useEffect} from "react";
 import api from "../../api.js";
-import {FaEye, FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
+import {FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
 } from "react-icons/fa";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
 import FilterDates from "../../utils/filterDates.jsx";
+import DownloadModal from "./downloadModal.jsx";
+import {useMessage} from "../../messageContext.jsx";
+import {get_videos_ids} from "../../utils/apiCalls.jsx";
 
 const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndDate}) => {
   const [data, setData] = useState(initialData);  // initialize data with currently available
@@ -14,6 +17,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal view, to select the right video
   const [showModal, setShowModal] = useState(false); // State for modal visibility
+  const [showDownloadModal, setShowDownloadModal] = useState(false); // State for modal visibility
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
   // Calculate the index range for records to display
@@ -23,6 +27,8 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const currentRecords = data.length
     ? data.slice(idxFirst, idxLast)
     : [];
+  // allow for setting messages
+  const {setMessageInfo} = useMessage();
 
   // const currentRecords = data.slice(idxFirst, idxLast);  // TODO: replace by a direct API call with limited amount
 
@@ -95,42 +101,57 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   };
 
 
-  const handleDownloadSelected = () => {
+  const handleDownloadSelected = async () => {
     if (selectedIds.length === 0) {
       alert("No videos selected to download.");
       return;
     }
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} videos?`)) {
-      api.delete(`/video/${id}`) // Retrieve zip-file for selection
-        .then(() => {
-          // Remove deleted videos from the state
-          const updatedData = data.filter((video) => !selectedIds.includes(video.id));
-          setData(updatedData);
-          setSelectedIds([]);
-          // Adjust current page if necessary
-          if (updatedData.length <= idxFirst) {
-            setCurrentPage((prev) => Math.max(prev - 1, 1));
-          }
-        })
-        .catch((error) => {
-          console.error("Error deleting videos:", error);
-        });
-    }
+    get_videos_ids(api, selectedIds, setMessageInfo);
+    // try {
+    //   const response = await api.post(
+    //     `/video/download_ids/`,
+    //     selectedIds,
+    //     {
+    //       responseType: "blob",
+    //     }
+    //   ) // Retrieve zip-file for selection
+    //
+    //   // Create a link element to trigger the file download
+    //   const url = window.URL.createObjectURL(new Blob([response.data]));
+    //   const link = document.createElement('a');
+    //   link.href = url;
+    //
+    //   // Set the download filename from the Content-Disposition (if provided) or use a fallback
+    //   const contentDisposition = response.headers['content-disposition'];
+    //   console.log(response.headers);
+    //   const filename = contentDisposition
+    //     ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
+    //     : 'download.zip'; // Fallback filename if header doesn't exist.
+    //   console.log(filename);
+    //   link.setAttribute('download', filename);
+    //   document.body.appendChild(link);
+    //   link.click();
+    //   link.parentNode.removeChild(link); // Clean up the temporary DOM element
+    // } catch (error) {
+    //   setMessageInfo("error: ", error);
+    // }
+    // setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
   };
-
-
-  // Handle the "Run" button action
-  const handleRun = (id) => {
-    api.post(`/video/${id}/submit`)
-      .then((response) => {
-        // TODO: submit a change in video status (QUEUE)
-        // TODO: create submit end point and logical processing queue
-        console.log(`Video ${id} submitted to queue for ORC processing`);
-      })
-      .catch((error) => {
-        console.error('Error triggering run action for video ID:', id, error);
-      });
-  };
+const handleDownloadBulk = () => {
+  setShowDownloadModal(true);
+}
+  //   // Handle the "Run" button action
+  // const handleRun = (id) => {
+  //   api.post(`/video/${id}/submit`)
+  //     .then((response) => {
+  //       // TODO: submit a change in video status (QUEUE)
+  //       // TODO: create submit end point and logical processing queue
+  //       console.log(`Video ${id} submitted to queue for ORC processing`);
+  //     })
+  //     .catch((error) => {
+  //       console.error('Error triggering run action for video ID:', id, error);
+  //     });
+  // };
 
   // Handle the "Delete" button action
   const handleDelete = (id) => {
@@ -261,7 +282,11 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
           setEndDate={setEndDate}
           handleDateFilter={handleDateFilter}
         />
-        <div style={{minWidth: "20%", flex: 0, padding: "20px"}}>
+        <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
+          <hr/>
+          <h5>Selected</h5>
+          {/*<hr/>*/}
+        {/*<div style={{minWidth: "20%", flex: 0, padding: "20px"}}>*/}
           <button
             className="btn"
             onClick={handleDownloadSelected}
@@ -276,9 +301,33 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
           >
             Delete
           </button>
-
         </div>
+        <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
+          <hr/>
+          <h5>Bulk actions</h5>
+          <button
+            className="btn"
+            onClick={handleDownloadBulk}
+          >
+            Download
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={handleDeleteSelected}
+            disabled={selectedIds.length === 0}
+          >
+            Delete
+          </button>
+        </div>
+
       </div>
+      {showDownloadModal && (
+        <DownloadModal
+          showDownloadModal={showDownloadModal}
+          setShowDownloadModal={setShowDownloadModal}
+          setMessageInfo={setMessageInfo}
+        />
+      )}
       {/*Modal*/}
       {showModal && selectedVideo && (
         <>
