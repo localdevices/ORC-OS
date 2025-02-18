@@ -44,7 +44,9 @@ const Navbar = () => {
                 </div>
                 <ul className="sidebar-nav">
                     <hr/>
-                    <li className="sidebar-brand">Menu</li>
+                    <li className="sidebar-brand" style={{fontSize: "25px"}}>Menu</li>
+                    <hr/>
+
                     <li>
                         <NavLink
                             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
@@ -59,13 +61,21 @@ const Navbar = () => {
                             Videos
                         </NavLink>
                     </li>
-                    <li className="sidebar-brand">Settings</li>
+                    <hr/>
+                    <li className="sidebar-brand" style={{fontSize: "25px"}}>Settings</li>
                     <hr/>
                     <li>
                         <NavLink
                             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                             to="/device" onClick={handleClose}>
                             Device information
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink
+                          className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                          to="/settings" onClick={handleClose}>
+                            General settings
                         </NavLink>
                     </li>
                     <li>
