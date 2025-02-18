@@ -1,7 +1,7 @@
 #root {
   margin: 0 auto;
   padding: 0 auto;
-  // text-align: center;
+  /* text-align: center; */
   height: 100%;
   font-family: Barlow;
 }
@@ -23,6 +23,20 @@
   padding: 1rem 1rem; /* Optional: Add some padding */
   height: 100%;
 }
+
+.flex-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-direction: row;
+}
+
+@media (max-width: 768px) {
+  .flex-container {
+    flex-direction: column;
+  }
+}
+
 .btn {
   background-color: #0a4777;
   border-color: #0a4777;

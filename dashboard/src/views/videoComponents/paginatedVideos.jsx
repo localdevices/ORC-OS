@@ -327,11 +327,10 @@ const handleDeleteBulk = async () => {
                 ></button>
               </div>
               <div className="modal-body">
-                <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px"}}>
-                  <div style={{width: "70%"}}>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row", gap: "10px"}}>
-                      <label style={{minWidth: "100px"}}>Video</label>
-                      <hr/>
+                <div className="flex-container">
+                  <div className="card" style={{width: "70%"}}>
+                    <div className="flex-container" style={{flexDirection: "column"}}>
+                      <label style={{minWidth: "100px"}}>Video:</label>
                       <div className="readonly">
                         {videoError ? (
                           <div>Video file not found on system</div>
@@ -344,14 +343,10 @@ const handleDeleteBulk = async () => {
                         />
                         )}
                       </div>
-                    </div>
-                    <hr/>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row", gap: "10px"}}>
-                      <label style={{minWidth: "100px"}}>Analysis results</label>
-                      <hr/>
+                      <label style={{minWidth: "100px"}}>Analysis:</label>
                       <div className="readonly">
                         {imageError ? (
-                          <div>Image not found on system</div>
+                          <div>-</div>
                         ) : (
                         <img
                           src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image`}
@@ -361,23 +356,21 @@ const handleDeleteBulk = async () => {
                       </div>
                     </div>
                   </div>
-                  <div style={{minWidth: "30%"}}>
-                    <div className="form-row">
+                  <div className="card" style={{minWidth: "30%"}}>
+                    {/*<div className="form-row">*/}
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
                       <label style={{minWidth: "100px"}}>
                         File:
                       </label>
                       <div className="readonly">{selectedVideo.file.split(`/${selectedVideo.id}/`)[1]}</div>
                     </div>
-                      <hr/>
-                    </div>
+                    {/*</div>*/}
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
                       <label style={{minWidth: "120px"}}>
                         Status:
                       </label>
                       <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
                     </div>
-                    <hr/>
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
                       <label style={{minWidth: "120px"}}>
                         Time Series:
@@ -387,28 +380,24 @@ const handleDeleteBulk = async () => {
                         <div className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
                       </div>
                     </div>
-                    <hr/>
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
                       <label style={{minWidth: "120px"}}>
                         LiveORC sync:
                       </label>
                       <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
                     </div>
-                    <hr/>
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
                       <label style={{minWidth: "120px"}}>
                         LiveORC video id:
                       </label>
                       <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A" }</div>
                     </div>
-                    <hr/>
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
                       <label style={{minWidth: "120px"}}>
                         LiveORC site id:
                       </label>
                       <div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>
                     </div>
-                    <hr/>
                   </div>
                 </div>
               </div>
