@@ -131,7 +131,7 @@ const handleDeleteBulk = async () => {
 
   // Handle the "Delete" button action
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this video?')) {
+    if (window.confirm('Are you sure you want to delete this video and all media files associated with it?')) {
       api.delete(`/video/${id}`) // Replace with your API endpoint
         .then(() => {
           const updatedData = data.filter((video) => video.id !== id); // Remove from state
@@ -212,7 +212,7 @@ const handleDeleteBulk = async () => {
                 />
               </td>
               <td>{video.id}</td>
-              <td>{video.file.split(`/${video.id}/`)[1]}</td>
+              <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
               <td>{video.timestamp.slice(0, 19)}</td>
               <td><img src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}/></td>
               <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
@@ -362,7 +362,7 @@ const handleDeleteBulk = async () => {
                       <label style={{minWidth: "100px"}}>
                         File:
                       </label>
-                      <div className="readonly">{selectedVideo.file.split(`/${selectedVideo.id}/`)[1]}</div>
+                      <div className="readonly">{selectedVideo.file ? selectedVideo.file.split(`/${selectedVideo.id}/`)[1] : "-"}</div>
                     </div>
                     {/*</div>*/}
                     <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>

@@ -66,7 +66,6 @@ const CallbackUrl = () => {
 
   const handleInputChange = (event) => {
     const value = event.target.value;
-    console.log(serverStatus);
     setFormData({
       ...formData,
       [event.target.name]: value,
