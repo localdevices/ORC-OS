@@ -86,7 +86,7 @@ const WaterLevel = () => {
                 script: ''
             });
         } catch (err) {
-            setMessageInfo("error", err.response.data);
+          setMessageInfo("error", err.response.data);
         }
     };
     return (
