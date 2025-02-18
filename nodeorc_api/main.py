@@ -39,6 +39,6 @@ app.include_router(pivideo_stream.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "You have reached the NodeORC API"}
 
 

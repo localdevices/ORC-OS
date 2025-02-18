@@ -14,7 +14,7 @@ def filter_start_stop(
         query = query.where(models.Video.timestamp >= start)
     if stop:
         query = query.where(models.Video.timestamp < stop)
-    return query
+    return query.order_by(models.Video.timestamp)
 
 
 def get(db: Session, id: int):
@@ -40,7 +40,8 @@ def delete(db: Session, id: int):
     query = db.query(models.Video).filter(models.Video.id == id)
     if query.count() == 0:
         raise ValueError(f"Video with id {id} does not exist.")
-    query.delete()
+    video = query.first()
+    db.delete(video)
     db.commit()
     return
 

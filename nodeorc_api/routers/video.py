@@ -16,8 +16,10 @@ from nodeorc_api.schemas.video import VideoCreate, VideoResponse, DownloadVideos
 from nodeorc_api.utils import create_thumbnail
 from nodeorc_api import crud
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
+
 # Directory to save uploaded files
-UPLOAD_DIRECTORY = "uploads"
+from nodeorc import __home__
+UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
@@ -158,26 +160,26 @@ async def upload_video(
     db.refresh(video_instance)
 
     # now the video has an ID and we can create a logical storage location
-    file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", str(video_instance.id))
+    file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", timestamp.strftime("%Y%m%d"), str(video_instance.id))
     os.makedirs(file_dir, exist_ok=True)
     # Save file to disk
-    rel_file_path = os.path.join("videos", str(video_instance.id), file.filename)
+    rel_file_path = os.path.join("videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), file.filename)
     abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
     with open(abs_file_path, "wb") as f:
         f.write(await file.read())
-    # now make a thumbnail and store
-    os.path.splitext(str(file.filename))[0]
-    rel_thumb_path = os.path.join(
-        "videos", str(video_instance.id),
-        f"{os.path.splitext(str(file.filename))[0]}_thumb.jpg"
-    )
-    abs_thumb_path = os.path.join(UPLOAD_DIRECTORY, rel_thumb_path)
-    thumb = create_thumbnail(abs_file_path)
-    thumb.save(abs_thumb_path, "JPEG")
+    # # now make a thumbnail and store
+    # os.path.splitext(str(file.filename))[0]
+    # rel_thumb_path = os.path.join(
+    #     "videos", str(video_instance.id),
+    #     f"{os.path.splitext(str(file.filename))[0]}_thumb.jpg"
+    # )
+    # abs_thumb_path = os.path.join(UPLOAD_DIRECTORY, rel_thumb_path)
+    # thumb = create_thumbnail(abs_file_path)
+    # thumb.save(abs_thumb_path, "JPEG")
 
     # now update the video instance
     video_instance.file = rel_file_path
-    video_instance.thumbnail = rel_thumb_path
+    # video_instance.thumbnail = rel_thumb_path
     db.commit()
 
     # return a VideoResponse instance
@@ -212,8 +214,6 @@ async def download_videos(
         if get_log:
             # TODO: figure out default name for .log file and also return that
             pass
-    print(files_to_zip)
-
     return StreamingResponse(
         zip_generator(files_to_zip),
         media_type="application/zip",
@@ -247,7 +247,6 @@ async def download_videos_on_ids(
         if get_log:
             # TODO: figure out default name for .log file and also return that
             pass
-    print(files_to_zip)
     files = [(os.path.basename(f), f) for f in files_to_zip]
 
     return StreamingResponse(
