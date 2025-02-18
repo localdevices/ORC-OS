@@ -4,8 +4,8 @@ from pyorc.cli.main import camera_config
 
 from nodeorc_api.routers import device, video_stream, video, disk_management, water_level, pivideo_stream, camera_config, callback_url
 app = FastAPI()
-import logging
-logging.basicConfig(level=logging.INFO)
+# import logging
+# logging.basicConfig(level=logging.INFO)
 
 
 # origins = ["http://localhost:5173"]
