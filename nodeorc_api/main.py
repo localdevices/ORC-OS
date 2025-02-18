@@ -10,13 +10,6 @@ logging.basicConfig(level=logging.INFO)
 
 # origins = ["http://localhost:5173"]
 origins = ["*"]
-#
-# app.middleware("http")(CORSMiddleware(
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# ))
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,14 +19,14 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
-
-@app.middleware("http")
-async def log_requests(request, call_next):
-    body = await request.body()
-    logging.info(f"Request headers: {request.headers}")
-    logging.info(f"Request body: {await request.body()}")
-    return await call_next(request)
-
+#
+# @app.middleware("http")
+# async def log_requests(request, call_next):
+#     body = await request.body()
+#     logging.info(f"Request headers: {request.headers}")
+#     logging.info(f"Request body: {await request.body()}")
+#     return await call_next(request)
+#
 
 app.include_router(device.router)
 app.include_router(callback_url.router)
