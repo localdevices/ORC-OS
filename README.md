@@ -94,6 +94,8 @@ something wrong with your SD card. Please check the following:
    should bring the device onto the same network as your computer. 
 2. Open a browser and navigate to http://nodeorcpi. This should bring up the following page.
 
+![image](https://github.com/user-attachments/assets/b4339ac7-c05c-4a70-afa7-20030bca4815)
+
 You are now ready to configure OpenRiverCam OS. On a Raspberry Pi, you are likely interested in configuring the device
 for automated field operations. If this is not the case, then please continue to the "Getting started" section of 
 Laptop / Desktop devices.
@@ -217,3 +219,4 @@ print(t.strftime("%Y-%m-%dT%H:%M:%SZ, "), value)
 ```
 
 ### 
+   
