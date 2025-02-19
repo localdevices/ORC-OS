@@ -108,7 +108,11 @@ Laptop / Desktop devices.
 If ORC OS is used to estimate river flow, each video must also have an accompanying water level. If you have a device
 installed on the site, or you are able to retrieve water levels from a certain API end point at the location where
 your device is installed, you can provide your own a bash or python script that retrieves these water levels at regular 
-intervals. In the form you must fill out:
+intervals. 
+
+![image](https://github.com/user-attachments/assets/5ea48ca0-7846-428e-b8d4-19d809bba78d)
+
+In the form you must fill out:
 
 1. Date and time format as used in the file backup. Not needed if you rely on a script to retrieve values. More on this 
    later.
