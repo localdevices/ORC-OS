@@ -94,11 +94,126 @@ something wrong with your SD card. Please check the following:
    should bring the device onto the same network as your computer. 
 2. Open a browser and navigate to http://nodeorcpi. This should bring up the following page.
 
-You are now ready to set up OpenRiverCam OS. On a Raspberry Pi, you are likely interested in setting up the device
+You are now ready to configure OpenRiverCam OS. On a Raspberry Pi, you are likely interested in configuring the device
 for automated field operations. If this is not the case, then please continue to the "Getting started" section of 
 Laptop / Desktop devices.
 
+## Configuring for automated field operations
 
+### General settings
 
+### Water level settings
+If ORC OS is used to estimate river flow, each video must also have an accompanying water level. If you have a device
+installed on the site, or you are able to retrieve water levels from a certain API end point at the location where
+your device is installed, you can provide your own a bash or python script that retrieves these water levels at regular 
+intervals. In the form you must fill out:
 
+1. Date and time format as used in the file backup. Not needed if you rely on a script to retrieve values. More on this 
+   later.
+2. File template for water levels. Also not needed if you use the recommended script-based approach.
+3. Frequency for running the script. Your provided script will be run after and interval of this value in seconds.
+   If the script return identical values (for instance because the API does not yet deliver any new data), then no new
+   value will be written to the database. This ensures that you do not get any duplicates that may cause problems 
+   in the processing chain.
+4. Script type. Select PYTHON or BASH.
+5. The script itself.
+
+The script must comply to the following rules:
+
+1. The script must be pure bash or python and must be entirely valid. If you provide an invalid script, you will 
+   receive an error message that hopefully helps you to debug your script. We highly recommend to build and test your
+   script first before uploading it.
+2. The script can output whatever you want, but at the end a single-line output MUST be returned to the screen as very 
+   last line with a particular format. This format is `YYYY-MM-DDTHH:MM:SSZ, <value-in-meters>`. If you are used to 
+   python coding, the datetime string format is `%Y-%m-%dT%H:%M:%SZ, <value-in-meters>`. Here `<value-in-meters>` is the
+   water level in the locally defined datum. This could be anything such as a local geo datum, bottom of the stream, 
+   anything that is logical from a local stand point. Let's have a look at an example.
    
+   For instance for the date 21st of January 2025 and time 15 minutes and 23 seconds past one in the afternoon, we have
+   an API that reports a water level of 93.35 meters. This seems a very high value, but as said, here the datum is a 
+   local geodatum, or mean sea level, and the river may be located about 90 meters above that datum. For this case, your
+   script, that retrieves this value from the API must report the following as last line:
+
+   ```bash
+   2025-01-21T13:15:23Z, 93.35 
+   ```
+3. The script should be copy-pasted as plain text in the script content box at the bottom.
+4. When uploading, you must ensure that the device is at that moment capable to run the script. For instance, when you
+   are uploading a script that calls an API, you must be connected to the internet. ORC OS will test the script by 
+   running it and validating that the script provides the last-line outputs as indicated above.
+
+> [!NOTE]
+> As shown, there are two form fields where you can provide as backup, a file format or stored file on disk where water
+> levels are attempted to be retrieved. These files must appear in the home folder, configured under disk management in 
+> the following location:
+> 
+> ```bash
+> $HOME_ORC/water_level
+> ```
+> where $HOME_ORC is the folder, configured under disk management.
+> 
+> This is only used as a backup. If you decide to use this, instead of a direct script, you have to make sure that water
+> levels appear in this file yourself, e.g. by preparing a crontab job separately from ORC OS or regularly pushing data.
+> to your Raspberry Pi device. Please login via SSH to set this up yourself.
+
+A full example script is provided below. This script calls the open API of the Waterboard Limburg and retrieves a water
+level for the site "Hommerich" in their operating area. Note that this is a PYTHON script, hence you MUST select PYTHON
+as script type. Go ahead and try it out and see if it gets accepted.
+
+```python
+import os
+import pandas as pd
+import requests
+
+from datetime import datetime, timedelta
+
+# script to load one-day of 15-minute values from waterboard Limburg's API and only print the very last value
+# to screen
+
+# below we have a function that calls the latest values. It looks back over a given time interval dt from the current 
+# time. It will return a http response object.
+def retrieve_latest_vals(url, dt=30*60):
+    """Retrieve latest values from Water board Limburg API."""
+    t_utc = datetime.utcnow()  # get the current time
+    dt = timedelta(seconds=dt)
+    start_time = t_utc - dt  # get a start time
+    start_time_str = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+    params = {
+        "$filter": f"DateTime ge {start_time_str}",
+        "$orderby": "DateTime"
+    }
+    # execute the request    
+    r = requests.get(
+        url,
+        params=params
+    )
+    if r.status_code == 200:
+        return r
+    else:
+        # if for instance the site is down or you are not connected...
+        raise ValueError(f"Error in response: {r}")
+    
+def parse_last_value(body):
+    """Get the last value from response JSON data body (e.g. retrieve by response.json()."""
+    vals = body["value"]
+    if len(vals) == 0:
+        raise ValueError("The response did not contain any data! Check if the site was down")
+    t = datetime.strptime(vals[-1]["DateTime"], "%Y-%m-%dT%H:%M:%SZ")
+    value = vals[-1]["Value"]
+    return t, value
+
+
+url = 'https://www.waterstandlimburg.nl/api/Location(185)/Measurements'  # this is the full end point
+dt = 1440 * 60  # full day back looking
+
+# first we retrieve a response from the API end point
+r = retrieve_latest_vals(url, dt=dt)
+# we retrieve the response body and pass that to retrieve the last value.
+t, value = parse_last_value(r.json())
+# this is where the magic happens. The line below print EXACTLY the format, required for ORC OS, including the Z
+# for UTC+00 time zone and the comma between the time and the value. 
+print(t.strftime("%Y-%m-%dT%H:%M:%SZ, "), value)
+# and that's it. This script will run at the interval selected by you and store the values in the ORC OS database.
+```
+
+### 
