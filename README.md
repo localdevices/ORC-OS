@@ -70,9 +70,9 @@ computer that has Raspberry Pi Imager installed
 > * Click on "SAVE"
 > * Click on "YES".
 
-9. When the application asks "All existing data on '<your selected SD card>' will be erased. Are you sure you want to 
+9. When the application asks "All existing data on \'<your selected SD card>\' will be erased. Are you sure you want to 
    continue?", click on YES.
-10.When Raspberry OS Imager asks for your password, please provide this.
+10. When Raspberry OS Imager asks for your password, please provide this.
 
 The SD card will now be prepared and verified. This will only take a few minutes. Time for a ☕.
 
