@@ -12,8 +12,9 @@ width=100 align="right">
 > [!CAUTION]
 > The OpenRiverCam OS is currently in development. As long as this is the case, please do not expect a fully 
 > working version here. Only when a formal release is present can you start relying on the OpenRiverCam OS 
-> for your operational work. Until then, please use the pyorc command-line interface ((https://openrivercam.org,
-> for ad-hoc processing) or the NodeORC daemon (https://github.com/localdevices/nodeorc.git, for automated processing).
+> for your operational work. Until then, please use:
+> * Ad-hoc processing: pyORC command-line interface, see https://openrivercam.org
+> * Automated on-site processing: NodeORC daemon, see https://github.com/localdevices/nodeorc.git
 
 * [What is OpenRiverCam OS](#what-is-openrivercam-os)
 * [Installation](#installation)
