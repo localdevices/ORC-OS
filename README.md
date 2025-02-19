@@ -61,10 +61,14 @@ computer that has Raspberry Pi Imager installed
 8. When the application asks "Would you like to apply OS customisation settings?", click on NO.
 
 > [!TIP]
-> If you do not have a UTP cable or free UTP slot conveniently nearby but instead want to rely on WiFi, then select YES!
-> In the "GENERAL" tab, activate "Configure wireless LAN", type in the exact capital sensitive (!) name of your WiFi
-> SSID name, and type the exact capital sensitive password in the SSID/password fields. Choose your 2-letter country
-> code in the Wireless LAN country dropdown menu. 
+> If you do not have a UTP cable or free UTP slot conveniently nearby but instead want to rely on WiFi, then select 
+> "EDIT SETTINGS" and follow the instruction below.
+> * In the "GENERAL" tab, activate "Configure wireless LAN"
+> * type in the exact capital sensitive (!) name of your WiFi SSID in the SSID field.
+> * type the exact capital sensitive password in the password field.
+> * Choose your 2-letter country code in the Wireless LAN country dropdown menu.
+> * Click on "SAVE"
+> * Click on "YES".
 
 9. When the application asks "All existing data on '<your selected SD card>' will be erased. Are you sure you want to 
    continue?", click on YES.
