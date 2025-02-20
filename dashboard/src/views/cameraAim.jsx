@@ -68,9 +68,9 @@ const CameraAim = () => {
       try {
         console.log(event);
         const videoUrl = event.target.videoUrl.value;
-        const feedUrl = `${api.defaults.baseURL}/video/feed/?video_url=${encodeURIComponent(videoUrl)}`;
+        const feedUrl = `${api.defaults.baseURL}/video_stream/feed/?video_url=${encodeURIComponent(videoUrl)}`;
         // test the feed by doing an API call
-        const response = await api.head('/video/feed/?video_url=' + encodeURIComponent(videoUrl));
+        const response = await api.head('/video_stream/feed/?video_url=' + encodeURIComponent(videoUrl));
         if (response.status === 200) {
             setVideoFeedUrl(feedUrl); // Set the dynamically generated URL
             console.log("Setting load status to false");
