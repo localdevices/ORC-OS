@@ -28,8 +28,8 @@ const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}
     //   alert("Please select both start and end dates.");
     //   return;
     // }
-    get_videos(api, downloadStartDate, downloadEndDate, downloadSettings, setMessageInfo);
-    setShowDownloadModal(false); // Close modal on success
+      get_videos(api, downloadStartDate, downloadEndDate, downloadSettings, setMessageInfo);
+      setShowDownloadModal(false); // Close modal on success
   };
 
 

@@ -146,10 +146,21 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
       link.parentNode.removeChild(link); // Clean up the temporary DOM element
       setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
     } else {
-      new Error("Error downloading videos");
+      console.log(response);
+      throw new Error(`Invalid form data. Status Code: ${response.status}`);
     }
   } catch (error) {
-    setMessageInfo("error: ", error);
+    console.log(error.response)
+    if (error.response) {
+      setMessageInfo("error", "Error: No videos found for the selected time period.");
+    } else if (error.request) {
+      // No response received
+      setMessageInfo("error", "Error: No response from the server. Please check your connection.");
+    } else {
+      // Some other error occurred
+      setMessageInfo("error", `Error: ${error.message}`);
+
+    }
   }
 }
 
