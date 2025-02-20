@@ -7,5 +7,5 @@ export default defineConfig({
 })
 
 server: {
-  allowedHosts: ['framework']
+  allowedHosts: ['framework', 'hades.local', 'hades']
 }

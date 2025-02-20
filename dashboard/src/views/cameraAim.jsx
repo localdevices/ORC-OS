@@ -13,7 +13,7 @@ const CameraAim = () => {
   useEffect(() => {
     const fetchSwitchState = async () => {
       try {
-        const response = await api.get("/pivideo/has_picam");
+        const response = await api.get("/pivideo_stream/has_picam");
         console.log(response);
         if (response.status === 200) {
           const { enabled } = response.data;
@@ -37,15 +37,15 @@ const CameraAim = () => {
     try {
       if (newState) {
         // Call endpoint for "enabled" state
-        await api.post('/pivideo/start');
+        await api.post('/pivideo_stream/start');
         console.log("PiCamera enabled.");
         // re-create a unique url to prevent the browser thinks it can use a cached version
-        const feedUrl = `${api.defaults.baseURL}/pivideo/stream?${new Date().getTime()}`;
+        const feedUrl = `${api.defaults.baseURL}/pivideo_stream/stream?${new Date().getTime()}`;
         setVideoFeedUrl(feedUrl);
         setIsToggledOn(true);
       } else {
         // Call endpoint for "disabled" state
-        await api.post('/pivideo/stop');
+        await api.post('/pivideo_stream/stop');
         setVideoFeedUrl("");
         setIsToggledOn(false);
         console.log("PiCamera disabled.");
@@ -68,9 +68,9 @@ const CameraAim = () => {
       try {
         console.log(event);
         const videoUrl = event.target.videoUrl.value;
-        const feedUrl = `${api.defaults.baseURL}/video/feed/?video_url=${encodeURIComponent(videoUrl)}`;
+        const feedUrl = `${api.defaults.baseURL}/video_stream/feed/?video_url=${encodeURIComponent(videoUrl)}`;
         // test the feed by doing an API call
-        const response = await api.head('/video/feed/?video_url=' + encodeURIComponent(videoUrl));
+        const response = await api.head('/video_stream/feed/?video_url=' + encodeURIComponent(videoUrl));
         if (response.status === 200) {
             setVideoFeedUrl(feedUrl); // Set the dynamically generated URL
             console.log("Setting load status to false");

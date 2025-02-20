@@ -15,7 +15,7 @@ async def get_disk_management_settings(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=None, status_code=201, description="Update disk management configuration.")
-async def update_device(dm: DiskManagementCreate, db: Session = Depends(get_db)):
+async def update_disk_management(dm: DiskManagementCreate, db: Session = Depends(get_db)):
     # Check if there is already a device
     existing_dm = crud.disk_management.get(db)
     try:

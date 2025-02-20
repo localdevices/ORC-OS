@@ -1,7 +1,7 @@
 #root {
   margin: 0 auto;
   padding: 0 auto;
-  // text-align: center;
+  /* text-align: center; */
   height: 100%;
   font-family: Barlow;
 }
@@ -23,6 +23,20 @@
   padding: 1rem 1rem; /* Optional: Add some padding */
   height: 100%;
 }
+
+.flex-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-direction: row;
+}
+
+@media (max-width: 768px) {
+  .flex-container {
+    flex-direction: column;
+  }
+}
+
 .btn {
   background-color: #0a4777;
   border-color: #0a4777;
@@ -36,6 +50,34 @@ button.btn-danger {
   color: #fff;
   marginBottom: 10px;
 }
+
+/* icon buttons should remain empty with some spacing only */
+button.btn-icon {
+  background: none;
+  border: none;
+  padding-horizontal: 5;
+  cursor: pointer;
+  color: grey;
+  transition: color 0.3s; /* Smooth color transition */
+}
+
+/* Change colors of icon within button on hover */
+button.btn-icon:hover .danger {
+  transition: color 0.3s; /* Smooth color transition */
+  color: red; /* Change to your desired color */
+}
+button.btn-icon:hover .run {
+  transition: color 0.3s; /* Smooth color transition */
+  color: blue; /* Change to your desired color */
+}
+button.btn-icon:hover .edit {
+  transition: color 0.3s; /* Smooth color transition */
+  color: green; /* Change to your desired color */
+}
+
+
+
+
 /* Close Button for menus and widgets */
 .close-button {
     align-self: flex-end;
@@ -75,6 +117,19 @@ button.btn-danger {
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
+  }
+}
+
+.spinner {
+  animation: spin 5s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

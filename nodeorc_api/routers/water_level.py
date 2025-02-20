@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, HTTPException
 from nodeorc.db import Session, WaterLevelSettings
 from typing import List, Union
 
@@ -9,13 +9,13 @@ from nodeorc_api import crud
 router: APIRouter = APIRouter(prefix="/water_level", tags=["water_level"])
 
 @router.get("/", response_model=Union[WaterLevelResponse, None], description="Get water level configuration")
-async def get_device(db: Session = Depends(get_db)):
+async def get_water_level(db: Session = Depends(get_db)):
     water_level_settings: List[WaterLevelSettings] = crud.water_level.get(db)
     return water_level_settings
 
 
 @router.post("/", response_model=WaterLevelResponse, status_code=201, description="Update water level configuration")
-async def update_device(water_level_settings: WaterLevelCreate, db: Session = Depends(get_db)):
+async def update_water_level(water_level_settings: WaterLevelCreate, db: Session = Depends(get_db)):
     # Check if there is already a device
     try:
         existing_wl_settings = crud.water_level.get(db)
@@ -35,3 +35,5 @@ async def update_device(water_level_settings: WaterLevelCreate, db: Session = De
             return new_wl_settings
     except Exception as e:
         return Response(f"Error: {e}", status_code=500)
+        # raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+

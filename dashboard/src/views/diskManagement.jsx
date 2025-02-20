@@ -53,7 +53,6 @@ const DiskManagement = () => {
             Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
         );
 
-        console.log(filteredData);
         // get rid of created_at field as this must be autocompleted
         try {
             delete filteredData.created_at;

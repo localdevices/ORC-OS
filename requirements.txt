@@ -1,2 +1,3 @@
 fastapi[standard]
 nodeorc
+zipstream

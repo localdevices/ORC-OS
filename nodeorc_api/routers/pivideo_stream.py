@@ -5,7 +5,7 @@ import io
 from threading import Thread
 
 # Initialize router
-router = APIRouter(prefix="/pivideo", tags=["pivideo"])
+router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
 
 # Globals for managing the camera
 picam = None

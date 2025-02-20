@@ -1,4 +1,4 @@
 devServer: {
-    "host": "framework",
+    "host": "hades.local",
     "port": 5173
 }
