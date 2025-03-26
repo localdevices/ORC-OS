@@ -24,7 +24,7 @@ class SettingsBase(BaseModel):
         description="Flag for enabling automated shutdown after a task is performed. Must ONLY be used if a power "
                 "cycling scheme is implemented and is meant to save power only."
     )
-    reboot_after: Optional[bool] = Field(
+    reboot_after: Optional[float] = Field(
         default=None,
         description="Amount of seconds after which device reboots (0 means never reboot)"
     )
