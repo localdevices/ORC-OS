@@ -3,12 +3,14 @@ requires = ["flit_core >=3.4.0,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "nodeorc_api"
+name = "orc_api"
 authors = [
     {name = "Hessel Winsemius", email = "winsemius@rainbowsensing.com"},
 ]
 dependencies = [
-    "nodeorc",
+    "pillow",
+    "pyopenrivercam>=0.8.5",
+    "sqlalchemy",
     "fastapi[standard]",
     "zipstream"
 ]
@@ -38,11 +40,11 @@ test = [
 ]
 
 [project.urls]
-Source = "https://github.com/localdevices//nodeorc-interface"
+Source = "https://github.com/localdevices/ORC-OS"
 
 
 [tool.flit.sdist]
-include = ["nodeorc_api"]
+include = ["orc_api"]
 exclude = ["gcloud_dist", "hack", "helm", "htmlcov", "junit", "tests", ".github"]
 
 [tool.pytest.ini_options]

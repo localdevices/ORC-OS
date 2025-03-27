@@ -1,3 +1,4 @@
+sqlalchemy
 fastapi[standard]
-nodeorc
+pillow
 zipstream
