@@ -10,13 +10,14 @@ from orc_api import __home__
 from .base import AlchemyEncoder, Base, RemoteBase, sqlalchemy_to_dict
 from .callback_url import CallbackUrl
 from .camera_config import CameraConfig
+from .cross_section import CrossSection
 from .device import Device, DeviceFormStatus, DeviceStatus
 from .disk_management import DiskManagement
-
-# from .profile import Profile
+from .recipe import Recipe
 from .settings import Settings
 from .time_series import TimeSeries
 from .video import Video, VideoStatus
+from .video_config import VideoConfig
 from .water_level_settings import ScriptType, WaterLevelSettings
 
 __all__ = [
@@ -24,14 +25,17 @@ __all__ = [
     "Base",
     "RemoteBase",
     "CallbackUrl",
+    "CameraConfig",
+    "CrossSection",
     "Device",
     "DeviceFormStatus",
     "DeviceStatus",
     "DiskManagement",
-    "CameraConfig",
+    "Recipe",
     "TimeSeries",
     "Settings",
     "Video",
+    "VideoConfig",
     "VideoStatus",
     "WaterLevelSettings",
     "ScriptType",

@@ -1,4 +1,5 @@
 sqlalchemy
 fastapi[standard]
 pillow
+pyyaml
 zipstream

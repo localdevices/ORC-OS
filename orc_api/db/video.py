@@ -72,11 +72,11 @@ class Video(RemoteBase):
     file: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     thumbnail: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    camera_config_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("camera_config.id"), nullable=True
+    video_config_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("video_config.id"), nullable=True
     )  # relate by id
     # time_series = Column(ForeignKey("time_series.id"))
-    camera_config = relationship("CameraConfig")
+    video_config = relationship("VideoConfig")
     time_series_id: Mapped[int] = mapped_column(Integer, ForeignKey("time_series.id"), nullable=True, unique=True)
     time_series = relationship("TimeSeries", uselist=False, back_populates="video")  # , foreign_keys=[time_series_id]
 
