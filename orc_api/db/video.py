@@ -1,18 +1,21 @@
 """Model for water level time series."""
-import cv2
+
 import enum
 import os
 import shutil
-
 from datetime import datetime
-from PIL import Image
-from sqlalchemy import Integer, DateTime, ForeignKey, String, Enum, event
-from sqlalchemy.orm import relationship, mapped_column, Mapped
-from orc_api import __home__
-from orc_api.db import RemoteBase
 from typing import Optional
 
+import cv2
+from PIL import Image
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, event
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from orc_api import __home__
+from orc_api.db import RemoteBase
+
 UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
+
 
 def create_thumbnail(image_path: str, size=(50, 50)) -> Image:
     """Create thumbnail for image."""
@@ -25,6 +28,8 @@ def create_thumbnail(image_path: str, size=(50, 50)) -> Image:
 
 
 class VideoStatus(enum.Enum):
+    """Status of video as Enum."""
+
     NEW = 1
     QUEUE = 2
     TASK = 3
@@ -33,8 +38,7 @@ class VideoStatus(enum.Enum):
 
 
 class Video(RemoteBase):
-    """
-    Represents a video entity in the database.
+    """Represents a video entity in the database.
 
     This class corresponds to the 'video' table in the database and provides
     fields to store metadata about a video, including timestamps, file details,
@@ -57,7 +61,9 @@ class Video(RemoteBase):
         The thumbnail of the video. Can be null.
     camera_config : int
         Foreign key linking to the associated camera configuration.
+
     """
+
     __tablename__ = "video"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -66,16 +72,20 @@ class Video(RemoteBase):
     file: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     thumbnail: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    camera_config_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("camera_config.id"), nullable=True)  # relate by id
+    camera_config_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("camera_config.id"), nullable=True
+    )  # relate by id
     # time_series = Column(ForeignKey("time_series.id"))
     camera_config = relationship("CameraConfig")
-    time_series = relationship("TimeSeries", uselist=False, back_populates="video")
+    time_series_id: Mapped[int] = mapped_column(Integer, ForeignKey("time_series.id"), nullable=True, unique=True)
+    time_series = relationship("TimeSeries", uselist=False, back_populates="video")  # , foreign_keys=[time_series_id]
 
     def __str__(self):
         return "{}: {}".format(self.timestamp, self.file)
 
     def __repr__(self):
         return "{}".format(self.__str__())
+
 
 @event.listens_for(Video, "before_insert")
 @event.listens_for(Video, "before_update")
@@ -92,6 +102,7 @@ def create_thumbnail_listener(mapper, connection, target):
             thumb.save(abs_thumb_path, "JPEG")
             target.thumbnail = rel_thumb_path
 
+
 @event.listens_for(Video, "before_delete")
 def delete_files_listener(mapper, connection, target):
     """Delete files associated with this video."""
@@ -99,3 +110,25 @@ def delete_files_listener(mapper, connection, target):
     if os.path.exists(target_path):
         # remove entire path
         shutil.rmtree(target_path)
+
+
+@event.listens_for(Video, "before_insert")
+def add_water_level(mapper, connection, target):
+    """Add water level to time series."""
+    from orc_api import crud
+    from orc_api.database import get_session
+
+    db = get_session()
+    # check if a record is available
+    settings = crud.settings.get(db)
+    timestamp = datetime.now() if not target.timestamp else target.timestamp
+    timeseries_record = crud.time_series.get_closest(
+        db,
+        timestamp,
+        allowed_dt=settings.allowed_dt,
+    )
+    if timeseries_record:
+        # link the time series with target
+        target.time_series_id = timeseries_record.id
+    else:
+        print(f"No water level record available for timestamp {timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.")

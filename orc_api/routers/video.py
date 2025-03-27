@@ -1,33 +1,35 @@
+"""Video routers."""
+
 import mimetypes
 import os
+from datetime import datetime
+from typing import List, Optional
 from zipfile import ZIP_DEFLATED
 
 import zipstream
-
-from datetime import datetime
-from fastapi import APIRouter, UploadFile, Form, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
-from orc_api.db import Video
 from sqlalchemy.orm import Session
-from typing import Optional, List
-
-from orc_api.database import get_db
-from orc_api.schemas.video import VideoCreate, VideoResponse, DownloadVideosRequest, DeleteVideosRequest
-from orc_api.utils.image import create_thumbnail
-from orc_api import crud
-router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
 # Directory to save uploaded files
-from orc_api import __home__
+from orc_api import __home__, crud
+from orc_api.database import get_db
+from orc_api.db import Video
+from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoResponse
+
+router: APIRouter = APIRouter(prefix="/video", tags=["video"])
+
+
 UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
+
 # helpers
 async def zip_generator(files):
     """Async generator to stream the zip file content."""
-    z = zipstream.ZipFile(mode="w", compression=ZIP_DEFLATED)  #, compression=ZIP_DEFLATED  # 64KB chunks
+    z = zipstream.ZipFile(mode="w", compression=ZIP_DEFLATED)  # , compression=ZIP_DEFLATED  # 64KB chunks
     for f in files:
         if not os.path.isfile(f):
             print(f"File {f} does not exist. Skipping.")
@@ -55,15 +57,15 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
 
     return FileResponse(video.get_thumbnail(base_path=UPLOAD_DIRECTORY), media_type=mime_type)
 
+
 @router.get("/", response_model=List[VideoResponse], status_code=200)
 async def get_list_video(
-    start: Optional[datetime] = None,
-    stop: Optional[datetime] = None,
-    db: Session = Depends(get_db)
+    start: Optional[datetime] = None, stop: Optional[datetime] = None, db: Session = Depends(get_db)
 ):
     """Retrieve a thumbnail for a video."""
     list_videos = crud.video.get_list(db, start=start, stop=stop)
     return list_videos
+
 
 @router.get("/{id}/", response_model=VideoResponse, status_code=200)
 async def get_video(id: int, db: Session = Depends(get_db)):
@@ -73,15 +75,17 @@ async def get_video(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Video not found.")
     return video
 
+
 @router.delete("/{id}/", status_code=204, response_model=None)
 async def delete_video(id: int, db: Session = Depends(get_db)):
     """Delete a video."""
     _ = crud.video.delete(db=db, id=id)
     return
 
+
 @router.post("/delete/", status_code=204, response_model=None)
 async def delete_list_videos(request: DeleteVideosRequest, db: Session = Depends(get_db)):
-    """Delete a list of videos. """
+    """Delete a list of videos."""
     start = request.start
     stop = request.stop
     try:
@@ -106,7 +110,11 @@ async def play_video(id: int, db: Session = Depends(get_db)):
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
     # Ensure the file exists
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Video file not found on local data store. Please check your upload directory and try again. If the problem persists, please contact the administrator for assistance.")
+        raise HTTPException(
+            status_code=404,
+            detail="Video file not found on local data store. Please check your upload directory and try again. "
+            "If the problem persists, please contact the administrator for assistance.",
+        )
 
     # Determine the MIME type of the file based on the extension
     mime_type, _ = mimetypes.guess_type(file_path)
@@ -115,6 +123,7 @@ async def play_video(id: int, db: Session = Depends(get_db)):
 
     # Return the video file using FileResponse
     return FileResponse(file_path, media_type=mime_type)
+
 
 @router.get("/{id}/image/", response_class=FileResponse, status_code=200)
 async def get_image(id: int, db: Session = Depends(get_db)):
@@ -131,7 +140,11 @@ async def get_image(id: int, db: Session = Depends(get_db)):
     file_path = video.get_image_file(base_path=UPLOAD_DIRECTORY)
     # Ensure the file exists
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Image file not found on local data store. Please check your upload directory and try again. If the problem persists, please contact the administrator for assistance.")
+        raise HTTPException(
+            status_code=404,
+            detail="Image file not found on local data store. Please check your upload directory and try again. "
+            "If the problem persists, please contact the administrator for assistance.",
+        )
 
     # Determine the MIME type of the file based on the extension
     mime_type, _ = mimetypes.guess_type(file_path)
@@ -149,15 +162,14 @@ async def upload_video(
     camera_config: Optional[int] = Form(None),
     db: Session = Depends(get_db),
 ):
+    """Upload a video file and create a new entry in the database."""
     # validate the individual inputs
     video = VideoCreate(timestamp=timestamp, camera_config=camera_config)
     # Create a new Video instance to retrieve an id
     video_instance = Video(**video.model_dump())
 
     # Save to database
-    db.add(video_instance)
-    db.commit()
-    db.refresh(video_instance)
+    video_instance = crud.video.create(db=db, video=video_instance)
 
     # now the video has an ID and we can create a logical storage location
     file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", timestamp.strftime("%Y%m%d"), str(video_instance.id))
@@ -167,15 +179,6 @@ async def upload_video(
     abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
     with open(abs_file_path, "wb") as f:
         f.write(await file.read())
-    # # now make a thumbnail and store
-    # os.path.splitext(str(file.filename))[0]
-    # rel_thumb_path = os.path.join(
-    #     "videos", str(video_instance.id),
-    #     f"{os.path.splitext(str(file.filename))[0]}_thumb.jpg"
-    # )
-    # abs_thumb_path = os.path.join(UPLOAD_DIRECTORY, rel_thumb_path)
-    # thumb = create_thumbnail(abs_file_path)
-    # thumb.save(abs_thumb_path, "JPEG")
 
     # now update the video instance
     video_instance.file = rel_file_path
@@ -185,11 +188,10 @@ async def upload_video(
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
 
+
 @router.post("/download/", status_code=200, response_class=StreamingResponse)
-async def download_videos(
-    request: DownloadVideosRequest,
-    db: Session = Depends(get_db)
-):
+async def download_videos(request: DownloadVideosRequest, db: Session = Depends(get_db)):
+    """Retrieve files from server and create a streaming zip towards the client."""
     get_image = request.get_image
     get_video = request.get_video
     get_netcdfs = request.get_netcdfs
@@ -210,14 +212,14 @@ async def download_videos(
         if get_video and video.get_video_file(base_path=UPLOAD_DIRECTORY):
             files_to_zip.append(video.get_video_file(base_path=UPLOAD_DIRECTORY))
         if get_netcdfs and video.get_netcdf_files(base_path=UPLOAD_DIRECTORY):
-            files_to_zip +=video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
+            files_to_zip += video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
         if get_log:
             # TODO: figure out default name for .log file and also return that
             pass
     return StreamingResponse(
         zip_generator(files_to_zip),
         media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="files.zip"'}
+        headers={"Content-Disposition": 'attachment; filename="files.zip"'},
     )
 
 
@@ -228,7 +230,7 @@ async def download_videos_on_ids(
     get_video: bool = True,
     get_netcdfs: bool = True,
     get_log: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Retrieve files from server and create a streaming zip towards the client."""
     videos = crud.video.get_ids(db=db, ids=ids)
@@ -243,15 +245,14 @@ async def download_videos_on_ids(
         if get_video and video.get_video_file(base_path=UPLOAD_DIRECTORY):
             files_to_zip.append(video.get_video_file(base_path=UPLOAD_DIRECTORY))
         if get_netcdfs and video.get_netcdf_files(base_path=UPLOAD_DIRECTORY):
-            files_to_zip +=video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
+            files_to_zip += video.get_netcdf_files(base_path=UPLOAD_DIRECTORY)
         if get_log:
             # TODO: figure out default name for .log file and also return that
             pass
-    files = [(os.path.basename(f), f) for f in files_to_zip]
+    _ = [(os.path.basename(f), f) for f in files_to_zip]
 
     return StreamingResponse(
         zip_generator(files_to_zip),
         media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="files.zip"'}
+        headers={"Content-Disposition": 'attachment; filename="files.zip"'},
     )
-
