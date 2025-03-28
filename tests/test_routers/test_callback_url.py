@@ -3,16 +3,16 @@ import pytest
 from datetime import datetime
 from fastapi import Depends
 from fastapi.testclient import TestClient
-from nodeorc_api.main import app
-from nodeorc_api.database import get_db
-from nodeorc.db import CallbackUrl
-from nodeorc_api import crud
-from nodeorc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
+from orc_api.main import app
+from orc_api.database import get_db
+from orc_api.db import CallbackUrl
+from orc_api import crud
+from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from nodeorc.db import Base
+from orc_api.db import Base
 from unittest.mock import patch
 
 
@@ -66,15 +66,15 @@ def test_get_callback_url_success(mocked_db_response):
     assert response.json()["token_access"] == mocked_db_response["token_access"]
 
 def test_update_callback_url_success(mocker):
-    mock_get_tokens = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
+    mock_get_tokens = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
     mock_get_tokens.return_value.status_code = 200
     mock_get_tokens.return_value.json.return_value = {
         "access": "token_access_value",
         "refresh": "token_refresh_value"
     }
-    mock_get_token_expiration = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
+    mock_get_token_expiration = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
     mock_get_token_expiration.return_value = datetime(2024, 1, 1, 0, 0, 0)
-    # mock_add_callback = mocker.patch("nodeorc_api.crud.callback_url.add")
+    # mock_add_callback = mocker.patch("orc_api.crud.callback_url.add")
 
     request_body = {
         "url": "https://example.com/callback",
@@ -88,15 +88,15 @@ def test_update_callback_url_success(mocker):
 
 
 def test_update_callback_url_localhost_success(mocker):
-    mock_get_tokens = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
+    mock_get_tokens = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
     mock_get_tokens.return_value.status_code = 200
     mock_get_tokens.return_value.json.return_value = {
         "access": "token_access_value",
         "refresh": "token_refresh_value"
     }
-    mock_get_token_expiration = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
+    mock_get_token_expiration = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
     mock_get_token_expiration.return_value = datetime(2024, 1, 1, 0, 0, 0)
-    # mock_add_callback = mocker.patch("nodeorc_api.crud.callback_url.add")
+    # mock_add_callback = mocker.patch("orc_api.crud.callback_url.add")
 
     request_body = {
         "url": "http://localhost:8000/callback",
@@ -110,7 +110,7 @@ def test_update_callback_url_localhost_success(mocker):
 
 
 def test_update_callback_url_invalid_tokens(mocker):
-    mock_get_tokens = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
+    mock_get_tokens = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
     mock_get_tokens.return_value.status_code = 403
     mock_get_tokens.return_value.text = "Invalid tokens"
 
@@ -164,15 +164,15 @@ def test_update_callback_url_real_input():
 from requests.models import Response
 
 def test_get_set_refresh_tokens_success(mocker):
-    mock_get_tokens = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
+    mock_get_tokens = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
     mock_get_tokens.return_value.status_code = 200
     mock_get_tokens.return_value.json.return_value = {
         "access": "token_access_value",
         "refresh": "token_refresh_value"
     }
-    mock_get_token_expiration = mocker.patch("nodeorc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
+    mock_get_token_expiration = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
     mock_get_token_expiration.return_value = datetime(2024, 1, 1, 0, 0, 0)
-    # mock_add_callback = mocker.patch("nodeorc_api.crud.callback_url.add")
+    # mock_add_callback = mocker.patch("orc_api.crud.callback_url.add")
 
     request_body = {
         "url": "https://example.com/callback",

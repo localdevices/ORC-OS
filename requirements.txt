@@ -1,3 +1,7 @@
+geojson-pydantic
+sqlalchemy
 fastapi[standard]
-nodeorc
+pillow
+pydantic
+pyyaml
 zipstream
