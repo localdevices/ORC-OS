@@ -22,7 +22,7 @@ class Recipe(RemoteBase):
     data: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     def __str__(self):
-        return "{}".format(self.id)
+        return "{}: {}".format(self.id, self.name)
 
     def __repr__(self):
         return "{}".format(self.__str__())

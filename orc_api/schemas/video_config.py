@@ -13,13 +13,14 @@ class VideoConfigBase(BaseModel):
     """Pydantic schema for VideoConfig validation."""
 
     id: int = Field(..., description="Primary key representing the video configuration.")
+    name: str = Field(..., description="Named description of the video configuration.")
     camera_config_id: int = Field(..., description="Foreign key to the camera configuration.", ge=1)
     recipe_id: int = Field(..., description="Foreign key to the recipe.", ge=1)
     cross_section_id: Optional[int] = Field(None, description="Optional foreign key to the cross section.", ge=1)
-    rvec: conlist(float, min_items=3, max_items=3) = Field(
+    rvec: conlist(float, min_length=3, max_length=3) = Field(
         ..., description="Rotation vector for matching CrossSection with CameraConfig."
     )
-    tvec: conlist(float, min_items=3, max_items=3) = Field(
+    tvec: conlist(float, min_length=3, max_length=3) = Field(
         ..., description="Translation vector for matching CrossSection with CameraConfig."
     )
     camera_config: Optional[CameraConfigBase] = Field(
@@ -30,3 +31,4 @@ class VideoConfigBase(BaseModel):
     cross_section: Optional[CrossSectionBase] = Field(
         None, description="Associated CrossSection object (if available)."
     )
+    model_config = {"from_attributes": True}
