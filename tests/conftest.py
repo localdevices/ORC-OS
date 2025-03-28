@@ -4,6 +4,11 @@ import os
 import pytest
 import yaml
 from pyorc import sample_data
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from orc_api import db
 
 
 @pytest.fixture
@@ -48,3 +53,18 @@ def cam_config(cam_config_file):
 def cross_section(cross_section_file):
     with open(cross_section_file, "r") as f:
         return json.load(f)
+
+
+@pytest.fixture
+def session_empty(tmpdir):
+    db_path = ":memory:"  # ?cache=shared"
+    # Create an in-memory SQLite database for testing; adjust connection string for other databases
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    # Create all tables from metadata (assumes models use SQLAlchemy Base)
+    db.Base.metadata.create_all(engine)
+    Session = scoped_session(sessionmaker(bind=engine))
+    session = Session()
+    yield session
+    # Close the session and drop all tables after tests run
+    session.close()
+    db.Base.metadata.drop_all(engine)

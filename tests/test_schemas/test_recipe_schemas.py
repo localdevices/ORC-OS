@@ -17,7 +17,7 @@ def session_recipe(session_empty, recipe):
     return session_empty
 
 
-def test_cross_section_schema(session_recipe: Session):
+def test_recipe_schema(session_recipe: Session):
     # retrieve recipe
     r_rec = session_recipe.query(Recipe).first()
     r = RecipeResponse.model_validate(r_rec)

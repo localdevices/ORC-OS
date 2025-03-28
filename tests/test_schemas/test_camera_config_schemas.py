@@ -14,7 +14,7 @@ def session_cam_config(session_empty, cam_config):
     return session_empty
 
 
-def test_cross_section_schema(session_cam_config: Session):
+def test_camera_config_schema(session_cam_config: Session):
     # retrieve camera config
     c_rec = session_cam_config.query(CameraConfig).first()
     c = CameraConfigResponse.model_validate(c_rec)

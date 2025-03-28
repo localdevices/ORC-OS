@@ -1,27 +1,9 @@
 from datetime import datetime, timedelta
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
 # from nodeorc import models, log
 from orc_api import crud, db
-
-
-@pytest.fixture
-def session_empty(tmpdir):
-    db_path = ":memory:"  # ?cache=shared"
-    # Create an in-memory SQLite database for testing; adjust connection string for other databases
-    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    # Create all tables from metadata (assumes models use SQLAlchemy Base)
-    db.Base.metadata.create_all(engine)
-    Session = scoped_session(sessionmaker(bind=engine))
-    session = Session()
-    yield session
-    # Close the session and drop all tables after tests run
-    session.close()
-    db.Base.metadata.drop_all(engine)
 
 
 # Example fixture
