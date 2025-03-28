@@ -2,10 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 from pyorc import sample_data
-from your_module import VideoResponse  # Replace 'your_module' with the name of the module where your class is located.
 
 from orc_api import db as models
-from orc_api.schemas.time_series import TimeSeriesBase
+from orc_api.schemas.video import (
+    VideoResponse,  # Replace 'your_module' with the name of the module where your class is located.
+)
 
 
 @pytest.fixture
@@ -22,4 +23,5 @@ def video_schema():
     )
 
 
-time_series = (TimeSeriesBase(),)
+#
+# time_series = (TimeSeriesBase(),)

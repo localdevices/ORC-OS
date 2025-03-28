@@ -43,7 +43,7 @@ def get_closest_no_ts(
 ):
     """Fetch the video without time stamp closest to the given timestamp."""
     # first get video records that do not contain any time series
-    q = db.query(models.Video).filter(models.Video.time_series_id is None)
+    q = db.query(models.Video).filter(models.Video.time_series_id == None)  # noqa
     # within these, find the one closest in time to the time stamp
     return generic.get_closest(q, models.Video, timestamp, allowed_dt)
 

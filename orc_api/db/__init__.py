@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from orc_api import __home__
 
-from .base import AlchemyEncoder, Base, RemoteBase, sqlalchemy_to_dict
+from .base import Base, RemoteBase
 from .callback_url import CallbackUrl
 from .camera_config import CameraConfig
 from .cross_section import CrossSection
@@ -21,7 +21,6 @@ from .video_config import VideoConfig
 from .water_level_settings import ScriptType, WaterLevelSettings
 
 __all__ = [
-    "AlchemyEncoder",
     "Base",
     "RemoteBase",
     "CallbackUrl",
@@ -39,7 +38,6 @@ __all__ = [
     "VideoStatus",
     "WaterLevelSettings",
     "ScriptType",
-    "sqlalchemy_to_dict",
 ]
 
 db_path_config = os.path.join(__home__, "orc-os.db")

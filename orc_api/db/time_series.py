@@ -79,8 +79,6 @@ def add_video(mapper, connection, target):
             )
             connection.execute(update_query, {"time_series_id": target.id, "video_id": video_record.id})
 
-            print(f"Updated video_record: {video_record}")
-
             # link the time series with target
             # video_record.time_series_id = target.id
             # db.add(video_record)
