@@ -1,5 +1,7 @@
+geojson-pydantic
 sqlalchemy
 fastapi[standard]
 pillow
+pydantic
 pyyaml
 zipstream

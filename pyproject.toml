@@ -8,10 +8,12 @@ authors = [
     {name = "Hessel Winsemius", email = "winsemius@rainbowsensing.com"},
 ]
 dependencies = [
+    "geojson-pydantic",
     "pillow",
     "pyopenrivercam>=0.8.5",
     "sqlalchemy",
     "fastapi[standard]",
+    "pydantic",
     "pyyaml",
     "zipstream"
 ]
