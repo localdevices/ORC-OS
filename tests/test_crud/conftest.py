@@ -1,36 +1,12 @@
-import json
-import os
 from datetime import datetime, timedelta
 
 import pytest
-import yaml
-from pyorc import sample_data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # from nodeorc import models, log
 from orc_api import crud, db
-
-
-@pytest.fixture
-def vid_file():
-    return sample_data.get_hommerich_dataset()  # os.path.join(EXAMPLE_DATA_DIR, "hommerich", "20240718_162737.mp4")
-
-
-@pytest.fixture
-def recipe_file():
-    path = sample_data.get_hommerich_pyorc_files()
-    return os.path.join(path, "hommerich.yml")
-
-
-@pytest.fixture
-def recipe(recipe_file):
-    with open(recipe_file, "r") as f:
-        body = f.read()
-    recipe_body = yaml.load(body, Loader=yaml.FullLoader)
-    # turn into string
-    return json.dumps(recipe_body)
 
 
 @pytest.fixture
