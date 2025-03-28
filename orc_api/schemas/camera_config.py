@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+from pyproj.crs import CRS
 
 from orc_api.db.base import SyncStatus
 
@@ -20,6 +21,14 @@ class CameraConfigBase(BaseModel):
     data: Optional[dict] = Field(default=None, description="Camera configuration")
 
     model_config = ConfigDict(from_attributes=True)
+
+    @property
+    def crs(self):
+        """Return the coordinate reference system of the camera configuration as pyproj CRS object."""
+        _crs = None
+        if "crs" in self.data:
+            _crs = CRS.from_user_input(self.data["crs"])
+        return _crs
 
 
 class CameraConfigResponse(CameraConfigBase):
