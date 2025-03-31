@@ -15,10 +15,10 @@ class CrossSection(RemoteBase):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
     name: Mapped[str] = mapped_column(String, nullable=False)
-    data: Mapped[str] = mapped_column(JSON, nullable=False)
+    features: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     def __str__(self):
-        return "{}: {}".format(self.timestamp, self.level)
+        return "{}: {}".format(self.timestamp, self.name)
 
     def __repr__(self):
         return "{}".format(self.__str__())

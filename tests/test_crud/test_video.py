@@ -34,6 +34,7 @@ def test_video_add_no_water_level_found(session_water_levels, vid_file, monkeypa
 
 
 def test_video_add_water_level_post_video(session_video, monkeypatch):
+    monkeypatch.setattr("orc_api.database.get_session", lambda: session_video)
     timestamp = datetime.now()
     h = 94.0
     ts_instance = db.TimeSeries(
@@ -47,6 +48,7 @@ def test_video_add_water_level_post_video(session_video, monkeypatch):
 
 
 def test_video_add_water_level_post_video_large_timediff(session_video, monkeypatch):
+    monkeypatch.setattr("orc_api.database.get_session", lambda: session_video)
     timestamp = datetime.now() + timedelta(hours=-24)  # beyond the available video time stamp
     h = 94.0
     ts_instance = db.TimeSeries(

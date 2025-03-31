@@ -25,7 +25,9 @@ class CameraConfig(RemoteBase):
     )
 
     def __str__(self):
-        return "{}".format(self.id)
+        return "{}: ".format(
+            self.id,
+        )
 
     def __repr__(self):
         return "{}".format(self.__str__())

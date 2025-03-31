@@ -19,9 +19,14 @@ def filter_start_stop(query: Select, start: Optional[datetime] = None, stop: Opt
     return query.order_by(models.Video.timestamp)
 
 
+def get_query_by_id(db: Session, id: int):
+    """Get a single video in a query (e.g. for updating."""
+    return db.query(models.Video).filter(models.Video.id == id)
+
+
 def get(db: Session, id: int):
     """Get a single video."""
-    query = db.query(models.Video).filter(models.Video.id == id)
+    query = get_query_by_id(db=db, id=id)
     if query.count() == 0:
         return
     return query.first()
@@ -43,7 +48,7 @@ def get_closest_no_ts(
 ):
     """Fetch the video without time stamp closest to the given timestamp."""
     # first get video records that do not contain any time series
-    q = db.query(models.Video).filter(models.Video.time_series_id is None)
+    q = db.query(models.Video).filter(models.Video.time_series_id == None)  # noqa
     # within these, find the one closest in time to the time stamp
     return generic.get_closest(q, models.Video, timestamp, allowed_dt)
 
@@ -88,3 +93,14 @@ def create(db: Session, video: models.Video) -> models.Video:
     db.commit()
     db.refresh(video)
     return video
+
+
+def update(db: Session, id: int, video: dict):
+    """Update a video record using the VideoResponse instance."""
+    rec = get_query_by_id(db=db, id=id)
+    if not rec.first():
+        raise ValueError(f"Video with id {id} does not exist. Create a record first.")
+    # update_data = video.model_dump(exclude_unset=True, exclude=["id"])
+    rec.update(video)
+    db.commit()
+    db.flush()
