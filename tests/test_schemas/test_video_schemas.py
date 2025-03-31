@@ -1,8 +1,10 @@
+import pytest
 from pyorc import sample_data
 
 from orc_api import db as models
 
 
+@pytest.mark.skip(reason="Testing full video run only done on interactive request.")
 def test_video_run(
     video_response,
     session_video_config,
