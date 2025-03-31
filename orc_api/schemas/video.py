@@ -4,7 +4,7 @@ import glob
 import json
 import os
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 import xarray as xr
@@ -15,7 +15,7 @@ from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
 from orc_api.log import logger
-from orc_api.schemas.time_series import TimeSeriesBase, TimeSeriesResponse
+from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase
 
 
@@ -42,7 +42,7 @@ class VideoResponse(VideoBase):
     image: Optional[str] = Field(default=None, description="Image file name of the video.")
     thumbnail: Optional[str] = Field(default=None, description="Thumbnail file name of the video.")
     status: Optional[models.VideoStatus] = Field(default=models.VideoStatus.NEW, description="Status of the video.")
-    time_series: Optional[Union[TimeSeriesResponse, TimeSeriesBase]] = TimeSeriesBase()
+    time_series: Optional[TimeSeriesResponse] = Field(default=None, description="Time series attached to video.")
     sync_status: Optional[models.SyncStatus] = Field(
         default=models.SyncStatus.LOCAL, description="Status of the video to LiveORC server."
     )
