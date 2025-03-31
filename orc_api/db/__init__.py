@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from orc_api import __home__
 
-from .base import Base, RemoteBase
+from .base import Base, RemoteBase, SyncStatus
 from .callback_url import CallbackUrl
 from .camera_config import CameraConfig
 from .cross_section import CrossSection
@@ -33,6 +33,7 @@ __all__ = [
     "Recipe",
     "TimeSeries",
     "Settings",
+    "SyncStatus",
     "Video",
     "VideoConfig",
     "VideoStatus",

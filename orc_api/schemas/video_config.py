@@ -104,11 +104,18 @@ class VideoConfigBase(BaseModel):
         cross_new["features"] = geo_dict
         return CrossSectionBase(**cross_new)
 
-        # rotate and translate
-        #
-        # transformed_features = []
-        # features = copy.deepcopy(self.cross_section.features)
-        # for feature in features["features"]:
-        #     feature_array = np.array(feature["geometry"]["coordinates"], dtype=np.float64).reshape(-1, 3)
-        #     transformed = (rotation_matrix @ feature_array.T).T + tvec
-        #     feature["geometry"]["coordinates"] = transformed[0].tolist()
+    @property
+    def recipe_transect_filled(self):
+        """Return the recipe with transects filled with the cross_section_rt."""
+        if not self.recipe or not hasattr(self.recipe, "data"):
+            raise ValueError("recipe or its data are not defined.")
+        recipe = copy.deepcopy(self.recipe.data)
+        if "transect" in recipe:
+            if "transect_1" in recipe["transect"]:
+                if "shapefile" in recipe["transect"]["transect_1"]:
+                    del recipe["transect"]["transect_1"]["shapefile"]
+                # fill in the coordinates
+                recipe["transect"]["transect_1"]["geojson"] = self.cross_section_rt.features
+        recipe_new = self.recipe.model_dump(exclude=["data"])
+        recipe_new["data"] = recipe
+        return RecipeBase(**recipe_new)

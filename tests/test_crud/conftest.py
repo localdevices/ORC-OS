@@ -6,38 +6,6 @@ import pytest
 from orc_api import crud, db
 
 
-# Example fixture
-@pytest.fixture
-def session_config(session_empty, tmpdir):
-    session = session_empty
-    # Create and add a Device instance
-    device_instance = db.Device(
-        # Add relevant fields for the Device model
-        name="Test Device",
-    )
-    # Create and add a Settings instance
-    # Add test data
-    settings_instance = db.Settings(
-        parse_dates_from_file=True,
-        video_file_fmt="video_{%Y%m%dT%H%M%S}.mp4",
-        allowed_dt=3600,
-        shutdown_after_task=False,
-        reboot_after=0,
-        enable_daemon=False,
-    )
-    disk_management_instance = db.DiskManagement(home_folder=str(tmpdir))
-    water_level_settings_instance = db.WaterLevelSettings()
-    callback_url_instance = db.CallbackUrl()
-    session.add(device_instance)
-    session.add(settings_instance)
-    session.add(disk_management_instance)
-    session.add(water_level_settings_instance)
-    session.add(callback_url_instance)
-    # commit to give all an id
-    session.commit()
-    return session  # Provide the session to tests
-
-
 @pytest.fixture
 def session_water_levels(session_config, monkeypatch):
     monkeypatch.setattr("orc_api.database.get_session", lambda: session_config)

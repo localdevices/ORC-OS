@@ -1,15 +1,20 @@
 """Video schema."""
 
 import glob
+import json
 import os
 from datetime import datetime
 from typing import Optional, Union
 
+import numpy as np
+import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field
+from pyorc.service import velocity_flow
 
 from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
+from orc_api.log import logger
 from orc_api.schemas.time_series import TimeSeriesBase, TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase
 
@@ -34,11 +39,13 @@ class VideoResponse(VideoBase):
 
     id: int = Field(description="Video ID")
     file: Optional[str] = Field(default=None, description="File name of the video.")
-    image: Optional[str] = Field(description="Image file name of the video.")
+    image: Optional[str] = Field(default=None, description="Image file name of the video.")
     thumbnail: Optional[str] = Field(default=None, description="Thumbnail file name of the video.")
     status: Optional[models.VideoStatus] = Field(default=models.VideoStatus.NEW, description="Status of the video.")
     time_series: Optional[Union[TimeSeriesResponse, TimeSeriesBase]] = TimeSeriesBase()
-    sync_status: Optional[bool] = Field(default=None, description="Status of the video to LiveORC server.")
+    sync_status: Optional[models.SyncStatus] = Field(
+        default=models.SyncStatus.LOCAL, description="Status of the video to LiveORC server."
+    )
     remote_id: Optional[int] = Field(default=None, description="ID of video on LiveORC server.")
     site_id: Optional[int] = Field(default=None, description="ID of site to which video belongs on LiveORC server.")
 
@@ -75,14 +82,54 @@ class VideoResponse(VideoBase):
         # we are allowed optical, so check if there is a cross section
         return self.video_config.cross_section is not None
 
-    def run(self):
+    def run(self, base_path: str, prefix: str = ""):
         """Run video."""
         if not self.allowed_to_run:
             raise Exception("Cannot run video, prerequisites not met.")
         # assemble all information
+        output = os.path.join(self.get_path(base_path=base_path), "output")
+        cameraconfig = self.video_config.camera_config.data
+        # get the rotated/translated cross-section
+        cross_section_feats = self.video_config.cross_section_rt.features
+        cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
+        with open(cross, "w") as f:
+            json.dump(cross_section_feats, f)
+        # get the recipe with any required fields filled
+        recipe = self.video_config.recipe_transect_filled.data
+        videofile = self.get_video_file(base_path=base_path)
+        # find expected image file name
+        rel_img_fn = None
+        if "plot" in recipe:
+            key = next(iter(recipe["plot"]))
+            img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
+            rel_img_fn = os.path.relpath(img_fn, base_path)
+        # run the video with pyorc
+        try:
+            velocity_flow(
+                recipe=recipe,
+                videofile=videofile,
+                cameraconfig=cameraconfig,
+                prefix=prefix,
+                output=output,
+                h_a=self.time_series.h,
+                cross=cross,
+                logger=logger,
+            )
+        except Exception as e:
+            self.status = models.VideoStatus.ERROR
+            raise Exception(f"Error running video, response: {e}, VideoStatus is ERROR.")
+        # afterwards, set to done
+        self.image = rel_img_fn
+        self.status = models.VideoStatus.DONE
+        # update video model
+        update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
+        crud.video.update(get_session(), id=self.id, video=update_data)
+        # update time series
+        self.update_timeseries(base_path=base_path)
 
-        # run with separate instance
-        pass
+    def get_path(self, base_path: str):
+        """Get media path to video."""
+        return os.path.split(self.get_video_file(base_path))[0]
 
     def get_thumbnail(self, base_path: str):
         """Get thumbnail file name."""
@@ -103,9 +150,43 @@ class VideoResponse(VideoBase):
         return os.path.join(base_path, self.image)
 
     def get_netcdf_files(self, base_path: str):
-        """Get list of netcdf files in OUTPUT directory."""
-        path = os.path.join(base_path, "OUTPUT", "*.nc")
+        """Get list of netcdf files in output directory."""
+        path = os.path.join(base_path, "output", "*.nc")
         return glob.glob(path)
+
+    def get_discharge_file(self, base_path: str):
+        """Get discharge file name."""
+        fn = os.path.join(base_path, "output", "transect_transect_1.nc")
+        if os.path.exists(fn):
+            return fn
+        else:
+            return None
+
+    def update_timeseries(self, base_path: str):
+        """Get discharge data."""
+        fn = self.get_discharge_file(base_path=base_path)
+        if fn is None:
+            return
+
+        ds = xr.open_dataset(fn)
+        h = float(ds.h_a)
+        Q = np.abs(ds.river_flow.values)
+        if "q_nofill" in ds:
+            ds.transect.get_river_flow(q_name="q_nofill")
+            Q_nofill = np.abs(ds.river_flow.values)
+            perc_measured = Q_nofill / Q * 100  # fraction that is truly measured compared to total
+        else:
+            perc_measured = np.nan * Q
+        update_data = {
+            "h": h if np.isfinite(h) else None,
+            "q_05": Q[0] if np.isfinite(Q[0]) else None,
+            "q_25": Q[1] if np.isfinite(Q[1]) else None,
+            "q_50": Q[2] if np.isfinite(Q[2]) else None,
+            "q_75": Q[3] if np.isfinite(Q[3]) else None,
+            "q_95": Q[4] if np.isfinite(Q[4]) else None,
+            "fraction_velocimetry": perc_measured[2] if np.isfinite(perc_measured[2]) else None,
+        }
+        crud.time_series.update(get_session(), id=self.time_series.id, time_series=update_data)
 
 
 class DownloadVideosRequest(BaseModel):
