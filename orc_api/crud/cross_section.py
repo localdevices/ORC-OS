@@ -35,3 +35,4 @@ def update(db: Session, id: int, cross_section: dict):
     rec.update(cross_section)
     db.commit()
     db.flush()
+    return rec.first()

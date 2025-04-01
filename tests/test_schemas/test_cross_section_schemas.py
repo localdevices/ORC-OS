@@ -10,18 +10,6 @@ from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
 from orc_api.schemas.cross_section import CrossSectionResponse
 
 
-def liveorc_access():
-    # check if env variables are present to perform liveorc test
-    access = True
-    if os.getenv("LIVEORC_URL") is None:
-        access = False
-    if os.getenv("LIVEORC_EMAIL") is None:
-        access = False
-    if os.getenv("LIVEORC_PASSWORD") is None:
-        access = False
-    return access
-
-
 @pytest.fixture
 def cross_section_response(session_cross_section: Session):
     # retrieve cross section
@@ -57,7 +45,7 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
     monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
-    cross_section_update = cross_section_response.sync_remote(site=1)
+    cross_section_update = cross_section_response.sync_remote(site=site)
     assert cross_section_update.remote_id == 3
     assert cross_section_update.sync_status == SyncStatus.SYNCED
 
@@ -80,7 +68,8 @@ def test_cross_section_sync_not_permitted(session_cross_section, cross_section_r
 
 
 @pytest.mark.skipif(
-    liveorc_access() == False, reason="This test requires LIVEORC_URL, LIVEORC_EMAIL and LIVEORC_PASSWORD to be set"
+    not os.getenv("LIVEORC_URL") or not os.getenv("LIVEORC_EMAIL") or not os.getenv("LIVEORC_PASSWORD"),
+    reason="This test requires LIVEORC_URL, LIVEORC_EMAIL and LIVEORC_PASSWORD to be set",
 )
 def test_cross_section_sync_real_server(session_cross_section, cross_section_response, monkeypatch):
     """Test for syncing a cross-section to a real remote API.

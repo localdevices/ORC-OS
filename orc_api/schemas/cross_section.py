@@ -60,7 +60,7 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             # response_data.pop("site")
             # update schema instance
             update_cross_section = CrossSectionResponse.model_validate(response_data)
-            crud.cross_section.update(
+            r = crud.cross_section.update(
                 get_session(), id=self.id, cross_section=update_cross_section.model_dump(exclude_unset=True)
             )
-            return update_cross_section
+            return CrossSectionResponse.model_validate(r)
