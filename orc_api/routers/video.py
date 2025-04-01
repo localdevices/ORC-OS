@@ -169,7 +169,7 @@ async def upload_video(
     video_instance = Video(**video.model_dump())
 
     # Save to database
-    video_instance = crud.video.create(db=db, video=video_instance)
+    video_instance = crud.video.add(db=db, video=video_instance)
 
     # now the video has an ID and we can create a logical storage location
     file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", timestamp.strftime("%Y%m%d"), str(video_instance.id))

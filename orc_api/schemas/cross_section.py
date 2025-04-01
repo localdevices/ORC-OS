@@ -56,8 +56,6 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
         if response_data is not None:
             # patch the record in the database, where necessary
             response_data["features"] = response_data.pop("data")
-            # remove site from response
-            # response_data.pop("site")
             # update schema instance
             update_cross_section = CrossSectionResponse.model_validate(response_data)
             r = crud.cross_section.update(

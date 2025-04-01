@@ -35,6 +35,19 @@ class CameraConfigResponse(CameraConfigBase, RemoteModel):
 
     id: int = Field(description="CameraConfig ID")
 
+    def sync_remote(self, site: int):
+        """Send the recipe to LiveORC API.
+
+        Recipes belong to an institute, hence also the institute ID is required.
+        """
+        # endpoint = f"/api/site/{site}/cameraconfig/"
+        # data = {
+        #     "name": self.name,
+        #     "camera_config": self.data,
+        # }
+        # TODO: this end point is not yet implemented, as it requires a restructuring on LiveORC
+        pass
+
 
 class CameraConfigCreate(CameraConfigBase):
     """Create model for camera configuration."""

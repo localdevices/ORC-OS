@@ -8,6 +8,9 @@ import geopandas as gpd
 import numpy as np
 from pydantic import BaseModel, Field, conlist, model_validator
 
+from orc_api import crud
+from orc_api.database import get_session
+from orc_api.db import SyncStatus
 from orc_api.schemas.camera_config import CameraConfigBase
 from orc_api.schemas.cross_section import CrossSectionBase
 from orc_api.schemas.recipe import RecipeBase
@@ -119,3 +122,44 @@ class VideoConfigBase(BaseModel):
         recipe_new = self.recipe.model_dump(exclude=["data"])
         recipe_new["data"] = recipe
         return RecipeBase(**recipe_new)
+
+    def sync_remote(self, site: int, institute: int):
+        """Send the recipe to LiveORC API.
+
+        Recipes belong to an institute, hence also the institute ID is required.
+        """
+        # first check if the recipe and cross section are synced
+        if self.recipe is not None:
+            if self.recipe.sync_status != SyncStatus.SYNCED:
+                # first sync/update recipe
+                self.recipe = self.recipe.sync_remote(institute=institute)
+                self.recipe_id = self.recipe.id
+        if self.cross_section is not None:
+            if self.cross_section.sync_status != SyncStatus.SYNCED:
+                # first sync/update cross-section
+                self.cross_section = self.cross_section.sync_remote(site=site)
+                self.cross_section_id = self.cross_section.id
+        # now report the entire video config (this currently reports to cameraconfig,
+        # should be updated after LiveORC restructuring)
+        endpoint = f"/api/site/{site}/cameraconfig/"
+        data = {
+            "name": self.name,
+            "camera_config": self.camera_config.data,
+            "recipe": self.recipe.remote_id,
+            "profile": self.cross_section.remote_id,
+        }
+        # sync remotely with the updated data, following the LiveORC end point naming
+        response_data = super().sync_remote(endpoint=endpoint, data=data)
+        # ids of recipe and profile are already known and remote ids already updated, so remove
+        if response_data is not None:
+            response_data.pop("recipe")
+            response_data.pop("profile")
+            response_data.pop("camera_config")
+            response_data.pop("server")
+            # patch the record in the database, where necessary
+            # update schema instance
+            update_video_config = VideoConfigBase.model_validate(response_data)
+            r = crud.video_config.update(
+                get_session(), id=self.id, video_config=update_video_config.model_dump(exclude_unset=True)
+            )
+            return VideoConfigBase.model_validate(r)

@@ -11,7 +11,7 @@ def test_video_add(session_water_levels, vid_file, monkeypatch):
         file=vid_file,
         # timestamp=datetime.now()
     )
-    video = crud_video.create(session_water_levels, video)
+    video = crud_video.add(session_water_levels, video)
     # test if video has a water level attached
     assert video.time_series_id == 5  # should be the middle time stamp
     assert video.id == 1
@@ -26,7 +26,7 @@ def test_video_add_no_water_level_found(session_water_levels, vid_file, monkeypa
     # give a timestamp too far before the first available time stamp time series
     timestamp = datetime.now() + timedelta(hours=-24)
     video = db.Video(file=vid_file, timestamp=timestamp)
-    video = crud_video.create(session_water_levels, video)
+    video = crud_video.add(session_water_levels, video)
     # test if video has a water level attached
     assert video.id == 1
     assert video.time_series_id is None

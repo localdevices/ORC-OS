@@ -81,7 +81,7 @@ def session_video_no_ts_with_config(session_video_config, monkeypatch):
         video_config_id=vc_rec.id,
         file=os.path.split(sample_data.get_hommerich_dataset())[1],
     )
-    video = crud.video.create(session_video_config, video)
+    video = crud.video.add(session_video_config, video)
     return session_video_config
 
 
@@ -98,7 +98,7 @@ def session_video_with_config(session_video_config, monkeypatch):
         video_config_id=vc_rec.id,
         file=os.path.split(sample_data.get_hommerich_dataset())[1],
     )
-    video = crud.video.create(session_video_config, video)
+    video = crud.video.add(session_video_config, video)
     print(video)
     return session_video_config
 
