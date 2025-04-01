@@ -23,3 +23,14 @@ def test_video_run(
     # check if video got updated also
     video = session_video_config.query(models.Video).filter(models.Video.id == 1).first()
     assert video.image is not None
+
+
+@pytest.mark.skip(reason="Testing full video run without water level only done on interactive request.")
+def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, monkeypatch):
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
+    assert video_response_no_ts.time_series is None
+    video_response_no_ts.run(base_path=sample_data.get_hommerich_pyorc_files())
+    assert video_response_no_ts.time_series is not None
+    assert video_response_no_ts.status == models.VideoStatus.DONE
+    assert len(video_response_no_ts.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
+    assert video_response_no_ts.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None

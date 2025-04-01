@@ -86,6 +86,8 @@ class VideoResponse(VideoBase):
         """Run video."""
         if not self.allowed_to_run:
             raise Exception("Cannot run video, prerequisites not met.")
+        # check for h_a
+        h_a = None if self.time_series is None else self.time_series.h
         # assemble all information
         output = os.path.join(self.get_path(base_path=base_path), "output")
         cameraconfig = self.video_config.camera_config.data
@@ -111,21 +113,23 @@ class VideoResponse(VideoBase):
                 cameraconfig=cameraconfig,
                 prefix=prefix,
                 output=output,
-                h_a=self.time_series.h,
+                h_a=h_a,
                 cross=cross,
                 logger=logger,
             )
         except Exception as e:
             self.status = models.VideoStatus.ERROR
             raise Exception(f"Error running video, response: {e}, VideoStatus is ERROR.")
-        # afterwards, set to done
+        # afterward, set to done
         self.image = rel_img_fn
         self.status = models.VideoStatus.DONE
+        # update time series (before video, in case time series with optical water level is added in the process
+        self.update_timeseries(base_path=base_path)
         # update video model
         update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
+        if self.time_series:
+            update_data["time_series_id"] = self.time_series.id
         crud.video.update(get_session(), id=self.id, video=update_data)
-        # update time series
-        self.update_timeseries(base_path=base_path)
 
     def get_path(self, base_path: str):
         """Get media path to video."""
@@ -164,6 +168,7 @@ class VideoResponse(VideoBase):
 
     def update_timeseries(self, base_path: str):
         """Get discharge data."""
+        id = None if self.time_series is None else self.time_series.id
         fn = self.get_discharge_file(base_path=base_path)
         if fn is None:
             return
@@ -186,7 +191,12 @@ class VideoResponse(VideoBase):
             "q_95": Q[4] if np.isfinite(Q[4]) else None,
             "fraction_velocimetry": perc_measured[2] if np.isfinite(perc_measured[2]) else None,
         }
-        crud.time_series.update(get_session(), id=self.time_series.id, time_series=update_data)
+        if id:
+            crud.time_series.update(get_session(), id=id, time_series=update_data)
+        else:
+            # create a new record, happens when optical water level detection has been applied
+            ts = crud.time_series.add(get_session(), models.TimeSeries(**update_data))
+            self.time_series = ts
 
 
 class DownloadVideosRequest(BaseModel):

@@ -72,6 +72,20 @@ def session_video_config(session_config, recipe, cam_config, cross_section):
 
 
 @pytest.fixture
+def session_video_no_ts_with_config(session_video_config, monkeypatch):
+    """Create session with a video, not yet run."""
+    monkeypatch.setattr("orc_api.database.get_session", lambda: session_video_config)
+    vc_rec = session_video_config.query(VideoConfig).first()
+    video = Video(
+        timestamp=datetime.now(UTC),
+        video_config_id=vc_rec.id,
+        file=os.path.split(sample_data.get_hommerich_dataset())[1],
+    )
+    video = crud.video.create(session_video_config, video)
+    return session_video_config
+
+
+@pytest.fixture
 def session_video_with_config(session_video_config, monkeypatch):
     """Create session with a video, not yet run."""
     monkeypatch.setattr("orc_api.database.get_session", lambda: session_video_config)
@@ -107,3 +121,13 @@ def video_response(session_video_with_config: Session):
     #     timestamp=datetime.now(UTC),
     #     video_config=VideoConfigBase.model_validate(vc_rec),
     # )
+
+
+@pytest.fixture
+def video_response_no_ts(session_video_no_ts_with_config):
+    """Return a video without a timeseries attached.
+
+    Meant to test running with optical water level.
+    """
+    video_rec = session_video_no_ts_with_config.query(Video).first()
+    return VideoResponse.model_validate(video_rec)
