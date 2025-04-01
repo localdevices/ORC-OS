@@ -16,6 +16,7 @@ class SyncStatus(enum.Enum):
     LOCAL = 1
     SYNCED = 2
     UPDATED = 3
+    FAILED = 4
 
 
 class RemoteBase(Base):

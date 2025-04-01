@@ -6,6 +6,8 @@ import geopandas as gpd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pyorc.cli.cli_utils import read_shape_as_gdf
 
+from orc_api import crud
+from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
 
 
@@ -41,12 +43,24 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
 
     id: int = Field(description="CrossSection ID")
 
-    def callback(self, site: int, **kwargs):
+    def sync_remote(self, site: int, **kwargs):
         """Send the cross-section to LiveORC API."""
         endpoint = f"/api/site/{site}/profile/"
         data = {
             "name": self.name,
-            "timestamp": self.timestamp,
+            "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "data": self.features,
         }
-        super().callback(endpoint=endpoint, data=data)
+        # sync remotely with the updated data, following the LiveORC end point naming
+        response_data = super().sync_remote(endpoint=endpoint, data=data)
+        if response_data is not None:
+            # patch the record in the database, where necessary
+            response_data["features"] = response_data.pop("data")
+            # remove site from response
+            # response_data.pop("site")
+            # update schema instance
+            update_cross_section = CrossSectionResponse.model_validate(response_data)
+            crud.cross_section.update(
+                get_session(), id=self.id, cross_section=update_cross_section.model_dump(exclude_unset=True)
+            )
+            return update_cross_section
