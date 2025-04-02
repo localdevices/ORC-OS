@@ -48,3 +48,4 @@ def update(db: Session, id: int, time_series: dict):
     rec.update(time_series)
     db.commit()
     db.flush()
+    return rec.first()

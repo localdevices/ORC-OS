@@ -29,7 +29,7 @@ class RemoteModel(BaseModel):
         # get all callback functionalities in place.
         if self.remote_id is not None:
             # add the id to the end point and only patch existing record
-            r = callback_url.patch(endpoint=endpoint + f"{self.remote_id}", data=data, files=files)
+            r = callback_url.patch(endpoint=endpoint + f"{self.remote_id}/", data=data, files=files)
         else:
             r = callback_url.post(endpoint=endpoint, data=data, files=files)
         # put back the remote id

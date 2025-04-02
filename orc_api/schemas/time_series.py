@@ -5,6 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from orc_api import crud
+from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
 
 
@@ -49,3 +51,22 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
     """Response model for a time series."""
 
     id: int = Field(description="TimeSeries ID")
+
+    def sync_remote(self, site: int):
+        """Send the time series record to LiveORC API.
+
+        Recipes belong to an institute, hence also the institute ID is required.
+        """
+        endpoint = f"/api/site/{site}/timeseries/"
+        data = self.model_dump(exclude_unset=True, exclude=["id", "remote_id", "created_at", "sync_status"])
+
+        # sync remotely with the updated data, following the LiveORC end point naming
+        response_data = super().sync_remote(endpoint=endpoint, data=data)
+        if response_data is not None:
+            # patch the record in the database, where necessary
+            # update schema instance
+            update_time_series = TimeSeriesResponse.model_validate(response_data)
+            r = crud.time_series.update(
+                get_session(), id=self.id, time_series=update_time_series.model_dump(exclude_unset=True)
+            )
+            return TimeSeriesResponse.model_validate(r)
