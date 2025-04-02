@@ -11,9 +11,10 @@ from pydantic import BaseModel, Field, conlist, model_validator
 from orc_api import crud
 from orc_api.database import get_session
 from orc_api.db import SyncStatus
+from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.camera_config import CameraConfigBase
-from orc_api.schemas.cross_section import CrossSectionBase
-from orc_api.schemas.recipe import RecipeBase
+from orc_api.schemas.cross_section import CrossSectionResponse
+from orc_api.schemas.recipe import RecipeResponse
 
 
 def rodrigues_to_matrix(rvec):
@@ -40,7 +41,6 @@ def rodrigues_to_matrix(rvec):
 class VideoConfigBase(BaseModel):
     """Pydantic schema for VideoConfig validation."""
 
-    id: int = Field(..., description="Primary key representing the video configuration.")
     name: str = Field(..., description="Named description of the video configuration.")
     camera_config_id: int = Field(..., description="Foreign key to the camera configuration.", ge=1)
     recipe_id: int = Field(..., description="Foreign key to the recipe.", ge=1)
@@ -54,9 +54,9 @@ class VideoConfigBase(BaseModel):
     camera_config: Optional[CameraConfigBase] = Field(
         None, description="Associated CameraConfig object (if available)."
     )
-    recipe: Optional[RecipeBase] = Field(None, description="Associated Recipe object (if available).")
+    recipe: Optional[RecipeResponse] = Field(None, description="Associated Recipe object (if available).")
 
-    cross_section: Optional[CrossSectionBase] = Field(
+    cross_section: Optional[CrossSectionResponse] = Field(
         None, description="Associated CrossSection object (if available)."
     )
     model_config = {"from_attributes": True}
@@ -105,7 +105,7 @@ class VideoConfigBase(BaseModel):
         # make a new VideoConfig
         cross_new = self.cross_section.model_dump(exclude=["features"])
         cross_new["features"] = geo_dict
-        return CrossSectionBase(**cross_new)
+        return CrossSectionResponse(**cross_new)
 
     @property
     def recipe_transect_filled(self):
@@ -121,7 +121,13 @@ class VideoConfigBase(BaseModel):
                 recipe["transect"]["transect_1"]["geojson"] = self.cross_section_rt.features
         recipe_new = self.recipe.model_dump(exclude=["data"])
         recipe_new["data"] = recipe
-        return RecipeBase(**recipe_new)
+        return RecipeResponse(**recipe_new)
+
+
+class VideoConfigResponse(VideoConfigBase, RemoteModel):
+    """Response schema for VideoConfig."""
+
+    id: int = Field(description="Video configuration ID")
 
     def sync_remote(self, site: int, institute: int):
         """Send the recipe to LiveORC API.
@@ -156,10 +162,17 @@ class VideoConfigBase(BaseModel):
             response_data.pop("profile")
             response_data.pop("camera_config")
             response_data.pop("server")
+            response_data["camera_config_id"] = self.camera_config_id
+            response_data["recipe_id"] = self.recipe_id
+            response_data["cross_section_id"] = self.cross_section_id
+            # LiveORC has not tvec / rvec logic yet, so add from existing
+            response_data["rvec"] = self.rvec
+            response_data["tvec"] = self.tvec
+
             # patch the record in the database, where necessary
             # update schema instance
-            update_video_config = VideoConfigBase.model_validate(response_data)
+            update_video_config = VideoConfigResponse.model_validate(response_data)
             r = crud.video_config.update(
                 get_session(), id=self.id, video_config=update_video_config.model_dump(exclude_unset=True)
             )
-            return VideoConfigBase.model_validate(r)
+            return VideoConfigResponse.model_validate(r)

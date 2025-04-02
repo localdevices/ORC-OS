@@ -30,7 +30,7 @@ def update(db: Session, id: int, recipe: dict):
     """Update a cross-section record using a dict of potentially modified fields."""
     rec = get_query_by_id(db=db, id=id)
     if not rec.first():
-        raise ValueError(f"Time series with id {id} does not exist. Create a record first.")
+        raise ValueError(f"Recipe with id {id} does not exist. Create a record first.")
     # update_data = time_series.model_dump(exclude_unset=True, exclude=["id"])
     rec.update(recipe)
     db.commit()

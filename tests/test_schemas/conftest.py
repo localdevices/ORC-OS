@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api.db import CameraConfig, CrossSection, Recipe, TimeSeries, Video, VideoConfig
 from orc_api.schemas.video import VideoResponse
-from orc_api.schemas.video_config import VideoConfigBase
+from orc_api.schemas.video_config import VideoConfigResponse
 
 
 @pytest.fixture
@@ -106,7 +106,7 @@ def session_video_with_config(session_video_config, monkeypatch):
 @pytest.fixture
 def video_config_response(session_video_config: Session):
     vc_rec = session_video_config.query(VideoConfig).first()
-    return VideoConfigBase.model_validate(vc_rec)
+    return VideoConfigResponse.model_validate(vc_rec)
 
 
 @pytest.fixture

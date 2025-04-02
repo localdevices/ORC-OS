@@ -45,3 +45,4 @@ def update(db: Session, id: int, video_config: dict):
     rec.update(video_config)
     db.commit()
     db.flush()
+    return rec.first()
