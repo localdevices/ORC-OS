@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.db import CallbackUrl, TimeSeries
-from orc_api.schemas.callback_url import CallbackUrlCreate
+from orc_api.db import CallbackUrl, SyncStatus, TimeSeries
+from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
 from orc_api.schemas.time_series import TimeSeriesResponse
 
 
@@ -14,6 +14,49 @@ def time_series_response(session_video_with_config: Session):
     # retrieve recipe
     ts_rec = session_video_with_config.query(TimeSeries).first()
     return TimeSeriesResponse.model_validate(ts_rec)
+
+
+def test_time_series_sync(session_video_with_config, time_series_response, monkeypatch):
+    """Test for syncing a time series record to remote API (real response is mocked)."""
+    # let's assume we are posting on site 1
+    site = 1
+
+    def mock_post(self, endpoint: str, data=None, files=None):
+        class MockResponse:
+            status_code = 201
+
+            def json(self):
+                return {
+                    "id": 10,
+                    "timestamp": time_series_response.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "h": time_series_response.h,
+                    "site": site,
+                }
+
+        return MockResponse()
+
+    monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.time_series.get_session", lambda: session_video_with_config)
+    time_series_update = time_series_response.sync_remote(site=site)
+    assert time_series_update.remote_id == 10
+    assert time_series_update.sync_status == SyncStatus.SYNCED
+
+
+def test_time_series_sync_not_permitted(session_video_with_config, time_series_response, monkeypatch):
+    """Test for syncing a time series record to remote API (real response is mocked)."""
+    # let's assume we are posting on site 1
+    site = 1
+
+    def mock_post(self, endpoint: str, data=None, files=None):
+        class MockResponse:
+            status_code = 403
+
+        return MockResponse()
+
+    monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.time_series.get_session", lambda: session_video_with_config)
+    with pytest.raises(ValueError, match="Remote update failed with status code 403."):
+        _ = time_series_response.sync_remote(site=site)
 
 
 @pytest.mark.skipif(

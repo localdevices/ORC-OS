@@ -26,7 +26,7 @@ def test_recipe_schema(recipe_response):
 
 def test_recipe_sync(session_recipe, recipe_response, monkeypatch):
     """Test for syncing a cross-section to remote API (real response is mocked)."""
-    # let's assume we are posting on site 1
+    # let's assume we are posting on institute 1
     institute = 1
 
     def mock_post(self, endpoint: str, data=None, files=None):
