@@ -1,7 +1,11 @@
+import os
+
 import pytest
 from pyorc import sample_data
 
+from orc_api import crud
 from orc_api import db as models
+from orc_api.schemas.callback_url import CallbackUrlCreate
 
 
 @pytest.mark.skip(reason="Testing full video run only done on interactive request.")
@@ -34,3 +38,44 @@ def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, mon
     assert video_response_no_ts.status == models.VideoStatus.DONE
     assert len(video_response_no_ts.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
     assert video_response_no_ts.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None
+
+
+@pytest.mark.skipif(
+    not os.getenv("LIVEORC_URL") or not os.getenv("LIVEORC_EMAIL") or not os.getenv("LIVEORC_PASSWORD"),
+    reason="This test requires LIVEORC_URL, LIVEORC_EMAIL and LIVEORC_PASSWORD to be set",
+)
+def test_video_sync_real_server(session_video_with_config, video_response, monkeypatch):
+    """Test for syncing a video record to a real remote API.
+
+    This requires setting LIVEORC_URL, LIVEORC_EMAIL and LIVEORC_PASSWORD environment variables.
+    You must have access to the remote API to run this test and have site=1 available on the remote API.
+    """
+    # first patch the liveorc access
+    callback_create = CallbackUrlCreate(
+        url=os.getenv("LIVEORC_URL"),
+        user=os.getenv("LIVEORC_EMAIL"),
+        password=os.getenv("LIVEORC_PASSWORD"),
+    )
+    tokens = callback_create.get_tokens().json()
+    new_callback_dict = callback_create.model_dump(exclude_none=True, mode="json", exclude={"id", "password", "user"})
+    # add our newly found information from LiveORC server
+    new_callback_dict.update(
+        {
+            "token_access": tokens["access"],
+            "token_refresh": tokens["refresh"],
+            "token_expiration": callback_create.get_token_expiration(),
+        }
+    )
+    new_callback_url = models.CallbackUrl(**new_callback_dict)
+    crud.callback_url.add(session_video_with_config, new_callback_url)
+
+    # now we have access through the temporary database. Let's perform a post.
+    monkeypatch.setattr("orc_api.schemas.time_series.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.video_config.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
+
+    video_update = video_response.sync_remote(base_path=sample_data.get_hommerich_pyorc_files(), site=1, institute=1)
+    print(video_update)

@@ -104,3 +104,4 @@ def update(db: Session, id: int, video: dict):
     rec.update(video)
     db.commit()
     db.flush()
+    return rec.first()

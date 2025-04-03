@@ -15,8 +15,9 @@ from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
 from orc_api.log import logger
+from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
-from orc_api.schemas.video_config import VideoConfigBase
+from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
 
 
 # Pydantic model for responses
@@ -34,7 +35,7 @@ class VideoCreate(VideoBase):
     pass
 
 
-class VideoResponse(VideoBase):
+class VideoResponse(VideoBase, RemoteModel):
     """Response schema for video."""
 
     id: int = Field(description="Video ID")
@@ -43,11 +44,8 @@ class VideoResponse(VideoBase):
     thumbnail: Optional[str] = Field(default=None, description="Thumbnail file name of the video.")
     status: Optional[models.VideoStatus] = Field(default=models.VideoStatus.NEW, description="Status of the video.")
     time_series: Optional[TimeSeriesResponse] = Field(default=None, description="Time series attached to video.")
-    sync_status: Optional[models.SyncStatus] = Field(
-        default=models.SyncStatus.LOCAL, description="Status of the video to LiveORC server."
-    )
-    remote_id: Optional[int] = Field(default=None, description="ID of video on LiveORC server.")
-    site_id: Optional[int] = Field(default=None, description="ID of site to which video belongs on LiveORC server.")
+    time_series_id: Optional[int] = Field(default=None, description="ID of time series attached to video.")
+    video_config: Optional[VideoConfigResponse] = Field(description="Video configuration.", default=None)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -130,6 +128,61 @@ class VideoResponse(VideoBase):
         if self.time_series:
             update_data["time_series_id"] = self.time_series.id
         crud.video.update(get_session(), id=self.id, video=update_data)
+
+    def sync_remote(self, base_path: str, site: int, institute: int, sync_file: bool = True, sync_image: bool = True):
+        """Send the recipe to LiveORC API.
+
+        Recipes belong to an institute, hence also the institute ID is required.
+        """
+        # first check if the recipe and cross section are synced
+        if self.video_config is not None:
+            if self.video_config.sync_status != models.SyncStatus.SYNCED:
+                # first sync/update recipe
+                self.video_config = self.video_config.sync_remote(site=site, institute=institute)
+                self.video_config_id = self.video_config.id
+        if self.time_series is not None:
+            if self.time_series.sync_status != models.SyncStatus.SYNCED:
+                self.time_series = self.time_series.sync_remote(site=site)
+                self.time_series_id = self.time_series.id
+
+        # now report the entire video config (this currently reports to cameraconfig,
+        # should be updated after LiveORC restructuring)
+        endpoint = "/api/video/"
+        data = {
+            "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "camera_config": self.video_config.remote_id,
+            "status": self.status.value,
+        }
+        if self.created_at:
+            data["created_at"] = self.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        if self.time_series:
+            data["time_series"] = self.time_series.remote_id  # only if time series is available
+        # make a dict for files to send
+        files = {}
+        if self.file and os.path.exists(self.get_video_file(base_path=base_path)) and sync_file:
+            files["file"] = (self.file, open(self.get_video_file(base_path=base_path), "rb"))
+        if self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image:
+            files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
+        response_data = super().sync_remote(endpoint=endpoint, data=data, files=files)
+        if response_data is not None:
+            response_data.pop("camera_config")
+            response_data.pop("created_at")
+            response_data.pop("file")  # remove all refs to file media, as these are different on the remote server
+            response_data.pop("image")
+            response_data.pop("keyframe")
+            response_data.pop("thumbnail")
+            response_data.pop("project")
+            response_data.pop("time_series")
+            response_data.pop("creator")
+            response_data["video_config_id"] = self.video_config_id
+            response_data["time_series_id"] = self.time_series_id
+            # patch the record in the database, where necessary
+            # update schema instance
+            update_video = VideoResponse.model_validate(response_data)
+            r = crud.video.update(
+                get_session(), id=self.id, video=update_video.model_dump(exclude_unset=True, exclude_none=True)
+            )
+            return VideoResponse.model_validate(r)
 
     def get_path(self, base_path: str):
         """Get media path to video."""

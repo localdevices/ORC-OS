@@ -52,7 +52,7 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             "data": self.features,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, data=data)
+        response_data = super().sync_remote(endpoint=endpoint, json=data)
         if response_data is not None:
             # patch the record in the database, where necessary
             response_data["features"] = response_data.pop("data")

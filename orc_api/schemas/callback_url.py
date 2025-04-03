@@ -94,15 +94,16 @@ class CallbackUrlResponse(CallbackUrlBase):
             self.get_set_refresh_tokens()
         return requests.patch(url, headers=self.headers, json=data, files=files, timeout=5)
 
-    def post(self, endpoint, data=None, files=None):
+    def post(self, endpoint, data=None, json=None, files=None):
         """Perform POST request on end point with optional data and files."""
-        data = {} if data is None else data
-        files = {} if files is None else files
+        # data = {} if data is None else data
+        # files = {} if files is None else files
+        # json = {} if json is None else json
         url = urljoin(str(self.url), endpoint)
         if self.token_expiration < datetime.now():
             # first get a new token
             self.get_set_refresh_tokens()
-        return requests.post(url, headers=self.headers, json=data, files=files, timeout=5)
+        return requests.post(url, headers=self.headers, json=json, data=data, files=files, timeout=5)
 
     def get_online_status(self):
         """Check if the callback URL is online and the token is valid, return health parameters."""

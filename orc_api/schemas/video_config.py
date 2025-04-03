@@ -155,11 +155,11 @@ class VideoConfigResponse(VideoConfigBase, RemoteModel):
             "profile": self.cross_section.remote_id,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, data=data)
+        response_data = super().sync_remote(endpoint=endpoint, json=data)
         # ids of recipe and profile are already known and remote ids already updated, so remove
         if response_data is not None:
-            response_data.pop("recipe")
-            response_data.pop("profile")
+            response_data.pop("recipe")  # these are different on LiveORC, as they are with a datetime stamp
+            response_data.pop("profile")  # same
             response_data.pop("camera_config")
             response_data.pop("server")
             response_data["camera_config_id"] = self.camera_config_id
