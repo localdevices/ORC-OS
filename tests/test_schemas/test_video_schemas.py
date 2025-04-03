@@ -1,11 +1,12 @@
 import os
+from datetime import datetime
 
 import pytest
 from pyorc import sample_data
 
 from orc_api import crud
 from orc_api import db as models
-from orc_api.schemas.callback_url import CallbackUrlCreate
+from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
 
 
 @pytest.mark.skip(reason="Testing full video run only done on interactive request.")
@@ -38,6 +39,67 @@ def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, mon
     assert video_response_no_ts.status == models.VideoStatus.DONE
     assert len(video_response_no_ts.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
     assert video_response_no_ts.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None
+
+
+def test_video_sync(session_video_with_config, video_response, monkeypatch):
+    """Test for syncing a video record to remote API (real response is mocked)."""
+    # let's assume we are posting on site 1
+    site = 1
+    institute = 1
+
+    def mock_post(self, endpoint: str, data=None, files=None):
+        class MockResponse:
+            status_code = 201
+
+            def json(self):
+                return {
+                    "id": 7,
+                    "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "timestamp": video_response.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "camera_config": 1,
+                    "file": "some/file/path.mp4",
+                    "image": "some/file/path.jpg",
+                }
+
+        return MockResponse()
+
+    # we here already store recipe and cross section in database with SYNCED statusses. This prevents syncing.
+    video_response.video_config.sync_status = models.SyncStatus.SYNCED
+    video_response.video_config.remote_id = 5
+    crud.video_config.update(session_video_with_config, 1, {"sync_status": models.SyncStatus.SYNCED, "remote_id": 5})
+    video_response.time_series.sync_status = models.SyncStatus.SYNCED
+    video_response.time_series.remote_id = 7
+    crud.time_series.update(session_video_with_config, 1, video_response.time_series.model_dump(exclude_none=True))
+
+    monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
+    video_update = video_response.sync_remote(
+        base_path=sample_data.get_hommerich_pyorc_files(), site=site, institute=institute
+    )
+    assert video_update.remote_id == 7
+    assert video_update.sync_status == models.SyncStatus.SYNCED
+
+
+def test_video_sync_not_permitted(session_video_with_config, video_response, monkeypatch):
+    """Test for syncing a cross-section to remote API (real response is mocked)."""
+    # let's assume we are posting on site 1
+    institute = 1
+    site = 1
+
+    def mock_post(self, endpoint: str, data=None, files=None):
+        class MockResponse:
+            status_code = 403
+
+        return MockResponse()
+
+    monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
+    with pytest.raises(ValueError, match="Remote update failed with status code 403."):
+        _ = video_response.sync_remote(
+            base_path=sample_data.get_hommerich_pyorc_files(), institute=institute, site=site
+        )
 
 
 @pytest.mark.skipif(

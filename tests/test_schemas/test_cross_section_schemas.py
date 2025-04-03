@@ -45,6 +45,7 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
     monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_cross_section)
     cross_section_update = cross_section_response.sync_remote(site=site)
     assert cross_section_update.remote_id == 3
     assert cross_section_update.sync_status == SyncStatus.SYNCED
