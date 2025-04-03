@@ -58,7 +58,9 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
         Recipes belong to an institute, hence also the institute ID is required.
         """
         endpoint = f"/api/site/{site}/timeseries/"
-        data = self.model_dump(exclude_unset=True, exclude=["id", "remote_id", "created_at", "sync_status"])
+        data = self.model_dump(
+            exclude_unset=True, exclude_none=True, exclude=["id", "remote_id", "created_at", "sync_status"], mode="json"
+        )
 
         # sync remotely with the updated data, following the LiveORC end point naming
         response_data = super().sync_remote(endpoint=endpoint, data=data)
