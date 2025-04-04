@@ -55,7 +55,7 @@ def setuplog(
         if append is False and os.path.isfile(path):
             os.unlink(path)
         add_filehandler(logger, path, log_level=log_level, fmt=fmt)
-    logger.info(f"nodeorc version: {__version__}")
+    logger.info(f"ORC-OS version: {__version__}")
 
     return logger
 
@@ -88,10 +88,9 @@ def start_logger(verbose, quiet, log_path=None):
         quiet = 1
     else:
         quiet = 0
-    logfile = os.path.abspath(os.path.join(log_path, datestr, f"nodeorc_{timestr}.log"))
+    logfile = os.path.abspath(os.path.join(log_path, datestr, f"orc-os-{timestr}.log"))
     log_level = max(10, 30 - 10 * (verbose - quiet))
-    logger = setuplog(name="NodeOpenRiverCam", path=logfile, log_level=log_level)
-    logger.info("starting...")
+    logger = setuplog(name="ORC-OS", path=logfile, log_level=log_level)
     return logger
 
 

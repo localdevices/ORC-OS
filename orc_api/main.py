@@ -1,15 +1,61 @@
-from fastapi import FastAPI, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pyorc.cli.main import camera_config
+"""Main ORC-OS API module."""
 
-from orc_api.routers import device, settings, video_stream, video, disk_management, water_level, pivideo_stream, camera_config, callback_url
-app = FastAPI()
-# import logging
-# logging.basicConfig(level=logging.INFO)
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from orc_api.routers import (
+    callback_url,
+    camera_config,
+    device,
+    disk_management,
+    pivideo_stream,
+    settings,
+    video,
+    video_stream,
+    water_level,
+)
+
+
+def get_water_level(logger):
+    """Get dummy water level for testing the APScheduler API."""
+    logger.info(f"Getting water level in daemon mode {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+def schedule_water_level(scheduler, logger):
+    """Schedule the water level job."""
+    scheduler.add_job(
+        func=get_water_level,
+        trigger="interval",
+        seconds=300,
+        args=[logger],
+        start_date=datetime.now() + timedelta(seconds=5),
+        id="water_level_job",
+        replace_existing=True,
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the scheduler and logger."""
+    from orc_api.log import logger
+
+    logger.info("Starting ORC-OS API")
+    scheduler = BackgroundScheduler()
+    scheduler.start()
+    schedule_water_level(scheduler, logger)
+    yield
+    logger.info("Shutting down FastAPI server, goodbye!")
 
 
 # origins = ["http://localhost:5173"]
 origins = ["*"]
+
+app = FastAPI(lifespan=lifespan)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +66,7 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 #
+
 # @app.middleware("http")
 # async def log_requests(request, call_next):
 #     body = await request.body()
@@ -38,8 +85,8 @@ app.include_router(camera_config.router)
 app.include_router(video_stream.router)
 app.include_router(pivideo_stream.router)
 
+
 @app.get("/")
 async def root():
+    """Root endpoint."""
     return {"message": "You have reached the NodeORC API"}
-
-

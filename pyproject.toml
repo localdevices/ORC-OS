@@ -8,6 +8,7 @@ authors = [
     {name = "Hessel Winsemius", email = "winsemius@rainbowsensing.com"},
 ]
 dependencies = [
+    "apscheduler",
     "pillow",
     "pyopenrivercam>=0.8.5",
     "sqlalchemy",
