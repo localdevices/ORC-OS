@@ -165,15 +165,17 @@ class VideoResponse(VideoBase, RemoteModel):
             files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
         response_data = super().sync_remote(endpoint=endpoint, data=data, files=files)
         if response_data is not None:
-            response_data.pop("camera_config")
-            response_data.pop("created_at")
-            response_data.pop("file")  # remove all refs to file media, as these are different on the remote server
-            response_data.pop("image")
-            response_data.pop("keyframe")
-            response_data.pop("thumbnail")
-            response_data.pop("project")
-            response_data.pop("time_series")
-            response_data.pop("creator")
+            response_data.pop("camera_config", None)
+            response_data.pop("created_at", None)
+            response_data.pop(
+                "file", None
+            )  # remove all refs to file media, as these are different on the remote server
+            response_data.pop("image", None)
+            response_data.pop("keyframe", None)
+            response_data.pop("thumbnail", None)
+            response_data.pop("project", None)
+            response_data.pop("time_series", None)
+            response_data.pop("creator", None)
             response_data["video_config_id"] = self.video_config_id
             response_data["time_series_id"] = self.time_series_id
             # patch the record in the database, where necessary

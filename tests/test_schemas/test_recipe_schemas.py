@@ -29,7 +29,7 @@ def test_recipe_sync(session_recipe, recipe_response, monkeypatch):
     # let's assume we are posting on institute 1
     institute = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 201
 
@@ -44,6 +44,7 @@ def test_recipe_sync(session_recipe, recipe_response, monkeypatch):
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_recipe)
     monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_recipe)
     recipe_update = recipe_response.sync_remote(institute=institute)
     assert recipe_update.remote_id == 4
@@ -55,14 +56,15 @@ def test_recipe_sync_not_permitted(session_recipe, recipe_response, monkeypatch)
     # let's assume we are posting on site 1
     institute = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 403
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_recipe)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_recipe)
+    monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_recipe)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
         _ = recipe_response.sync_remote(institute=institute)
 

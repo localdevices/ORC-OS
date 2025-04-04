@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, timedelta
 
 import pytest
 import yaml
@@ -91,7 +92,12 @@ def session_config(session_empty, tmpdir):
     )
     disk_management_instance = db.DiskManagement(home_folder=str(tmpdir))
     water_level_settings_instance = db.WaterLevelSettings()
-    callback_url_instance = db.CallbackUrl()
+    callback_url_instance = db.CallbackUrl(
+        token_refresh_end_point="/api/token/refresh/",
+        token_refresh="some_token",
+        token_access="some_other_token",
+        token_expiration=datetime.now() + timedelta(days=1),
+    )
     session.add(device_instance)
     session.add(settings_instance)
     session.add(disk_management_instance)

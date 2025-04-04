@@ -47,7 +47,7 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
     site = 1
     institute = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 201
 
@@ -72,8 +72,8 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
     crud.time_series.update(session_video_with_config, 1, video_response.time_series.model_dump(exclude_none=True))
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
     video_update = video_response.sync_remote(
         base_path=sample_data.get_hommerich_pyorc_files(), site=site, institute=institute
     )
@@ -87,15 +87,15 @@ def test_video_sync_not_permitted(session_video_with_config, video_response, mon
     institute = 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 403
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
         _ = video_response.sync_remote(
             base_path=sample_data.get_hommerich_pyorc_files(), institute=institute, site=site
@@ -132,12 +132,12 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
     crud.callback_url.add(session_video_with_config, new_callback_url)
 
     # now we have access through the temporary database. Let's perform a post.
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.time_series.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.video_config.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_video_with_config)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
 
     video_update = video_response.sync_remote(base_path=sample_data.get_hommerich_pyorc_files(), site=1, institute=1)
     print(video_update)

@@ -27,7 +27,7 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
     # let's assume we are posting on site 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 201
 
@@ -44,8 +44,8 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_cross_section)
+    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
     cross_section_update = cross_section_response.sync_remote(site=site)
     assert cross_section_update.remote_id == 3
     assert cross_section_update.sync_status == SyncStatus.SYNCED
@@ -56,13 +56,14 @@ def test_cross_section_sync_not_permitted(session_cross_section, cross_section_r
     # let's assume we are posting on site 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 403
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_cross_section)
     monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
         _ = cross_section_response.sync_remote(site=site)

@@ -44,7 +44,7 @@ def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
     institute = 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 201
 
@@ -73,6 +73,7 @@ def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
     )
 
     # ensure that we load the right session
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_config)
     monkeypatch.setattr("orc_api.schemas.video_config.get_session", lambda: session_video_config)
     video_config_update = video_config_response.sync_remote(institute=institute, site=site)
 
@@ -89,13 +90,14 @@ def test_video_config_sync_not_permitted(session_video_config, video_config_resp
     institute = 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
             status_code = 403
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_config)
     monkeypatch.setattr("orc_api.schemas.video_config.get_session", lambda: session_video_config)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
         _ = video_config_response.sync_remote(institute=institute, site=site)

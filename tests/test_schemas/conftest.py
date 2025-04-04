@@ -13,31 +13,31 @@ from orc_api.schemas.video_config import VideoConfigResponse
 
 
 @pytest.fixture
-def session_cam_config(session_empty, cam_config):
+def session_cam_config(session_config, cam_config):
     c = CameraConfig(name="some camera config", data=cam_config)
-    session_empty.add(c)
-    session_empty.commit()
-    session_empty.refresh(c)
-    return session_empty
+    session_config.add(c)
+    session_config.commit()
+    session_config.refresh(c)
+    return session_config
 
 
 @pytest.fixture
-def session_cross_section(session_empty, cross_section):
+def session_cross_section(session_config, cross_section):
     cs = CrossSection(name="some cross section", features=cross_section)
-    session_empty.add(cs)
-    session_empty.commit()
-    session_empty.refresh(cs)
-    return session_empty
+    session_config.add(cs)
+    session_config.commit()
+    session_config.refresh(cs)
+    return session_config
 
 
 @pytest.fixture
-def session_recipe(session_empty, recipe):
+def session_recipe(session_config, recipe):
     recipe = json.loads(recipe)
     r = Recipe(name="some recipe", data=recipe)
-    session_empty.add(r)
-    session_empty.commit()
-    session_empty.refresh(r)
-    return session_empty
+    session_config.add(r)
+    session_config.commit()
+    session_config.refresh(r)
+    return session_config
 
 
 @pytest.fixture
