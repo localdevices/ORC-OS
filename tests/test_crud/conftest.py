@@ -30,7 +30,7 @@ def session_video(session_config, vid_file, monkeypatch):
     # give a timestamp too far before the first available time stamp time series
     timestamp = datetime.now()
     video = db.Video(file=vid_file, timestamp=timestamp)
-    _ = crud.video.create(session_config, video)
+    _ = crud.video.add(session_config, video)
     return session_config
 
 

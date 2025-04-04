@@ -1,47 +1,71 @@
-from fastapi import APIRouter, Depends, Response
-from orc_api.db import Session, CallbackUrl
-from typing import List, Union
-from urllib.parse import urljoin
+"""Routes for managing LiveORC callback URL information."""
 
-from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse, CallbackUrlHealth
-from orc_api.database import get_db
+from typing import Union
+
+from fastapi import APIRouter, Depends, Response
+
 from orc_api import crud
+from orc_api.database import get_db
+from orc_api.db import CallbackUrl, Session
+from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlHealth, CallbackUrlResponse
 
 router: APIRouter = APIRouter(prefix="/callback_url", tags=["callback_url"])
 
-@router.get("/", response_model=Union[CallbackUrlResponse, None], description="Get LiveORC callback URL information for callback")
+
+@router.get(
+    "/",
+    response_model=Union[CallbackUrlResponse, None],
+    description="Get LiveORC callback URL information for callback",
+)
 async def get_callback_url(db: Session = Depends(get_db)):
+    """Route for getting LiveORC callback URL information."""
     callback_url = crud.callback_url.get(db)
     return callback_url
 
 
-@router.get("/health", response_model=CallbackUrlHealth, description="Check the online status and token health of LiveORC callback URL")
+@router.get(
+    "/health",
+    response_model=CallbackUrlHealth,
+    description="Check the online status and token health of LiveORC callback URL",
+)
 async def get_callback_url_health(db: Session = Depends(get_db)):
+    """Route for checking the online status and token health of LiveORC callback URL."""
     callback_url = crud.callback_url.get(db)
     if not callback_url:
-        return CallbackUrlHealth(
-            serverOnline=None,
-            tokenValid=None,
-            error="No callback URL found"
-        )
+        return CallbackUrlHealth(serverOnline=None, tokenValid=None, error="No callback URL found")
     callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(db))
     callback_url_health = callback_url.get_online_status()
     return callback_url_health
 
 
-@router.get("/refresh_tokens", response_model=CallbackUrlResponse, status_code=200, description="Refresh the access token of LiveORC callback URL")
+@router.get(
+    "/refresh_tokens",
+    response_model=CallbackUrlResponse,
+    status_code=200,
+    description="Refresh the access token of LiveORC callback URL",
+)
 async def refresh_callback_url_token(db: Session = Depends(get_db)):
+    """Route for refreshing the access/refresh tokens of LiveORC callback URL."""
     callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(db))
     new_callback_url = callback_url.get_set_refresh_tokens()
     return new_callback_url
 
+
 @router.delete("/", response_model=None, status_code=204, description="Delete LiveORC callback URL information")
-async def delete_device(db: Session = Depends(get_db)):
+async def delete_callback_url(db: Session = Depends(get_db)):
+    """Route for deleting LiveORC callback URL information."""
     crud.callback_url.delete(db)
     return
 
-@router.post("/", response_model=CallbackUrlResponse, status_code=201, description="Post or update LiveORC callback URL information")
-async def update_device(callback_url: CallbackUrlCreate, db: Session = Depends(get_db)):
+
+@router.post(
+    "/",
+    response_model=CallbackUrlResponse,
+    status_code=201,
+    description="Post or update LiveORC callback URL information",
+)
+async def update_callback_url(callback_url: CallbackUrlCreate, db: Session = Depends(get_db)):
+    """Route for posting or updating LiveORC callback URL information."""
     # check if url has the /api suffix
     # check if the LiveORC server can be reached and returns a valid response
     r = callback_url.get_tokens()

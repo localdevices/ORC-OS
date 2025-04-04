@@ -1,4 +1,3 @@
-geojson-pydantic
 sqlalchemy
 fastapi[standard]
 pillow

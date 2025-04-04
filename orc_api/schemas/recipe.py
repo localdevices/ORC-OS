@@ -1,11 +1,10 @@
 """Pydantic models for recipes."""
 
-from datetime import datetime
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
-from orc_api.db.base import SyncStatus
+from orc_api import crud
+from orc_api.database import get_session
+from orc_api.schemas.base import RemoteModel
 
 
 # Pydantic model for responses
@@ -17,10 +16,27 @@ class RecipeBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class RecipeResponse(RecipeBase):
+class RecipeResponse(RecipeBase, RemoteModel):
     """Response model for a recipe."""
 
     id: int = Field(description="Recipe ID")
-    created_at: datetime = Field(description="Creation date")
-    remote_id: Optional[int] = Field(default=None, description="ID of the recipe on the remote server")
-    sync_status: SyncStatus = Field(default=SyncStatus.LOCAL, description="Status of the recipe on the remote server")
+
+    def sync_remote(self, institute: int):
+        """Send the recipe to LiveORC API.
+
+        Recipes belong to an institute, hence also the institute ID is required.
+        """
+        endpoint = "/api/recipe/"
+        data = {
+            "name": self.name,
+            "data": self.data,
+            "institute": institute,
+        }
+        # sync remotely with the updated data, following the LiveORC end point naming
+        response_data = super().sync_remote(endpoint=endpoint, json=data)
+        if response_data is not None:
+            # patch the record in the database, where necessary
+            # update schema instance
+            update_recipe = RecipeResponse.model_validate(response_data)
+            r = crud.recipe.update(get_session(), id=self.id, recipe=update_recipe.model_dump(exclude_unset=True))
+            return RecipeResponse.model_validate(r)

@@ -87,7 +87,7 @@ def delete_start_stop(db: Session, start: datetime, stop: datetime):
     return
 
 
-def create(db: Session, video: models.Video) -> models.Video:
+def add(db: Session, video: models.Video) -> models.Video:
     """Add a video to the database."""
     db.add(video)
     db.commit()
@@ -104,3 +104,4 @@ def update(db: Session, id: int, video: dict):
     rec.update(video)
     db.commit()
     db.flush()
+    return rec.first()

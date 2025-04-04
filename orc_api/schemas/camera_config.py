@@ -1,13 +1,12 @@
 """Pydantic models for camera configurations."""
 
 import warnings
-from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from pyproj.crs import CRS
 
-from orc_api.db.base import SyncStatus
+from orc_api.schemas.base import RemoteModel
 
 # Alternatively, print traceback for warnings without halting execution
 warnings.simplefilter("always", DeprecationWarning)
@@ -31,15 +30,23 @@ class CameraConfigBase(BaseModel):
         return _crs
 
 
-class CameraConfigResponse(CameraConfigBase):
+class CameraConfigResponse(CameraConfigBase, RemoteModel):
     """Response model for camera configuration."""
 
-    id: int = Field(description="Camera configuration ID")
-    created_at: datetime = Field(description="Creation date")
-    remote_id: Optional[int] = Field(default=None, description="ID of the camera configuration on the remote server")
-    sync_status: SyncStatus = Field(
-        default=SyncStatus.LOCAL, description="Status of the cmaera configuration on the remote server"
-    )
+    id: int = Field(description="CameraConfig ID")
+
+    def sync_remote(self, site: int):
+        """Send the recipe to LiveORC API.
+
+        Recipes belong to an institute, hence also the institute ID is required.
+        """
+        # endpoint = f"/api/site/{site}/cameraconfig/"
+        # data = {
+        #     "name": self.name,
+        #     "camera_config": self.data,
+        # }
+        # TODO: this end point is not yet implemented, as it requires a restructuring on LiveORC
+        pass
 
 
 class CameraConfigCreate(CameraConfigBase):

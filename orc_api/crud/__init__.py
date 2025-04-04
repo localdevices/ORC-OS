@@ -11,6 +11,7 @@ from . import (
     settings,
     time_series,
     video,
+    video_config,
     water_level,
 )
 
@@ -25,5 +26,6 @@ __all__ = [
     "settings",
     "time_series",
     "video",
+    "video_config",
     "water_level",
 ]

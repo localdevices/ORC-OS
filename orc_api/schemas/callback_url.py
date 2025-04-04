@@ -75,24 +75,35 @@ class CallbackUrlResponse(CallbackUrlBase):
         new_callback_url["url"] = str(new_callback_url["url"])
         crud.callback_url.add(db, models.CallbackUrl(**new_callback_url))
 
-    def get(self, end_point, data=None):
+    def get(self, endpoint, data=None):
         """Perform GET request on end point with optional data."""
         data = {} if data is None else data
-        url = urljoin(str(self.url), end_point)
+        url = urljoin(str(self.url), endpoint)
         if self.token_expiration < datetime.now():
             # first get a new token
             self.get_set_refresh_tokens()
-        return requests.get(url, data=data, headers=self.headers, timeout=5)
+        return requests.get(url, json=data, headers=self.headers, timeout=5)
 
-    def post(self, end_point, data=None, files=None):
-        """Perform POST request on end point with optional data and files."""
+    def patch(self, endpoint, data=None, files=None):
+        """Perform PATCH request on end point with optional data and files."""
         data = {} if data is None else data
         files = {} if files is None else files
-        url = urljoin(str(self.url), end_point)
+        url = urljoin(str(self.url), endpoint)
         if self.token_expiration < datetime.now():
             # first get a new token
             self.get_set_refresh_tokens()
-        return requests.post(url, headers=self.headers, data=data, files=files, timeout=5)
+        return requests.patch(url, headers=self.headers, json=data, files=files, timeout=5)
+
+    def post(self, endpoint, data=None, json=None, files=None):
+        """Perform POST request on end point with optional data and files."""
+        # data = {} if data is None else data
+        # files = {} if files is None else files
+        # json = {} if json is None else json
+        url = urljoin(str(self.url), endpoint)
+        if self.token_expiration < datetime.now():
+            # first get a new token
+            self.get_set_refresh_tokens()
+        return requests.post(url, headers=self.headers, json=json, data=data, files=files, timeout=5)
 
     def get_online_status(self):
         """Check if the callback URL is online and the token is valid, return health parameters."""
@@ -128,7 +139,7 @@ class CallbackUrlCreate(CallbackUrlBase):
         """Get tokens for the callback URL using email/password."""
         url = urljoin(str(self.url), "/api/token/")
         data = {"email": self.user, "password": self.password}
-        response = requests.post(url, data=data)
+        response = requests.post(url, data=data, timeout=5)
         return response
 
 
