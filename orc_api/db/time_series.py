@@ -58,6 +58,7 @@ def add_video(mapper, connection, target):
     """Add video to time series if close enough in time."""
     from orc_api import crud
     from orc_api.database import get_session
+    from orc_api.log import logger
 
     db = get_session()
     # check if a record is available
@@ -87,4 +88,4 @@ def add_video(mapper, connection, target):
             # print(video_record)
 
     else:
-        print("No settings available, cannot determine maximum allowed time difference between video and time series.")
+        logger.warning("No settings available, cannot attach time series to videos.")

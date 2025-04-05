@@ -33,7 +33,7 @@ def schedule_water_level(scheduler, logger):
     if wl_settings:
         logger.info('Water level settings found: setting up interval job "water_level_job"')
         scheduler.add_job(
-            func=wl_settings.get_new(),
+            func=wl_settings.get_new,
             trigger="interval",
             seconds=wl_settings.frequency,
             start_date=datetime.now() + timedelta(seconds=5),

@@ -108,12 +108,11 @@ class WaterLevelSettings(Base):
         from orc_api.log import logger
 
         db = get_session()
-
-        # first
         if self.script_type is None or self.script is None:
             logger.error("script_type and script must be set.")
             raise ValueError("script_type and script must be set.")
         timestamp, value = water_level.execute_water_level_script(self.script, self.script_type)
+        logger.info(f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m.")
         # store in database
         time_series = TimeSeries(timestamp=timestamp, h=value)
         crud.time_series.add(db, time_series)

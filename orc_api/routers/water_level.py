@@ -45,7 +45,7 @@ async def update_water_level(request: Request, water_level_settings: WaterLevelC
             # update the water level job
         if scheduler:
             scheduler.add_job(
-                func=wl_settings.get_new(),
+                func=wl_settings.get_new,
                 trigger="interval",
                 seconds=wl_settings.frequency,
                 start_date=datetime.now() + timedelta(seconds=5),
