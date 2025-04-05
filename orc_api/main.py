@@ -7,6 +7,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from orc_api import crud
+from orc_api.database import get_session
 from orc_api.routers import (
     callback_url,
     camera_config,
@@ -27,15 +29,19 @@ def get_water_level(logger):
 
 def schedule_water_level(scheduler, logger):
     """Schedule the water level job."""
-    scheduler.add_job(
-        func=get_water_level,
-        trigger="interval",
-        seconds=300,
-        args=[logger],
-        start_date=datetime.now() + timedelta(seconds=5),
-        id="water_level_job",
-        replace_existing=True,
-    )
+    wl_settings = crud.water_level.get(get_session())
+    if wl_settings:
+        logger.info('Water level settings found: setting up interval job "water_level_job"')
+        scheduler.add_job(
+            func=wl_settings.get_new(),
+            trigger="interval",
+            seconds=wl_settings.frequency,
+            start_date=datetime.now() + timedelta(seconds=5),
+            id="water_level_job",
+            replace_existing=True,
+        )
+    else:
+        logger.info("No water level settings found, skipping interval job setup")
 
 
 @asynccontextmanager
@@ -46,6 +52,8 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ORC-OS API")
     scheduler = BackgroundScheduler()
     scheduler.start()
+    # add scheduler to api state for use in routers
+    app.state.scheduler = scheduler
     schedule_water_level(scheduler, logger)
     yield
     logger.info("Shutting down FastAPI server, goodbye!")

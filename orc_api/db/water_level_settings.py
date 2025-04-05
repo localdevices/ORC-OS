@@ -105,11 +105,13 @@ class WaterLevelSettings(Base):
         """Receive a new water level datetime, value pair by running the configured script."""
         from orc_api import crud
         from orc_api.database import get_session
+        from orc_api.log import logger
 
         db = get_session()
 
         # first
         if self.script_type is None or self.script is None:
+            logger.error("script_type and script must be set.")
             raise ValueError("script_type and script must be set.")
         timestamp, value = water_level.execute_water_level_script(self.script, self.script_type)
         # store in database
