@@ -1,15 +1,28 @@
 import React, {useState, useEffect} from 'react';
+import { Pie } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    ArcElement,
+    Tooltip,
+    Legend
+} from 'chart.js';
+
 import api from '../api';
 import MessageBox from '../messageBox';
 import {useMessage} from '../messageContext';
+
+// Register ChartJS components
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend
+);
 
 const Device = () => {
 
     const [device, updateDevice] = useState([]);
     const [deviceStatuses, setDeviceStatuses] = useState([]);
     const [deviceStatus, setDeviceStatus] = useState(''); // State for the selected status
-    const [deviceFormStatus, setDeviceFormStatus] = useState(''); // State for the selected status
-    const [deviceFormStatuses, setDeviceFormStatuses] = useState([]);
     const [loading, setLoading] = useState(true); // State for loading indicator
     const [error, setError] = useState(null); // State for error handling
     const [formData, setFormData] = useState({
@@ -29,7 +42,6 @@ const Device = () => {
         const response = await api.get('/device/');
         updateDevice(response.data)
         setDeviceStatus(response.data.status);
-        setDeviceFormStatus(response.data.form_status);
     };
     const fetchDeviceStatuses = async () => {
         try {
@@ -41,22 +53,14 @@ const Device = () => {
             setLoading(false);
         }
     };
-    const fetchDeviceFormStatuses = async () => {
-        try {
-            const response = await api.get('/device/form_statuses/');
-            setDeviceFormStatuses(response.data); // Assuming API returns array of statuses
-            setLoading(false);
-        } catch (err) {
-            setError('Failed to fetch device form statuses.');
-            setLoading(false);
-        }
+    // helper function to get status name from status value
+    const getStatusName = (statusValue) => {
+        const status = deviceStatuses.find(s => s.value === statusValue);
+        return status ? status.key : '';
     };
-
     useEffect(() => {
         fetchDevice();
         fetchDeviceStatuses();
-        fetchDeviceFormStatuses();
-
     }, []);
     useEffect(() => {
         if (device) {
@@ -92,10 +96,6 @@ const Device = () => {
         setDeviceStatus(e.target.value); // Update selected status in state
         handleInputIntChange(e); // Pass the change event to the parent handler
     };
-    const handleFormStatusChange = (e) => {
-        setDeviceFormStatus(e.target.value); // Update selected status in state
-        handleInputIntChange(e); // Pass the change event to the parent handler
-    };
     const handleFormSubmit = async (event) => {
         try {
             event.preventDefault();
@@ -116,8 +116,7 @@ const Device = () => {
                 processor: '',
                 memory: '',
                 status: '',
-                form_status: '',
-                nodeorc_version: '',
+                orc_os_version: '',
                 message: ''
             });
             setDeviceStatus(device.status);
@@ -126,85 +125,96 @@ const Device = () => {
             setMessageInfo('error', err.response.data);
         }
     };
+    // Prepare chart data
+    const memoryChartData = {
+        labels: ['Used Memory', 'Free Memory'],
+        datasets: [
+            {
+                data: [device.used_memory, device.memory - device.used_memory],
+                backgroundColor: [
+                    'rgba(255, 99, 99, 0.8)',
+                    'rgba(75, 192, 108, 0.8)',
+                ],
+                borderColor: [
+                    'rgb(255,99,99)',
+                    'rgba(75,192,108, 1)',
+                ],
+                borderWidth: 1,
+            },
+        ],
+    };
+
+    const chartOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.raw || 0;
+                        return `${label}: ${value.toFixed(2)} GB`;
+                    }
+                }
+            }
+        },
+    };
+
     return (
         <div className='container'>
             <MessageBox/>
-            Change your device details. You can only change a few fields. Most are set and controlled by NodeORC.
+            Change your device name and check your device health.
             <hr/>
+            <div className="flex-container">
+                <div className="card">
+                    <h4>Device status</h4>
+
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='name' className='form-label'>
-                        Name
+                        Change the name of your device
                     </label>
                     <input type='text' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name}/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='operating_system' className='form-label'>
-                        Operating system
-                    </label>
-                    <input type='text' className='form-control' id='operating_system' name='operating_system' onChange={handleInputChange} value={formData.operating_system} readOnly />
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='processor' className='form-label'>
-                        Processor
-                    </label>
-                    <input type='text' className='form-control' id='processor' name='processor' onChange={handleInputChange} value={formData.processor} readOnly/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='memory' className='form-label'>
-                        Memory
-                    </label>
-                    <input type='number' className='form-control' id='memory' name='memory' step="0.01" onChange={handleInputChange} value={formData.memory} readOnly/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='status' className='form-label'>
-                        Status
-                    </label>
-                    {loading ? (
-                        <div>Loading...</div> // Show loading indicator
-                    ) : error ? (
-                        <div className="text-danger">{error}</div> // Show error message
-                    ) : (
-                    <select name="status" id="status" className="form-select" onChange={handleStatusChange} value={deviceStatus} disabled>
-                        {deviceStatuses.map((status) => (
-                            <option value={status.value}>{status.key}</option>
-                        ))}
-                    </select>
-                    )}
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='form_status' className='form-label'>
-                        NodeORC Task Form status
-                    </label>
-                    {loading ? (
-                        <div>Loading...</div> // Show loading indicator
-                    ) : error ? (
-                        <div className="text-danger">{error}</div> // Show error message
-                    ) : (
-                    <select name="form_status" id="form_status" className="form-select" onChange={handleFormStatusChange} value={deviceFormStatus} disabled>
-                        {deviceFormStatuses.map((status) => (
-                            <option value={status.value}>{status.key}</option>
-                        ))}
-                    </select>
-                    )}
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='nodeorc_version' className='form-label'>
-                        NodeORC version
-                    </label>
-                    <input type='text' className='form-control' id='nodeorc_version' name='nodeorc_version' onChange={handleInputChange} value={formData.nodeorc_version} readOnly/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='message' className='form-label'>
-                        Message
-                    </label>
-                    <input type='text' className='form-control' id='message' name='message' onChange={handleInputChange} value={formData.message}/>
                 </div>
                 <button type='submit' className='btn'>
                     Submit
                 </button>
-
             </form>
+            <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                <label>
+                    Device status: {getStatusName(deviceStatus)}
+                </label>
+            </div>
+            <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                <label>
+                    Processor: {device.processor}
+                </label>
+                <div className="readonly">{status.key}</div>
+            </div>
+            <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                <label>
+                    Processor: {device.orc_os_version}
+                </label>
+                <div className="readonly">{status.key}</div>
+            </div>
+                </div>
+                <div className="card">
+                    <h4>Memory Usage</h4>
+                    <div className='mb-3 mt-3'>
+                        <div style={{ maxWidth: '200px', margin: '0 auto' }}>
+                    <Pie data={memoryChartData} options={chartOptions} />
+                </div>
+                {/*<div className='text-center mt-2'>*/}
+                {/*    <p>Total Memory: {(device.memory).toFixed(2)} GB</p>*/}
+                {/*    <p>Free Memory: 16 GB</p>*/}
+                {/*    <p>Used Memory: {(device.memory - 16).toFixed(2)} GB</p>*/}
+                {/*</div>*/}
+                </div>
+            </div>
+            </div>
+
         </div>
 
     );
