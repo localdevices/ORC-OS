@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from orc_api.log import logger
 from orc_api.utils import disk_management as dm
@@ -18,6 +18,14 @@ class DiskManagementBase(BaseModel):
     min_free_space: Optional[float] = Field(default=None, description="GB of minimum free space required.")
     critical_space: Optional[float] = Field(default=None, description="GB of free space critical for the device.")
     frequency: Optional[int] = Field(default=None, description="Frequency [s] for checking disk status and cleanup.")
+
+    @property
+    def incoming_path(self):
+        """Path to the incoming folder."""
+        path = os.path.join(self.home_folder, "incoming")
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return path
 
     @property
     def failed_path(self):
@@ -49,7 +57,9 @@ class DiskManagementBase(BaseModel):
         free_space = dm.get_free_space(
             self.home_folder,
         )
+        logger.debug(f"Checking if free space is sufficient (>= {self.min_free_space})")
         if free_space < self.min_free_space:
+            logger.warning(f"Available space is lower than {self.min_free_space}, purging failed folder.")
             ret = dm.purge(
                 [self.failed_path],
                 free_space=free_space,
@@ -80,6 +90,8 @@ class DiskManagementResponse(DiskManagementBase):
 
     id: int = Field(description="Disk management ID")
     created_at: datetime = Field(description="Creation date")
+    # ensure instances can be created from sqlalchemy model instances
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DiskManagementCreate(DiskManagementBase):

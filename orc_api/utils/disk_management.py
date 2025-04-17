@@ -2,6 +2,8 @@
 
 import os
 import shutil
+import time
+from datetime import datetime
 
 import numpy as np
 
@@ -28,6 +30,84 @@ def get_free_space(path_dir):
     free_space = free_space / 10e8
 
     return free_space
+
+
+def get_timestamp(
+    fn,
+    parse_from_fn,
+    fn_fmt,
+):
+    """Find time stamp from file name using expected file name template with datetime fmt.
+
+    Parameters
+    ----------
+    fn : str
+        filename path
+    parse_from_fn : bool
+        If set to True, filename is used to parse timestamp using a filename template,
+        if False, timestamp is retrieved from the last change datetime of the file
+    fn_fmt : str
+        filename template with datetime format between {}
+
+    Returns
+    -------
+    datetime
+        timestamp of video file
+
+    """
+    if parse_from_fn:
+        datetime_fmt = fn_fmt.split("{")[1].split("}")[0]
+        fn_template = fn_fmt.replace(datetime_fmt, "")
+        prefix, suffix = fn_template.split("{}")
+        if prefix not in fn or suffix not in fn:
+            raise ValueError(
+                f"File naming of video {fn} does not follow the template {fn_fmt}. Please change daemon settings"
+            )
+        if len(prefix) > 0:
+            timestr = fn.split(prefix)[1]
+        else:
+            timestr = os.path.basename(fn)
+        if len(suffix) > 0:
+            timestr = timestr.split(suffix)[0]
+        try:
+            timestamp = datetime.strptime(timestr, datetime_fmt)
+        except ValueError:
+            raise ValueError(
+                f"datetime string {timestr} does not follow the datetime format {datetime_fmt}. "
+                f"Please change daemon settings"
+            )
+    else:
+        timestamp = datetime.fromtimestamp(os.path.getmtime(fn))
+    return timestamp
+
+
+def is_file_size_changing(fn, delay=1):
+    """Check if the file size changes over a certain amount of time.
+
+    Can be used to check if a file is being written into by another process.
+
+    Parameters
+    ----------
+    fn : str
+        path to file
+    delay : float, optional
+        amount of delay time to check if file size changes
+
+    Returns
+    -------
+    bool
+        True (False) if file does (not) change
+
+    """
+    if not (os.path.isfile(fn)):
+        raise IOError(f"File {fn} does not exist")
+    # check if file is being written into, by checking changes in file size over a delay
+    size1 = os.path.getsize(fn)
+    time.sleep(delay)
+    if size1 != os.path.getsize(fn):
+        return True
+    else:
+        return False
 
 
 def scan_folder(incoming, clean_empty_dirs=True, suffix=None):

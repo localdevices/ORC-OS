@@ -1,5 +1,6 @@
 """Main ORC-OS API module."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
@@ -20,6 +21,13 @@ from orc_api.routers import (
     video_stream,
     water_level,
 )
+from orc_api.schemas.disk_management import DiskManagementResponse
+from orc_api.schemas.settings import SettingsResponse
+
+
+def async_job_wrapper(func, kwargs):
+    """Wrap call to async functions synchronously, needed for scheduler."""
+    asyncio.run(func(**kwargs))  # Run the async function in the event loop
 
 
 def get_water_level(logger):
@@ -29,19 +37,70 @@ def get_water_level(logger):
 
 def schedule_water_level(scheduler, logger):
     """Schedule the water level job."""
-    wl_settings = crud.water_level.get(get_session())
+    with get_session() as session:
+        wl_settings = crud.water_level.get(session)
     if wl_settings:
         logger.info('Water level settings found: setting up interval job "water_level_job"')
         scheduler.add_job(
             func=wl_settings.get_new,
             trigger="interval",
             seconds=wl_settings.frequency,
-            start_date=datetime.now() + timedelta(seconds=5),
+            start_date=datetime.now() + timedelta(seconds=1),
             id="water_level_job",
             replace_existing=True,
         )
     else:
-        logger.info("No water level settings found, skipping interval job setup")
+        logger.info("No water level settings available. If you require water level retrievals, please set this up.")
+
+
+def schedule_disk_maintenance(scheduler, logger):
+    """Schedule the disk maintenance."""
+    with get_session() as session:
+        dm = crud.disk_management.get(session)
+    if dm:
+        # validate the settings model instance
+        dm_settings = DiskManagementResponse.model_validate(dm)
+        logger.info('Disk management settings found: setting up interval job "disk_managemement_job"')
+        scheduler.add_job(
+            func=dm_settings.cleanup,
+            trigger="interval",
+            seconds=dm_settings.frequency,
+            start_date=datetime.now() + timedelta(seconds=5),
+            id="disk_managemement_job",
+            replace_existing=True,
+        )
+    else:
+        logger.warning(
+            "No disk management settings available. This is risky as your disk may run full and render access to the "
+            "OS impossible."
+        )
+
+
+def schedule_video_checker(scheduler, logger):
+    """Set up check for new videos (runs default every 5 seconds)."""
+    with get_session() as session:
+        settings = crud.settings.get(session)
+        dm = crud.disk_management.get(session)
+
+    if settings and dm:
+        # validate the settings model instance
+        settings = SettingsResponse.model_validate(settings)
+        dm_settings = DiskManagementResponse.model_validate(dm)
+        logger.info('Daemon settings found: setting up interval job "video_check_job"')
+        scheduler.add_job(
+            func=async_job_wrapper,
+            kwargs={
+                "func": settings.check_new_videos,
+                "kwargs": {"path_incoming": dm_settings.incoming_path, "app": app, "logger": logger},
+            },
+            trigger="interval",
+            seconds=5,
+            start_date=datetime.now(),
+            id="video_check_job",
+            replace_existing=True,
+        )
+    else:
+        logger.info("No daemon settings available, ORC-OS will run interactively only.")
 
 
 @asynccontextmanager
@@ -53,8 +112,12 @@ async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.start()
     # add scheduler to api state for use in routers
-    app.state.scheduler = scheduler
+    app.state.scheduler = scheduler  # scheduler is accessible throughout the app
+    app.state.process_list = []  # state with queue of videos to run
+    app.state.processing = False  # state processing yes/no
     schedule_water_level(scheduler, logger)
+    schedule_disk_maintenance(scheduler, logger)
+    schedule_video_checker(scheduler, logger)
     yield
     logger.info("Shutting down FastAPI server, goodbye!")
 
@@ -62,8 +125,8 @@ async def lifespan(app: FastAPI):
 # origins = ["http://localhost:5173"]
 origins = ["*"]
 
+# set up API with the lifespan approach, to do things before starting and after closing the API.
 app = FastAPI(lifespan=lifespan)
-
 
 app.add_middleware(
     CORSMiddleware,
