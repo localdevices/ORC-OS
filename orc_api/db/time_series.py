@@ -42,9 +42,7 @@ class TimeSeries(RemoteBase):
     wetted_perimeter: Mapped[float] = mapped_column(Float, nullable=True)
     fraction_velocimetry: Mapped[float] = mapped_column(Float, nullable=True)
 
-    # video_id: Mapped[int] = mapped_column(Integer, ForeignKey("video.id"))
     video = relationship("Video", uselist=False, back_populates="time_series")  # foreign_keys=[video_id]
-    # video_id = mapped_column(Integer, ForeignKey("video.id"), nullable=True, unique=True)
 
     def __str__(self):
         return "{}: {}".format(self.timestamp, self.h)
@@ -60,7 +58,6 @@ def add_video(mapper, connection, target):
     from orc_api.db import Session
     from orc_api.log import logger
 
-    # with get_session() as db:
     # check if a record is available
     db = Session(bind=connection)
     settings = crud.settings.get(db)

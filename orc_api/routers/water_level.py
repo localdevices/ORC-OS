@@ -34,6 +34,8 @@ async def update_water_level(request: Request, water_level_settings: WaterLevelC
             # Update the existing record's fields
             for key, value in water_level_settings.model_dump(exclude_none=True).items():
                 setattr(wl_settings, key, value)
+            # also update the creation date
+            wl_settings.created_at = datetime.now()
             db.commit()
             db.refresh(wl_settings)  # Refresh to get the updated fields
         else:
