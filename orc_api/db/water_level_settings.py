@@ -24,16 +24,6 @@ class WaterLevelSettings(Base):
     __tablename__ = "water_level_settings"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
-    datetime_fmt: Mapped[str] = mapped_column(
-        String, default="%Y-%m-%dT%H:%M:%SZ", comment="Datestring format of water level file, e.g. %Y-%m-%dT%H:%M:%SZ"
-    )
-    file_template: Mapped[str] = mapped_column(
-        String,
-        default="wl_{%Y%m%d}.txt",
-        comment="Filename template (excluding path) defining the file name convention of files containing water "
-        "levels. Files are only used as fallback if there is no entry in the database. "
-        "e.g. wl_{%Y%m%d}.txt. Water level files are expected in <nodeorc home folder>/water_level/",
-    )
     frequency: Mapped[float] = mapped_column(
         Float,
         default=600,
