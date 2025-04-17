@@ -53,9 +53,11 @@ class Settings(Base):
         default=True,
         nullable=False,
         comment="Flag for enabling the daemon. If disabled, the daemon will not be started and the service will "
-        "only run in the foreground.",
+        "only run in the foreground. A Video Config must be selected to process videos.",
     )
-    video_config_id: Mapped[int] = mapped_column(Integer, ForeignKey("video_config.id"), nullable=True)
+    video_config_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("video_config.id"), nullable=True, comment="Video Config ID used to process videos."
+    )
     video_config = relationship("VideoConfig")
 
     def __str__(self):
