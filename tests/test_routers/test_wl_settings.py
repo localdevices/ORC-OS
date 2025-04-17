@@ -24,11 +24,9 @@ def get_db_override():
         session.close()
 
 
-app.dependency_overrides[get_db] = get_db_override
-client = TestClient(app)
-
-
 def test_get_wl_settings_empty():
+    app.dependency_overrides[get_db] = get_db_override
+    client = TestClient(app)
     response = client.get("/water_level/")
     assert response.status_code == 200
     assert response.json() is None
@@ -37,6 +35,8 @@ def test_get_wl_settings_empty():
 def test_post_wl_settings():
     wl_settings = WaterLevelCreate()
     wl = wl_settings.model_dump(exclude_none=True)
+    app.dependency_overrides[get_db] = get_db_override
+    client = TestClient(app)
     response = client.post("/water_level/", json=wl)
     assert response.status_code == 201
     # check if database is updated

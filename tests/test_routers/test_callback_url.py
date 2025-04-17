@@ -59,8 +59,12 @@ def test_get_callback_url_success(mocked_db_response):
     db = next(get_db_override())
     crud.callback_url.add(db, CallbackUrl(**callback_url_dict))
     # check if the data can be retrieved
+    app.dependency_overrides[get_db] = get_db_override
+    client = TestClient(app)
+
     response = client.get("/callback_url/")
     assert response.status_code == 200
+    print()
     assert response.json()["token_access"] == mocked_db_response["token_access"]
 
 

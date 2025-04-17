@@ -36,11 +36,12 @@ def test_get_time_series_within_allowed_dt(session_water_levels):
     assert abs(result.timestamp - target_time).total_seconds() < allowed_dt
 
 
-def test_get_new_time_series_from_script(session_water_levels):
-    water_level_settings = session_water_levels.query(WaterLevelSettings).first()
+def test_get_new_time_series_from_script(session_water_levels, monkeypatch):
     # there should not be any water level before 2000
+    monkeypatch.setattr("orc_api.database.get_session", lambda: session_water_levels)
     no_levels = session_water_levels.query(TimeSeries).filter(TimeSeries.timestamp < datetime(2000, 1, 2)).count()
     assert no_levels == 0
+    water_level_settings = session_water_levels.query(WaterLevelSettings).first()
     water_level_settings.get_new()
     # check if the data is available, a level at date 2000-01-01 should be available
     with_levels = session_water_levels.query(TimeSeries).filter(TimeSeries.timestamp == datetime(2000, 1, 1)).count()

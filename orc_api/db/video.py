@@ -116,9 +116,9 @@ def delete_files_listener(mapper, connection, target):
 def add_water_level(mapper, connection, target):
     """Add water level to time series."""
     from orc_api import crud
-    from orc_api.database import get_session
+    from orc_api.db import Session
 
-    db = get_session()
+    db = Session(bind=connection)
     # check if a record is available
     settings = crud.settings.get(db)
     timestamp = datetime.now() if not target.timestamp else target.timestamp

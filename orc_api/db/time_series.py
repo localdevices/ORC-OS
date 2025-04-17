@@ -57,35 +57,29 @@ class TimeSeries(RemoteBase):
 def add_video(mapper, connection, target):
     """Add video to time series if close enough in time."""
     from orc_api import crud
-    from orc_api.database import get_session
+    from orc_api.db import Session
     from orc_api.log import logger
 
-    with get_session() as db:
-        # check if a record is available
-        settings = crud.settings.get(db)
-        if settings:
-            timestamp = datetime.now() if not target.timestamp else target.timestamp
-            video_record = crud.video.get_closest_no_ts(
-                db,
-                timestamp,
-                allowed_dt=settings.allowed_dt,
+    # with get_session() as db:
+    # check if a record is available
+    db = Session(bind=connection)
+    settings = crud.settings.get(db)
+    if settings:
+        timestamp = datetime.now() if not target.timestamp else target.timestamp
+        video_record = crud.video.get_closest_no_ts(
+            db,
+            timestamp,
+            allowed_dt=settings.allowed_dt,
+        )
+        if video_record:
+            update_query = text(
+                """
+                UPDATE video
+                SET time_series_id = :time_series_id
+                WHERE id = :video_id
+                """
             )
-            if video_record:
-                update_query = text(
-                    """
-                    UPDATE video
-                    SET time_series_id = :time_series_id
-                    WHERE id = :video_id
-                    """
-                )
-                connection.execute(update_query, {"time_series_id": target.id, "video_id": video_record.id})
+            connection.execute(update_query, {"time_series_id": target.id, "video_id": video_record.id})
 
-                # link the time series with target
-                # video_record.time_series_id = target.id
-                # db.add(video_record)
-                # db.commit()
-                # # target.video_id = video_record.id
-                # print(video_record)
-
-        else:
-            logger.warning("No settings available, cannot attach time series to videos.")
+    else:
+        logger.warning("No settings available, cannot attach time series to videos.")

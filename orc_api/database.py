@@ -15,4 +15,4 @@ def get_db():
 
 def get_session():
     """Get db session."""
-    return next(get_db())
+    return Session()
