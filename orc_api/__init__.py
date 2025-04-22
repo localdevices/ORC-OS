@@ -10,4 +10,7 @@ if not __home__:
 if not (os.path.isdir(__home__)):
     os.makedirs(__home__)
 
+TMP_DIRECTORY = os.path.join(__home__, "tmp")
+UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
+
 from . import crud, db, routers, schemas, utils

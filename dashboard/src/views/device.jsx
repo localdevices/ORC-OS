@@ -144,6 +144,24 @@ const Device = () => {
         ],
     };
 
+    const diskSpaceChartData = {
+        labels: ['Used disk space', 'Free disk space'],
+        datasets: [
+            {
+                data: [device.used_disk_space, device.disk_space - device.used_disk_space],
+                backgroundColor: [
+                    'rgba(255, 99, 99, 0.8)',
+                    'rgba(75,147,192,0.8)',
+                ],
+                borderColor: [
+                    'rgb(255,99,99)',
+                    'rgba(75,147,192, 1)',
+                ],
+                borderWidth: 1,
+            },
+        ],
+    };
+
     const chartOptions = {
         responsive: true,
         plugins: {
@@ -170,51 +188,55 @@ const Device = () => {
             <div className="flex-container">
                 <div className="card">
                     <h4>Device status</h4>
-
-            <form onSubmit={handleFormSubmit}>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='name' className='form-label'>
-                        Change the name of your device
-                    </label>
-                    <input type='text' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name}/>
-                </div>
-                <button type='submit' className='btn'>
-                    Submit
-                </button>
-            </form>
-            <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                <label>
-                    Device status: {getStatusName(deviceStatus)}
-                </label>
-            </div>
-            <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                <label>
-                    Processor: {device.processor}
-                </label>
-                <div className="readonly">{status.key}</div>
-            </div>
-            <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                <label>
-                    Processor: {device.orc_os_version}
-                </label>
-                <div className="readonly">{status.key}</div>
-            </div>
+                    <form onSubmit={handleFormSubmit}>
+                        <div className='mb-3 mt-3'>
+                            <label htmlFor='name' className='form-label'>
+                                Change the name of your device
+                            </label>
+                            <input type='text' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name}/>
+                        </div>
+                        <button type='submit' className='btn'>
+                            Submit
+                        </button>
+                    </form>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label>
+                            Device status: {getStatusName(deviceStatus)}
+                        </label>
+                    </div>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label>
+                            Processor: {device.processor}
+                        </label>
+                        <div className="readonly">{status.key}</div>
+                    </div>
+                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label>
+                            ORC-OS version: {device.orc_os_version}
+                        </label>
+                        <div className="readonly">{status.key}</div>
+                    </div>
                 </div>
                 <div className="card">
-                    <h4>Memory Usage</h4>
+                    <h4>Resources use</h4>
                     <div className='mb-3 mt-3'>
-                        <div style={{ maxWidth: '200px', margin: '0 auto' }}>
-                    <Pie data={memoryChartData} options={chartOptions} />
-                </div>
-                {/*<div className='text-center mt-2'>*/}
-                {/*    <p>Total Memory: {(device.memory).toFixed(2)} GB</p>*/}
-                {/*    <p>Free Memory: 16 GB</p>*/}
-                {/*    <p>Used Memory: {(device.memory - 16).toFixed(2)} GB</p>*/}
-                {/*</div>*/}
+                        <div className='text-center mt-2'>
+                            <p>Memory usage: {parseFloat(device.used_memory).toFixed(2)} / {parseFloat(device.memory).toFixed(2)} GB</p>
+                        </div>
+                        <div style={{ maxWidth: '150px', margin: '0 auto' }}>
+                            <Pie data={memoryChartData} options={chartOptions} />
+                        </div>
+                    </div>
+                    <div className='text-center mt-2'>
+                        <p>Disk usage: {parseFloat(device.used_disk_space).toFixed(2)} / {parseFloat(device.disk_space).toFixed(2)} GB</p>
+                    </div>
+                    <div className='mb-3 mt-3'>
+                        <div style={{ maxWidth: '150px', margin: '0 auto' }}>
+                            <Pie data={diskSpaceChartData} options={chartOptions} />
+                        </div>
+                    </div>
                 </div>
             </div>
-            </div>
-
         </div>
 
     );

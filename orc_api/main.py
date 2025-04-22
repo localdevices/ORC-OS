@@ -1,9 +1,12 @@
 """Main ORC-OS API module."""
 
 import asyncio
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
+import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,10 +38,10 @@ def get_water_level(logger):
     logger.info(f"Getting water level in daemon mode {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
-def schedule_water_level(scheduler, logger):
+def schedule_water_level(scheduler, logger, session):
     """Schedule the water level job."""
-    with get_session() as session:
-        wl_settings = crud.water_level.get(session)
+    # with get_session() as session:
+    wl_settings = crud.water_level.get(session)
     if wl_settings:
         logger.info('Water level settings found: setting up interval job "water_level_job"')
         scheduler.add_job(
@@ -53,10 +56,10 @@ def schedule_water_level(scheduler, logger):
         logger.info("No water level settings available. If you require water level retrievals, please set this up.")
 
 
-def schedule_disk_maintenance(scheduler, logger):
+def schedule_disk_maintenance(scheduler, logger, session):
     """Schedule the disk maintenance."""
-    with get_session() as session:
-        dm = crud.disk_management.get(session)
+    # with get_session() as session:
+    dm = crud.disk_management.get(session)
     if dm:
         # validate the settings model instance
         dm_settings = DiskManagementResponse.model_validate(dm)
@@ -76,11 +79,11 @@ def schedule_disk_maintenance(scheduler, logger):
         )
 
 
-def schedule_video_checker(scheduler, logger):
+def schedule_video_checker(scheduler, logger, session):
     """Set up check for new videos (runs default every 5 seconds)."""
-    with get_session() as session:
-        settings = crud.settings.get(session)
-        dm = crud.disk_management.get(session)
+    # with get_session() as session:
+    settings = crud.settings.get(session)
+    dm = crud.disk_management.get(session)
 
     if settings and dm:
         # validate the settings model instance
@@ -114,10 +117,12 @@ async def lifespan(app: FastAPI):
     # add scheduler to api state for use in routers
     app.state.scheduler = scheduler  # scheduler is accessible throughout the app
     app.state.process_list = []  # state with queue of videos to run
+    app.state.executor = ThreadPoolExecutor(max_workers=1)
     app.state.processing = False  # state processing yes/no
-    schedule_water_level(scheduler, logger)
-    schedule_disk_maintenance(scheduler, logger)
-    schedule_video_checker(scheduler, logger)
+    with get_session() as session:
+        schedule_water_level(scheduler, logger, session)
+        schedule_disk_maintenance(scheduler, logger, session)
+        schedule_video_checker(scheduler, logger, session)
     yield
     logger.info("Shutting down FastAPI server, goodbye!")
 
@@ -161,3 +166,8 @@ app.include_router(pivideo_stream.router)
 async def root():
     """Root endpoint."""
     return {"message": "You have reached the NodeORC API"}
+
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()  # For Windows support
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=False, workers=1)

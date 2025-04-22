@@ -33,6 +33,14 @@ class DeviceResponse(DeviceBase):
         default=(psutil.virtual_memory().total - psutil.virtual_memory().available) / 1024**3,
         description="Used memory in GB available on the device.",
     )
+    used_disk_space: float = Field(
+        default=(psutil.disk_usage("/").total - psutil.disk_usage("/").free) / 1024**3,
+        description="Used disk space in GB available on the device.",
+    )
+    disk_space: float = Field(
+        default=(psutil.disk_usage("/").total) / 1024**3,
+        description="Total disk space in GB available on the device.",
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
