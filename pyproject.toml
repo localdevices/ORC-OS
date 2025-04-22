@@ -3,13 +3,18 @@ requires = ["flit_core >=3.4.0,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "nodeorc_api"
+name = "orc_api"
 authors = [
     {name = "Hessel Winsemius", email = "winsemius@rainbowsensing.com"},
 ]
 dependencies = [
-    "nodeorc",
+    "apscheduler",
+    "pillow",
+    "pyopenrivercam>=0.8.5",
+    "sqlalchemy",
     "fastapi[standard]",
+    "pydantic",
+    "pyyaml",
     "zipstream"
 ]
 requires-python = ">=3.9" # fix tests to support older versions
@@ -32,18 +37,32 @@ dynamic = ['version', 'description']
 [project.optional-dependencies]
 pi = ["picamera2"]
 test = [
+    "pooch",
 	"pytest",
 	"pytest-cov",
     "pytest-mock"
 ]
 
 [project.urls]
-Source = "https://github.com/localdevices//nodeorc-interface"
-
+Source = "https://github.com/localdevices/ORC-OS"
 
 [tool.flit.sdist]
-include = ["nodeorc_api"]
+include = ["orc_api"]
 exclude = ["gcloud_dist", "hack", "helm", "htmlcov", "junit", "tests", ".github"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+exclude = ["docs"]
+
+[tool.ruff.lint]
+# enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT), bugbear (B)
+select = ["E", "F", "I", "PT", "D", "B", "ICN", "TID"]
+ignore = ["D211", "D213", "D206", "D400", "E741", "D105", "D203", "E712", "B904", "B905", "B008"]  # "E501" line length
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D100", "D101", "D102", "D103", "D104"]
+"orc_api/__init__.py" = ["E402", "F401", "F403"]

@@ -8,17 +8,17 @@ const WaterLevel = () => {
     const [waterLevel, updateWaterLevel] = useState([]);
     const [formData, setFormData] = useState({
         created_at: '',
-        datetime_fmt: '',
-        file_template: '',
         frequency: '',
         script_type: '',
-        script: ''
+        script: '',
+        optical: false
     });
     // set up message box
     const {setMessageInfo} = useMessage();
 
     const fetchWaterLevel = async () => {
         const response = await api.get('/water_level/');
+        console.log(response);
         updateWaterLevel(response.data);
     };
     useEffect(() => {
@@ -31,17 +31,16 @@ const WaterLevel = () => {
                 }
             setFormData({
                 created_at: waterLevel.created_at || '',
-                datetime_fmt: waterLevel.datetime_fmt,
-                file_template: waterLevel.file_template,
                 frequency: waterLevel.frequency || null,
                 script_type: waterLevel.script_type || null,
-                script: waterLevel.script
+                script: waterLevel.script,
+                optical: waterLevel.optical || false,
             });
         }
     }, [waterLevel]);
     const handleInputChange = (event) => {
-        const { name, value, type } = event.target;
-        event.target.value = value;
+        const { name, type } = event.target;
+        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
         setFormData({
             ...formData,
             [name]: type === "number" ? parseFloat(value) : value
@@ -67,6 +66,12 @@ const WaterLevel = () => {
         // get rid of created_at field as this must be autocompleted
         try {
             delete formData.created_at;
+            // remove empty fields
+            // const filteredData = Object.fromEntries(
+            //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
+            // );
+            // console.log(filteredData);
+
             const response = await api.post('/water_level/', formData);
             if (response.status === 500) {
                 const errorData = await response.json()
@@ -79,11 +84,10 @@ const WaterLevel = () => {
             // set the form data to new device settings
             setFormData({
                 created_at: '',
-                datetime_fmt: '',
-                file_template: '',
                 frequency: '',
                 script_type: '',
-                script: ''
+                script: '',
+                optical: ''
             });
         } catch (err) {
           setMessageInfo("error", err.response.data);
@@ -91,34 +95,21 @@ const WaterLevel = () => {
     };
     return (
         <div className='container'>
-            Change your water level settings. You can let NodeORC read and store water levels automatically using
-            a user-defined script or as fall-back, read water levels from a file or files with a datetime template.
+            Change your water level settings. You can let ORC-OS read and store water levels automatically using
+            a user-defined script.
             <MessageBox/>
 
             <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='created_at' className='form-label'>
-                        Date of creation
+                        Date of creation or last update.
                     </label>
                     <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled/>
                 </div>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='datetime_fmt' className='form-label'>
-                        Date/time format used in backup files (if you have any)
-                    </label>
-                    <input type='str' className='form-control' id='datetime_fmt' name='datetime_fmt' placeholder="%Y-%m-%dT%H:%M:%SZ" onChange={handleInputChange} value={formData.datetime_fmt} />
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='file_template' className='form-label'>
-                        File template format for water level files (e.g. water_level_&#123;%Y%m%d&#125;.csv). These files will we
-                        expected in &lt;home folder&gt;/water_level.
-                    </label>
-                    <input type='str' className='form-control' id='file_template' name='file_template' placeholder="water_level_&#123;%Y%m%d&#125;.csv" onChange={handleInputChange} value={formData.file_template} />
-                </div>
-                <div className='mb-3 mt-3'>
                     <label htmlFor='frequency' className='form-label'>
-                        Frequency [s] for checking for new water level using the script.
+                        Frequency [s] for checking for new water level using the script. E.g. a value of 1800 checks every half hour.
                     </label>
                     <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
                 </div>
@@ -138,6 +129,21 @@ const WaterLevel = () => {
                     </label>
 {/*                     <input type='text' className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/> */}
                     <textarea className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/>
+                </div>
+                <div className='mb-3 mt-3'>
+                    <input
+                      type='checkbox'
+                      className='form-check-input'
+                      id='optical'
+                      name='optical'
+                      onChange={handleInputChange}
+                      value={formData.optical}
+                      checked={formData.optical}
+                      style={{marginRight: '10px'}}
+                    />
+                    <label htmlFor='optical' className='form-label'>
+                        Allow attempting to resolve water levels optically
+                    </label>
                 </div>
                 <button type='submit' className='btn'>
                     Submit

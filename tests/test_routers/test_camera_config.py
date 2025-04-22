@@ -3,8 +3,8 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from nodeorc_api.routers import camera_config
-from nodeorc_api.schemas.camera_config import GCPs
+from orc_api.routers import camera_config
+from orc_api.schemas.camera_config import GCPs
 
 app = FastAPI()
 app.include_router(camera_config.router)

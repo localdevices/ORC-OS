@@ -87,7 +87,7 @@ const Home = () => {
           <img src={orcLogo} className="logo" alt="Vite logo" />
         </a>
       </div>
-      <h1>NodeORC configuration</h1>
+      <h1>ORC-OS configuration</h1>
       <div className="flex-container">
         <div className="card">
           <h4>Device status</h4>

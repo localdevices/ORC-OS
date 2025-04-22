@@ -1,3 +1,7 @@
+apscheduler
 fastapi[standard]
-nodeorc
+pillow
+pydantic
+pyyaml
+sqlalchemy
 zipstream
