@@ -11,10 +11,8 @@ from PIL import Image
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from orc_api import __home__
+from orc_api import UPLOAD_DIRECTORY
 from orc_api.db import RemoteBase
-
-UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 
 def create_thumbnail(image_path: str, size=(50, 50)) -> Image:

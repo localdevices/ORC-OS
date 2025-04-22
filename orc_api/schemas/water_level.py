@@ -23,6 +23,7 @@ class WaterLevelBase(BaseModel):
         description="Content of the script to be executed to retrieve water levels. Script must print a water level "
         "value to screen (stdout) in the form '%Y-%m-%dT%H:%M:%SZ, <value>'",
     )
+    optical: Optional[bool] = Field(default=False, description="Allow optical water level detection (false/true)")
 
 
 class WaterLevelResponse(WaterLevelBase):
@@ -30,7 +31,6 @@ class WaterLevelResponse(WaterLevelBase):
 
     id: int = Field(description="Water level settings ID")
     created_at: datetime = Field(description="Creation date")
-
     model_config = ConfigDict(from_attributes=True)
 
 

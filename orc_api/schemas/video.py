@@ -54,7 +54,7 @@ class VideoResponse(VideoBase, RemoteModel):
         """Must be called by AP scheduler to check if video is ready to run."""
         # if the video has already been run, or is already in process, also return False
         if not self.status == models.VideoStatus.NEW:
-            return False
+            return False, "Video already in process or processed."
         # check if all run components are available
         return self.allowed_to_run
 
@@ -63,27 +63,34 @@ class VideoResponse(VideoBase, RemoteModel):
         """Check if prerequisites are met for running video."""
         # if there is no video config, return False immediately
         if self.video_config is None:
-            return False
+            return False, "No video config available."
         if self.time_series:
             if self.time_series.h:
-                return True
+                return True, "Ready"
         # more complicated case, if there is optical, a cross section must be present!
-        db = get_session()
-        water_level_settings = crud.water_level.get(db)
+        with get_session() as db:
+            water_level_settings = crud.water_level.get(db)
         if water_level_settings is None:
             optical = False
         else:
             optical = water_level_settings.optical
         if not optical:
             # we are not allowed to try optical water levels, so return False
-            return False
+            return False, "Not allowed to run optical water levels and no water level available."
         # we are allowed optical, so check if there is a cross section
-        return self.video_config.cross_section is not None
+        if self.video_config.cross_section is None:
+            return (
+                False,
+                "No cross section available, required for optical water levels. Please add one using the UI or API.",
+            )
+        else:
+            return True, "Ready"
 
     def run(self, base_path: str, prefix: str = ""):
         """Run video."""
-        if not self.allowed_to_run:
-            raise Exception("Cannot run video, prerequisites not met.")
+        allowed_to_run, msg = self.allowed_to_run
+        if not allowed_to_run:
+            raise Exception(msg)
         # check for h_a
         h_a = None if self.time_series is None else self.time_series.h
         # assemble all information
@@ -185,6 +192,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 get_session(), id=self.id, video=update_video.model_dump(exclude_unset=True, exclude_none=True)
             )
             return VideoResponse.model_validate(r)
+        return None
 
     def get_path(self, base_path: str):
         """Get media path to video."""

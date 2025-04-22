@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
+from orc_api import TMP_DIRECTORY, UPLOAD_DIRECTORY
 from orc_api.database import get_session
 from orc_api.routers.video import upload_video
 from orc_api.utils import disk_management
@@ -52,14 +53,13 @@ class SettingsResponse(SettingsBase):
     async def check_new_videos(self, path_incoming, app, logger):
         """Check for new videos in incoming folder, add to database and queue if ready to run."""
         # check the incoming folder
-        print("CHECKING")
         file_paths = disk_management.scan_folder(path_incoming, self.video_file_fmt.split(".")[-1])
         for file_path in file_paths:
             # each file is checked if it is not yet in the queue and not
             # being written into
             if os.path.isfile(file_path) and not disk_management.is_file_size_changing(file_path):
                 # first move the file to a temporary location
-                tmp_file = os.path.join(path_incoming, "tmp", os.path.split(file_path)[1])
+                tmp_file = os.path.join(TMP_DIRECTORY, os.path.split(file_path)[1])
                 os.makedirs(os.path.split(tmp_file)[0], exist_ok=True)
                 os.rename(file_path, tmp_file)
                 try:
@@ -83,7 +83,13 @@ class SettingsResponse(SettingsBase):
                         file=file, timestamp=timestamp, video_config=self.video_config_id, db=session
                     )
                 if video_response:
-                    app.state.process_list.append(video_response)
+                    ready_to_run, msg = video_response.ready_to_run
+                    if ready_to_run:
+                        logger.info(f"Submitting video {file_path} to the executor.")
+                        # TODO: the daemon runner requires testing
+                        app.state.executor.submit(video_response.run, UPLOAD_DIRECTORY)
+                    else:
+                        logger.warning(f"Video {file_path} is not ready to run yet: {msg}.")
                 else:
                     # remove the tmp file
                     logger.error(f"Could not add video to database for file {file_path}.")

@@ -10,13 +10,15 @@ const WaterLevel = () => {
         created_at: '',
         frequency: '',
         script_type: '',
-        script: ''
+        script: '',
+        optical: false
     });
     // set up message box
     const {setMessageInfo} = useMessage();
 
     const fetchWaterLevel = async () => {
         const response = await api.get('/water_level/');
+        console.log(response);
         updateWaterLevel(response.data);
     };
     useEffect(() => {
@@ -31,13 +33,14 @@ const WaterLevel = () => {
                 created_at: waterLevel.created_at || '',
                 frequency: waterLevel.frequency || null,
                 script_type: waterLevel.script_type || null,
-                script: waterLevel.script
+                script: waterLevel.script,
+                optical: waterLevel.optical || false,
             });
         }
     }, [waterLevel]);
     const handleInputChange = (event) => {
-        const { name, value, type } = event.target;
-        event.target.value = value;
+        const { name, type } = event.target;
+        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
         setFormData({
             ...formData,
             [name]: type === "number" ? parseFloat(value) : value
@@ -63,6 +66,12 @@ const WaterLevel = () => {
         // get rid of created_at field as this must be autocompleted
         try {
             delete formData.created_at;
+            // remove empty fields
+            // const filteredData = Object.fromEntries(
+            //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
+            // );
+            // console.log(filteredData);
+
             const response = await api.post('/water_level/', formData);
             if (response.status === 500) {
                 const errorData = await response.json()
@@ -77,7 +86,8 @@ const WaterLevel = () => {
                 created_at: '',
                 frequency: '',
                 script_type: '',
-                script: ''
+                script: '',
+                optical: ''
             });
         } catch (err) {
           setMessageInfo("error", err.response.data);
@@ -119,6 +129,21 @@ const WaterLevel = () => {
                     </label>
 {/*                     <input type='text' className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/> */}
                     <textarea className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/>
+                </div>
+                <div className='mb-3 mt-3'>
+                    <input
+                      type='checkbox'
+                      className='form-check-input'
+                      id='optical'
+                      name='optical'
+                      onChange={handleInputChange}
+                      value={formData.optical}
+                      checked={formData.optical}
+                      style={{marginRight: '10px'}}
+                    />
+                    <label htmlFor='optical' className='form-label'>
+                        Allow attempting to resolve water levels optically
+                    </label>
                 </div>
                 <button type='submit' className='btn'>
                     Submit
