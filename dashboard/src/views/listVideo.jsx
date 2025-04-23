@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
-import {useMessage} from '../messageContext';
 import MessageBox from '../messageBox';
 
 const ListVideo = () => {

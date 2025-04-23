@@ -1,0 +1,37 @@
+import { useState, useEffect } from 'react';
+import api from '../api';
+import PaginatedRecipes from "./recipeComponents/paginatedRecipes.jsx";
+import MessageBox from '../messageBox';
+
+const ListRecipe = () => {
+  const [recipeData, setRecipeData] = useState([]); // Stores video metadata
+
+  // Default: One day back until now
+
+  // Fetch video metadata from API
+  useEffect(() => {
+    api.get('/recipe/') // Retrieve list from api
+      .then((response) => {
+        setRecipeData(response.data);
+        // Calculate the index range for records to display
+      })
+      .catch((error) => {
+        console.error('Error fetching recipe metadata:', error);
+      });
+  }, []);
+
+
+  return (
+    <div className="container mt-4">
+      <h1>Recipes </h1>
+      <MessageBox />
+      Recipes define how videos are processed from selected frames to projected frames, to velocities, to cross section velocities
+      and to river discharge. Also plotting options can be defined.
+      <PaginatedRecipes
+        initialData={recipeData}
+      />
+    </div>
+  );
+};
+
+export default ListRecipe;

@@ -18,6 +18,11 @@ def get(db: Session, id: int):
     return query.first()
 
 
+def list(db: Session):
+    """Get a list of recipes."""
+    return db.query(models.Recipe).all()
+
+
 def add(db: Session, recipe: models.Recipe) -> models.Recipe:
     """Add a recipe to the database."""
     db.add(recipe)
@@ -36,3 +41,14 @@ def update(db: Session, id: int, recipe: dict):
     db.commit()
     db.flush()
     return rec.first()
+
+
+def delete(db: Session, id: int):
+    """Delete a single video."""
+    query = db.query(models.Recipe).filter(models.Recipe.id == id)
+    if query.count() == 0:
+        raise ValueError(f"Recipe with id {id} does not exist.")
+    recipe = query.first()
+    db.delete(recipe)
+    db.commit()
+    return

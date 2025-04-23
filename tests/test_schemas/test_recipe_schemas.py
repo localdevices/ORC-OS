@@ -16,6 +16,14 @@ def recipe_response(session_recipe: Session):
     return RecipeResponse.model_validate(r_rec)
 
 
+def test_empty_recipe():
+    recipe = RecipeResponse()
+    # check if id is None
+    assert recipe.id is None
+    # check if end_frame is the default value
+    assert recipe.end_frame == 150
+
+
 def test_recipe_schema(recipe_response):
     # retrieve recipe
     r = recipe_response

@@ -19,6 +19,7 @@ from orc_api.routers import (
     device,
     disk_management,
     pivideo_stream,
+    recipe,
     settings,
     video,
     video_stream,
@@ -160,6 +161,7 @@ app.include_router(water_level.router)
 app.include_router(camera_config.router)
 app.include_router(video_stream.router)
 app.include_router(pivideo_stream.router)
+app.include_router(recipe.router)
 
 
 @app.get("/")
@@ -170,4 +172,4 @@ async def root():
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()  # For Windows support
-    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=False, workers=1)
+    uvicorn.run("orc_api.main:app", host="0.0.0.0", port=5000, reload=False, workers=1)

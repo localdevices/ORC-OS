@@ -57,6 +57,13 @@ const Navbar = () => {
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                          to="/recipe" onClick={handleClose}>
+                            Recipes
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink
+                          className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/video" onClick={handleClose}>
                             Videos
                         </NavLink>

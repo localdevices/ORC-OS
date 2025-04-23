@@ -1,7 +1,7 @@
 """Model for ORC recipe."""
 
 from pyorc.cli.cli_utils import validate_recipe
-from sqlalchemy import JSON, Integer, String
+from sqlalchemy import JSON, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from orc_api.db import RemoteBase
@@ -20,6 +20,10 @@ class Recipe(RemoteBase):
         nullable=False,
     )
     data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    v_corr: Mapped[float] = mapped_column(Float, default=0.85, nullable=False)
+    quiver_scale_grid: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    quiver_scale_cs: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    image_quality: Mapped[str] = mapped_column(String, default="medium", nullable=False)
 
     def __str__(self):
         return "{}: {}".format(self.id, self.name)

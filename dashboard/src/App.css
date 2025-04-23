@@ -44,6 +44,11 @@
   margin: 10px;
 }
 
+.btn:hover {
+  color: #fff;
+  font-weight: bold;
+}
+
 button.btn-danger {
   background-color: #dc3545 !important;
   border-color: #dc3545 !important;

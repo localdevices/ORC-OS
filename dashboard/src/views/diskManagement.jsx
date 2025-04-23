@@ -47,7 +47,6 @@ const DiskManagement = () => {
     };
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-        console.log(formData);
         // Dynamically filter only fields with non-empty values
         const filteredData = Object.fromEntries(
             Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)

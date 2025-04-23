@@ -2,7 +2,6 @@
 
 import re
 import subprocess
-import sys
 from datetime import datetime
 from typing import Literal
 
@@ -103,7 +102,7 @@ def execute_water_level_script(script: str, script_type: Literal["BASH", "PYTHON
     try:
         if "PYTHON" in str(script_type).upper():
             output = subprocess.run(
-                [sys.executable, "-c", script],
+                ["python", "-c", script],
                 text=True,
                 capture_output=True,
             )

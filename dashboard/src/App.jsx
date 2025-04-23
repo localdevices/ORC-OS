@@ -13,6 +13,7 @@ import CameraAim from './views/cameraAim'
 import Calibration from './views/calibration'
 import CallbackUrl from "./views/callbackUrl.jsx";
 import ListVideo from "./views/listVideo.jsx";
+import ListRecipe from "./views/listRecipe.jsx";
 
 const App = () => {
 
@@ -35,6 +36,7 @@ const App = () => {
                     <Route path="/callback_url" element={<CallbackUrl />} />
                     <Route path="/calibration" element={<Calibration />} />
                     <Route path="/video" element={<ListVideo />} />
+                    <Route path="/recipe" element={<ListRecipe />} />
 
                 </Routes>
                 </div>
