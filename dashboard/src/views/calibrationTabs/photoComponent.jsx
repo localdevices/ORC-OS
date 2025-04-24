@@ -17,6 +17,7 @@ const PhotoComponent = ({
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
   const [photoBbox, setPhotoBbox] = useState(null);
   const [fittedPoints, setFittedPoints] = useState([]);
+  const [hoverCoordinates, setHoverCoordinates] = useState(null);
 
   const updateFittedPoints = () => {
     const fP = widgets.map(({id, fit, color}) => {
@@ -33,6 +34,34 @@ const PhotoComponent = ({
     });
     setFittedPoints(fP);
   }
+
+  const handleMouseMove = (event) => {
+    if (!photoBbox || !imgDims || !transformState) return;
+
+    // Calculate mouse position relative to the photo
+    const hoverX = event.clientX - photoBbox.left;
+    const hoverY = event.clientY - photoBbox.top;
+
+    // Are we hovering *within* the photo’s boundaries?
+    if (hoverX < 0 || hoverX > photoBbox.width || hoverY < 0 || hoverY > photoBbox.height) {
+      setHoverCoordinates(null);
+      return;
+    }
+
+    // Convert hover position to row/column coordinates relative to original image
+    const normalizedX = hoverX / photoBbox.width;
+    const normalizedY = hoverY / photoBbox.height;
+
+    const row = Math.round(normalizedY * imgDims.height * 100) / 100;
+    const col = Math.round(normalizedX * imgDims.width * 100) / 100;
+
+    setHoverCoordinates({ row, col });
+  };
+
+  // Reset hoverCoordinates when the mouse leaves the image
+  const handleMouseLeave = () => {
+    setHoverCoordinates(null);
+  };
 
   // update the dot locations when user resizes the browser window
   const updateDots = () => {
@@ -64,6 +93,7 @@ const PhotoComponent = ({
       const imgElement = imageRef.current;
       setPhotoBbox(imgElement.getBoundingClientRect());
       setTransformState(state); // Update the transformState on every transformation
+
     };
 
     window.addEventListener("resize", handleResize);
@@ -99,6 +129,8 @@ const PhotoComponent = ({
     const imgElement = imageRef.current;
     setPhotoBbox(imgElement.getBoundingClientRect());
     setTransformState(state); // Update the transformState on every transformation
+    console.log(transformState);
+
     updateFittedPoints();
   });
 
@@ -188,15 +220,20 @@ const PhotoComponent = ({
   };
 
   return (
+    <>
     <TransformComponent>
+      <div className="image-container">
       <img
-        style={{width: '100%', height: 'auto'}}
+        style={{width: '100%', height: '100%'}}
         className="img-calibration"
         ref={imageRef}
         onClick={handlePhotoClick}
+        onMouseMove={handleMouseMove} // Track mouse movement
+        onMouseLeave={handleMouseLeave}
         src="/frame_001.jpg" // Replace with the photo's path or URL
         alt="img-calibration"
       />
+      </div>
       {/* Render colored dots */}
       {Object.entries(dots).map(([widgetId, dot]) => {
         return (
@@ -234,8 +271,38 @@ const PhotoComponent = ({
           </div>
         );
       })}
-
     </TransformComponent>
+      {hoverCoordinates && (
+        <div
+          style={{
+            position: 'absolute',
+            top: "10px",
+            left: "10px",
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            padding: '5px 10px',
+            borderRadius: '5px',
+            fontSize: '12px',
+            pointerEvents: 'none', // ensure that the pointer events are captured on the image below.
+            zIndex: 1000,
+          }}
+        >
+          {/* Use fixed-width span for consistent alignment */}
+          <span style={{ display: 'inline-block', width: '4ch', textAlign: 'right' }}>
+            Row:
+          </span>
+          <span style={{ display: 'inline-block', width: '5ch', textAlign: 'right' }}>
+            {hoverCoordinates.row.toString().padStart(3, '0')}
+          </span>
+          <span style={{ display: 'inline-block', width: '4ch', textAlign: 'right' }}>
+            Col:
+          </span>
+          <span style={{ display: 'inline-block', width: '5ch', textAlign: 'right' }}>
+            {hoverCoordinates.col.toString().padStart(3, '0')}
+          </span>
+        </div>
+      )}
+   </>
   );
 };
 export default PhotoComponent;

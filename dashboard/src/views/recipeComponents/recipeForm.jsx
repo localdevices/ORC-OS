@@ -1,7 +1,7 @@
 import api from "../../api.js";
 import React, {useEffect, useState} from "react";
 import PropTypes from "prop-types";
-import '../cameraAim.css'
+import '../cameraAim.scss'
 
 const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
   const [formData, setFormData] = useState({

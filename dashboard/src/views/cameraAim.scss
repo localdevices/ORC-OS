@@ -1,19 +1,20 @@
-@mixin switch($res: 'sm') {
+
+@mixin switch($res: sm) {
     $index: 1rem;
     $mainVal: 1rem;
 
-    @if $res == 'md' {
+    @if $res == md {
         $index: 2rem;
         $mainVal: 1.5rem;
-    } @else if $res == 'lg' {
+    } @else if $res == lg {
         $index: 3rem;
         $mainVal: 2rem;
-    } @else if $res == 'xl' {
+    } @else if $res == xl {
         $index: 4rem;
         $mainVal: 2.5rem;
     }
 
-    margin-bottom: $index / 2; /* JUST FOR STYLING PURPOSE */
+    margin-bottom: $index / 2;
 
     .form-check-input {
         height: $mainVal;
@@ -26,21 +27,18 @@
   clear: left;
 }
 
-// YOU CAN PUT ALL RESOLUTION HERE
-// sm - DEFAULT, md, lg, xl
-
 .form-switch.form-switch-sm {
     @include switch();
 }
 
 .form-switch.form-switch-md {
-    @include switch('md');
+    @include switch(md);
 }
 
 .form-switch.form-switch-lg {
-    @include switch('lg');
+    @include switch(lg);
 }
 
 .form-switch.form-switch-xl {
-    @include switch('xl');
+    @include switch(xl);
 }

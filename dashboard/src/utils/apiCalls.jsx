@@ -135,22 +135,18 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
 
       // Set the download filename from the Content-Disposition (if provided) or use a fallback
       const contentDisposition = response.headers['content-disposition'];
-      console.log(response.headers);
       const filename = contentDisposition
         ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
         : 'download.zip'; // Fallback filename if header doesn't exist.
-      console.log(filename);
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link); // Clean up the temporary DOM element
       setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
     } else {
-      console.log(response);
       throw new Error(`Invalid form data. Status Code: ${response.status}`);
     }
   } catch (error) {
-    console.log(error.response)
     if (error.response) {
       setMessageInfo("error", "Error: No videos found for the selected time period.");
     } else if (error.request) {
