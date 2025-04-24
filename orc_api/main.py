@@ -16,6 +16,7 @@ from orc_api.database import get_session
 from orc_api.routers import (
     callback_url,
     camera_config,
+    cross_section,
     device,
     disk_management,
     pivideo_stream,
@@ -162,6 +163,7 @@ app.include_router(camera_config.router)
 app.include_router(video_stream.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
+app.include_router(cross_section.router)
 
 
 @app.get("/")

@@ -18,6 +18,11 @@ def get(db: Session, id: int):
     return query.first()
 
 
+def list(db: Session):
+    """Get a list of recipes."""
+    return db.query(models.CrossSection).all()
+
+
 def add(db: Session, cross_section: models.CrossSection) -> models.CrossSection:
     """Add a cross-section to the database."""
     db.add(cross_section)

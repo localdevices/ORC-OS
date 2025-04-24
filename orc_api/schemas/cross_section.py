@@ -1,6 +1,7 @@
 """Pydantic models for cross sections."""
 
 from datetime import datetime
+from typing import Optional
 
 import geopandas as gpd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -16,7 +17,7 @@ class CrossSectionBase(BaseModel):
     """Base model for a cross-section."""
 
     timestamp: datetime = Field(default=datetime.now(), description="Moment at which cross section was measured.")
-    name: str = Field(default=None, description="Free recognizable description of cross section.")
+    name: Optional[str] = Field(default=None, description="Free recognizable description of cross section.")
     features: dict = Field(description="GeoJSON formatted features of the cross section.")
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,6 +43,8 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
     """Response model for a cross-section."""
 
     id: int = Field(description="CrossSection ID")
+    # in response, name is required
+    name: str = Field(description="Free recognizable description of cross section.")
 
     def sync_remote(self, site: int, **kwargs):
         """Send the cross-section to LiveORC API."""
@@ -62,3 +65,17 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
                 get_session(), id=self.id, cross_section=update_cross_section.model_dump(exclude_unset=True)
             )
             return CrossSectionResponse.model_validate(r)
+        return None
+
+
+class CrossSectionUpdate(CrossSectionBase):
+    """Update model with several input fields from user."""
+
+    # TODO: create interactive options for updating
+    pass
+
+
+class CrossSectionCreate(CrossSectionBase):
+    """Create model for a cross-section."""
+
+    pass
