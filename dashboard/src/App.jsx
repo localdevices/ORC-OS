@@ -14,6 +14,7 @@ import Calibration from './views/calibration'
 import CallbackUrl from "./views/callbackUrl.jsx";
 import ListVideo from "./views/listVideo.jsx";
 import ListRecipe from "./views/listRecipe.jsx";
+import ListCrossSection from "./views/listCrossSection.jsx";
 
 const App = () => {
 
@@ -37,6 +38,7 @@ const App = () => {
                     <Route path="/calibration" element={<Calibration />} />
                     <Route path="/video" element={<ListVideo />} />
                     <Route path="/recipe" element={<ListRecipe />} />
+                    <Route path="/cross_section" element={<ListCrossSection />} />
 
                 </Routes>
                 </div>

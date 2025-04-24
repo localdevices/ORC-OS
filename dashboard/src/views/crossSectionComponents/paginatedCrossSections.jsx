@@ -4,13 +4,13 @@ import {FaSync, FaTrash, FaCheck} from "react-icons/fa";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
 import {useMessage} from "../../messageContext.jsx";
-import RecipeForm from "./recipeForm.jsx";
+// import RecipeForm from "./recipeForm.jsx";
 
-const PaginatedRecipes = ({initialData}) => {
+const PaginatedCrossSections = ({initialData}) => {
   const [data, setData] = useState(initialData);  // initialize data with currently available
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
   const [rowsPerPage, setRowsPerPage] = useState(25); // Rows per page (default 25)
-  const [selectedRecipe, setSelectedRecipe] = useState(null); // For modal view, to select the right recipe
+  const [selectedCrossSection, setSelectedCrossSection] = useState(null); // For modal view, to select the right recipe
   const [showModal, setShowModal] = useState(false); // State for modal visibility
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
@@ -33,11 +33,11 @@ const PaginatedRecipes = ({initialData}) => {
   }, [initialData]);
 
   useEffect(() => {
-    if (selectedRecipe) {
+    if (selectedCrossSection) {
       setShowModal(true);
     }
 
-  }, [selectedRecipe]);
+  }, [selectedCrossSection]);
 
   const getSyncStatusIcon = (status) => {
     switch (status) {
@@ -62,16 +62,16 @@ const PaginatedRecipes = ({initialData}) => {
 
   const handleDeleteSelected = () => {
     if (selectedIds.length === 0) {
-      alert("No recipes selected to delete.");
+      alert("No cross sections selected to delete.");
       return;
     }
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} recipes?`)) {
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} cross sections?`)) {
       Promise.all(
-        selectedIds.map((id) => api.delete(`/recipe/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
+        selectedIds.map((id) => api.delete(`/cross_section/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
       )
         .then(() => {
           // Remove deleted recipes from the state
-          const updatedData = data.filter((recipe) => !selectedIds.includes(recipe.id));
+          const updatedData = data.filter((crossSection) => !selectedIds.includes(crossSection.id));
           setData(updatedData);
           setSelectedIds([]);
           // Adjust current page if necessary
@@ -80,17 +80,17 @@ const PaginatedRecipes = ({initialData}) => {
           }
         })
         .catch((error) => {
-          console.error("Error deleting recipes:", error);
+          console.error("Error deleting cross sections:", error);
         });
     }
   };
 
   // Handle the "Delete" button action
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this recipe?')) {
-      api.delete(`/recipe/${id}`) // Replace with your API endpoint
+    if (window.confirm('Are you sure you want to delete this cross section?')) {
+      api.delete(`/cross_section/${id}`) // Replace with your API endpoint
         .then(() => {
-          const updatedData = data.filter((recipe) => recipe.id !== id); // Remove from state
+          const updatedData = data.filter((crossSection) => crossSection.id !== id); // Remove from state
           setData(updatedData);
 
           // adjust current page if necessary as length of records may require
@@ -100,39 +100,29 @@ const PaginatedRecipes = ({initialData}) => {
 
         })
         .catch((error) => {
-          console.error('Error deleting recipe with ID:', id, error);
+          console.error('Error deleting cross section with ID:', id, error);
         });
     }
   };
-  const handleView = (recipe) => {
-    setSelectedRecipe(recipe);
-    console.log(recipe);
+  const handleView = (crossSection) => {
+    setSelectedCrossSection(crossSection);
+    console.log(crossSection);
   };
 
   // Close modal
   const closeModal = () => {
-    setSelectedRecipe(null);
+    setSelectedCrossSection(null);
     setShowModal(false);
   };
-  const createNewModal = () => {
-    api.post(`/recipe/empty/`) // Replace with your API endpoint
-      .then((response) => {
-        setSelectedRecipe(response.data);
-      })
-      .catch((error) => {
-        console.error('Error occurred:', error);
-      });
 
-  }
-  const loadModal = async () => {
-    console.log("load modal");
+  const loadModal = async (url, extension) => {
     const input = document.createElement('input');
     input.type = "file";
-    input.accept = ".yml";
+    input.accept = extension;
     // Wait for the user to select a file
     input.addEventListener('change', async (event) => {
 
-    // input.onchange = async (event) => {
+      // input.onchange = async (event) => {
       const file = event.target.files[0]; // Get the selected file
       if (file) {
         const formData = new FormData(); // Prepare form data for file upload
@@ -140,12 +130,12 @@ const PaginatedRecipes = ({initialData}) => {
 
         try {
           const response = await api.post(
-            '/recipe/from_file/',
+            url,
             formData,
             {headers: {"Content-Type": "multipart/form-data",},}
           );
           // set the recipe to the returned recipe
-          setSelectedRecipe(response.data);
+          setSelectedCrossSection(response.data);
         } catch (error) {
           console.error("Error occurred during file upload:", error);
         }
@@ -154,19 +144,30 @@ const PaginatedRecipes = ({initialData}) => {
     // trigger input dialog box to open
     input.click();
 
+
   }
 
-  const saveRecipe = async () => {
-    const recipe_id = selectedRecipe.id;
-    const response = await api.get(`/recipe/${recipe_id}/download/`, {}, {
+  const loadGeoJsonModal = async () => {
+    const url = '/cross_section/from_geojson/'
+    const extension = '.geojson'
+    loadModal(url, extension)
+  }
+
+  const loadCSVModal = async () => {
+    const url = '/cross_section/from_csv/'
+    const extension = '.csv'
+    loadModal(url, extension)
+  }
+
+  const saveCrossSection = async () => {
+    const cs_id = selectedCrossSection.id;
+    const response = await api.get(`/cross_section/${cs_id}/download/`, {}, {
       responseType: "blob"});
-    const blob = new Blob([response.data], {type: "application/x-yaml;charset=utf-8"});
+    const blob = new Blob([response.data], {type: "application/json;charset=utf-8"});
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.download = `recipe_${recipe_id}.yml`;
+    link.download = `cross_section_${cs_id}.geojson`;
     link.click();
-
-
   }
 
   return (
@@ -194,26 +195,26 @@ const PaginatedRecipes = ({initialData}) => {
             </tr>
             </thead>
             <tbody>
-            {currentRecords.map((recipe, index) => (
+            {currentRecords.map((crossSection, index) => (
 
               <tr key={idxFirst + index + 1}>
                 <td>
                   <input
                     type="checkbox"
-                    checked={selectedIds.includes(recipe.id)}
-                    onChange={() => toggleSelect(recipe.id)}
+                    checked={selectedIds.includes(crossSection.id)}
+                    onChange={() => toggleSelect(crossSection.id)}
                   />
                 </td>
-                <td>{recipe.id}</td>
-                <td>{recipe.name}</td>
+                <td>{crossSection.id}</td>
+                <td>{crossSection.name}</td>
                 <td>
                   <button className="btn-icon"
-                          onClick={() => handleView(recipe)}
+                          onClick={() => handleView(crossSection)}
                   >
                     <RiPencilFill className="edit"/>
                   </button>
                   <button className="btn-icon"
-                          onClick={() => handleDelete(recipe.id)}
+                          onClick={() => handleDelete(crossSection.id)}
                   >
                     <FaTrash className="danger"/>
                   </button>
@@ -237,15 +238,15 @@ const PaginatedRecipes = ({initialData}) => {
         <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
           <button
             className="btn"
-            onClick={createNewModal}
+            onClick={loadGeoJsonModal}
           >
-            Create new
+            Upload from .geojson
           </button>
           <button
             className="btn"
-            onClick={loadModal}
+            onClick={loadCSVModal}
           >
-            Upload from .yml
+            Upload from XYZ .csv
           </button>
           <button
             className="btn btn-danger"
@@ -259,14 +260,14 @@ const PaginatedRecipes = ({initialData}) => {
       </div>
 
       {/*Modal*/}
-      {showModal && selectedRecipe && (
+      {showModal && selectedCrossSection && (
         <>
           <div className="sidebar-overlay"></div>
           <div className="modal fade show d-block" tabIndex="-1">
             <div className="modal-dialog" style={{maxWidth: "1200px"}}>  {/*ensure modal spans a broad screen size*/}
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title">Recipe details</h5>
+                  <h5 className="modal-title">Cross Section details</h5>
                   <button
                     type="button"
                     className="btn-close"
@@ -274,9 +275,9 @@ const PaginatedRecipes = ({initialData}) => {
                   ></button>
                 </div>
                 <div className="modal-body">
-                  <RecipeForm
-                    selectedRecipe={selectedRecipe}
-                    setSelectedRecipe={setSelectedRecipe}
+                  <CrossSectionForm
+                    selectedCrossSection={selectedCrossSection}
+                    setSelectedCrossSection={setSelectedCrossSection}
                     setMessageInfo={setMessageInfo}
                   />
                 </div>
@@ -284,10 +285,10 @@ const PaginatedRecipes = ({initialData}) => {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={saveRecipe}
-                    disabled={selectedRecipe.id === null ? "disabled" : "" }
-                    >
-                    Save to .yml
+                    onClick={saveCrossSection}
+                    disabled={selectedCrossSection.id === null ? "disabled" : "" }
+                  >
+                    Save to .geojson
                   </button>
                   <button
                     type="button"
@@ -296,18 +297,6 @@ const PaginatedRecipes = ({initialData}) => {
                   >
                     Close
                   </button>
-
-                  {/*<button*/}
-                  {/*  type="button"*/}
-                  {/*  className="btn btn-primary"*/}
-                  {/*  onClick={() => {*/}
-                  {/*    // Save the changes (optional Axios PUT/POST call)*/}
-                  {/*    console.log('Updated video:', selectedVideo);*/}
-                  {/*    closeModal();*/}
-                  {/*  }}*/}
-                  {/*>*/}
-                  {/*  Save Changes*/}
-                  {/*</button>*/}
                 </div>
               </div>
             </div>
@@ -318,4 +307,4 @@ const PaginatedRecipes = ({initialData}) => {
   );
 };
 
-export default PaginatedRecipes;
+export default PaginatedCrossSections;
