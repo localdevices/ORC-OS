@@ -4,6 +4,8 @@ import io
 import json
 from typing import List
 
+import geopandas as gpd
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -97,7 +99,10 @@ async def upload_cs_geojson(
     This does not store data in the database.
     """
     cs_body = file.file.read()
-    cs = json.loads(cs_body)
+    try:
+        cs = json.loads(cs_body)
+    except Exception:
+        raise HTTPException(status_code=400, detail="File is not a properly formatted JSON file")
     try:
         cs = CrossSectionCreate(features=cs)
     except Exception as e:
@@ -113,11 +118,26 @@ async def upload_cs_csv(
 
     This does not store data in the database.
     """
-    pass
-    # cs_body = file.file.read()
-    # cs = json.loads(cs_body)
-    # try:
-    #     cs = CrossSectionCreate(features=cs)
-    # except Exception as e:
-    #     raise HTTPException(status_code=400, detail=str(e))
-    # return cs
+    try:
+        df = pd.read_csv(file.file)
+        # convert all keys to lower case
+        df = df.rename(columns=str.lower)
+    except Exception:
+        raise HTTPException(status_code=400, detail="File is not a properly formatted CSV file")
+    # look for (lower) X, Y, Z
+    expected_keys = {"x", "y", "z"}
+    # Check if all strings exist in the list
+    if expected_keys.issubset(df.keys()):
+        # parse to gdf
+        geometry = gpd.points_from_xy(df["x"], df["y"], df["z"])
+        gdf = gpd.GeoDataFrame(df, geometry=geometry)
+        # turn into json
+        cs = json.loads(gdf.to_json())
+        try:
+            cs = CrossSectionCreate(features=cs)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return cs
+
+    else:
+        raise HTTPException(status_code=400, detail='.CSV file does not contain required columns named "x", "y", "z"')

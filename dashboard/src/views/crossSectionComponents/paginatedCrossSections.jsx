@@ -4,7 +4,7 @@ import {FaSync, FaTrash, FaCheck} from "react-icons/fa";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
 import {useMessage} from "../../messageContext.jsx";
-// import RecipeForm from "./recipeForm.jsx";
+import CrossSectionForm from "./crossSectionForm.jsx";
 
 const PaginatedCrossSections = ({initialData}) => {
   const [data, setData] = useState(initialData);  // initialize data with currently available
@@ -23,8 +23,6 @@ const PaginatedCrossSections = ({initialData}) => {
     : [];
   // allow for setting messages
   const {setMessageInfo} = useMessage();
-
-  // const currentRecords = data.slice(idxFirst, idxLast);  // TODO: replace by a direct API call with limited amount
 
   // Optional: Watch for external updates to initialData and update `data` state
   useEffect(() => {
@@ -134,17 +132,23 @@ const PaginatedCrossSections = ({initialData}) => {
             formData,
             {headers: {"Content-Type": "multipart/form-data",},}
           );
-          // set the recipe to the returned recipe
-          setSelectedCrossSection(response.data);
+          if (response.status === 201) {
+            // set the cross section to the returned recipe
+            setSelectedCrossSection(response.data);
+          } else {
+            console.error("Error occurred during file upload:", response.data);
+            setMessageInfo('error', response.data.detail);
+
+          }
         } catch (error) {
           console.error("Error occurred during file upload:", error);
+          setMessageInfo('error', `Error: ${error.response.data.detail}`);
         }
+
       }
     });
     // trigger input dialog box to open
     input.click();
-
-
   }
 
   const loadGeoJsonModal = async () => {
