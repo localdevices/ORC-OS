@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 # Directory to save uploaded files
 from orc_api import crud
 from orc_api.database import get_db
-from orc_api.db import Recipe
+from orc_api.db import CrossSection
 from orc_api.schemas.cross_section import CrossSectionCreate, CrossSectionResponse, CrossSectionUpdate
 
 router: APIRouter = APIRouter(prefix="/cross_section", tags=["cross_section"])
@@ -71,11 +71,11 @@ async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db
     return cs
 
 
-@router.post("/", response_model=CrossSectionCreate, status_code=201)
-async def create_cs(cs: CrossSectionResponse, db: Session = Depends(get_db)):
+@router.post("/", response_model=CrossSectionResponse, status_code=201)
+async def create_cs(cs: CrossSectionCreate, db: Session = Depends(get_db)):
     """Create a new cross-section and store it in the database."""
     # exclude fields that are already in the dict structure of the cross-section
-    new_cs = Recipe(**cs.model_dump(exclude_none=True, exclude={"id"}))
+    new_cs = CrossSection(**cs.model_dump(exclude_none=True, exclude={"id", "x", "y", "z", "s"}))
     cs = crud.cross_section.add(db=db, cross_section=new_cs)
     return cs
 
@@ -134,6 +134,7 @@ async def upload_cs_csv(
         # turn into json
         cs = json.loads(gdf.to_json())
         try:
+            # this should never go wrong, but in case it does, we still have an error message
             cs = CrossSectionCreate(features=cs)
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))

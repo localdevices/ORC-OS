@@ -1,7 +1,28 @@
 import api from "../../api.js";
-import {useEffect, useState} from "react";
+import {useEffect, useState, useRef} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
+import {Line} from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const CrossSectionForm = ({selectedCrossSection, setSelectedCrossSection, setMessageInfo}) => {
   const [formData, setFormData] = useState({
@@ -10,6 +31,7 @@ const CrossSectionForm = ({selectedCrossSection, setSelectedCrossSection, setMes
     features: ''
   });
   const [showJsonData, setShowJsonData] = useState(false);
+  const [coordinates, setCoordinates] = useState({x: [], y: [], z: []});
 
   useEffect(() => {
     if (selectedCrossSection) {
@@ -18,14 +40,37 @@ const CrossSectionForm = ({selectedCrossSection, setSelectedCrossSection, setMes
         name: selectedCrossSection.name || '',
         features: JSON.stringify(selectedCrossSection.features, null, 4) || '',
       });
+
+      // Extract coordinates from features
+      try {
+        const features = typeof selectedCrossSection.features === 'string'
+          ? JSON.parse(selectedCrossSection.features)
+          : selectedCrossSection.features;
+
+        if (features && features.coordinates) {
+          const coords = features.coordinates.map(point => ({
+            x: point[0],
+            y: point[1],
+            z: point[2]
+          }));
+
+          setCoordinates({
+            x: coords.map(c => c.x),
+            y: coords.map(c => y),
+            z: coords.map(c => c.z)
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing coordinates:', error);
+      }
     } else {
       setFormData({
         name: '',
         id: '',
         features: '',
-      })
+      });
+      setCoordinates({x: [], y: [], z: []});
     }
-
   }, [selectedCrossSection]);
 
 
@@ -40,8 +85,9 @@ const CrossSectionForm = ({selectedCrossSection, setSelectedCrossSection, setMes
   };
 
   const submitData = (formData) => {
+    // convert form data into JSON parsed object
     return {
-      id: formData.id || null,
+      ...(formData.id && { id: formData.id }), // Include `id` only if it exists (truthy)
       name: formData.name,
       features: safelyParseJSON(formData.features),
     }
@@ -118,6 +164,76 @@ const CrossSectionForm = ({selectedCrossSection, setSelectedCrossSection, setMes
         <button type='submit' className='btn'>
           Submit
         </button>
+
+        <div className="mb-3 mt-3">
+          <h6>Cross section top view</h6>
+          <Line
+            data={{
+              labels: selectedCrossSection.x,
+              datasets: [
+                {
+                  label: 'Cross Section Profile',
+                  data: selectedCrossSection.y,
+                  fill: false,
+                  borderColor: 'rgb(75, 192, 192)',
+                  tension: 0.1
+                }
+              ]
+            }}
+            options={{
+              responsive: true,
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: 'X (m)'
+                  }
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: 'Y (m)'
+                  }
+                }
+              }
+            }}
+          />
+        </div>
+        <div className="mb-3 mt-3">
+        <h6>Cross section side view</h6>
+        <Line
+          data={{
+            labels: selectedCrossSection.s,
+            datasets: [
+              {
+                label: 'Cross Section Profile',
+                data: selectedCrossSection.z,
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+              }
+            ]
+          }}
+          options={{
+            responsive: true,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'left-right (m)'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Z (m)'
+                }
+              }
+            }
+          }}
+        />
+    </div>
+
         <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
           <div className="form-check form-switch">
             <label className="form-label" htmlFor="toggleJson" style={{ marginLeft: '0' }}></label>
