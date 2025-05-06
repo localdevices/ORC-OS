@@ -15,7 +15,7 @@ class CrossSection(RemoteBase):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
     name: Mapped[str] = mapped_column(String, nullable=False)
-    features: Mapped[dict] = mapped_column(JSON, nullable=False)
+    features: Mapped[dict] = mapped_column(JSON, nullable=False)  # should be of type GeoJSON, readable by GIS libraries
 
     def __str__(self):
         return "{}: {}".format(self.timestamp, self.name)
