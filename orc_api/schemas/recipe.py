@@ -32,6 +32,34 @@ class VelocimetryData(BaseModel):
     write: bool = Field(default=True)
 
 
+class TransectData(BaseModel):
+    """Transect default data model."""
+
+    write: bool = Field(default=True)
+    transect_1: dict = Field(
+        default={
+            "get_transect": {"rolling": 4, "tolerance": 0.3, "wdw_x_min": -5, "wdw_x_max": 5},
+            "get_q": {"fill_method": "log_interp", "v_corr": 0.85},
+            "get_river_flow": {},
+        }
+    )
+
+
+class PlotData(BaseModel):
+    """Plot default data model."""
+
+    plot_quiver: dict = Field(
+        default={
+            "frames": {},
+            "velocimetry": {"alpha": 0.3, "cmap": "rainbow", "vmax": 2.0},
+            "transect": {"cmap": "rainbow", "add_colorbar": True, "add_text": True, "vmin": 0.0, "vmax": 2.0},
+            "mode": "camera",
+            "reducer": "mean",
+            "write_pars": {"dpi": 300, "bbox_inches": "tight"},
+        }
+    )
+
+
 mask_data = {
     "write": True,
     "mask_group1": {"minmax": "s_max: 5.0"},
@@ -49,6 +77,8 @@ class RecipeData(BaseModel):
     frames: FramesData = Field(default_factory=FramesData)
     velocimetry: VelocimetryData = Field(default_factory=VelocimetryData)
     mask: dict = Field(default=mask_data)
+    transect: TransectData = Field(default_factory=TransectData)
+    plot: PlotData = Field(default_factory=PlotData)
 
 
 # Pydantic model for responses

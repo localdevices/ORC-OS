@@ -1,5 +1,5 @@
 import api from "../../api.js";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 
@@ -9,6 +9,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     start_frame: '',
     end_frame: '',
     freq: '',
+    resolution: '',
     data: ''
   });
   const [showJsonData, setShowJsonData] = useState(false);
@@ -21,6 +22,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
         start_frame: selectedRecipe.start_frame,
         end_frame: selectedRecipe.end_frame || '',
         freq: selectedRecipe.freq || '',
+        resolution: selectedRecipe.resolution || '',
         data: JSON.stringify(selectedRecipe.data, null, 4) || '',
       });
     } else {
@@ -30,6 +32,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
         start_frame: '',
         end_frame: '',
         freq: '',
+        resolution: '',
         data: '',
       })
     }
@@ -55,6 +58,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
       start_frame: formData.start_frame,
       end_frame: formData.end_frame,
       freq: formData.freq,
+      resolution: formData.resolution,
     }
   }
 
@@ -62,7 +66,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     const {name, value, type} = event.target;
     const updatedFormData = {
       ...formData,
-      [name]: type === "number" ? parseInt(value) : value
+      [name]: name === "resolution" ? parseFloat(value) : (type === "number" ? parseInt(value) : value)
     }
     setFormData(updatedFormData);
 
@@ -105,6 +109,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
         start_frame: '',
         end_frame: '',
         freq: '',
+        resolution: '',
         data: ''
       });
       setMessageInfo('success', 'Recipe stored successfully');
@@ -146,6 +151,12 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
             Process every X frames [nr]
           </label>
           <input type='number' className='form-control' id='freq' name='freq' step="1" onChange={handleInputChange} value={formData.freq} required />
+        </div>
+        <div className='mb-3 mt-3'>
+          <label htmlFor='resolution' className='form-label'>
+            Resolution [m]
+          </label>
+          <input type='number' className='form-control' id='resolution' name='resolution' step="0.001" min='0.001' max='0.05' onChange={handleInputChange} value={formData.resolution} required />
         </div>
         <button type='submit' className='btn'>
           Submit
