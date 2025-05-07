@@ -71,7 +71,6 @@ const VideoUploader = () => {
 
   return (
     <div className="video-uploader">
-      <hr/>
       <h5>Upload a Video</h5>
       <div
         {...getRootProps()}
@@ -80,6 +79,8 @@ const VideoUploader = () => {
           padding: "20px",
           cursor: "pointer",
           textAlign: "center",
+          marginBottom: "20px",
+          marginTop: "20px",
         }}
       >
         <input {...getInputProps()} />

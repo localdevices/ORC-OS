@@ -14,10 +14,13 @@
   width: 100%;
   overflow: hidden; /* prevent body from scrolling */
   box-sizing: border-box;
+  background-color: #eeeeee;
 
 }
 .main-content {
   flex: 1 1 auto; /* This makes the main content area take up the remaining space */
+  display: flex;
+  flex-direction: column;
   overflow-y: auto; /* scrollable with overflowing content */
   position: relative;
   padding: 1rem 1rem; /* Optional: Add some padding */
@@ -27,8 +30,123 @@
 .flex-container {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
+  margin: 20px;
+  padding: 20px;
   flex-direction: row;
+  background-color: #ffffff;
+  border: 0 solid #ccc;
+  border-radius: 10px 10px 10px 10px; /* Rounded top corners */
+  height: 100%;
+  box-sizing: border-box;
+  max-height: 100%;
+
+}
+
+.flex-container.column {
+  flex-direction: column;
+}
+
+
+/* Grid container for two equal columns */
+.split-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns of equal width */
+  max-height: 100%; /* Full height of the viewport */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.split-screen > .flex-container {
+  display: flex;
+  height: calc(100% - 20px);
+  flex-direction: column;
+  max-height: 100%; /* Constrain height to the size of its container */
+  overflow: auto; /* Allow scrolling for overflowing content */
+  box-sizing: border-box; /* Include padding and border in dimensions */
+}
+
+.tabbed-form-container {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  max-height: 100%;
+  /*box-sizing: border-box;*/
+  margin: 0;
+  object-fit: contain;
+}
+
+.tabbed-layout {
+  display: flex;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+}
+
+.tabs-header {
+  flex-shrink: 0;
+
+}
+/* tab row layout */
+.tabs-row {
+  display: flex;
+  justify-content: start; /* Align tabs to the left */
+  padding: 5px;
+  background-color: #f8f9fa; /* Light background for tabs row */
+  border-bottom: 2px solid #ccc; /* Underline divider */
+}
+
+/* Style for individual tabs */
+.tabs-row button {
+  border: 0 solid #ccc;
+  border-radius: 5px 5px 0 0; /* Rounded top corners */
+  padding: 10px 20px;
+  margin-right: 5px; /* Space between tabs */
+  background: #e9ecef; /* Default background color */
+  color: #000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 13px;
+}
+
+/* Hover effect for tabs */
+.tabs-row button:hover {
+  background: #d6dade; /* Slightly darker hover color */
+}
+
+/* Active tab styling */
+.tabs-row .active-tab {
+  background: #fff; /* Active tab matches content background */
+  border-bottom: 2px solid white; /* Matches the background */
+  font-weight: bold; /* Highlight active tab with bold text */
+}
+
+.tab-container {
+  flex-grow: 1;
+  /*display: flex; !* Enables flexbox layout *!*/
+  width: 100%; /* Full width of the container */
+  /*height: 100vh; !* Optional, depending on the layout *!*/
+  overflow-y: auto; /* Ensures no extra content spills outside */
+  /*position: relative; !* Optional for contextual positioning *!*/
+}
+
+
+.tab-content {
+  flex: 1; /* Fills the remaining space by default */
+  overflow: auto; /* to ensure side bar is not visible. */
+  transition: all 0.3 ease;
+  margin-top: 0;
+  margin-bottom: 0;
+  position: relative;
+  height: calc(100vh - 50px);
+  /*height: 80vh;*/
+  padding: 0;
+  background: #fff;
+  max-height: 100%;
+  /*border: 1px solid #ccc;
+  /*border-radius: 0 5px 5px 5px; /* Rounded bottom corners (Excel style) */
+}
+
+.tab-content.shifting {
+  margin-right: 300px;
 }
 
 @media (max-width: 768px) {
@@ -80,9 +198,6 @@ button.btn-icon:hover .edit {
   color: green; /* Change to your desired color */
 }
 
-
-
-
 /* Close Button for menus and widgets */
 .close-button {
     align-self: flex-end;
@@ -94,7 +209,6 @@ button.btn-icon:hover .edit {
     cursor: pointer;
     margin-bottom: 20px;
 }
-
 
 
 .logo {
@@ -119,6 +233,19 @@ button.btn-icon:hover .edit {
   }
 }
 
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3); /* Slightly increase the size */
+  }
+  100% {
+    transform: scale(1);
+  }
+
+}
+
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
@@ -136,6 +263,11 @@ button.btn-icon:hover .edit {
   to {
     transform: rotate(360deg);
   }
+}
+
+
+.pulsating-icon {
+  animation: pulse 1.5s infinite; /* Add pulsating animation */
 }
 
 .card {

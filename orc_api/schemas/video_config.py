@@ -41,23 +41,23 @@ def rodrigues_to_matrix(rvec):
 class VideoConfigBase(BaseModel):
     """Pydantic schema for VideoConfig validation."""
 
-    name: str = Field(..., description="Named description of the video configuration.")
-    camera_config_id: int = Field(..., description="Foreign key to the camera configuration.", ge=1)
-    recipe_id: int = Field(..., description="Foreign key to the recipe.", ge=1)
-    cross_section_id: Optional[int] = Field(None, description="Optional foreign key to the cross section.", ge=1)
-    rvec: conlist(float, min_length=3, max_length=3) = Field(
-        ..., description="Rotation vector for matching CrossSection with CameraConfig."
+    id: Optional[int] = Field(default=None, description="Video configuration ID")
+    name: str = Field(description="Named description of the video configuration.")
+    rvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
+        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection with CameraConfig."
     )
-    tvec: conlist(float, min_length=3, max_length=3) = Field(
-        ..., description="Translation vector for matching CrossSection with CameraConfig."
+    tvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
+        default=[0.0, 0.0, 0.0], description="Translation vector for matching CrossSection with CameraConfig."
     )
     camera_config: Optional[CameraConfigBase] = Field(
         None, description="Associated CameraConfig object (if available)."
     )
     recipe: Optional[RecipeResponse] = Field(None, description="Associated Recipe object (if available).")
-
     cross_section: Optional[CrossSectionResponse] = Field(
         None, description="Associated CrossSection object (if available)."
+    )
+    cross_section_wl: Optional[CrossSectionResponse] = Field(
+        None, description="Associated CrossSection object for water level estimation (if available)."
     )
     model_config = {"from_attributes": True}
 
@@ -128,6 +128,12 @@ class VideoConfigResponse(VideoConfigBase, RemoteModel):
     """Response schema for VideoConfig."""
 
     id: int = Field(description="Video configuration ID")
+    camera_config_id: int = Field(..., description="Foreign key to the camera configuration.", ge=1)
+    recipe_id: int = Field(..., description="Foreign key to the recipe.", ge=1)
+    cross_section_id: Optional[int] = Field(None, description="Optional foreign key to the cross section.", ge=1)
+    cross_section_wl_id: Optional[int] = Field(
+        None, description="Optional foreign key to the water level cross section.", ge=1
+    )
 
     def sync_remote(self, site: int, institute: int):
         """Send the recipe to LiveORC API.

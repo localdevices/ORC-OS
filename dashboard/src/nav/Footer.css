@@ -1,5 +1,5 @@
 .footer {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   background-color: #0a4777; /* Consistent color */
   color: white;
   text-align: center;
@@ -19,7 +19,6 @@
 .footer-content p {
   margin: 0;
   display: inline-block;
-  font-size: 0.9rem
+  font-size: 0.9rem;
   align-items: center;
 }
-*/

@@ -23,6 +23,7 @@ from orc_api.routers import (
     recipe,
     settings,
     video,
+    video_config,
     video_stream,
     water_level,
 )
@@ -157,6 +158,7 @@ app.include_router(device.router)
 app.include_router(settings.router)
 app.include_router(callback_url.router)
 app.include_router(video.router)
+app.include_router(video_config.router)
 app.include_router(disk_management.router)
 app.include_router(water_level.router)
 app.include_router(camera_config.router)

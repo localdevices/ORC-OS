@@ -6,6 +6,7 @@ import '../cameraAim.scss'
 const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
   const [formData, setFormData] = useState({
     name: '',
+    id: '',
     start_frame: '',
     end_frame: '',
     freq: '',
@@ -38,7 +39,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     }
 
   }, [selectedRecipe]);
-
 
   // Utility function to safely parse JSON
   const safelyParseJSON = (jsonString) => {
@@ -120,7 +120,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
 
 
   return (
-    <div>
+    <div style={{"padding": "5px"}}>
       <form onSubmit={handleFormSubmit}>
         <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>
@@ -159,7 +159,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
           <input type='number' className='form-control' id='resolution' name='resolution' step="0.001" min='0.001' max='0.05' onChange={handleInputChange} value={formData.resolution} required />
         </div>
         <button type='submit' className='btn'>
-          Submit
+          Save
         </button>
         <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
           <div className="form-check form-switch">
@@ -181,7 +181,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
           <textarea
             id="data"
             className="form-control"
-            rows="50"
+            rows="40"
             value={formData.data}
             onChange={handleInputChange}
           ></textarea>

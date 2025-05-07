@@ -15,6 +15,7 @@ class VideoConfig(RemoteBase):
     camera_config_id: Mapped[int] = mapped_column(Integer, ForeignKey("camera_config.id"), nullable=False)
     recipe_id: Mapped[int] = mapped_column(Integer, ForeignKey("recipe.id"), nullable=False)
     cross_section_id: Mapped[int] = mapped_column(Integer, ForeignKey("cross_section.id"), nullable=True)
+    cross_section_wl_id: Mapped[int] = mapped_column(Integer, ForeignKey("cross_section.id"), nullable=True)
     rvec: Mapped[list[float]] = mapped_column(
         JSON,
         nullable=False,
@@ -30,6 +31,7 @@ class VideoConfig(RemoteBase):
     camera_config = relationship("CameraConfig", foreign_keys=[camera_config_id])
     recipe = relationship("Recipe", foreign_keys=[recipe_id])
     cross_section = relationship("CrossSection", foreign_keys=[cross_section_id])
+    cross_section_wl = relationship("CrossSection", foreign_keys=[cross_section_wl_id])
 
     def __str__(self):
         return "{}: {}".format(self.id, self.name)

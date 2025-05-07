@@ -11,7 +11,7 @@ const ListVideo = () => {
   // Default: One day back until now
   const defaultEndDate = new Date();
   const defaultStartDate = new Date();
-  defaultStartDate.setDate(defaultStartDate.getDate() - 3); // 1 day back
+  defaultStartDate.setDate(defaultStartDate.getDate() - 60); // 2 months back
 
   // Date filter states
   const [startDate, setStartDate] = useState(defaultStartDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
@@ -35,7 +35,6 @@ const ListVideo = () => {
       <h1>Video </h1>
       <MessageBox />
       Drop new videos. Browse through your videos, delete them, view details, download, or perform single runs tasks.
-      <VideoUploader />
       <PaginatedVideos
         initialData={videoData}
         startDate={startDate}

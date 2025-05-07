@@ -3,13 +3,40 @@
 import warnings
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pyproj.crs import CRS
 
 from orc_api.schemas.base import RemoteModel
 
 # Alternatively, print traceback for warnings without halting execution
 warnings.simplefilter("always", DeprecationWarning)
+
+
+class GCPData(BaseModel):
+    """GCP data model."""
+
+    src: Optional[List[List[float]]] = Field(default=None, description="GCP source points.")
+    dst: Optional[List[List[float]]] = Field(default=None, description="GCP destination points.")
+    crs: Optional[str] = Field(default=None, description="Coordinate Reference System of the GCPs.")
+    h_ref: Optional[float] = Field(default=None, description="Reference height of water level in local datum.")
+    z_0: Optional[float] = Field(default=None, description="Reference height of water level in GCP datum.")
+
+
+class CameraConfigData(BaseModel):
+    """Camera configuration data model."""
+
+    height: float = Field(description="Height of the image in pixels.")
+    width: float = Field(description="Width of the image in pixels.")
+    crs: Optional[str] = Field(default=None, description="Coordinate Reference System of the area of interest.")
+    gcps: GCPData = Field(default_factory=GCPData)
+    resolution: Optional[float] = Field(default=None, description="Resolution of the reprojection.")
+    window_size: Optional[int] = Field(
+        default=None, description="Window size for the PIV interrogation or STIV spacing."
+    )
+    is_nadir: bool = Field(default=False, description="Whether the camera is nadir or not.")
+    camera_matrix: Optional[List[List[float]]] = Field(default=None, description="Camera matrix of the camera.")
+    dist_coeffs: Optional[List[List[float]]] = Field(default=None, description="Distortion coefficients of the camera.")
+    bbox: Optional[str] = Field(default=None, description="Bounding box of the camera as shape.")
 
 
 # Pydantic model for responses
@@ -33,7 +60,18 @@ class CameraConfigBase(BaseModel):
 class CameraConfigResponse(CameraConfigBase, RemoteModel):
     """Response model for camera configuration."""
 
-    id: int = Field(description="CameraConfig ID")
+    id: Optional[int] = Field(default=None, description="CameraConfig ID")
+
+    @model_validator(mode="after")
+    def populate_fields_from_data(cls, instance):
+        """Populate the fields from the camera configuration data where needed, currently only placeholder."""
+        if instance.data is None:
+            # load a fresh empty camera config
+            _ = CameraConfigData()
+        else:
+            # load data from existing pyorc camera config dict
+            _ = CameraConfigData(**instance.data)
+        return instance
 
     def sync_remote(self, site: int):
         """Send the recipe to LiveORC API.
