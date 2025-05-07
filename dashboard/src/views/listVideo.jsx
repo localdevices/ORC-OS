@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+
 import api from '../api';
 import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
 import MessageBox from '../messageBox';
+import VideoUploader from './videoComponents/videoUpload.jsx';
 
 const ListVideo = () => {
   const [videoData, setVideoData] = useState([]); // Stores video metadata
@@ -14,7 +16,6 @@ const ListVideo = () => {
   // Date filter states
   const [startDate, setStartDate] = useState(defaultStartDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
   const [endDate, setEndDate] = useState(defaultEndDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
-
 
   // Fetch video metadata from API
   useEffect(() => {
@@ -33,8 +34,8 @@ const ListVideo = () => {
     <div className="container mt-4">
       <h1>Video </h1>
       <MessageBox />
-      Browse through your videos, delete them, view details, download, or perform single runs tasks.
-
+      Drop new videos. Browse through your videos, delete them, view details, download, or perform single runs tasks.
+      <VideoUploader />
       <PaginatedVideos
         initialData={videoData}
         startDate={startDate}
