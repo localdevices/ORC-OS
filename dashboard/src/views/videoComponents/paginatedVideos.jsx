@@ -1,5 +1,6 @@
 import {useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
+import { DropdownMenu } from "../../utils/dropdownMenu.jsx"
 import Modal from "react-modal";
 
 import api from "../../api.js";
@@ -347,22 +348,28 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
 
         {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
         <h5>Select an Existing Config:</h5>
-        <select
-          onChange={(event) => handleConfigSelection(event.target.value)}
-        >
-          <option value="" disabled selected>
-            Select a configuration
-          </option>
-          {availableVideoConfigs.length > 0 ? (
-            availableVideoConfigs.map((config) => (
-              <option key={config.id} value={config.id}>
-                {config.name}
-              </option>
-            ))
-          ) : (
-            <option disabled>No existing configurations available.</option>
-          )}
-        </select>
+        <DropdownMenu
+          dropdownLabel="Video configurations"
+          callbackFunc={handleConfigSelection}
+          data={availableVideoConfigs}
+        />
+
+        {/*<select*/}
+        {/*  onChange={(event) => handleConfigSelection(event.target.value)}*/}
+        {/*>*/}
+        {/*  <option value="" disabled selected>*/}
+        {/*    Select a configuration*/}
+        {/*  </option>*/}
+        {/*  {availableVideoConfigs.length > 0 ? (*/}
+        {/*    availableVideoConfigs.map((config) => (*/}
+        {/*      <option key={config.id} value={config.id}>*/}
+        {/*        {config.name}*/}
+        {/*      </option>*/}
+        {/*    ))*/}
+        {/*  ) : (*/}
+        {/*    <option disabled>No existing configurations available.</option>*/}
+        {/*  )}*/}
+        {/*</select>*/}
 
         {/*<ul>*/}
         {/*  {availableVideoConfigs.length > 0 ? (*/}

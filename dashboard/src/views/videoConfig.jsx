@@ -95,6 +95,8 @@ const VideoConfig = () => {
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <div className="split-screen">
+        <MessageBox/>
+        <div className="flex-container column no-padding">
         <div className="flex-container column">
           <h5>Image view</h5>
           <p> Placeholder for video </p>
@@ -107,81 +109,101 @@ const VideoConfig = () => {
             <p>Loading video details...</p>
           )}
         </div>
-        <div className="flex-container column">
-          <div className="tabbed-form-container">
-            <MessageBox/>
-            <div className="tabs-header">
-            <h5>Manage configuration</h5>
+        </div>
+        <div className="flex-container column no-padding">
+          <div className="flex-container column" style={{"height": "60%"}}>
+            <div className="tabbed-form-container">
+              <div className="tabs-header">
+                <h5>Manage configuration</h5>
 
-            {/* Tabs row */}
-            <div className="tabs-row">
-              <button
-                className={activeTab === 'configDetails' ? 'active-tab' : ''}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleTabChange('configDetails');
-                }}
-              >
-                Name + details
-              </button>
-              <button
-                className={activeTab === 'gcps' ? 'active-tab' : ''}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleTabChange('gcps');
-                }}
-              >
-                Camera pose
-              </button>
-              <button
-                className={activeTab === 'recipe' ? 'active-tab' : ''}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleTabChange('recipe');
-                }}
-              >
-                Processing
-              </button>
+                {/* Tabs row */}
+                <div className="tabs-row">
+                  <button
+                    className={activeTab === 'configDetails' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('configDetails');
+                    }}
+                  >
+                    Name + details
+                  </button>
+                  <button
+                    className={activeTab === 'gcps' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('gcps');
+                    }}
+                  >
+                    Camera pose
+                  </button>
+                  <button
+                    className={activeTab === 'recipe' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('recipe');
+                    }}
+                  >
+                    Processing
+                  </button>
+                  <button
+                    className={activeTab === 'crossSection' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('crossSection');
+                    }}
+                  >
+                    Cross sections
+                  </button>
 
-            </div>
-            </div>
-            <div className="tab-container">
-              {/* Tab content */}
-              <div className="tab-content">
-                {activeTab === 'configDetails' && (
-                  <VideoConfigForm
-                    selectedVideoConfig={videoConfig}
-                    setSelectedVideoConfig={setVideoConfig}
-                    video={video}
-                    cameraConfig={cameraConfig}
-                    recipe={recipe}
-                    CSDischarge={CSDischarge}
-                    CSWaterLevel={CSWaterLevel}
-                    setCameraConfig={setCameraConfig}
-                    setRecipe={setRecipe}
-                    setCSDischarge={setCSDischarge}
-                    setCSWaterLevel={setCSWaterLevel}
-                    setMessageInfo={setMessageInfo}
-                  />
-                )}
-
-                {activeTab === 'gcps' && (
-                  <CameraConfigForm
-                    selectedCameraConfig={cameraConfig}
-                    setSelectedCameraConfig={setCameraConfig}
-                    setMessageInfo={setMessageInfo}
-                  />
-                )}
-                {activeTab === 'recipe' &&
-                  (
-                    <RecipeForm
-                      selectedRecipe={recipe}
-                      setSelectedRecipe={setRecipe}
+                </div>
+              </div>
+              <div className="tab-container">
+                {/* Tab content */}
+                <div className="tab-content">
+                  {activeTab === 'configDetails' && (
+                    <VideoConfigForm
+                      selectedVideoConfig={videoConfig}
+                      setSelectedVideoConfig={setVideoConfig}
+                      video={video}
+                      cameraConfig={cameraConfig}
+                      recipe={recipe}
+                      CSDischarge={CSDischarge}
+                      CSWaterLevel={CSWaterLevel}
+                      setCameraConfig={setCameraConfig}
+                      setRecipe={setRecipe}
+                      setCSDischarge={setCSDischarge}
+                      setCSWaterLevel={setCSWaterLevel}
                       setMessageInfo={setMessageInfo}
                     />
                   )}
+
+                  {activeTab === 'gcps' && (
+                    <CameraConfigForm
+                      selectedCameraConfig={cameraConfig}
+                      setSelectedCameraConfig={setCameraConfig}
+                      setMessageInfo={setMessageInfo}
+                    />
+                  )}
+                  {activeTab === 'recipe' &&
+                    (
+                      <RecipeForm
+                        selectedRecipe={recipe}
+                        setSelectedRecipe={setRecipe}
+                        setMessageInfo={setMessageInfo}
+                      />
+                    )}
+                  {activeTab === 'crossSection' &&
+                    (
+                      <p>placeholder</p>
+
+                    )
+                  }
+                </div>
               </div>
             </div>
+          </div>
+          <div className="flex-container column" style={{"height": "40%"}}>
+            <h5>Cross sections</h5>
           </div>
         </div>
       </div>

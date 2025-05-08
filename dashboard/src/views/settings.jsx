@@ -1,5 +1,6 @@
 import {useState, useEffect} from 'react';
 import api from '../api';
+import { DropdownMenu } from "../utils/dropdownMenu.jsx";
 import MessageBox from '../messageBox';
 import {useMessage} from '../messageContext';
 
@@ -8,12 +9,14 @@ const Settings = () => {
     const [settings, setSettings] = useState([]);
     const [loading, setLoading] = useState(true); // State for loading indicator
     const [error, setError] = useState(null); // State for error handling
+    const [videoConfigs, setVideoConfigs] = useState([]);
     const [formData, setFormData] = useState({
         video_file_fmt: '',
         allowed_dt: '',
         shutdown_after_task: false,
         parse_dates_from_file: true,
         reboot_after: '',
+        video_config: '',
     });
     // set message box
     const {setMessageInfo} = useMessage();
@@ -25,17 +28,22 @@ const Settings = () => {
 
     useEffect(() => {
         fetchSettings();
+        // also get available video configs
+        const response = api.get('/video_config/');
+        response.then(response => {
+            setVideoConfigs(response.data);
+        });
 
     }, []);
     useEffect(() => {
         if (settings) {
-            console.log(settings);
             setFormData({
                 video_file_fmt: settings.video_file_fmt || '',
                 allowed_dt: settings.allowed_dt || '',
                 shutdown_after_task: settings.shutdown_after_task || '',
                 parse_dates_from_file: settings.parse_dates_from_file || '',
                 reboot_after: settings.reboot_after || '',
+                video_config: settings.video_config || '',
             });
         }
     }, [settings]);
@@ -46,6 +54,17 @@ const Settings = () => {
             ...formData,
             [event.target.name]: value,
         });
+    }
+    const handleInputDropdown = (event) => {
+        console.log(event.target);
+        const { name, value, type } = event.target;
+        event.target.value = value;
+        setFormData({
+            ...formData,
+            [name]: value
+        });
+        // just to check
+        console.log(formData);
     }
     const handleInputIntChange = (event) => {
         const { name, value, type } = event.target;
@@ -80,6 +99,7 @@ const Settings = () => {
                 shutdown_after_task: '',
                 parse_dates_from_file: '',
                 reboot_after: '',
+                video_config: ''
             });
         } catch (err) {
             setMessageInfo('error', err.response.data);
@@ -147,6 +167,13 @@ const Settings = () => {
                         Reboot device after some time [sec]. Just in case a system fails, the device may go back online after this time.
                     </label>
                     <input type='number' className='form-control' id='reboot_after' name='reboot_after' step="1" onChange={handleInputIntChange} value={formData.reboot_after}/>
+                </div>
+                <div className='mb-3 mt-3'>
+                  <DropdownMenu
+                    dropdownLabel={"Video configurations"}
+                    callbackFunc={handleInputDropdown}
+                    data={videoConfigs}
+                  />
                 </div>
                 <button type='submit' className='btn'>
                     Submit
