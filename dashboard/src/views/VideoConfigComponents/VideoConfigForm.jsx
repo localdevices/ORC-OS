@@ -1,7 +1,21 @@
 import api from "../../api.js";
 import React, {useEffect, useState} from "react";
 
-const VideoConfigForm = ({selectedVideoConfig, setSelectedVideoConfig, cameraConfig, recipe, CSDischarge, CSWaterLevel, setMessageInfo}) => {
+const VideoConfigForm = (
+  {
+    selectedVideoConfig,
+    setSelectedVideoConfig,
+    video,
+    cameraConfig,
+    recipe,
+    CSDischarge,
+    CSWaterLevel,
+    setCameraConfig,
+    setRecipe,
+    setCSDischarge,
+    setCSWaterLevel,
+    setMessageInfo
+  }) => {
   const [formData, setFormData] = useState({
     name: '',
     id: '',
@@ -48,6 +62,9 @@ const VideoConfigForm = ({selectedVideoConfig, setSelectedVideoConfig, cameraCon
     const filteredData = Object.fromEntries(
       Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
     );
+    if (formData.sample_video_id === undefined) {
+      filteredData.sample_video_id = video.id;
+    }
     // the entire video config is stored in one go
     if (CSDischarge?.name === undefined) {
       console.log(filteredData)
@@ -84,10 +101,18 @@ const VideoConfigForm = ({selectedVideoConfig, setSelectedVideoConfig, cameraCon
       if (response.status !== 201 && response.status !== 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
+      } else {
+        // set the updated camera config, recipe and cross-section details
+        setSelectedVideoConfig(response.data);
       }
       setMessageInfo('success', 'Video config stored successfully');
     } catch (err) {
       setMessageInfo('Error while storing video config', err.response.data);
+    } finally {
+      // now also update the video where needed
+      video.video_config_id = response.data.id;
+      // and store this in the database
+      api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
     }
   };
 

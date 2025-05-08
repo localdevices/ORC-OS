@@ -15,7 +15,7 @@ from orc_api.schemas.callback_url import CallbackUrlResponse
 class RemoteModel(BaseModel):
     """Base model for a cross-section."""
 
-    id: int = Field(description="Record ID")
+    id: Optional[int] = Field(default=None, description="Record ID")
     created_at: Optional[datetime] = Field(default=None, description="Creation date")
     remote_id: Optional[int] = Field(default=None, description="Record ID on the remote server")
     sync_status: SyncStatus = Field(default=SyncStatus.LOCAL, description="Status of the record on the remote server")

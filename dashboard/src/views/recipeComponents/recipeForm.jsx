@@ -50,6 +50,39 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     }
   };
 
+  const loadModal = async () => {
+    console.log("load modal");
+    const input = document.createElement('input');
+    input.type = "file";
+    input.accept = ".yml";
+    // Wait for the user to select a file
+    input.addEventListener('change', async (event) => {
+
+      // input.onchange = async (event) => {
+      const file = event.target.files[0]; // Get the selected file
+      if (file) {
+        const formData = new FormData(); // Prepare form data for file upload
+        formData.append("file", file);
+
+        try {
+          const response = await api.post(
+            '/recipe/from_file/',
+            formData,
+            {headers: {"Content-Type": "multipart/form-data",},}
+          );
+          // set the recipe to the returned recipe
+          setSelectedRecipe(response.data);
+        } catch (error) {
+          console.error("Error occurred during file upload:", error);
+        }
+      }
+    });
+    // trigger input dialog box to open
+    input.click();
+
+  }
+
+
   const submitData = (formData) => {
     return {
       id: formData.id || null,
@@ -121,6 +154,13 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
 
   return (
     <div style={{"padding": "5px"}}>
+      <button
+        className="btn"
+        onClick={loadModal}
+      >
+        Upload from .yml
+      </button>
+
       <form onSubmit={handleFormSubmit}>
         <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>

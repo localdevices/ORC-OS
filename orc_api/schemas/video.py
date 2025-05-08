@@ -279,3 +279,15 @@ class DeleteVideosRequest(BaseModel):
 
     start: datetime = None
     stop: datetime = None
+
+
+class VideoPatch(VideoResponse):
+    """Patch schema for video.
+
+    This makes all non-optional fields optional
+    """
+
+    timestamp: Optional[datetime] = Field(default=None)
+    id: Optional[int] = Field(default=None)
+    status: Optional[models.VideoStatus] = Field(default=None)
+    sync_status: Optional[models.SyncStatus] = Field(default=None)

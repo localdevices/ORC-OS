@@ -10,6 +10,7 @@ const VideoUploader = () => {
   const [selectedDateTime, setSelectedDateTime] = useState(""); // State for date and time
 
   const onDrop = useCallback((acceptedFiles) => {
+    console.log(acceptedFiles)
     if (acceptedFiles && acceptedFiles[0]) {
       const file = acceptedFiles[0];
       if (!file.type.startsWith("video/")) {

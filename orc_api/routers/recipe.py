@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import Recipe
-from orc_api.schemas.recipe import RecipeResponse, RecipeUpdate
+from orc_api.schemas.recipe import RecipeRemote, RecipeResponse, RecipeUpdate
 
 router: APIRouter = APIRouter(prefix="/recipe", tags=["recipe"])
 
@@ -63,7 +63,7 @@ async def download_recipe(id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id}/", status_code=200, response_model=RecipeResponse)
-async def patch_recipe(id: int, recipe: RecipeUpdate, db: Session = Depends(get_db)):
+async def patch_recipe(id: int, recipe: RecipeRemote, db: Session = Depends(get_db)):
     """Update a recipe in the database."""
     update_recipe = recipe.model_dump(
         exclude_none=True, exclude={"id", "start_frame", "end_frame", "freq", "resolution", "velocimetry"}
@@ -84,13 +84,14 @@ async def empty_recipe():
 async def create_recipe(recipe: RecipeResponse, db: Session = Depends(get_db)):
     """Create a new recipe and store it in the database."""
     # exclude fields that are already in the dict structure of the recipe
-    new_recipe = Recipe(
-        **recipe.model_dump(
-            exclude_none=True, exclude={"id", "start_frame", "end_frame", "freq", "resolution", "velocimetry"}
-        )
-    )
-    recipe = crud.recipe.add(db=db, recipe=new_recipe)
-    return recipe
+    recipe_ready_for_db = RecipeRemote(**recipe.model_dump())
+    new_recipe_rec = Recipe(**recipe_ready_for_db.model_dump(exclude_none=True, exclude={"id"}))
+    #     **recipe.model_dump(
+    #         exclude_none=True, exclude={"id", "start_frame", "end_frame", "freq", "resolution", "velocimetry"}
+    #     )
+    # )
+    recipe_rec = crud.recipe.add(db=db, recipe=new_recipe_rec)
+    return recipe_rec
 
 
 @router.post("/update/", response_model=RecipeUpdate, status_code=201)

@@ -20,22 +20,31 @@ const VideoConfig = () => {
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
+    createNewRecipe();  // if recipe exists it will be overwritten later
+    createCameraConfig();  // if cam config exists, it will be overwritten later
+
     api.get(`/video/${videoId}`)
       .then((response) => {
-        createNewRecipe();  // if recipe exists it will be overwritten later
-        createCameraConfig();  // if cam config exists, it will be overwritten later
         setVideo(response.data);
         console.log(response.data);
         if (response.data.video_config !== null) {
           setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
-          if (response.data.video_config.recipe) {
+          if (response.data.video_config.recipe !== null) {
+            console.log("RECIPE DATA FOUND")
             setRecipe(response.data.video_config.recipe);
+          } else {
+            console.log("RECIPE DATA NOT FOUND in ", response.data)
+
           }
-          if (response.data.camera_config) {
-            setCameraConfig(response.data.camera_config);
+          if (response.data.video_config.camera_config) {
+            setCameraConfig(response.data.video_config.camera_config);
           }
-          setCSDischarge(response.data.video_config.cross_section)
-          setCSWaterLevel(response.data.video_config.cross_section_wl)
+          if (response.data.video_config.cross_section) {
+            setCSDischarge(response.data.video_config.cross_section)
+          }
+          if (response.data.video_config.cross_section_wl) {
+            setCSWaterLevel(response.data.video_config.cross_section_wl)
+          }
         }
       })
       .catch((err) => console.error("Error fetching video data:", err));
@@ -143,10 +152,15 @@ const VideoConfig = () => {
                   <VideoConfigForm
                     selectedVideoConfig={videoConfig}
                     setSelectedVideoConfig={setVideoConfig}
+                    video={video}
                     cameraConfig={cameraConfig}
                     recipe={recipe}
                     CSDischarge={CSDischarge}
                     CSWaterLevel={CSWaterLevel}
+                    setCameraConfig={setCameraConfig}
+                    setRecipe={setRecipe}
+                    setCSDischarge={setCSDischarge}
+                    setCSWaterLevel={setCSWaterLevel}
                     setMessageInfo={setMessageInfo}
                   />
                 )}

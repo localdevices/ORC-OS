@@ -90,8 +90,14 @@ class RecipeBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class RecipeResponse(RecipeBase, RemoteModel):
-    """Response model for a recipe."""
+class RecipeRemote(RecipeBase, RemoteModel):
+    """Model for a recipe with remote fields included."""
+
+    pass
+
+
+class RecipeResponse(RecipeRemote):
+    """Response model for a recipe with front-end components included."""
 
     id: Optional[int] = Field(default=None, description="Recipe ID")
     start_frame: int = Field(default=0, description="Frame number of the first frame of the recipe.")
@@ -100,21 +106,21 @@ class RecipeResponse(RecipeBase, RemoteModel):
     resolution: float = Field(
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
-    velocimetry: Literal["piv", "stiv"] = Field(default="piv", description="Velocimetry method.")
-    v_corr: float = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
-    quiver_scale_grid: float = Field(
+    velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
+    v_corr: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
+    quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
         le=2,
         description="Scaling of the 2D quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
     )
-    quiver_scale_cs: float = Field(
+    quiver_scale_cs: Optional[float] = Field(
         default=1.0,
         ge=0.2,
         le=2,
         description="Scaling of the cross-section quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
     )
-    image_quality: Literal["low", "medium", "high"] = Field(
+    image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default="medium", description="Quality of the generated images."
     )
 
@@ -169,7 +175,7 @@ class RecipeResponse(RecipeBase, RemoteModel):
         if response_data is not None:
             # patch the record in the database, where necessary
             # update schema instance
-            update_recipe = RecipeResponse.model_validate(response_data)
+            update_recipe = RecipeRemote.model_validate(response_data)
             r = crud.recipe.update(get_session(), id=self.id, recipe=update_recipe.model_dump(exclude_unset=True))
             return RecipeResponse.model_validate(r)
         return None

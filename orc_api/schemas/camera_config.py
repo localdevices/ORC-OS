@@ -57,7 +57,13 @@ class CameraConfigBase(BaseModel):
         return _crs
 
 
-class CameraConfigResponse(CameraConfigBase, RemoteModel):
+class CameraConfigRemote(CameraConfigBase, RemoteModel):
+    """Model for camera configuration with remote fields included."""
+
+    pass
+
+
+class CameraConfigResponse(CameraConfigRemote):
     """Response model for camera configuration."""
 
     id: Optional[int] = Field(default=None, description="CameraConfig ID")
@@ -96,8 +102,9 @@ class CameraConfigCreate(CameraConfigBase):
 class CameraConfigUpdate(BaseModel):
     """Update model for camera configuration."""
 
-    name: Optional[str]
-    data: Optional[dict]
+    id: Optional[int] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    data: Optional[dict] = Field(default=None)
 
 
 class GCPs(BaseModel):

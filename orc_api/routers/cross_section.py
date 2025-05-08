@@ -66,7 +66,7 @@ async def download_cs(id: int, db: Session = Depends(get_db)):
 @router.patch("/{id}/", status_code=200, response_model=CrossSectionResponse)
 async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db)):
     """Update a cross section in the database."""
-    update_cs = cs.model_dump(exclude_none=True, exclude={"id"})
+    update_cs = cs.model_dump(exclude_none=True, exclude={"id", "x", "y", "z", "s"})
     cs = crud.cross_section.update(db=db, id=id, cross_section=update_cs)
     return cs
 

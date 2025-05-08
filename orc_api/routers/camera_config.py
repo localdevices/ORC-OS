@@ -14,7 +14,13 @@ from pyproj import CRS
 from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import CameraConfig, Session
-from orc_api.schemas.camera_config import CameraConfigCreate, CameraConfigResponse, FittedPoints, GCPs
+from orc_api.schemas.camera_config import (
+    CameraConfigCreate,
+    CameraConfigResponse,
+    CameraConfigUpdate,
+    FittedPoints,
+    GCPs,
+)
 from orc_api.schemas.video import VideoResponse
 
 UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
@@ -140,6 +146,16 @@ async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, ro
     )
 
 
+@router.patch(
+    "/{id}/", status_code=200, response_model=CameraConfigResponse, description="Update a camera configuration"
+)
+async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
+    """Update a recipe in the database."""
+    update_cam_config = camera_config.model_dump(exclude_none=True, exclude={"id"})
+    camera_config = crud.camera_config.update(db=db, id=id, camera_config=update_cam_config)
+    return camera_config
+
+
 @router.post(
     "/", response_model=CameraConfigResponse, status_code=201, description="Post a new complete Camera Configuration"
 )
@@ -151,3 +167,13 @@ async def post_camera_config(camera_config: CameraConfigCreate, db: Session = De
     db.commit()
     db.refresh(new_camera_config)
     return new_camera_config
+
+
+@router.post("/update/", response_model=CameraConfigUpdate, status_code=201)
+async def update_camera_config(camera_config: CameraConfigUpdate):
+    """Update an in-memory camera config.
+
+    This only validates the input and adds default fields where necessary.
+    No storage on the database is performed.
+    """
+    return camera_config

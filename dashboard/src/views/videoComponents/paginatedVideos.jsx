@@ -45,6 +45,20 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     setCurrentPage(1);
   }, [initialData]);
 
+  // update list of videos when changes in a video occur
+  useEffect(() => {
+    console.log("VIDEO SELECTED")
+    api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
+      .then((response) => {
+        setData(response.data);
+        // Calculate the index range for records to display
+      })
+      .catch((error) => {
+        console.error('Error fetching video metadata:', error);
+      });
+  }, [selectedVideo, startDate, endDate]);
+
+
   // Fetch the existing video configs when the modal is opened
   useEffect(() => {
     if (showConfigModal) {
@@ -137,9 +151,25 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const handleVideoConfig = (video) => {
     setSelectedVideo(video); // Set the selected video
     setShowConfigModal(true); // Open the modal
-
-    console.log(`VIDEO CONFIG for ${video.id}`)
   }
+
+  // Function to handle configuration selection and API call
+  const handleConfigSelection = async (selectedConfigId) => {
+    try {
+      // Send a POST request to update the video with the selected configuration
+      const response = await api.patch(`/video/${selectedVideo.id}`, {
+        video_config_id: selectedConfigId, // Pass the selected configuration ID
+      });
+      // Success feedback
+      setMessageInfo('success', `Video configuration selected on ${selectedConfigId}`);
+      setSelectedVideo(null)
+      setShowConfigModal(false);
+    } catch (error) {
+      // Error handling
+      setMessageInfo('error', 'Error while selecting video configuration', err.response.data);
+    }
+  };
+
   const createNewVideoConfig = (video_id) => {
     // redirect to editing or creating page for video config
     navigate(`/video_config/${video_id}`);
@@ -224,15 +254,24 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
                 </button>
                 <button className="btn-icon"
                       onClick={() => handleVideoConfig(video)}
-                      title={video.video_config ? "Click to change video configuration" : "No video configuration is set. Click to select an existing video configuration or create a new one based on this video, if it contains control point information."}
+                      title={video.video_config ? (
+                        video.video_config.sample_video_id === video.id ? (
+                          "This video acts as a reference video for a video configuration. Click to change video configuration"
+                        ): (
+                          "This video has another video as a reference video. Click to change that video configuration"
+                        )
+                      ) : (
+                        "No video configuration is set. Click to select an existing video configuration or create a new one based on this video, if it contains control point information."
+                      )}
+
                 >
                   {/*First check if has a config or not,
                   then check if video id is equal to the sample video id, if so this is a control video*/}
                   {video.video_config ? (
-                    video.video_config.sample_video.id === video.id ? (
+                    video.video_config.sample_video_id === video.id ? (
                       <TbCameraPin style={{"color": "blue"}} size={20} className="btn-icon"/>
                     ) : (
-                      <TbCameraCheck style={{"color": "blue"}} size={20} className="btn-icon"/>
+                      <TbCameraCheck style={{"color": "green"}} size={20} className="btn-icon"/>
 
                     )
                   ) : (
@@ -263,7 +302,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
           endDate={endDate}
           idxFirst={idxFirst}
           setData={setData}
-          setSelectedIds={selectedIds}
+          setSelectedIds={setSelectedIds}
           setStartDate={setStartDate}
           setEndDate={setEndDate}
           setCurrentPage={setCurrentPage}
@@ -299,7 +338,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
             cursor: "pointer",
             lineHeight: "1",
           }}
-          onClick={() => setIsModalOpen(false)}
+          onClick={() => setShowConfigModal(false)}
           aria-label="Close"
         >
           &times;
@@ -307,27 +346,43 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         </div>
 
         {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
-
         <h5>Select an Existing Config:</h5>
-        <ul>
+        <select
+          onChange={(event) => handleConfigSelection(event.target.value)}
+        >
+          <option value="" disabled selected>
+            Select a configuration
+          </option>
           {availableVideoConfigs.length > 0 ? (
             availableVideoConfigs.map((config) => (
-              <li key={config.id}>
+              <option key={config.id} value={config.id}>
                 {config.name}
-                <button
-                  style={{ marginLeft: "10px" }}
-                  onClick={() =>
-                    alert(`Configured video: ${selectedVideo.id} with config: ${config.name}`)
-                  }
-                >
-                  Use
-                </button>
-              </li>
+              </option>
             ))
           ) : (
-            <p>No existing configurations available.</p>
+            <option disabled>No existing configurations available.</option>
           )}
-        </ul>
+        </select>
+
+        {/*<ul>*/}
+        {/*  {availableVideoConfigs.length > 0 ? (*/}
+        {/*    availableVideoConfigs.map((config) => (*/}
+        {/*      <li key={config.id}>*/}
+        {/*        {config.name}*/}
+        {/*        <button*/}
+        {/*          style={{ marginLeft: "10px" }}*/}
+        {/*          onClick={() =>*/}
+        {/*            alert(`Configured video: ${selectedVideo.id} with config: ${config.name}`)*/}
+        {/*          }*/}
+        {/*        >*/}
+        {/*          Use*/}
+        {/*        </button>*/}
+        {/*      </li>*/}
+        {/*    ))*/}
+        {/*  ) : (*/}
+        {/*    <p>No existing configurations available.</p>*/}
+        {/*  )}*/}
+        {/*</ul>*/}
 
         <h5>Create a New Config:</h5>
         <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Create config</button>

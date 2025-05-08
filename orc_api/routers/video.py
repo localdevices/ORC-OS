@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import Video
-from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoResponse
+from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoPatch, VideoResponse
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
@@ -81,6 +81,14 @@ async def delete_video(id: int, db: Session = Depends(get_db)):
     """Delete a video."""
     _ = crud.video.delete(db=db, id=id)
     return
+
+
+@router.patch("/{id}/", status_code=200, response_model=VideoResponse)
+async def patch_video(id: int, video: VideoPatch, db: Session = Depends(get_db)):
+    """Update a video in the database."""
+    update_video = video.model_dump(exclude_none=True, exclude={"id"})
+    video = crud.video.update(db=db, id=id, video=update_video)
+    return video
 
 
 @router.post("/delete/", status_code=204, response_model=None)

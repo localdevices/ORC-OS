@@ -32,7 +32,7 @@ def add(db: Session, recipe: models.Recipe) -> models.Recipe:
 
 
 def update(db: Session, id: int, recipe: dict):
-    """Update a cross-section record using a dict of potentially modified fields."""
+    """Update a recipe record using a dict of potentially modified fields."""
     rec = get_query_by_id(db=db, id=id)
     if not rec.first():
         raise ValueError(f"Recipe with id {id} does not exist. Create a record first.")
@@ -44,7 +44,7 @@ def update(db: Session, id: int, recipe: dict):
 
 
 def delete(db: Session, id: int):
-    """Delete a single video."""
+    """Delete a single recipe."""
     query = db.query(models.Recipe).filter(models.Recipe.id == id)
     if query.count() == 0:
         raise ValueError(f"Recipe with id {id} does not exist.")
