@@ -5,6 +5,8 @@ import MessageBox from "../messageBox.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
+import CrossSectionForm from "./VideoConfigComponents/crossSectionForm.jsx";
+
 import {useMessage} from "../messageContext.jsx";
 
 const VideoConfig = () => {
@@ -13,6 +15,7 @@ const VideoConfig = () => {
   const [recipe, setRecipe] = useState(null); // Video metadata
   const [cameraConfig, setCameraConfig] = useState(null); // Video metadata
   const [videoConfig, setVideoConfig] = useState(null);
+  const [crossSection, setCrossSection] = useState({}); // Video metadata
   const [CSDischarge, setCSDischarge] = useState({}); // Video metadata
   const [CSWaterLevel, setCSWaterLevel] = useState({}); // Video metadata
   const [activeTab, setActiveTab] = useState('configDetails');
@@ -94,8 +97,8 @@ const VideoConfig = () => {
   return (
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
+      <MessageBox/>
       <div className="split-screen">
-        <MessageBox/>
         <div className="flex-container column no-padding">
         <div className="flex-container column">
           <h5>Image view</h5>
@@ -194,8 +197,15 @@ const VideoConfig = () => {
                     )}
                   {activeTab === 'crossSection' &&
                     (
-                      <p>placeholder</p>
-
+                      <CrossSectionForm
+                        crossSection={crossSection}
+                        CSDischarge={CSDischarge}
+                        CSWaterLevel={CSWaterLevel}
+                        setCrossSection={setCrossSection}
+                        setCSDischarge={setCSDischarge}
+                        setCSWaterLevel={setCSWaterLevel}
+                        setMessageInfo={setMessageInfo}
+                      />
                     )
                   }
                 </div>

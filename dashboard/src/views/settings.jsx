@@ -56,15 +56,13 @@ const Settings = () => {
         });
     }
     const handleInputDropdown = (event) => {
-        console.log(event.target);
+        console.log(event);
         const { name, value, type } = event.target;
         event.target.value = value;
         setFormData({
             ...formData,
-            [name]: value
+            [name]: parseInt(value)
         });
-        // just to check
-        console.log(formData);
     }
     const handleInputIntChange = (event) => {
         const { name, value, type } = event.target;
@@ -108,7 +106,7 @@ const Settings = () => {
     return (
         <div className='container'>
             <MessageBox/>
-            Change your general settings.
+            Change your Daemon settings for automated processing of videos and water levels.
             <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>

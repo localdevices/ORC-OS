@@ -1,254 +1,191 @@
 import api from "../../api.js";
 import {useEffect, useState, useRef} from "react";
+import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 
 const CrossSectionForm = (
   {
-    selectedCSDischarge,
-    selectedCSWaterLevel,
-    setSelectedCSDischarge,
-    setSelectedCSWaterLevel,
+    crossSection,
+    CSDischarge,
+    CSWaterLevel,
+    setCrossSection,
+    setCSDischarge,
+    setCSWaterLevel,
     setMessageInfo
   }
 ) => {
+  // form data as the user sees it on the screen
   const [formData, setFormData] = useState({
-    id: '',
     name: '',
-    features: ''
+    file: null
   });
+  // form data as posted to store in back end
+  const [formSubmitData, setFormSubmitData] = useState({
+    name: '',
+    features: {}
+  })
+
   const [showJsonData, setShowJsonData] = useState(false);
-  const [coordinates, setCoordinates] = useState({x: [], y: [], z: []});
+  const [availableCrossSections, setAvailableCrossSections] = useState([]);
 
   useEffect(() => {
-    if (selectedCrossSection) {
-      setFormData({
-        id: selectedCrossSection.id || '',
-        name: selectedCrossSection.name || '',
-        features: JSON.stringify(selectedCrossSection.features, null, 4) || '',
-      });
-
-      // Extract coordinates from features
+    const fetchCrossSections = async () => {
       try {
-        const features = typeof selectedCrossSection.features === 'string'
-          ? JSON.parse(selectedCrossSection.features)
-          : selectedCrossSection.features;
-
-        if (features && features.coordinates) {
-          const coords = features.coordinates.map(point => ({
-            x: point[0],
-            y: point[1],
-            z: point[2]
-          }));
-
-          setCoordinates({
-            x: coords.map(c => c.x),
-            y: coords.map(c => y),
-            z: coords.map(c => c.z)
-          });
-        }
+        const response = await api.get('/cross_section');
+        setAvailableCrossSections(response.data);
       } catch (error) {
-        console.error('Error parsing coordinates:', error);
+        setMessageInfo({
+          type: 'error',
+          message: 'Failed to fetch cross sections: ' + error.message
+        });
       }
-    } else {
-      setFormData({
-        name: '',
-        id: '',
-        features: '',
-      });
-      setCoordinates({x: [], y: [], z: []});
-    }
-  }, [selectedCrossSection]);
+    };
+    fetchCrossSections();
+  }, []);
 
-
-  // Utility function to safely parse JSON
-  const safelyParseJSON = (jsonString) => {
-    try {
-      return JSON.parse(jsonString); // Parse if valid JSON string
-    } catch (error) {
-      console.warn("Invalid JSON string:", error);
-      return jsonString; // Fallback: Leave it as the original string
-    }
-  };
-
-  const submitData = (formData) => {
-    // convert form data into JSON parsed object
-    return {
-      ...(formData.id && { id: formData.id }), // Include `id` only if it exists (truthy)
-      name: formData.name,
-      features: safelyParseJSON(formData.features),
-    }
-  }
-
-  const handleInputChange = async (event) => {
+  const handleDischargeCS = async (event) => {
+    console.log(event.target.value);
     const {name, value, type} = event.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: type === "number" ? parseInt(value) : value
-    }
-    setFormData(updatedFormData);
-
     try {
-      const response = await api.post('/cross_section/update/', submitData(updatedFormData));
-      setSelectedCrossSection(response.data);
+      const response = await api.get(`cross_section/${value}`);
+      setCSDischarge(response.data);
+      setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
+
     } catch (error) {
-      console.error('Error updating GeoJSON:', error);
+      setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
+    }
+    console.log(CSDischarge);
+  }
+
+  const handleInputChange = (event) => {
+    console.log(event.target.files);
+    const value = event.target.type === 'file' ? event.target.files[0] : event.target.value;
+
+    setFormData({
+      ...formData,
+      [event.target.name]: value
+    });
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      await loadFile();
+      // Additional steps after successful file load
+      console.log("processing cross section data...")
+      if (formData.name) {
+        setFormSubmitData({
+          name: formData.name,
+          features: crossSection.features,
+        });
+        console.log(formSubmitData);
+        await api.post('/cross_section/', formSubmitData);
+        setMessageInfo('success', 'Successfully created cross section');
+      }
+    } catch (error) {
+      console.log("File loading not successful, do nothing...");
     }
   }
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
-    // Dynamically filter only fields with non-empty values
-    const filteredData = Object.fromEntries(
-      Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-    );
-    // predefine response object
-    let response;
+  const loadFile = async () => {
     try {
-      console.log(submitData(filteredData));
 
-      if (filteredData.id === undefined) {
-        response = await api.post('/cross_section/', submitData(filteredData));
-      } else {
-        response = await api.patch(`/cross_section/${filteredData.id}`, submitData(filteredData));
+      if (!formData.file) {
+        setMessageInfo('error', 'Please select a file');
+        return;
       }
-      console.log(response);
-      if (response.status !== 201 && response.status !== 200) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
+
+      const fileFormData = new FormData();
+      fileFormData.append("file", formData.file);
+
+      try {
+        const response = await api.post(
+          '/cross_section/from_csv/',
+          fileFormData,
+          {headers: {"Content-Type": "multipart/form-data"}}
+        );
+        setCrossSection(response.data);
+        setMessageInfo('success', 'Successfully uploaded CSV file');
+        return;
+      } catch (csvError) {
+        try {
+          const geoJsonResponse = await api.post(
+            '/cross_section/from_geojson/',
+            fileFormData,
+            {headers: {"Content-Type": "multipart/form-data"}}
+          );
+          setCrossSection(geoJsonResponse.data);
+          setMessageInfo('success', 'Successfully uploaded GeoJSON file');
+          return;
+        } catch (geoJsonError) {
+          throw new Error(`Failed to parse file as CSV (${csvError.response.data.detail}) or as GeoJSON (${geoJsonError.response.data.detail})`);
+        }
       }
-      // reload page
-      window.location.reload();
-      setSelectedCrossSection({})
-      // set the form data to new device settings
-      setFormData({
-        name: '',
-        id: '',
-        features: ''
-      });
-      setMessageInfo('success', 'Cross section stored successfully');
-    } catch (err) {
-      setMessageInfo('Error while storing cross section', err.response.data);
+    } catch (error) {
+      console.error("Error occurred during file upload:", error);
+      setMessageInfo('error', `Error: ${error.response?.data?.detail || error.message}`);
+      throw new Error(error);  // exit function with error so that we can catch that outside of this function
     }
-  };
-
+  }
 
   return (
-    <div>
-      <form onSubmit={handleFormSubmit}>
+    <div className="split-screen">
+      <div className='container' style={{marginTop: '5px'}}>
+        <h5>Create new cross sections</h5>
+        <form onSubmit={handleSubmit}>
         <div className='mb-3 mt-3'>
-          <label htmlFor='id' className='form-label'>
-            Cross section ID
-          </label>
-          <input type='str' className='form-control' id='id' name='id' value={formData.id} disabled />
-        </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='name' className='form-label'>
-            Name of cross section
-          </label>
-          <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required />
-        </div>
-        <button type='submit' className='btn'>
-          Submit
-        </button>
+            <label htmlFor='name' className='form-label'>
+              Name of cross section
+            </label>
+            <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required/>
 
-        <div className="mb-3 mt-3">
-          <h6>Cross section top view</h6>
-          <Line
-            data={{
-              labels: selectedCrossSection.x,
-              datasets: [
-                {
-                  label: 'Cross Section Profile',
-                  data: selectedCrossSection.y,
-                  fill: false,
-                  borderColor: 'rgb(75, 192, 192)',
-                  tension: 0.1
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              scales: {
-                x: {
-                  title: {
-                    display: true,
-                    text: 'X (m)'
-                  }
-                },
-                y: {
-                  title: {
-                    display: true,
-                    text: 'Y (m)'
-                  }
-                }
-              }
-            }}
-          />
-        </div>
-        <div className="mb-3 mt-3">
-          <h6>Cross section side view</h6>
-          <Line
-            data={{
-              labels: selectedCrossSection.s,
-              datasets: [
-                {
-                  label: 'Cross Section Profile',
-                  data: selectedCrossSection.z,
-                  fill: false,
-                  borderColor: 'rgb(75, 192, 192)',
-                  tension: 0.1
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              scales: {
-                x: {
-                  title: {
-                    display: true,
-                    text: 'left-right (m)'
-                  }
-                },
-                y: {
-                  title: {
-                    display: true,
-                    text: 'Z (m)'
-                  }
-                }
-              }
-            }}
-          />
-        </div>
-
-        <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
-          <div className="form-check form-switch">
-            <label className="form-label" htmlFor="toggleJson" style={{ marginLeft: '0' }}></label>
-            <input
-              style={{width: "40px", height: "20px", borderRadius: "15px"}}
-              className="form-check-input"
-              type="checkbox"
-              role="switch"
-              id="toggleJson"
-              onClick={() => setShowJsonData(!showJsonData)}
-            />
           </div>
-        </div>
-
-        {showJsonData && (
-          <div className="mb-3">
-            <label htmlFor="features" className="form-label">JSON Data</label>
-            <textarea
-              id="features"
-              className="form-control"
-              rows="50"
-              value={formData.features}
-              onChange={handleInputChange}
-            ></textarea>
+          <div className='mb-3 mt-3'>
+            <label htmlFor='file' className='form-label'>
+              Choose file (.csv with X, Y, Z, or GeoJSON)
+            </label>
+            <input type='file' className='form-control' id='file' name='file'
+                   accept=".geojson,.csv" onChange={handleInputChange} required/>
           </div>
-        )}
-        <div>
-        </div>
 
-      </form>
+          <button type='submit' className='btn'>
+            Submit
+          </button>
+
+          <div className="mb-3 mt-3">
+
+            <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
+              <div className="form-check form-switch">
+                <label className="form-label" htmlFor="toggleJson" style={{marginLeft: '0'}}></label>
+                <input
+                  style={{width: "40px", height: "20px", borderRadius: "15px"}}
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="toggleJson"
+                  onClick={() => setShowJsonData(!showJsonData)}
+                />
+              </div>
+            </div>
+
+            {showJsonData && (
+              <div className="mb-3">
+                <label htmlFor="features" className="form-label">JSON Data</label>
+                <textarea
+                  id="features"
+                  className="form-control"
+                  rows="50"
+                  // value={formData.features}
+                  // onChange={handleInputChange}
+                ></textarea>
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
+      <div className='container' style={{marginTop: '5px'}}>
+        <h5>Select discharge cross section</h5>
+        <DropdownMenu dropdownLabel="Discharge cross section" callbackFunc={handleDischargeCS} data={availableCrossSections}/>
+      </div>
     </div>
 
   )

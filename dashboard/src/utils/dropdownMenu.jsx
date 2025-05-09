@@ -9,7 +9,7 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data}) => {
       </label>
       <select
         id={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`}
-        onChange={(event) => callbackFunc(event.target.value)}
+        onChange={(event) => callbackFunc(event)}
         className='form-control'
       >
         <option value="" disabled selected>
