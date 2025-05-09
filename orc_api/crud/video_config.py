@@ -47,10 +47,11 @@ def add(db: Session, video_config: models.VideoConfig) -> models.VideoConfig:
 
 def update(db: Session, id: int, video_config: dict):
     """Update a video record using the VideoResponse instance."""
-    rec = get_query_by_id(db=db, id=id)
-    if not rec.first():
+    record = get_query_by_id(db=db, id=id).first()
+    if not record:
         raise ValueError(f"Video config with id {id} does not exist. Create a record first.")
-    rec.update(video_config)
+    for key, value in video_config.items():
+        setattr(record, key, value)
     db.commit()
     db.flush()
-    return rec.first()
+    return record

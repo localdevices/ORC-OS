@@ -134,7 +134,8 @@ class VideoResponse(VideoBase, RemoteModel):
         update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
         if self.time_series:
             update_data["time_series_id"] = self.time_series.id
-        crud.video.update(get_session(), id=self.id, video=update_data)
+        with get_session() as session:
+            crud.video.update(session, id=self.id, video=update_data)
 
     def sync_remote(self, base_path: str, site: int, institute: int, sync_file: bool = True, sync_image: bool = True):
         """Send the recipe to LiveORC API.
@@ -223,7 +224,7 @@ class VideoResponse(VideoBase, RemoteModel):
 
     def get_discharge_file(self, base_path: str):
         """Get discharge file name."""
-        fn = os.path.join(base_path, "output", "transect_transect_1.nc")
+        fn = os.path.join(self.get_path(base_path), "output", "transect_transect_1.nc")
         if os.path.exists(fn):
             return fn
         else:
@@ -254,12 +255,15 @@ class VideoResponse(VideoBase, RemoteModel):
             "q_95": Q[4] if np.isfinite(Q[4]) else None,
             "fraction_velocimetry": perc_measured[2] if np.isfinite(perc_measured[2]) else None,
         }
-        if id:
-            crud.time_series.update(get_session(), id=id, time_series=update_data)
-        else:
-            # create a new record, happens when optical water level detection has been applied
-            ts = crud.time_series.add(get_session(), models.TimeSeries(**update_data))
-            self.time_series = ts
+        with get_session() as session:
+            if id:
+                crud.time_series.update(session, id=id, time_series=update_data)
+            else:
+                # add the time stamp of the video as a valid time stamp
+                update_data["timestamp"] = self.timestamp
+                # create a new record, happens when optical water level detection has been applied
+                ts = crud.time_series.add(session, models.TimeSeries(**update_data))
+                self.time_series = ts
 
 
 class DownloadVideosRequest(BaseModel):

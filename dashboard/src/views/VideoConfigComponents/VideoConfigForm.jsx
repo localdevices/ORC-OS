@@ -67,7 +67,6 @@ const VideoConfigForm = (
     }
     // the entire video config is stored in one go
     if (CSDischarge?.name === undefined) {
-      console.log(filteredData)
       CSDischarge.name = filteredData.name;
     }
     if (CSWaterLevel?.name === undefined) {
@@ -81,15 +80,23 @@ const VideoConfigForm = (
     }
     if (CSDischarge.features) {
       filteredData.cross_section = CSDischarge
+    } else {
+      filteredData.cross_section = null;
     }
     if (CSWaterLevel.features) {
       filteredData.cross_section_wl = CSWaterLevel
+    } else {
+      filteredData.cross_section_wl = null;
     }
     if (recipe.data) {
       filteredData.recipe = recipe
+    } else {
+      filteredData.recipe = null;
     }
     if (cameraConfig.data) {
       filteredData.camera_config = cameraConfig
+    } else {
+      filteredData.camera_config = null;
     }
 
     // predefine response object

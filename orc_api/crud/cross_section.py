@@ -31,6 +31,17 @@ def add(db: Session, cross_section: models.CrossSection) -> models.CrossSection:
     return cross_section
 
 
+def delete(db: Session, id: int):
+    """Delete a single recipe."""
+    query = db.query(models.CrossSection).filter(models.CrossSection.id == id)
+    if query.count() == 0:
+        raise ValueError(f"Cross Section with id {id} does not exist.")
+    recipe = query.first()
+    db.delete(recipe)
+    db.commit()
+    return
+
+
 def update(db: Session, id: int, cross_section: dict):
     """Update a cross-section record using a dict of potentially modified fields."""
     rec = get_query_by_id(db=db, id=id)

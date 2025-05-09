@@ -92,7 +92,10 @@ def schedule_video_checker(scheduler, logger, session):
         # validate the settings model instance
         settings = SettingsResponse.model_validate(settings)
         dm_settings = DiskManagementResponse.model_validate(dm)
-        logger.info('Daemon settings found: setting up interval job "video_check_job"')
+        logger.info(
+            f'Daemon settings found: setting up interval job "video_check_job" with path: {dm_settings.incoming_path} '
+            f"and file template: {settings.video_file_fmt}"
+        )
         scheduler.add_job(
             func=async_job_wrapper,
             kwargs={

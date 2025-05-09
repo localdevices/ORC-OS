@@ -167,14 +167,14 @@ async def get_image(id: int, db: Session = Depends(get_db)):
 async def upload_video(
     file: UploadFile,
     timestamp: datetime = Form(...),
-    video_config: Optional[int] = Form(None),
+    video_config_id: Optional[int] = Form(None),
     db: Session = Depends(get_db),
 ):
     """Upload a video file and create a new entry in the database."""
     # validate the individual inputs
-    video = VideoCreate(timestamp=timestamp, video_config=video_config)
+    video = VideoCreate(timestamp=timestamp, video_config_id=video_config_id)
     # Create a new Video instance to retrieve an id
-    video_instance = Video(**video.model_dump())
+    video_instance = Video(**video.model_dump(exclude_none=True))
 
     # Save to database
     video_instance = crud.video.add(db=db, video=video_instance)

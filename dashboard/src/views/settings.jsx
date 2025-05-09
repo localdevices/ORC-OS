@@ -16,7 +16,7 @@ const Settings = () => {
         shutdown_after_task: false,
         parse_dates_from_file: true,
         reboot_after: '',
-        video_config: '',
+        video_config_id: '',
     });
     // set message box
     const {setMessageInfo} = useMessage();
@@ -43,7 +43,7 @@ const Settings = () => {
                 shutdown_after_task: settings.shutdown_after_task || '',
                 parse_dates_from_file: settings.parse_dates_from_file || '',
                 reboot_after: settings.reboot_after || '',
-                video_config: settings.video_config || '',
+                video_config_id: settings.video_config_id || '',
             });
         }
     }, [settings]);
@@ -56,12 +56,11 @@ const Settings = () => {
         });
     }
     const handleInputDropdown = (event) => {
-        console.log(event);
         const { name, value, type } = event.target;
         event.target.value = value;
         setFormData({
             ...formData,
-            [name]: parseInt(value)
+            ["video_config_id"]: value
         });
     }
     const handleInputIntChange = (event) => {
@@ -97,7 +96,7 @@ const Settings = () => {
                 shutdown_after_task: '',
                 parse_dates_from_file: '',
                 reboot_after: '',
-                video_config: ''
+                video_config_id: ''
             });
         } catch (err) {
             setMessageInfo('error', err.response.data);
@@ -171,6 +170,7 @@ const Settings = () => {
                     dropdownLabel={"Video configurations"}
                     callbackFunc={handleInputDropdown}
                     data={videoConfigs}
+                    value={formData.video_config_id}
                   />
                 </div>
                 <button type='submit' className='btn'>

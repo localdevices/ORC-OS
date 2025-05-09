@@ -21,7 +21,7 @@ router: APIRouter = APIRouter(prefix="/cross_section", tags=["cross_section"])
 
 @router.delete("/{id}/", status_code=204, response_model=None)
 async def delete_cs(id: int, db: Session = Depends(get_db)):
-    """Delete a recipe."""
+    """Delete a cross section."""
     _ = crud.cross_section.delete(db=db, id=id)
     return
 

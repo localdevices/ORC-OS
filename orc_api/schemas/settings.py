@@ -7,9 +7,10 @@ from typing import Optional
 from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
-from orc_api import TMP_DIRECTORY, UPLOAD_DIRECTORY
+from orc_api import TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.routers.video import upload_video
+from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import disk_management
 
 
@@ -50,6 +51,13 @@ class SettingsResponse(SettingsBase):
     # ensure instances can be created from sqlalchemy model instances
     model_config = ConfigDict(from_attributes=True)
 
+    @property
+    def video_config(self):
+        """Return the VideoConfigResponse."""
+        with get_session() as session:
+            vc = crud.video_config.get(db=session, id=self.video_config_id)
+            return VideoConfigResponse.model_validate(vc) if vc else None
+
     async def check_new_videos(self, path_incoming, app, logger):
         """Check for new videos in incoming folder, add to database and queue if ready to run."""
         # check the incoming folder
@@ -80,7 +88,7 @@ class SettingsResponse(SettingsBase):
                 file = UploadFile(filename=os.path.split(tmp_file)[1], file=open(tmp_file, "rb"))
                 with get_session() as session:
                     video_response = await upload_video(
-                        file=file, timestamp=timestamp, video_config=self.video_config_id, db=session
+                        file=file, timestamp=timestamp, video_config_id=self.video_config_id, db=session
                     )
                 if video_response:
                     ready_to_run, msg = video_response.ready_to_run
