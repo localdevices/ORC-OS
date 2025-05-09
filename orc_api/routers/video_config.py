@@ -128,17 +128,3 @@ async def post_video_config(video_config: VideoConfigBase, db: Session = Depends
         video_config_rec = VideoConfig(**video_config_dict)
         video_config = crud.video_config.add(db=db, video_config=video_config_rec)
     return video_config
-    # crud.video_config.add(db=db, video_config=video_config)
-    #
-    # video_config.camera_config = camera_config
-    # video_config.recipe = recipe
-    # video_config.cross_section = cross_section
-    # video_config.cross_section_wl = cross_section_wl
-
-    return video_config
-
-    # if video_config.id:
-    #     video_config = crud.video_config.update(db=db, video_config=video_config)
-    # else:
-    #     video_config = crud.video_config.add(db=db, video_config=video_config)
-    # return video_config

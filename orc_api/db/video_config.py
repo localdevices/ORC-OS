@@ -17,7 +17,10 @@ class VideoConfig(RemoteBase):
     cross_section_id: Mapped[int] = mapped_column(Integer, ForeignKey("cross_section.id"), nullable=True)
     cross_section_wl_id: Mapped[int] = mapped_column(Integer, ForeignKey("cross_section.id"), nullable=True)
     sample_video_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("video.id"), nullable=True, comment="Video containing sampling information such as GCPs"
+        Integer,
+        ForeignKey("video.id", ondelete="RESTRICT"),
+        nullable=True,
+        comment="Video containing sampling information such as GCPs",
     )
     rvec: Mapped[list[float]] = mapped_column(
         JSON,

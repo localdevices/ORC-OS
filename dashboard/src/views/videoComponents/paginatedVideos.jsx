@@ -48,7 +48,6 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
 
   // update list of videos when changes in a video occur
   useEffect(() => {
-    console.log("VIDEO SELECTED")
     api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
       .then((response) => {
         setData(response.data);
@@ -324,76 +323,43 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
 
           content: {
             maxWidth: "500px",
+            maxHeight: "400px",
             margin: "auto",
             padding: "20px",
           },
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>Video Configurations</h2>
-        <button
-          style={{
-            background: "none",
-            border: "none",
-            fontSize: "1.5rem",
-            cursor: "pointer",
-            lineHeight: "1",
-          }}
-          onClick={() => setShowConfigModal(false)}
-          aria-label="Close"
-        >
-          &times;
-        </button>
+        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+          <h2>Video Configurations</h2>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "1.5rem",
+              cursor: "pointer",
+              lineHeight: "1",
+            }}
+            onClick={() => setShowConfigModal(false)}
+            aria-label="Close"
+          >
+            &times;
+          </button>
         </div>
 
         {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
         <h5>Select an Existing Config:</h5>
-        <DropdownMenu
-          dropdownLabel="Video configurations"
-          callbackFunc={handleConfigSelection}
-          data={availableVideoConfigs}
-        />
-
-        {/*<select*/}
-        {/*  onChange={(event) => handleConfigSelection(event.target.value)}*/}
-        {/*>*/}
-        {/*  <option value="" disabled selected>*/}
-        {/*    Select a configuration*/}
-        {/*  </option>*/}
-        {/*  {availableVideoConfigs.length > 0 ? (*/}
-        {/*    availableVideoConfigs.map((config) => (*/}
-        {/*      <option key={config.id} value={config.id}>*/}
-        {/*        {config.name}*/}
-        {/*      </option>*/}
-        {/*    ))*/}
-        {/*  ) : (*/}
-        {/*    <option disabled>No existing configurations available.</option>*/}
-        {/*  )}*/}
-        {/*</select>*/}
-
-        {/*<ul>*/}
-        {/*  {availableVideoConfigs.length > 0 ? (*/}
-        {/*    availableVideoConfigs.map((config) => (*/}
-        {/*      <li key={config.id}>*/}
-        {/*        {config.name}*/}
-        {/*        <button*/}
-        {/*          style={{ marginLeft: "10px" }}*/}
-        {/*          onClick={() =>*/}
-        {/*            alert(`Configured video: ${selectedVideo.id} with config: ${config.name}`)*/}
-        {/*          }*/}
-        {/*        >*/}
-        {/*          Use*/}
-        {/*        </button>*/}
-        {/*      </li>*/}
-        {/*    ))*/}
-        {/*  ) : (*/}
-        {/*    <p>No existing configurations available.</p>*/}
-        {/*  )}*/}
-        {/*</ul>*/}
-
-        <h5>Create a New Config:</h5>
-        <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Create config</button>
-
+        <div className="container">
+          <DropdownMenu
+            dropdownLabel="Video configurations"
+            callbackFunc={handleConfigSelection}
+            data={availableVideoConfigs}
+            value={selectedVideo.video_config_id}
+          />
+        </div>
+        <div className="container">
+          <h5>Create new or edit existing config:</h5>
+          <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Edit</button>
+        </div>
       </Modal>
 
 
@@ -495,17 +461,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
                 >
                   Close
                 </button>
-                {/*<button*/}
-                {/*  type="button"*/}
-                {/*  className="btn btn-primary"*/}
-                {/*  onClick={() => {*/}
-                {/*    // Save the changes (optional Axios PUT/POST call)*/}
-                {/*    console.log('Updated video:', selectedVideo);*/}
-                {/*    closeModal();*/}
-                {/*  }}*/}
-                {/*>*/}
-                {/*  Save Changes*/}
-                {/*</button>*/}
+
               </div>
             </div>
           </div>

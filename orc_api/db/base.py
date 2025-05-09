@@ -26,4 +26,6 @@ class RemoteBase(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
     remote_id: Mapped[int] = mapped_column(Integer, nullable=True, unique=True)
-    sync_status: Mapped[enum.Enum] = mapped_column(Enum(SyncStatus), nullable=True, default=SyncStatus.LOCAL)
+    sync_status: Mapped[enum.Enum] = mapped_column(
+        Enum(SyncStatus), nullable=True, default=SyncStatus.LOCAL, index=True
+    )
