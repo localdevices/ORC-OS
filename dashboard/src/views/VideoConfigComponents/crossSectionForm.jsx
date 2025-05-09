@@ -82,7 +82,7 @@ const CrossSectionForm = (
         setMessageInfo('success', 'Successfully created cross section');
       }
     } catch (error) {
-      console.log("File loading not successful, do nothing...");
+      console.log("File loading not successful, do nothing...", error);
     }
   }
 
@@ -128,8 +128,8 @@ const CrossSectionForm = (
   }
 
   return (
-    <div className="split-screen">
-      <div className='container' style={{marginTop: '5px'}}>
+    <div className="split-screen" style={{overflow: 'auto'}}>
+      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Create new cross sections</h5>
         <form onSubmit={handleSubmit}>
         <div className='mb-3 mt-3'>
