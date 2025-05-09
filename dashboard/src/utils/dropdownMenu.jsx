@@ -1,19 +1,20 @@
 import PropTypes from 'prop-types';
 
-export const DropdownMenu = ({dropdownLabel, callbackFunc, data}) => {
+export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value}) => {
 
   return (
     <>
-      <label htmlFor={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`} className='form-label'>
+    <label htmlFor={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`} className='form-label'>
         {dropdownLabel}
       </label>
       <select
         id={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`}
         onChange={(event) => callbackFunc(event)}
         className='form-control'
+        value={value || ""}
       >
-        <option value="" disabled selected>
-          {"-- Select " + dropdownLabel + " --"}
+        <option value="">
+        {"-- No value selected --"}
         </option>
         {data.length > 0 ? (
           data.map((item) => (
@@ -26,7 +27,8 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data}) => {
         )}
       </select>
     </>
-  )
+)
+  ;
 };
 DropdownMenu.propTypes = {
   dropdownLabel: PropTypes.string.isRequired,
@@ -36,5 +38,6 @@ DropdownMenu.propTypes = {
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired
     })
-  ).isRequired
+  ).isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
 };

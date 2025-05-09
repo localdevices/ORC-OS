@@ -43,7 +43,6 @@ const CrossSectionForm = (
   }, []);
 
   const handleDischargeCS = async (event) => {
-    console.log(event.target.value);
     const {name, value, type} = event.target;
     try {
       const response = await api.get(`cross_section/${value}`);
@@ -53,11 +52,21 @@ const CrossSectionForm = (
     } catch (error) {
       setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
     }
-    console.log(CSDischarge);
+  }
+
+  const handleWaterLevelCS = async (event) => {
+    const {name, value, type} = event.target;
+    try {
+      const response = await api.get(`cross_section/${value}`);
+      setCSWaterLevel(response.data);
+      setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
+
+    } catch (error) {
+      setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
+    }
   }
 
   const handleInputChange = (event) => {
-    console.log(event.target.files);
     const value = event.target.type === 'file' ? event.target.files[0] : event.target.value;
 
     setFormData({
@@ -69,16 +78,15 @@ const CrossSectionForm = (
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      await loadFile();
+      const crossSectionData = await loadFile();
       // Additional steps after successful file load
       console.log("processing cross section data...")
       if (formData.name) {
-        setFormSubmitData({
+        const updatedFormSubmitData = {
           name: formData.name,
-          features: crossSection.features,
-        });
-        console.log(formSubmitData);
-        await api.post('/cross_section/', formSubmitData);
+          features: crossSectionData.features,
+        };
+        await api.post('/cross_section/', updatedFormSubmitData);
         setMessageInfo('success', 'Successfully created cross section');
       }
     } catch (error) {
@@ -103,9 +111,8 @@ const CrossSectionForm = (
           fileFormData,
           {headers: {"Content-Type": "multipart/form-data"}}
         );
-        setCrossSection(response.data);
         setMessageInfo('success', 'Successfully uploaded CSV file');
-        return;
+        return response.data;
       } catch (csvError) {
         try {
           const geoJsonResponse = await api.post(
@@ -113,9 +120,9 @@ const CrossSectionForm = (
             fileFormData,
             {headers: {"Content-Type": "multipart/form-data"}}
           );
-          setCrossSection(geoJsonResponse.data);
+
           setMessageInfo('success', 'Successfully uploaded GeoJSON file');
-          return;
+          return geoJsonResponse.data;
         } catch (geoJsonError) {
           throw new Error(`Failed to parse file as CSV (${csvError.response.data.detail}) or as GeoJSON (${geoJsonError.response.data.detail})`);
         }
@@ -123,7 +130,7 @@ const CrossSectionForm = (
     } catch (error) {
       console.error("Error occurred during file upload:", error);
       setMessageInfo('error', `Error: ${error.response?.data?.detail || error.message}`);
-      throw new Error(error);  // exit function with error so that we can catch that outside of this function
+      throw error;  // exit function with error so that we can catch that outside of this function
     }
   }
 
@@ -150,41 +157,17 @@ const CrossSectionForm = (
           <button type='submit' className='btn'>
             Submit
           </button>
-
-          <div className="mb-3 mt-3">
-
-            <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
-              <div className="form-check form-switch">
-                <label className="form-label" htmlFor="toggleJson" style={{marginLeft: '0'}}></label>
-                <input
-                  style={{width: "40px", height: "20px", borderRadius: "15px"}}
-                  className="form-check-input"
-                  type="checkbox"
-                  role="switch"
-                  id="toggleJson"
-                  onClick={() => setShowJsonData(!showJsonData)}
-                />
-              </div>
-            </div>
-
-            {showJsonData && (
-              <div className="mb-3">
-                <label htmlFor="features" className="form-label">JSON Data</label>
-                <textarea
-                  id="features"
-                  className="form-control"
-                  rows="50"
-                  // value={formData.features}
-                  // onChange={handleInputChange}
-                ></textarea>
-              </div>
-            )}
-          </div>
         </form>
       </div>
+      <div className='container'>
       <div className='container' style={{marginTop: '5px'}}>
         <h5>Select discharge cross section</h5>
-        <DropdownMenu dropdownLabel="Discharge cross section" callbackFunc={handleDischargeCS} data={availableCrossSections}/>
+        <DropdownMenu dropdownLabel="Discharge cross section" callbackFunc={handleDischargeCS} data={availableCrossSections} value={CSDischarge.id}/>
+      </div>
+      <div className='container' style={{marginTop: '5px'}}>
+        <h5>Select optical water level cross section</h5>
+        <DropdownMenu dropdownLabel="Optical water level cross section" callbackFunc={handleWaterLevelCS} data={availableCrossSections} value={CSWaterLevel.id}/>
+      </div>
       </div>
     </div>
 

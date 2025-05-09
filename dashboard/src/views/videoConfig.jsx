@@ -6,6 +6,7 @@ import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
 import CrossSectionForm from "./VideoConfigComponents/crossSectionForm.jsx";
+import CrossSectionDisplay from "./VideoConfigComponents/crossSectionDisplay.jsx";
 
 import {useMessage} from "../messageContext.jsx";
 
@@ -212,8 +213,12 @@ const VideoConfig = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{"height": "40%"}}>
+          <div className="flex-container column" style={{"flex-grow": "0", "minHeight": "30%", "overflow-y": "auto", "overflow-x": "hidden"}}>
             <h5>Cross sections</h5>
+              <CrossSectionDisplay
+                CSDischarge={CSDischarge}
+                CSWaterLevel={CSWaterLevel}
+              />
           </div>
         </div>
       </div>

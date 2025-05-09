@@ -75,7 +75,9 @@ async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db
 async def create_cs(cs: CrossSectionCreate, db: Session = Depends(get_db)):
     """Create a new cross-section and store it in the database."""
     # exclude fields that are already in the dict structure of the cross-section
+    print("CROSS SECTION")
     new_cs = CrossSection(**cs.model_dump(exclude_none=True, exclude={"id", "x", "y", "z", "s"}))
+    print(new_cs)
     cs = crud.cross_section.add(db=db, cross_section=new_cs)
     return cs
 
