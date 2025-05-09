@@ -89,7 +89,7 @@ const Navbar = () => {
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/settings" onClick={handleClose}>
-                            General settings
+                            Daemon settings
                         </NavLink>
                     </li>
                     <li>

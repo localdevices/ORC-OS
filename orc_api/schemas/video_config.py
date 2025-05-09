@@ -2,7 +2,7 @@
 
 import copy
 import json
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import geopandas as gpd
 import numpy as np
@@ -12,9 +12,13 @@ from orc_api import crud
 from orc_api.database import get_session
 from orc_api.db import SyncStatus
 from orc_api.schemas.base import RemoteModel
-from orc_api.schemas.camera_config import CameraConfigBase
+from orc_api.schemas.camera_config import CameraConfigResponse
 from orc_api.schemas.cross_section import CrossSectionResponse
 from orc_api.schemas.recipe import RecipeResponse
+
+# only import for type checking on run time, preventing circular imports
+if TYPE_CHECKING:
+    pass
 
 
 def rodrigues_to_matrix(rvec):
@@ -41,25 +45,28 @@ def rodrigues_to_matrix(rvec):
 class VideoConfigBase(BaseModel):
     """Pydantic schema for VideoConfig validation."""
 
-    name: str = Field(..., description="Named description of the video configuration.")
-    camera_config_id: int = Field(..., description="Foreign key to the camera configuration.", ge=1)
-    recipe_id: int = Field(..., description="Foreign key to the recipe.", ge=1)
-    cross_section_id: Optional[int] = Field(None, description="Optional foreign key to the cross section.", ge=1)
-    rvec: conlist(float, min_length=3, max_length=3) = Field(
-        ..., description="Rotation vector for matching CrossSection with CameraConfig."
+    id: Optional[int] = Field(default=None, description="Video configuration ID")
+    name: str = Field(description="Named description of the video configuration.")
+    rvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
+        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection with CameraConfig."
     )
-    tvec: conlist(float, min_length=3, max_length=3) = Field(
-        ..., description="Translation vector for matching CrossSection with CameraConfig."
+    tvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
+        default=[0.0, 0.0, 0.0], description="Translation vector for matching CrossSection with CameraConfig."
     )
-    camera_config: Optional[CameraConfigBase] = Field(
-        None, description="Associated CameraConfig object (if available)."
+    camera_config: Optional[CameraConfigResponse] = Field(
+        default=None, description="Associated CameraConfig object (if available)."
     )
     recipe: Optional[RecipeResponse] = Field(None, description="Associated Recipe object (if available).")
-
     cross_section: Optional[CrossSectionResponse] = Field(
-        None, description="Associated CrossSection object (if available)."
+        default=None, description="Associated CrossSection object (if available)."
+    )
+    cross_section_wl: Optional[CrossSectionResponse] = Field(
+        default=None, description="Associated CrossSection object for water level estimation (if available)."
     )
     model_config = {"from_attributes": True}
+    sample_video_id: Optional[int] = Field(
+        default=None, description="Video ID containing reference information such as GCPs"
+    )
 
     @model_validator(mode="after")
     def match_crs(cls, v):
@@ -112,6 +119,8 @@ class VideoConfigBase(BaseModel):
         """Return the recipe with transects filled with the cross_section_rt."""
         if not self.recipe or not hasattr(self.recipe, "data"):
             raise ValueError("recipe or its data are not defined.")
+        if self.cross_section_rt is None:
+            raise ValueError("cross_section is not defined.")
         recipe = copy.deepcopy(self.recipe.data)
         if "transect" in recipe:
             if "transect_1" in recipe["transect"]:
@@ -119,15 +128,29 @@ class VideoConfigBase(BaseModel):
                     del recipe["transect"]["transect_1"]["shapefile"]
                 # fill in the coordinates
                 recipe["transect"]["transect_1"]["geojson"] = self.cross_section_rt.features
-        recipe_new = self.recipe.model_dump(exclude=["data"])
+        recipe_new = self.recipe.model_dump(exclude={"data"})
         recipe_new["data"] = recipe
         return RecipeResponse(**recipe_new)
 
 
-class VideoConfigResponse(VideoConfigBase, RemoteModel):
+class VideoConfigRemote(VideoConfigBase, RemoteModel):
+    """Remote schema for VideoConfig."""
+
+    pass
+
+
+class VideoConfigResponse(VideoConfigRemote):
     """Response schema for VideoConfig."""
 
-    id: int = Field(description="Video configuration ID")
+    id: Optional[int] = Field(default=None, description="Video configuration ID")
+    camera_config_id: Optional[int] = Field(default=None, description="Foreign key to the camera configuration.", ge=1)
+    recipe_id: Optional[int] = Field(default=None, description="Foreign key to the recipe.", ge=1)
+    cross_section_id: Optional[int] = Field(
+        default=None, description="Optional foreign key to the cross section.", ge=1
+    )
+    cross_section_wl_id: Optional[int] = Field(
+        default=None, description="Optional foreign key to the water level cross section.", ge=1
+    )
 
     def sync_remote(self, site: int, institute: int):
         """Send the recipe to LiveORC API.
@@ -176,3 +199,7 @@ class VideoConfigResponse(VideoConfigBase, RemoteModel):
                 get_session(), id=self.id, video_config=update_video_config.model_dump(exclude_unset=True)
             )
             return VideoConfigResponse.model_validate(r)
+
+
+class VideoConfigPatch(VideoConfigBase):
+    """Patch schema for VideoConfig."""

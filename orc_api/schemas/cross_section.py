@@ -57,7 +57,7 @@ class CrossSectionBase(BaseModel):
 class CrossSectionResponse(CrossSectionBase, RemoteModel):
     """Response model for a cross-section."""
 
-    id: int = Field(description="CrossSection ID")
+    id: Optional[int] = Field(default=None, description="CrossSection ID")
     # in response, name is required
     name: str = Field(description="Free recognizable description of cross section.")
 
@@ -77,7 +77,9 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             # update schema instance
             update_cross_section = CrossSectionResponse.model_validate(response_data)
             r = crud.cross_section.update(
-                get_session(), id=self.id, cross_section=update_cross_section.model_dump(exclude_unset=True)
+                get_session(),
+                id=self.id,
+                cross_section=update_cross_section.model_dump(exclude_unset=True, exclude=["x", "y", "z", "s"]),
             )
             return CrossSectionResponse.model_validate(r)
         return None

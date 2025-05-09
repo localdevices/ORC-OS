@@ -6,6 +6,7 @@ import pytest
 from orc_api import crud
 from orc_api.db import CallbackUrl, SyncStatus
 from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
+from orc_api.schemas.recipe import RecipeRemote
 
 
 def test_video_config_schema(video_config_response):
@@ -65,11 +66,15 @@ def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
     # we here already store recipe and cross section in database with SYNCED statusses. This prevents syncing.
     video_config_response.recipe.sync_status = SyncStatus.SYNCED
     video_config_response.recipe.remote_id = 4
-    crud.recipe.update(session_video_config, 1, video_config_response.recipe.model_dump(exclude_none=True))
+    # prepare remote recipe for update
+    recipe_remote = RecipeRemote.model_validate(video_config_response.recipe.model_dump(exclude_none=True))
+    crud.recipe.update(session_video_config, 1, recipe_remote.model_dump())
     video_config_response.cross_section.sync_status = SyncStatus.SYNCED
     video_config_response.cross_section.remote_id = 3
     crud.cross_section.update(
-        session_video_config, 1, video_config_response.cross_section.model_dump(exclude_none=True)
+        session_video_config,
+        1,
+        video_config_response.cross_section.model_dump(exclude_none=True, exclude=["x", "y", "z", "s"]),
     )
 
     # ensure that we load the right session

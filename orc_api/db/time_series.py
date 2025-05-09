@@ -31,7 +31,7 @@ class TimeSeries(RemoteBase):
 
     __tablename__ = "time_series"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), index=True)
     h: Mapped[float] = mapped_column(Float, nullable=False)
     q_05: Mapped[float] = mapped_column(Float, nullable=True)
     q_25: Mapped[float] = mapped_column(Float, nullable=True)

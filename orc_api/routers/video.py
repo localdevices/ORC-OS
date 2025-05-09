@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import Video
-from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoResponse
+from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoPatch, VideoResponse
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
@@ -81,6 +81,14 @@ async def delete_video(id: int, db: Session = Depends(get_db)):
     """Delete a video."""
     _ = crud.video.delete(db=db, id=id)
     return
+
+
+@router.patch("/{id}/", status_code=200, response_model=VideoResponse)
+async def patch_video(id: int, video: VideoPatch, db: Session = Depends(get_db)):
+    """Update a video in the database."""
+    update_video = video.model_dump(exclude_none=True, exclude={"id"})
+    video = crud.video.update(db=db, id=id, video=update_video)
+    return video
 
 
 @router.post("/delete/", status_code=204, response_model=None)
@@ -159,14 +167,14 @@ async def get_image(id: int, db: Session = Depends(get_db)):
 async def upload_video(
     file: UploadFile,
     timestamp: datetime = Form(...),
-    video_config: Optional[int] = Form(None),
+    video_config_id: Optional[int] = Form(None),
     db: Session = Depends(get_db),
 ):
     """Upload a video file and create a new entry in the database."""
     # validate the individual inputs
-    video = VideoCreate(timestamp=timestamp, video_config=video_config)
+    video = VideoCreate(timestamp=timestamp, video_config_id=video_config_id)
     # Create a new Video instance to retrieve an id
-    video_instance = Video(**video.model_dump())
+    video_instance = Video(**video.model_dump(exclude_none=True))
 
     # Save to database
     video_instance = crud.video.add(db=db, video=video_instance)

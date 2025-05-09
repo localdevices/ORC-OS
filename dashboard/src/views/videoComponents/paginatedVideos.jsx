@@ -1,14 +1,18 @@
 import {useState, useEffect} from "react";
+import { useNavigate } from "react-router-dom";
+import { DropdownMenu } from "../../utils/dropdownMenu.jsx"
+import Modal from "react-modal";
+
 import api from "../../api.js";
 import {FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
 } from "react-icons/fa";
+// import camera icons for video config
+import { TbCameraCancel, TbCameraCheck, TbCameraPin } from "react-icons/tb";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
-import FilterDates from "../../utils/filterDates.jsx";
-import DownloadModal from "./downloadModal.jsx";
+import ActionVideos from "./actionVideos.jsx";
 import {useMessage} from "../../messageContext.jsx";
-import {get_videos_ids} from "../../utils/apiCalls.jsx";
-import DeleteModal from "./deleteModal.jsx";
+import VideoUploader from "./videoUpload.jsx";
 
 const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndDate}) => {
   const [data, setData] = useState(initialData);  // initialize data with currently available
@@ -16,10 +20,11 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const [rowsPerPage, setRowsPerPage] = useState(25); // Rows per page (default 25)
   const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
-  const [selectedVideo, setSelectedVideo] = useState(null); // For modal view, to select the right video
+  const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
+  const [availableVideoConfigs, setAvailableVideoConfigs] = useState([]);
+
   const [showModal, setShowModal] = useState(false); // State for modal visibility
-  const [showDownloadModal, setShowDownloadModal] = useState(false); // State for modal visibility
-  const [showDeleteModal, setShowDeleteModal] = useState(false); // State for modal visibility
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
   // Calculate the index range for records to display
@@ -31,6 +36,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     : [];
   // allow for setting messages
   const {setMessageInfo} = useMessage();
+  const navigate = useNavigate();
 
   // const currentRecords = data.slice(idxFirst, idxLast);  // TODO: replace by a direct API call with limited amount
 
@@ -39,6 +45,34 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     setData(initialData);
     setCurrentPage(1);
   }, [initialData]);
+
+  // update list of videos when changes in a video occur
+  useEffect(() => {
+    api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
+      .then((response) => {
+        setData(response.data);
+        // Calculate the index range for records to display
+      })
+      .catch((error) => {
+        console.error('Error fetching video metadata:', error);
+      });
+  }, [selectedVideo, startDate, endDate]);
+
+
+  // Fetch the existing video configs when the modal is opened
+  useEffect(() => {
+    if (showConfigModal) {
+      api.get("/video_config/") // Replace with your endpoint for fetching video configs
+        .then((response) => {
+          setAvailableVideoConfigs(response.data);
+          console.log(response.data)
+        })
+        .catch((error) => {
+          console.error("Error fetching video configs:", error);
+        });
+    }
+  }, [showConfigModal]);
+
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -76,46 +110,6 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         : [...prevSelectedIds, id] // Add if not already selected
     );
   };
-
-  const handleDeleteSelected = () => {
-    if (selectedIds.length === 0) {
-      alert("No videos selected to delete.");
-      return;
-    }
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} videos?`)) {
-      Promise.all(
-        selectedIds.map((id) => api.delete(`/video/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
-      )
-        .then(() => {
-          // Remove deleted videos from the state
-          const updatedData = data.filter((video) => !selectedIds.includes(video.id));
-          setData(updatedData);
-          setSelectedIds([]);
-          // Adjust current page if necessary
-          if (updatedData.length <= idxFirst) {
-            setCurrentPage((prev) => Math.max(prev - 1, 1));
-          }
-        })
-        .catch((error) => {
-          console.error("Error deleting videos:", error);
-        });
-    }
-  };
-
-
-  const handleDownloadSelected = async () => {
-    if (selectedIds.length === 0) {
-      alert("No videos selected to download.");
-      return;
-    }
-    get_videos_ids(api, selectedIds, setMessageInfo);
-  };
-const handleDownloadBulk = async () => {
-  setShowDownloadModal(true);
-}
-const handleDeleteBulk = async () => {
-  setShowDeleteModal(true);
-}
   //   // Handle the "Run" button action
   // const handleRun = (id) => {
   //   api.post(`/video/${id}/submit`)
@@ -148,21 +142,38 @@ const handleDeleteBulk = async () => {
         });
     }
   };
-  const handleDateFilter = () => {
-    api.get('/video/', {params: {start: startDate, stop: endDate}}) // Retrieve list from api
-      .then((response) => {
-        setData(response.data);
-        // Calculate the index range for records to display
-      })
-      .catch((error) => {
-        console.error('Error fetching video metadata:', error);
-      });
-  }
   // TODO: modal for "View" button action
   const handleView = (video) => {
     setSelectedVideo(video);
     setShowModal(true);
   };
+
+  const handleVideoConfig = (video) => {
+    setSelectedVideo(video); // Set the selected video
+    setShowConfigModal(true); // Open the modal
+  }
+
+  // Function to handle configuration selection and API call
+  const handleConfigSelection = async (selectedConfigId) => {
+    try {
+      // Send a POST request to update the video with the selected configuration
+      const response = await api.patch(`/video/${selectedVideo.id}`, {
+        video_config_id: selectedConfigId, // Pass the selected configuration ID
+      });
+      // Success feedback
+      setMessageInfo('success', `Video configuration selected on ${selectedConfigId}`);
+      setSelectedVideo(null)
+      setShowConfigModal(false);
+    } catch (error) {
+      // Error handling
+      setMessageInfo('error', 'Error while selecting video configuration', err.response.data);
+    }
+  };
+
+  const createNewVideoConfig = (video_id) => {
+    // redirect to editing or creating page for video config
+    navigate(`/video_config/${video_id}`);
+  }
 
   // Close modal
   const closeModal = () => {
@@ -175,7 +186,12 @@ const handleDeleteBulk = async () => {
   return (
     <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
       <div style={{width: "80%", flex: 1, overflow: "auto", padding: "20px"}}>
-       <div>
+        <div>
+          <VideoUploader />
+        </div>
+        <h5>View / edit your videos</h5>
+
+        <div>
         {/* Table */}
         <table className="table table-bordered table-striped">
           <thead>
@@ -195,6 +211,7 @@ const handleDeleteBulk = async () => {
             <th>File</th>
             <th>Timestamp</th>
             <th>Thumbnail</th>
+            <th>Video config</th>
             <th>Time series</th>
             <th>Status</th>
             <th style={{width: "150px", whiteSpace: "nowrap"}}>Actions</th>
@@ -215,6 +232,7 @@ const handleDeleteBulk = async () => {
               <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
               <td>{video.timestamp.slice(0, 19)}</td>
               <td><img src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}/></td>
+              <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
               <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
               <td>{getStatusIcon(video.status)}</td>
               <td>
@@ -234,6 +252,32 @@ const handleDeleteBulk = async () => {
                 >
                   <FaTrash className="danger"/>
                 </button>
+                <button className="btn-icon"
+                      onClick={() => handleVideoConfig(video)}
+                      title={video.video_config ? (
+                        video.video_config.sample_video_id === video.id ? (
+                          "This video acts as a reference video for a video configuration. Click to change video configuration"
+                        ): (
+                          "This video has another video as a reference video. Click to change that video configuration"
+                        )
+                      ) : (
+                        "No video configuration is set. Click to select an existing video configuration or create a new one based on this video, if it contains control point information."
+                      )}
+
+                >
+                  {/*First check if has a config or not,
+                  then check if video id is equal to the sample video id, if so this is a control video*/}
+                  {video.video_config ? (
+                    video.video_config.sample_video_id === video.id ? (
+                      <TbCameraPin style={{"color": "blue"}} size={20} className="btn-icon"/>
+                    ) : (
+                      <TbCameraCheck style={{"color": "green"}} size={20} className="btn-icon"/>
+
+                    )
+                  ) : (
+                    <TbCameraCancel style={{"color": "red"}} size={20} className="pulsating-icon"/>
+                  )}
+                </button>
               </td>
             </tr>
           ))}
@@ -251,67 +295,75 @@ const handleDeleteBulk = async () => {
         </div>
       </div>
       <div style={{flexDirection: "column", flex: 0}}>
-        <FilterDates
+        <ActionVideos
+          data={data}
+          selectedIds={selectedIds}
           startDate={startDate}
           endDate={endDate}
+          idxFirst={idxFirst}
+          setData={setData}
+          setSelectedIds={setSelectedIds}
           setStartDate={setStartDate}
           setEndDate={setEndDate}
-          handleDateFilter={handleDateFilter}
-        />
-        <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
-          <hr/>
-          <h5>Selected</h5>
-          {/*<hr/>*/}
-        {/*<div style={{minWidth: "20%", flex: 0, padding: "20px"}}>*/}
-          <button
-            className="btn"
-            onClick={handleDownloadSelected}
-            disabled={selectedIds.length === 0}
-          >
-            Download
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={handleDeleteSelected}
-            disabled={selectedIds.length === 0}
-          >
-            Delete
-          </button>
-        </div>
-        <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
-          <hr/>
-          <h5>Bulk actions</h5>
-          <button
-            className="btn"
-            onClick={handleDownloadBulk}
-          >
-            Download
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={handleDeleteBulk}
-          >
-            Delete
-          </button>
-        </div>
-
+          setCurrentPage={setCurrentPage}
+          setMessageInfo={setMessageInfo}
+          />
       </div>
-      {showDownloadModal && (
-        <DownloadModal
-          showDownloadModal={showDownloadModal}
-          setShowDownloadModal={setShowDownloadModal}
-          setMessageInfo={setMessageInfo}
-        />
-      )}
-      {showDeleteModal && (
-        <DeleteModal
-          showDeleteModal={showDeleteModal}
-          setShowDeleteModal={setShowDeleteModal}
-          setMessageInfo={setMessageInfo}
-        />
-      )}
+      {/*Modal for selecting a VideoConfig or creating a new Video Config*/}
+      {/* Modal for video config */}
+      <Modal
+        isOpen={showConfigModal}
+        onRequestClose={() => setShowConfigModal(false)}
+        contentLabel="Video Configurations"
 
-      {/*Modal*/}
+        style={{
+          overlay: {
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+          },
+
+          content: {
+            maxWidth: "500px",
+            maxHeight: "400px",
+            margin: "auto",
+            padding: "20px",
+          },
+        }}
+      >
+        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+          <h2>Video Configurations</h2>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "1.5rem",
+              cursor: "pointer",
+              lineHeight: "1",
+            }}
+            onClick={() => setShowConfigModal(false)}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+        </div>
+
+        {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
+        <h5>Select an Existing Config:</h5>
+        <div className="container">
+          <DropdownMenu
+            dropdownLabel="Video configurations"
+            callbackFunc={handleConfigSelection}
+            data={availableVideoConfigs}
+            value={selectedVideo.video_config_id}
+          />
+        </div>
+        <div className="container">
+          <h5>Create new or edit existing config:</h5>
+          <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Edit</button>
+        </div>
+      </Modal>
+
+
+      {/*Modal for editing / analyzing video */}
       {showModal && selectedVideo && (
         <>
         <div className="sidebar-overlay"></div>
@@ -409,17 +461,7 @@ const handleDeleteBulk = async () => {
                 >
                   Close
                 </button>
-                {/*<button*/}
-                {/*  type="button"*/}
-                {/*  className="btn btn-primary"*/}
-                {/*  onClick={() => {*/}
-                {/*    // Save the changes (optional Axios PUT/POST call)*/}
-                {/*    console.log('Updated video:', selectedVideo);*/}
-                {/*    closeModal();*/}
-                {/*  }}*/}
-                {/*>*/}
-                {/*  Save Changes*/}
-                {/*</button>*/}
+
               </div>
             </div>
           </div>

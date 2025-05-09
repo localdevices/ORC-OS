@@ -65,10 +65,12 @@ def session_empty(tmpdir):
     db.Base.metadata.create_all(engine)
     Session = scoped_session(sessionmaker(bind=engine))
     session = Session()
-    yield session
-    # Close the session and drop all tables after tests run
-    session.close()
-    db.Base.metadata.drop_all(engine)
+    try:
+        yield session
+    finally:
+        # Close the session and drop all tables after tests run
+        session.close()
+        db.Base.metadata.drop_all(engine)
 
 
 # Example fixture

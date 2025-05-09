@@ -65,8 +65,8 @@ class Video(RemoteBase):
     __tablename__ = "video"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
-    status: Mapped[enum.Enum] = mapped_column(Enum(VideoStatus), default=VideoStatus.NEW)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), index=True)
+    status: Mapped[enum.Enum] = mapped_column(Enum(VideoStatus), default=VideoStatus.NEW, index=True)
     file: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     thumbnail: Mapped[Optional[str]] = mapped_column(String, nullable=True)

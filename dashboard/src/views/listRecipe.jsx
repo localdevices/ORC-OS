@@ -27,9 +27,11 @@ const ListRecipe = () => {
       <MessageBox />
       Recipes define how videos are processed from selected frames to projected frames, to velocities, to cross section velocities
       and to river discharge. Also plotting options can be defined.
+      <div className="flex-container column" style={{margin: "0px", marginTop: "20px", marginBottom: "20px"}}>
       <PaginatedRecipes
         initialData={recipeData}
       />
+    </div>
     </div>
   );
 };

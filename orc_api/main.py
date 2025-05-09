@@ -23,6 +23,7 @@ from orc_api.routers import (
     recipe,
     settings,
     video,
+    video_config,
     video_stream,
     water_level,
 )
@@ -91,7 +92,10 @@ def schedule_video_checker(scheduler, logger, session):
         # validate the settings model instance
         settings = SettingsResponse.model_validate(settings)
         dm_settings = DiskManagementResponse.model_validate(dm)
-        logger.info('Daemon settings found: setting up interval job "video_check_job"')
+        logger.info(
+            f'Daemon settings found: setting up interval job "video_check_job" with path: {dm_settings.incoming_path} '
+            f"and file template: {settings.video_file_fmt}"
+        )
         scheduler.add_job(
             func=async_job_wrapper,
             kwargs={
@@ -157,6 +161,7 @@ app.include_router(device.router)
 app.include_router(settings.router)
 app.include_router(callback_url.router)
 app.include_router(video.router)
+app.include_router(video_config.router)
 app.include_router(disk_management.router)
 app.include_router(water_level.router)
 app.include_router(camera_config.router)

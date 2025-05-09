@@ -6,6 +6,7 @@ import '../cameraAim.scss'
 const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
   const [formData, setFormData] = useState({
     name: '',
+    id: '',
     start_frame: '',
     end_frame: '',
     freq: '',
@@ -39,7 +40,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
 
   }, [selectedRecipe]);
 
-
   // Utility function to safely parse JSON
   const safelyParseJSON = (jsonString) => {
     try {
@@ -49,6 +49,39 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
       return jsonString; // Fallback: Leave it as the original string
     }
   };
+
+  const loadModal = async () => {
+    console.log("load modal");
+    const input = document.createElement('input');
+    input.type = "file";
+    input.accept = ".yml";
+    // Wait for the user to select a file
+    input.addEventListener('change', async (event) => {
+
+      // input.onchange = async (event) => {
+      const file = event.target.files[0]; // Get the selected file
+      if (file) {
+        const formData = new FormData(); // Prepare form data for file upload
+        formData.append("file", file);
+
+        try {
+          const response = await api.post(
+            '/recipe/from_file/',
+            formData,
+            {headers: {"Content-Type": "multipart/form-data",},}
+          );
+          // set the recipe to the returned recipe
+          setSelectedRecipe(response.data);
+        } catch (error) {
+          console.error("Error occurred during file upload:", error);
+        }
+      }
+    });
+    // trigger input dialog box to open
+    input.click();
+
+  }
+
 
   const submitData = (formData) => {
     return {
@@ -120,7 +153,14 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
 
 
   return (
-    <div>
+    <div style={{"padding": "5px"}}>
+      <button
+        className="btn"
+        onClick={loadModal}
+      >
+        Upload from .yml
+      </button>
+
       <form onSubmit={handleFormSubmit}>
         <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>
@@ -159,7 +199,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
           <input type='number' className='form-control' id='resolution' name='resolution' step="0.001" min='0.001' max='0.05' onChange={handleInputChange} value={formData.resolution} required />
         </div>
         <button type='submit' className='btn'>
-          Submit
+          Save
         </button>
         <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
           <div className="form-check form-switch">
@@ -181,7 +221,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
           <textarea
             id="data"
             className="form-control"
-            rows="50"
+            rows="40"
             value={formData.data}
             onChange={handleInputChange}
           ></textarea>
