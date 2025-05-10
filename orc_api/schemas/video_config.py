@@ -12,6 +12,7 @@ from orc_api import crud
 from orc_api.database import get_session
 from orc_api.db import SyncStatus
 from orc_api.schemas.base import RemoteModel
+from orc_api.schemas.callback_url import CallbackUrlResponse
 from orc_api.schemas.camera_config import CameraConfigResponse
 from orc_api.schemas.cross_section import CrossSectionResponse
 from orc_api.schemas.recipe import RecipeResponse
@@ -152,53 +153,58 @@ class VideoConfigResponse(VideoConfigRemote):
         default=None, description="Optional foreign key to the water level cross section.", ge=1
     )
 
-    def sync_remote(self, site: int, institute: int):
-        """Send the recipe to LiveORC API.
+    def sync_remote(self, site: int):
+        """Send the video config to LiveORC API.
 
-        Recipes belong to an institute, hence also the institute ID is required.
+        Recipes belong to an institute, hence also the institute ID is required. Will be taken from the site.
         """
         # first check if the recipe and cross section are synced
-        if self.recipe is not None:
-            if self.recipe.sync_status != SyncStatus.SYNCED:
-                # first sync/update recipe
-                self.recipe = self.recipe.sync_remote(institute=institute)
-                self.recipe_id = self.recipe.id
-        if self.cross_section is not None:
-            if self.cross_section.sync_status != SyncStatus.SYNCED:
-                # first sync/update cross-section
-                self.cross_section = self.cross_section.sync_remote(site=site)
-                self.cross_section_id = self.cross_section.id
-        # now report the entire video config (this currently reports to cameraconfig,
-        # should be updated after LiveORC restructuring)
-        endpoint = f"/api/site/{site}/cameraconfig/"
-        data = {
-            "name": self.name,
-            "camera_config": self.camera_config.data,
-            "recipe": self.recipe.remote_id,
-            "profile": self.cross_section.remote_id,
-        }
-        # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, json=data)
-        # ids of recipe and profile are already known and remote ids already updated, so remove
-        if response_data is not None:
-            response_data.pop("recipe")  # these are different on LiveORC, as they are with a datetime stamp
-            response_data.pop("profile")  # same
-            response_data.pop("camera_config")
-            response_data.pop("server")
-            response_data["camera_config_id"] = self.camera_config_id
-            response_data["recipe_id"] = self.recipe_id
-            response_data["cross_section_id"] = self.cross_section_id
-            # LiveORC has not tvec / rvec logic yet, so add from existing
-            response_data["rvec"] = self.rvec
-            response_data["tvec"] = self.tvec
+        with get_session() as db:
+            if self.recipe is not None:
+                if self.recipe.sync_status != SyncStatus.SYNCED:
+                    # first sync/update recipe, we need the institute belonging to the site
+                    callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(db))
+                    r = callback_url.get_site(site_id=site)
+                    institute = r.json()["institute"] if r.status_code == 200 else None
+                    self.recipe = self.recipe.sync_remote(institute=institute)
+                    self.recipe_id = self.recipe.id
+            if self.cross_section is not None:
+                if self.cross_section.sync_status != SyncStatus.SYNCED:
+                    # first sync/update cross-section
+                    self.cross_section = self.cross_section.sync_remote(site=site)
+                    self.cross_section_id = self.cross_section.id
+            # now report the entire video config (this currently reports to cameraconfig,
+            # should be updated after LiveORC restructuring)
+            endpoint = f"/api/site/{site}/cameraconfig/"
+            data = {
+                "name": self.name,
+                "camera_config": self.camera_config.data,
+                "recipe": self.recipe.remote_id,
+                "profile": self.cross_section.remote_id,
+            }
+            # sync remotely with the updated data, following the LiveORC end point naming
+            response_data = super().sync_remote(endpoint=endpoint, json=data)
+            # ids of recipe and profile are already known and remote ids already updated, so remove
+            if response_data is not None:
+                response_data.pop("recipe")  # these are different on LiveORC, as they are with a datetime stamp
+                response_data.pop("profile")  # same
+                response_data.pop("camera_config")
+                response_data.pop("server")
+                response_data["camera_config_id"] = self.camera_config_id
+                response_data["recipe_id"] = self.recipe_id
+                response_data["cross_section_id"] = self.cross_section_id
+                # LiveORC has not tvec / rvec logic yet, so add from existing
+                response_data["rvec"] = self.rvec
+                response_data["tvec"] = self.tvec
 
-            # patch the record in the database, where necessary
-            # update schema instance
-            update_video_config = VideoConfigResponse.model_validate(response_data)
-            r = crud.video_config.update(
-                get_session(), id=self.id, video_config=update_video_config.model_dump(exclude_unset=True)
-            )
-            return VideoConfigResponse.model_validate(r)
+                # patch the record in the database, where necessary
+                # update schema instance
+                update_video_config = VideoConfigResponse.model_validate(response_data)
+                r = crud.video_config.update(
+                    db, id=self.id, video_config=update_video_config.model_dump(exclude_unset=True)
+                )
+            video_config = VideoConfigResponse.model_validate(r)
+        return video_config
 
 
 class VideoConfigPatch(VideoConfigBase):

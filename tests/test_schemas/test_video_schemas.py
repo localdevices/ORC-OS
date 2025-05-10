@@ -84,7 +84,6 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
 def test_video_sync_not_permitted(session_video_with_config, video_response, monkeypatch):
     """Test for syncing a cross-section to remote API (real response is mocked)."""
     # let's assume we are posting on site 1
-    institute = 1
     site = 1
 
     def mock_post(self, endpoint: str, data=None, json=None, files=None):
@@ -97,9 +96,7 @@ def test_video_sync_not_permitted(session_video_with_config, video_response, mon
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
-        _ = video_response.sync_remote(
-            base_path=sample_data.get_hommerich_pyorc_files(), institute=institute, site=site
-        )
+        _ = video_response.sync_remote(base_path=sample_data.get_hommerich_pyorc_files(), site=site)
 
 
 @pytest.mark.skipif(
