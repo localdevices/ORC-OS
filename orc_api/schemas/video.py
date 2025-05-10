@@ -58,6 +58,13 @@ class VideoResponse(VideoBase, RemoteModel):
         # check if all run components are available
         return self.allowed_to_run
 
+    def ready_to_sync(self, site=None):
+        """Check if video can be synced or not.
+
+        This requires a site ID to be provided. It will be checked if the site id is available in the database.
+        If the site is not available, False is returned. If the site is available, True is returned.
+        """
+
     @property
     def allowed_to_run(self):
         """Check if prerequisites are met for running video."""
@@ -136,6 +143,22 @@ class VideoResponse(VideoBase, RemoteModel):
             update_data["time_series_id"] = self.time_series.id
         with get_session() as session:
             crud.video.update(session, id=self.id, video=update_data)
+            # check if remote syncing is possible.
+            # This requires a fully configured callback_url including a site to report on
+            callback_url = crud.callback_url.get(session)
+            settings = crud.settings.get(session)
+            if callback_url and settings.remote_site_id:
+                try:
+                    logger.debug("Attempting syncing to remote site ")
+                    # try the callback
+                    self.sync_remote(
+                        base_path=base_path,
+                        site=settings.remote_site_id,
+                        sync_file=settings.sync_file,
+                        sync_image=settings.sync_image,
+                    )
+                except Exception as e:
+                    logger.error(f"Error syncing video to remote site: {e}")
 
     def sync_remote(self, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
         """Send the recipe to LiveORC API.

@@ -60,6 +60,16 @@ class Settings(Base):
     )
     video_config = relationship("VideoConfig")
 
+    remote_site_id: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Remote site id to sent data to. Needed in order to automatically send data to end points",
+    )
+    sync_file: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="Flag for syncing video files to remote server"
+    )
+    sync_image: Mapped[bool] = mapped_column(Boolean, default=False, comment="Flag for syncing images to remote server")
+
     def __str__(self):
         return "Settings {} ({})".format(self.created_at, self.id)
 

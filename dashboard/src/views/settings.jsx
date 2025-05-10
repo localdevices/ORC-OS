@@ -44,6 +44,9 @@ const Settings = () => {
                 parse_dates_from_file: settings.parse_dates_from_file || '',
                 reboot_after: settings.reboot_after || '',
                 video_config_id: settings.video_config_id || '',
+                remote_site_id: settings.remote_site_id || '',
+                sync_file: settings.sync_file || '',
+                sync_image: settings.sync_image || ''
             });
         }
     }, [settings]);
@@ -96,7 +99,10 @@ const Settings = () => {
                 shutdown_after_task: '',
                 parse_dates_from_file: '',
                 reboot_after: '',
-                video_config_id: ''
+                video_config_id: '',
+                remote_site_id: '',
+                sync_file: '',
+                sync_image: ''
             });
         } catch (err) {
             setMessageInfo('error', err.response.data);
@@ -172,6 +178,42 @@ const Settings = () => {
                     data={videoConfigs}
                     value={formData.video_config_id}
                   />
+                </div>
+                <div className='mb-3 mt-3'>
+                    <label htmlFor='remote_site_id' className='form-label'>
+                        Site ID (number) of the site, as known on configured LiveORC server.
+                    </label>
+                    <input type='number' className='form-control' id='remote_site_id' name='remote_site_id' step="1" onChange={handleInputIntChange} value={formData.remote_site_id}/>
+                </div>
+                <div className='mb-3 mt-3'>
+                    <input
+                      type='checkbox'
+                      className='form-check-input'
+                      id='sync_file'
+                      name='sync_file'
+                      onChange={handleInputChange}
+                      value={formData.sync_file}
+                      checked={formData.sync_file}
+                      style={{marginRight: '10px'}}
+                    />
+                    <label htmlFor='sync_file' className='form-label'>
+                        Synchronize Video file with LiveORC server (if configured)
+                    </label>
+                </div>
+                <div className='mb-3 mt-3'>
+                    <input
+                      type='checkbox'
+                      className='form-check-input'
+                      id='sync_image'
+                      name='sync_image'
+                      onChange={handleInputChange}
+                      value={formData.sync_image}
+                      checked={formData.sync_image}
+                      style={{marginRight: '10px'}}
+                    />
+                    <label htmlFor='sync_image' className='form-label'>
+                        Synchronize result image file with LiveORC server (if configured)
+                    </label>
                 </div>
                 <button type='submit' className='btn'>
                     Submit

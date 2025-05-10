@@ -41,6 +41,11 @@ class SettingsBase(BaseModel):
         default=None, description="Amount of seconds after which device reboots (0 means never reboot)"
     )
     video_config_id: Optional[int] = Field(default=None, description="Video Config ID used to process videos.")
+    remote_site_id: Optional[int] = Field(default=None, description="Remote site ID used to upload videos.")
+    sync_file: Optional[bool] = Field(default=None, description="Flag for syncing the video file with the remote site.")
+    sync_image: Optional[bool] = Field(
+        default=None, description="Flag for syncing the result image file with the remote site."
+    )
 
 
 class SettingsResponse(SettingsBase):

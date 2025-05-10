@@ -353,7 +353,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
             dropdownLabel="Video configurations"
             callbackFunc={handleConfigSelection}
             data={availableVideoConfigs}
-            value={selectedVideo.video_config_id}
+            value={selectedVideo ? selectedVideo.video_config_id : ""}
           />
         </div>
         <div className="container">
