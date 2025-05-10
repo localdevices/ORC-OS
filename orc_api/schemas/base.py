@@ -22,25 +22,25 @@ class RemoteModel(BaseModel):
 
     def sync_remote(self, endpoint: str, data=None, json=None, files=None):
         """Send remote updates to LiveORC API."""
-        db = get_session()
-        callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(db))
-        if callback_url is None:
-            raise ValueError("No callback URL configured. Please ensure you first gain access to a LiveORC API.")
-        # get all callback functionalities in place.
-        if self.remote_id is not None:
-            # add the id to the end point and only patch existing record
-            r = callback_url.patch(endpoint=endpoint + f"{self.remote_id}/", data=data, json=json, files=files)
-        else:
-            r = callback_url.post(endpoint=endpoint, data=data, json=json, files=files)
-        # put back the remote id
-        if r.status_code in [200, 201]:
-            # success
-            # get the ids back in the right order
-            response_data = r.json()
-            response_data["remote_id"] = response_data.pop("id")
-            response_data["sync_status"] = SyncStatus.SYNCED.value
-            response_data["id"] = self.id
-            return response_data
-        else:
-            self.sync_status = SyncStatus.FAILED
-            raise ValueError(f"Remote update failed with status code {r.status_code}.")
+        with get_session() as db:
+            callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(db))
+            if callback_url is None:
+                raise ValueError("No callback URL configured. Please ensure you first gain access to a LiveORC API.")
+            # get all callback functionalities in place.
+            if self.remote_id is not None:
+                # add the id to the end point and only patch existing record
+                r = callback_url.patch(endpoint=endpoint + f"{self.remote_id}/", data=data, json=json, files=files)
+            else:
+                r = callback_url.post(endpoint=endpoint, data=data, json=json, files=files)
+            # put back the remote id
+            if r.status_code in [200, 201]:
+                # success
+                # get the ids back in the right order
+                response_data = r.json()
+                response_data["remote_id"] = response_data.pop("id")
+                response_data["sync_status"] = SyncStatus.SYNCED.value
+                response_data["id"] = self.id
+                return response_data
+            else:
+                self.sync_status = SyncStatus.FAILED
+                raise ValueError(f"Remote update failed with status code {r.status_code}.")

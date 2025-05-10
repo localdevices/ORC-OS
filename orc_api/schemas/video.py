@@ -137,7 +137,7 @@ class VideoResponse(VideoBase, RemoteModel):
         with get_session() as session:
             crud.video.update(session, id=self.id, video=update_data)
 
-    def sync_remote(self, base_path: str, site: int, institute: int, sync_file: bool = True, sync_image: bool = True):
+    def sync_remote(self, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
         """Send the recipe to LiveORC API.
 
         Recipes belong to an institute, hence also the institute ID is required.
@@ -146,7 +146,7 @@ class VideoResponse(VideoBase, RemoteModel):
         if self.video_config is not None:
             if self.video_config.sync_status != models.SyncStatus.SYNCED:
                 # first sync/update recipe
-                self.video_config = self.video_config.sync_remote(site=site, institute=institute)
+                self.video_config = self.video_config.sync_remote(site=site)
                 self.video_config_id = self.video_config.id
         if self.time_series is not None:
             if self.time_series.sync_status != models.SyncStatus.SYNCED:

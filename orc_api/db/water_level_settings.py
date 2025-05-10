@@ -103,9 +103,12 @@ class WaterLevelSettings(Base):
                 raise ValueError("script_type and script must be set.")
             timestamp, value = water_level.execute_water_level_script(self.script, self.script_type)
             logger.info(f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m.")
-            # store in database
-            time_series = TimeSeries(timestamp=timestamp, h=value)
-            crud.time_series.add(db, time_series)
+            # first check if water level at time stamp already exists
+            wl = db.query(TimeSeries).filter_by(timestamp=timestamp).first()
+            if not wl:
+                # Create a new instance of WaterLevelSettings with given data
+                time_series = TimeSeries(timestamp=timestamp, h=value)
+                crud.time_series.add(db, time_series)
 
 
 @event.listens_for(WaterLevelSettings, "before_insert")

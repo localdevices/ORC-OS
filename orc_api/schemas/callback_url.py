@@ -128,6 +128,11 @@ class CallbackUrlResponse(CallbackUrlBase):
         except requests.RequestException as e:
             return CallbackUrlHealth(serverOnline=False, tokenValid=False, error=str(e))
 
+    def get_site(self, site_id: int):
+        """Get site information from the callback URL."""
+        endpoint = f"/api/site/{site_id}/"
+        return self.get(endpoint)
+
 
 class CallbackUrlCreate(CallbackUrlBase):
     """Request model for creating a callback URL."""
