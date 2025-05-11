@@ -95,6 +95,9 @@ class VideoResponse(VideoBase, RemoteModel):
 
     def run(self, base_path: str, prefix: str = ""):
         """Run video."""
+        if self.time_series:
+            # for older versions (python 3.9) check and validate
+            self.time_series = TimeSeriesResponse.model_validate(self.time_series)
         allowed_to_run, msg = self.allowed_to_run
         if not allowed_to_run:
             raise Exception(msg)
