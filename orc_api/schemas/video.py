@@ -289,7 +289,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 update_data["timestamp"] = self.timestamp
                 # create a new record, happens when optical water level detection has been applied
                 ts = crud.time_series.add(session, models.TimeSeries(**update_data))
-                self.time_series = ts
+                self.time_series = TimeSeriesResponse.model_validate(ts)
 
 
 class DownloadVideosRequest(BaseModel):
