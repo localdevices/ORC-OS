@@ -115,6 +115,7 @@ async def post_video_config(video_config: VideoConfigBase, db: Session = Depends
     video_config.cross_section_wl_id = cross_section_wl.id if cross_section_wl else None
     # store or update! only use ids, not the actual relationships
     video_config_dict = {
+        "name": video_config.name,
         "cross_section_id": video_config.cross_section_id,
         "cross_section_wl_id": video_config.cross_section_wl_id,
         "recipe_id": video_config.recipe_id,

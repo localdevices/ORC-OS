@@ -45,7 +45,6 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
     """Test for syncing a video record to remote API (real response is mocked)."""
     # let's assume we are posting on site 1
     site = 1
-    institute = 1
 
     def mock_post(self, endpoint: str, data=None, json=None, files=None):
         class MockResponse:
@@ -74,9 +73,7 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_with_config)
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_with_config)
-    video_update = video_response.sync_remote(
-        base_path=sample_data.get_hommerich_pyorc_files(), site=site, institute=institute
-    )
+    video_update = video_response.sync_remote(base_path=sample_data.get_hommerich_pyorc_files(), site=site)
     assert video_update.remote_id == 7
     assert video_update.sync_status == models.SyncStatus.SYNCED
 

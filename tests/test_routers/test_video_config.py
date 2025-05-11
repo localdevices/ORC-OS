@@ -68,8 +68,7 @@ def test_add_empty_video_config():
     client = TestClient(app)
     video_config = VideoConfigBase(name="hello")
     video_config_dict = video_config.model_dump(exclude_none=True)
-    r = client.get("/callback_url")
-    print(r.json())
+    _ = client.get("/callback_url")
     response = client.post("/video_config", json=video_config_dict)
     assert response.status_code == 201
 
