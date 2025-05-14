@@ -4,11 +4,14 @@ import api from "../api";
 import MessageBox from "../messageBox.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
+import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
 import CrossSectionForm from "./VideoConfigComponents/crossSectionForm.jsx";
 import CrossSectionDisplay from "./VideoConfigComponents/crossSectionDisplay.jsx";
-
+import VideoTab from "./calibrationTabs/videoTab.jsx";
+import CameraParameters from "./calibrationTabs/cameraParameters.jsx";
 import {useMessage} from "../messageContext.jsx";
+import {createCustomMarker} from "../utils/leafletUtils.js";
 
 const VideoConfig = () => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
@@ -21,6 +24,15 @@ const VideoConfig = () => {
   const [CSWaterLevel, setCSWaterLevel] = useState({}); // Video metadata
   const [activeTab, setActiveTab] = useState('configDetails');
   const {setMessageInfo} = useMessage();
+
+  // consts for image clicking
+  const [widgets, setWidgets] = useState([]);
+  const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
+  const [nextId, setNextId] = useState(1);  // widget ids increment automatically
+  const [dots, setDots] = useState({}); // Array of { x, y, id } objects
+  const [GCPsVisible, setGCPsVisible] = useState(false); // State to toggle GCP menu right-side
+  const [imgDims, setImgDims] = useState(null);
+
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
@@ -95,6 +107,49 @@ const VideoConfig = () => {
     setActiveTab(tab);
   };
 
+  const addWidget = () => {
+    setWidgets((prevWidgets) => {
+      const color = rainbowColors[(nextId - 1) % rainbowColors.length];
+      return [
+        ...prevWidgets,
+        {
+          id: nextId,
+          color: color,
+          coordinates: { x: '', y: '', z:'', row: '', col: ''},
+          icon: createCustomMarker(color, nextId)
+        },
+      ]
+    });
+    setNextId((prevId) => prevId + 1); // increment the unique id for the next widget
+  };
+
+  const updateWidget = (id, updatedCoordinates) => {
+
+    setWidgets((prevWidgets) =>
+      prevWidgets.map((widget) =>
+        widget.id === id ? {...widget, coordinates: updatedCoordinates } : widget
+      )
+    );
+  };
+
+  const deleteWidget = (id) => {
+    setWidgets((prevWidgets) => prevWidgets.filter((widget) => widget.id !== id));
+    // also delete the dot
+    setDots((prevDots) => {
+      // Copy the previous state object
+      const newDots = {...prevDots};
+      delete newDots[id];
+      return newDots;
+    });
+
+  };
+
+  // remove all existing widgets
+  const clearWidgets = () => {
+    setWidgets([]);
+    setDots([]);
+  }
+
   return (
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
@@ -103,15 +158,17 @@ const VideoConfig = () => {
         <div className="flex-container column no-padding">
         <div className="flex-container column">
           <h5>Image view</h5>
-          <p> Placeholder for video </p>
-          {video ? (
-            <div>
-              <p><strong>Timestamp:</strong> {video.timestamp}</p>
-              {/* Add any other video-specific details */}
-            </div>
-          ) : (
-            <p>Loading video details...</p>
-          )}
+          <VideoTab
+            widgets={widgets}
+            selectedWidgetId={selectedWidgetId}
+            updateWidget={updateWidget}
+            dots={dots}
+            imgDims={imgDims}
+            setDots={setDots}
+            setImgDims={setImgDims}
+          />
+          <CameraParameters/>
+
         </div>
         </div>
         <div className="flex-container column no-padding">
@@ -139,6 +196,15 @@ const VideoConfig = () => {
                     }}
                   >
                     Camera pose
+                  </button>
+                  <button
+                    className={activeTab === 'pose' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('pose');
+                    }}
+                  >
+                    Camera pose 2
                   </button>
                   <button
                     className={activeTab === 'recipe' ? 'active-tab' : ''}
@@ -188,6 +254,14 @@ const VideoConfig = () => {
                       setMessageInfo={setMessageInfo}
                     />
                   )}
+
+                  {activeTab === 'pose' && (
+                    <PoseDetails
+                      selectedCameraConfig={cameraConfig}
+                      setSelectedCameraConfig={setCameraConfig}
+                      setMessageInfo={setMessageInfo}
+                    />
+                  )}
                   {activeTab === 'recipe' &&
                     (
                       <RecipeForm
@@ -213,7 +287,7 @@ const VideoConfig = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{"flex-grow": "0", "minHeight": "30%", "overflow-y": "auto", "overflow-x": "hidden"}}>
+          <div className="flex-container column" style={{"flex-grow": "0", "minHeight": "30%", "overflowY": "auto", "overflowX": "hidden"}}>
             <h5>Cross sections</h5>
               <CrossSectionDisplay
                 CSDischarge={CSDischarge}

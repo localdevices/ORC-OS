@@ -9,7 +9,7 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, imgDims, setDo
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
 
   return (
-          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'hidden'}}>
+          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'hidden', position: 'relative'}}>
     {/*<div>*/}
              <TransformWrapper
                pinchEnabled={true}
@@ -35,7 +35,7 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, imgDims, setDo
                  />
             </TransformWrapper>
             <div style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
-              Click on the photo to select row/column
+              Zoom and pan with your mouse. Click on the photo to select row/column
             </div>
 {/*       <h2>Current Coordinates:</h2> */}
 {/*       <pre>{JSON.stringify(widgets, null, 2)}</pre> */}

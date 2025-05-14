@@ -27,19 +27,6 @@ import PropTypes from 'prop-types';
 
 const CrossSectionDisplay = ({CSDischarge, CSWaterLevel}) => {
 
-  // const data = {
-  //   labels: CSDischarge.s,
-  //   datasets: [
-  //     {
-  //       label: 'Cross Section Profile',
-  //       data: CSDischarge.z,
-  //       fill: false,
-  //       borderColor: 'rgb(75, 192, 192)',
-  //       tension: 0.1
-  //     }
-  //   ]
-  //
-  // }
   const data = {
   datasets: [
     {
@@ -63,24 +50,26 @@ const CrossSectionDisplay = ({CSDischarge, CSWaterLevel}) => {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
       scales: {
       x: {
         title: {
           display: true,
             text: 'left-right (m)'
         },
-        // ticks: {
-        //   // ensure not more than 2 decimal digits
-        //   callback: function (value) {
-        //     return Number(value).toFixed(2);
-        //   }
-        // }
+        ticks: {
+          // ensure not more than 2 decimal digits
+          callback: function (value) {
+            return Number(value).toFixed(2);
+          }
+        }
       },
       y: {
         title: {
           display: true,
             text: 'Z (m)'
         },
+
         ticks: {
           callback: function (value) {
             return Number(value).toFixed(2);
@@ -90,14 +79,16 @@ const CrossSectionDisplay = ({CSDischarge, CSWaterLevel}) => {
     }
 }
   return (
-    <>
-      <h6>Cross section side view</h6>
-      <Scatter
-        data={data}
-        options={options}
-      />
-    </>
+    <div style={{ height: "400px" }}>
+    <Scatter
+      data={data}
+      options={options}
+    />
+      </div>
   )
+  // },
+  // maintainAspectRatio: false,
+  // aspectRatio: 0.75,
 }
 
 CrossSectionDisplay.propTypes = {

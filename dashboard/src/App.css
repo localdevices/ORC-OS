@@ -63,6 +63,10 @@
   overflow: hidden;
 }
 
+.split-screen.three-columns {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .split-screen > .flex-container {
   display: flex;
   height: 100%;
