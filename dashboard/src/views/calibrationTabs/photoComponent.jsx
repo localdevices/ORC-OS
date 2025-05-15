@@ -1,23 +1,29 @@
 import {useState, useEffect} from 'react';
 import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zoom-pan-pinch';
+
 import './photoComponent.css';
 import PropTypes from 'prop-types';
+import api from "../../api.js";
 
-const PhotoComponent = ({
-                          imageRef,
-                          selectedWidgetId,
-                          updateWidget,
-                          widgets,
-                          scale,
-                          dots,
-                          imgDims,
-                          setDots,
-                          setImgDims
-                        }) => {
+const PhotoComponent = (
+  {
+    video,
+    imageRef,
+    selectedWidgetId,
+    updateWidget,
+    widgets,
+    scale,
+    dots,
+    imgDims,
+    setDots,
+    setImgDims
+  }) => {
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
   const [photoBbox, setPhotoBbox] = useState(null);
   const [fittedPoints, setFittedPoints] = useState([]);
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
+  const [frameNr, setFrameNr] = useState(0);
+  const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
 
   const updateFittedPoints = () => {
     const fP = widgets.map(({id, fit, color}) => {
@@ -35,7 +41,14 @@ const PhotoComponent = ({
     setFittedPoints(fP);
   }
 
+  const getFrameUrl = (frameNr) => {
+    if (!video) return '';
+    const apiHost = api.defaults.baseURL.replace(/\/$/, '');
+    const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
+    return frameUrl
+  }
   const handleMouseMove = (event) => {
+    if (!imageRef.current) return;
     if (!photoBbox || !imgDims || !transformState) return;
 
     // Calculate mouse position relative to the photo
@@ -91,6 +104,7 @@ const PhotoComponent = ({
     // ensure we have a method (event listener) to reproject the plotted points upon changes in window size
     const handleResize = () => {
       const imgElement = imageRef.current;
+      if (!imgElement) return;
       setPhotoBbox(imgElement.getBoundingClientRect());
       setTransformState(state); // Update the transformState on every transformation
 
@@ -124,12 +138,20 @@ const PhotoComponent = ({
     }
   }, [widgets, transformState, window]);
 
+  // useEffect(() => {
+  //   const loadFrame = async () => {
+  //     const url = await getFrame(frameNr);
+  //     if (url) setImageUrl(url);
+  //   };
+  //   loadFrame();
+  // }, [frameNr]);
+
 
   useTransformEffect(({state}) => {
     const imgElement = imageRef.current;
+    if (!imgElement) return;
     setPhotoBbox(imgElement.getBoundingClientRect());
     setTransformState(state); // Update the transformState on every transformation
-    console.log(transformState);
 
     updateFittedPoints();
   });
@@ -146,7 +168,18 @@ const PhotoComponent = ({
     return {x, y};
   };
 
+  const handleImageLoad = () => {
+    if (imageRef.current) {
+      setImgDims({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
+      });
+    }
+  };
+
+
   const handlePhotoClick = (event) => {
+    if (!imageRef.current) return;
     event.stopPropagation();
     if (!transformState) {
       console.error("TransformContext state is null or uninitialized");
@@ -174,7 +207,7 @@ const PhotoComponent = ({
     const originalCol = Math.round(normalizedX * imgDims.width * 100) / 100;
     // Add the new dot to the state with the ID of the associated widget
     if (!selectedWidgetId) {
-      alert("Please select a widget to update its row/column.");
+      alert(`Please select a widget to update its row/column.`);
       return;
     }
 
@@ -198,6 +231,10 @@ const PhotoComponent = ({
     });
   }
   PhotoComponent.propTypes = {
+      video: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    }),
+
     imageRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
     selectedWidgetId: PropTypes.number,
     updateWidget: PropTypes.func.isRequired,
@@ -223,14 +260,19 @@ const PhotoComponent = ({
     <>
     <TransformComponent>
       <div className="image-container">
+        {/*{video ? (*/}
+        {/*<p>image loading...</p>)*/}
+        {/*: (*/}
       <img
         style={{width: '100%', height: '100%'}}
         className="img-calibration"
         ref={imageRef}
         onClick={handlePhotoClick}
+        onLoad={handleImageLoad}
         onMouseMove={handleMouseMove} // Track mouse movement
         onMouseLeave={handleMouseLeave}
-        src="/frame_001.jpg" // Replace with the photo's path or URL
+        src={getFrameUrl(0)}
+        // src="http://localhost:5000/video/1/frame/1"
         alt="img-calibration"
       />
       </div>

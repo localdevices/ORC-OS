@@ -63,8 +63,28 @@
   overflow: hidden;
 }
 
+.split-screen.flex {}
+
+@media (max-width: 960px) {
+  .split-screen.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
 .split-screen.three-columns {
   grid-template-columns: 1fr 1fr 1fr;
+}
+
+.split-screen.three-columns.flex {
+
+}
+
+@media (max-width: 768px) {
+  .split-screen.three-columns.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
 }
 
 .split-screen > .flex-container {

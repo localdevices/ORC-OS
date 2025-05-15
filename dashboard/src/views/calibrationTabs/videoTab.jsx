@@ -1,17 +1,55 @@
 import { useState, useRef } from 'react';
 import { TransformWrapper } from 'react-zoom-pan-pinch';
 import PhotoComponent from './photoComponent';
-
+import ControlPanel from './controlPanel';
 import PropTypes from 'prop-types';
 
-const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, imgDims, setDots, setImgDims}) => {
+const VideoTab = (
+  {
+    video,
+    widgets,
+    selectedWidgetId,
+    updateWidget,
+    dots,
+    imgDims,
+    setDots,
+    setImgDims
+  }
+) => {
   const [scale, setScale] = useState(1);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
 
+  // Add these handlers
+  const handleRotateLeft = () => {
+    console.log('Rotate Left');
+    // Implement rotation logic
+  };
+
+  const handleRotateRight = () => {
+    console.log('Rotate Right');
+    // Implement rotation logic
+  };
+
+  const handleBoundingBox = () => {
+    console.log('Draw Bounding Box');
+    // Implement bounding box logic
+  };
+
+  const handleMove = (direction) => {
+    console.log('Move:', direction);
+    // Implement move logic
+  };
+
   return (
           <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'hidden', position: 'relative'}}>
-    {/*<div>*/}
-             <TransformWrapper
+            <ControlPanel
+              onRotateLeft={handleRotateLeft}
+              onRotateRight={handleRotateRight}
+              onBoundingBox={handleBoundingBox}
+              onMove={handleMove}
+            />
+
+            <TransformWrapper
                pinchEnabled={true}
                wheelEnabled={false}
                touchEnabled={true}
@@ -23,6 +61,7 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, imgDims, setDo
                }}
              >
                  <PhotoComponent
+                   video={video}
                    imageRef={imageRef}
                    selectedWidgetId={selectedWidgetId}
                    updateWidget={updateWidget}
@@ -44,6 +83,7 @@ const VideoTab = ({widgets, selectedWidgetId, updateWidget, dots, imgDims, setDo
 };
 
 VideoTab.propTypes = {
+  video: PropTypes.object.isRequired,
   widgets: PropTypes.array.isRequired,
   selectedWidgetId: PropTypes.oneOfType([PropTypes.number]),
   updateWidget: PropTypes.func.isRequired,

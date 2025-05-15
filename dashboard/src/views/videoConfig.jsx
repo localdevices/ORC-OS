@@ -154,11 +154,12 @@ const VideoConfig = () => {
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <MessageBox/>
-      <div className="split-screen">
+      <div className="split-screen flex">
         <div className="flex-container column no-padding">
-        <div className="flex-container column">
+        <div className="flex-container column" style={{"height": "100%"}}>
           <h5>Image view</h5>
           <VideoTab
+            video={video}
             widgets={widgets}
             selectedWidgetId={selectedWidgetId}
             updateWidget={updateWidget}
@@ -167,9 +168,9 @@ const VideoConfig = () => {
             setDots={setDots}
             setImgDims={setImgDims}
           />
-          <CameraParameters/>
 
         </div>
+          <CameraParameters/>
         </div>
         <div className="flex-container column no-padding">
           <div className="flex-container column" style={{"height": "60%"}}>
@@ -287,7 +288,7 @@ const VideoConfig = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{"flex-grow": "0", "minHeight": "30%", "overflowY": "auto", "overflowX": "hidden"}}>
+          <div className="flex-container column" style={{"flexGrow": "0", "minHeight": "30%", "overflowY": "auto", "overflowX": "hidden"}}>
             <h5>Cross sections</h5>
               <CrossSectionDisplay
                 CSDischarge={CSDischarge}
