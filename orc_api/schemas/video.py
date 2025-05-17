@@ -284,13 +284,13 @@ class VideoResponse(VideoBase, RemoteModel):
         }
         with get_session() as session:
             if id:
-                crud.time_series.update(session, id=id, time_series=update_data)
+                ts = crud.time_series.update(session, id=id, time_series=update_data)
             else:
                 # add the time stamp of the video as a valid time stamp
                 update_data["timestamp"] = self.timestamp
                 # create a new record, happens when optical water level detection has been applied
                 ts = crud.time_series.add(session, models.TimeSeries(**update_data))
-                self.time_series = TimeSeriesResponse.model_validate(ts)
+            self.time_series = TimeSeriesResponse.model_validate(ts)
 
 
 class DownloadVideosRequest(BaseModel):
