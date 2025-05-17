@@ -160,6 +160,7 @@ class VideoResponse(VideoBase, RemoteModel):
                         sync_file=settings.sync_file,
                         sync_image=settings.sync_image,
                     )
+                    logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
                 except Exception as e:
                     logger.error(f"Error syncing video to remote site: {e}")
 
