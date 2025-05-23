@@ -1,9 +1,60 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
-const CameraParameters = () => {
+const CameraParameters = ({cameraConfig}) => {
   const [camLocationAuto, setCamLocationAuto] = useState(false);
   const [camRotationAuto, setCamRotationAuto] = useState(false);
   const [camLensAuto, setCamLensAuto] = useState(false);
+  const [formData, setFormData] = useState({
+    camX: '',
+    camY: '',
+    camZ: '',
+    camYaw: '',
+    camPitch: '',
+    camRoll: '',
+    camF: '',
+    camK1: '',
+    camK2: ''
+  });
+
+  useEffect(() => {
+    if (cameraConfig) {
+      console.log(cameraConfig);
+      // set the data wherever available
+      setFormData({
+        camX: cameraConfig?.camera_position?.[0] || '',
+        camY: cameraConfig?.camera_position?.[1] || '',
+        camZ: cameraConfig?.camera_position?.[2] || '',
+        camYaw: cameraConfig?.camera_rotation?.[0] || '',
+        camPitch: cameraConfig?.camera_rotation?.[1] || '',
+        camRoll: cameraConfig?.camera_rotation?.[2] || '',
+        camF: cameraConfig?.f || '',
+        camK1: cameraConfig?.k1 || '',
+        camK2: cameraConfig?.k2 || ''
+      });
+    } else {
+      setFormData({
+        camX: '',
+        camY: '',
+        camZ: '',
+        camYaw: '',
+        camPitch: '',
+        camRoll: '',
+        camF: '',
+        camK1: '',
+        camK2: ''
+      })
+    }
+
+
+  }, [cameraConfig]);
+
+  const handleInputChange = (event) => {
+    const value = event.target.value;
+    setFormData({
+      ...formData,
+      [event.target.name]: parseFloat(value),
+    });
+  }
 
   return (
     <div>
@@ -31,8 +82,10 @@ const CameraParameters = () => {
               className="form-control"
               id="camX"
               disabled={camLocationAuto}
+              onChange={handleInputChange}
+              value={formData.camX}
 
-                // placeholder="distance from origin [m]"
+              // placeholder="distance from origin [m]"
             />
           </div>
           <div className="input-group mb-2">
@@ -44,6 +97,8 @@ const CameraParameters = () => {
               className="form-control"
               id="camY"
               disabled={camLocationAuto}
+              onChange={handleInputChange}
+              value={formData.camY}
 
               // placeholder="distance from origin [m]"
             />
@@ -57,18 +112,12 @@ const CameraParameters = () => {
               className="form-control"
               id="camZ"
               disabled={camLocationAuto}
+              onChange={handleInputChange}
+              value={formData.camZ}
               // placeholder="distance from origin [m]"
             />
           </div>
         </div>
-        {/*{video ? (*/}
-        {/*  <div>*/}
-        {/*    <p><strong>Timestamp:</strong> {video.timestamp}</p>*/}
-        {/*    /!* Add any other video-specific details *!/*/}
-        {/*  </div>*/}
-        {/*) : (*/}
-        {/*  <p>Loading video details...</p>*/}
-        {/*)}*/}
         <div className="flex-container column">
         <h6>Camera direction</h6>
           <div className="form-check">
@@ -91,6 +140,9 @@ const CameraParameters = () => {
               className="form-control"
               id="camYaw"
               disabled={camRotationAuto}
+              onChange={handleInputChange}
+              value={formData.camYaw}
+
               // placeholder="distance from origin [m]"
             />
           </div>
@@ -103,6 +155,9 @@ const CameraParameters = () => {
               className="form-control"
               id="camPitch"
               disabled={camRotationAuto}
+              onChange={handleInputChange}
+              value={formData.camPitch}
+
               // placeholder="distance from origin [m]"
             />
           </div>
@@ -115,6 +170,8 @@ const CameraParameters = () => {
               className="form-control"
               id="camRoll"
               disabled={camRotationAuto}
+              onChange={handleInputChange}
+              value={formData.camRoll}
               // placeholder="distance from origin [m]"
             />
           </div>
@@ -142,7 +199,8 @@ const CameraParameters = () => {
               className="form-control"
               id="camF"
               disabled={camLensAuto}
-
+              value={formData.camF}
+              onChange={handleInputChange}
               // placeholder="distance from origin [m]"
             />
           </div>
@@ -155,6 +213,8 @@ const CameraParameters = () => {
               className="form-control"
               id="camK1"
               disabled={camLensAuto}
+              onChange={handleInputChange}
+              value={formData.camK1}
               // placeholder="distance from origin [m]"
             />
           </div>
@@ -167,6 +227,8 @@ const CameraParameters = () => {
               className="form-control"
               id="camK2"
               disabled={camLensAuto}
+              onChange={handleInputChange}
+              value={formData.camK2}
               // placeholder="distance from origin [m]"
             />
           </div>

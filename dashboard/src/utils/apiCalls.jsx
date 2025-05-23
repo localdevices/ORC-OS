@@ -2,15 +2,6 @@
 
 export const fitGcps = async (api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo) => {
 
-  // // temporary test function;
-  // const updateWidgets = () => {
-  //   setWidgets((prevWidgets) =>
-  //     prevWidgets.map((widget) => ({
-  //       ...widget,
-  //       fit: {"row": 1075, "col": 1915},
-  //     }))
-  //   );
-  // };
   try {
     // Checks!
     if (widgets.length < 0) {

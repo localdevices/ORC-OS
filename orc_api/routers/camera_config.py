@@ -150,7 +150,7 @@ async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, ro
     "/{id}/", status_code=200, response_model=CameraConfigResponse, description="Update a camera configuration"
 )
 async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
-    """Update a recipe in the database."""
+    """Update a camera config in the database."""
     update_cam_config = camera_config.model_dump(exclude_none=True, exclude={"id"})
     camera_config = crud.camera_config.update(db=db, id=id, camera_config=update_cam_config)
     return camera_config

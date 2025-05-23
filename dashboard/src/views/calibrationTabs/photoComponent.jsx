@@ -209,26 +209,28 @@ const PhotoComponent = (
     if (!selectedWidgetId) {
       alert(`Please select a widget to update its row/column.`);
       return;
+    } else {
+      console.log(`SELECTED WIDGET: ${selectedWidgetId}`)
+
+      // Update the dots
+      setDots((prevDots) => ({
+        ...prevDots,
+        [selectedWidgetId]: {
+          x: adjustedX,
+          y: adjustedY,
+          xNorm: normalizedX,
+          yNorm: normalizedY,
+          scale: scale,
+          color: getWidgetById(selectedWidgetId).color
+        },
+      }));
+
+      updateWidget(selectedWidgetId, {
+        ...widgets.find((widget) => widget.id === selectedWidgetId).coordinates,
+        row: originalRow,
+        col: originalCol,
+      });
     }
-
-    // Update the dots
-    setDots((prevDots) => ({
-      ...prevDots,
-      [selectedWidgetId]: {
-        x: adjustedX,
-        y: adjustedY,
-        xNorm: normalizedX,
-        yNorm: normalizedY,
-        scale: scale,
-        color: getWidgetById(selectedWidgetId).color
-      },
-    }));
-
-    updateWidget(selectedWidgetId, {
-      ...widgets.find((widget) => widget.id === selectedWidgetId).coordinates,
-      row: originalRow,
-      col: originalCol,
-    });
   }
   PhotoComponent.propTypes = {
       video: PropTypes.shape({

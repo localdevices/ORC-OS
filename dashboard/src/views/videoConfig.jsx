@@ -11,7 +11,6 @@ import CrossSectionDisplay from "./VideoConfigComponents/crossSectionDisplay.jsx
 import VideoTab from "./calibrationTabs/videoTab.jsx";
 import CameraParameters from "./calibrationTabs/cameraParameters.jsx";
 import {useMessage} from "../messageContext.jsx";
-import {createCustomMarker} from "../utils/leafletUtils.js";
 
 const VideoConfig = () => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
@@ -31,6 +30,10 @@ const VideoConfig = () => {
   const [nextId, setNextId] = useState(1);  // widget ids increment automatically
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
   const [GCPsVisible, setGCPsVisible] = useState(false); // State to toggle GCP menu right-side
+  const [cameraConfigState, setCameraConfigState] = useState({
+    coordinates: [],
+    fittedCoordinates: [],
+  }); // central controls camera config
   const [imgDims, setImgDims] = useState(null);
 
 
@@ -42,11 +45,9 @@ const VideoConfig = () => {
     api.get(`/video/${videoId}`)
       .then((response) => {
         setVideo(response.data);
-        console.log(response.data);
         if (response.data.video_config !== null) {
           setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
           if (response.data.video_config.recipe !== null) {
-            console.log("RECIPE DATA FOUND")
             setRecipe(response.data.video_config.recipe);
           } else {
             console.log("RECIPE DATA NOT FOUND in ", response.data)
@@ -66,6 +67,18 @@ const VideoConfig = () => {
       .catch((err) => console.error("Error fetching video data:", err));
 
   }, [videoId]);
+
+  useEffect(() => {
+    // TODO: when camera config is loaded, then fill all relevant fields and GCPs.
+
+  }, [cameraConfig])
+  useEffect(() => {
+    // make sure that if a selected widget can no longer be found, the selected id is reset to null
+    if (selectedWidgetId && !widgets.find(w => w.id === selectedWidgetId)) {
+      setSelectedWidgetId(null);
+    }
+
+  }, [widgets, selectedWidgetId])
 
   const createCameraConfig = () => {
     api.get(`/camera_config/empty/${videoId}`) // Replace with your API endpoint
@@ -89,42 +102,7 @@ const VideoConfig = () => {
 
   }
 
-  // // Function for creating a new config
-  // const createNewConfig = (configName) => {
-  //   if (!configName.trim()) {
-  //     alert("Config name cannot be empty!");
-  //     return;
-  //   }
-  //   api.post("/video-config/", { video_id: videoId, config_name: configName })
-  //     .then((res) => {
-  //       alert("Config created successfully!");
-  //       setExistingConfigs([...existingConfigs, res.data]); // Add the new config
-  //     })
-  //     .catch((error) => console.error("Error creating config:", error));
-  // };
-
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-  };
-
-  const addWidget = () => {
-    setWidgets((prevWidgets) => {
-      const color = rainbowColors[(nextId - 1) % rainbowColors.length];
-      return [
-        ...prevWidgets,
-        {
-          id: nextId,
-          color: color,
-          coordinates: { x: '', y: '', z:'', row: '', col: ''},
-          icon: createCustomMarker(color, nextId)
-        },
-      ]
-    });
-    setNextId((prevId) => prevId + 1); // increment the unique id for the next widget
-  };
-
   const updateWidget = (id, updatedCoordinates) => {
-
     setWidgets((prevWidgets) =>
       prevWidgets.map((widget) =>
         widget.id === id ? {...widget, coordinates: updatedCoordinates } : widget
@@ -132,23 +110,10 @@ const VideoConfig = () => {
     );
   };
 
-  const deleteWidget = (id) => {
-    setWidgets((prevWidgets) => prevWidgets.filter((widget) => widget.id !== id));
-    // also delete the dot
-    setDots((prevDots) => {
-      // Copy the previous state object
-      const newDots = {...prevDots};
-      delete newDots[id];
-      return newDots;
-    });
-
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
   };
 
-  // remove all existing widgets
-  const clearWidgets = () => {
-    setWidgets([]);
-    setDots([]);
-  }
 
   return (
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
@@ -170,7 +135,9 @@ const VideoConfig = () => {
           />
 
         </div>
-          <CameraParameters/>
+          <CameraParameters
+            cameraConfig={cameraConfig}
+          />
         </div>
         <div className="flex-container column no-padding">
           <div className="flex-container column" style={{"height": "60%"}}>
@@ -258,8 +225,14 @@ const VideoConfig = () => {
 
                   {activeTab === 'pose' && (
                     <PoseDetails
-                      selectedCameraConfig={cameraConfig}
-                      setSelectedCameraConfig={setCameraConfig}
+                      cameraConfig={cameraConfig}
+                      widgets={widgets}
+                      dots={dots}
+                      selectedWidgetId={selectedWidgetId}
+                      setCameraConfig={setCameraConfig}
+                      setWidgets={setWidgets}
+                      setDots={setDots}
+                      setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
                     />
                   )}
