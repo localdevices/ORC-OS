@@ -18,7 +18,6 @@ const CameraParameters = ({cameraConfig}) => {
 
   useEffect(() => {
     if (cameraConfig) {
-      console.log(cameraConfig);
       // set the data wherever available
       setFormData({
         camX: cameraConfig?.camera_position?.[0] || '',

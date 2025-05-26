@@ -23,8 +23,15 @@ const PoseDetails = (
   const [formData, setFormData] = useState({
     name: '',
     id: '',
+    crs: '',
     data: ''
+
   });
+
+  const [fileFormData, setFileFormData] = useState({
+    file: '',
+  });
+
   const [nextId, setNextId] = useState(1);  // widget ids increment automatically
 
 
@@ -34,6 +41,8 @@ const PoseDetails = (
         name: cameraConfig.name || '',
         id: cameraConfig.id || '',
         data: JSON.stringify(cameraConfig.data, null, 4) || '',
+        crs: JSON.stringify(cameraConfig.crs, null, 4) || '',
+
       });
     } else {
       setFormData({
@@ -94,21 +103,33 @@ const PoseDetails = (
 
       // Additional steps after successful file load
       console.log("processing control point data...")
+      // Parse coordinates and create new widgets
+      const updatedFormData = {
+        ...formData,
+        ["crs"]: GcpData.crs
+      }
+      setFormData(updatedFormData);
+      // formData.crs = GcpData.crs
+      const newWidgets = GcpData.control_points.map((feature, index) => {
+        const { x, y, z = 0 } = feature; // Defaults Z to 0 if not present
+        const color = rainbowColors[(index) % rainbowColors.length];
+        return {
+          color: color,
+          id: index + 1, // Unique ID for widget
+          coordinates: {x, y, z, row: "", col: ""},
+          icon: createCustomMarker(color, index + 1)
+        };
+
+      });
+      setWidgets(newWidgets);
+      setNextId(newWidgets.length + 1);  // ensure the next ID is ready for a new XYZ widget
+
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
     }
-
+  }
   const loadFile = async () => {
     try {
-
-      if (!formData.file) {
-        setMessageInfo('error', 'Please select a file');
-        return;
-      }
-
-      const fileFormData = new FormData();
-      fileFormData.append("file", formData.file);
-
       try {
         const response = await api.post(
           '/control_points/from_csv/',
@@ -136,9 +157,8 @@ const PoseDetails = (
       setMessageInfo('error', `Error: ${error.response?.data?.detail || error.message}`);
       throw error;  // error outside this function
     }
+
   }
-
-
 
   const handleInputChange = async (event) => {
     const {name, value, type} = event.target;
@@ -147,14 +167,30 @@ const PoseDetails = (
       [name]: value
     }
     setFormData(updatedFormData);
-
-    try {
-      const response = await api.post('/camera_config/update/', submitData(updatedFormData));
-      setCameraConfig(response.data);
-    } catch (error) {
-      console.error('Error updating JSON:', error);
-    }
   }
+
+    const handleFileChange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      setFileFormData({ file });
+  }
+
+  const validateWidgets = () => {
+    // Check there are at least 6 widgets
+    if (widgets.length < 6) return false;
+
+    // Check that all required fields are valid for every widget
+    return widgets.every(widget => {
+      const { row, col, x, y, z } = widget.coordinates;
+      return (
+        row !== null && row !== '' &&
+        col !== null && col !== '' &&
+        x !== null && x !== '' &&
+        y !== null && y !== '' &&
+        z !== null && z !== ''
+      );
+    });
+  };
 
 
   return (
@@ -173,19 +209,23 @@ const PoseDetails = (
             Or choose a file (.csv with X, Y, Z, or GeoJSON)
           </label>
           <input type='file' className='form-control' id='file' name='file'
-                 accept=".geojson,.csv" onChange={handleInputChange} required/>
+                 accept=".geojson,.csv" onChange={handleFileChange} required/>
         </div>
+          <button type='submit' className='btn'>
+            Load control points
+          </button>
         </form>
 
-        <button type='submit' className='btn'>
-          Load control points
-        </button>
-        <button onClick={() => fitGcps(api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo)} className="btn">Validate</button>
+        <button
+          onClick={() => fitGcps(api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo)}
+          className="btn"
+          disabled={!validateWidgets()}
+        >Validate</button>
         <div className='mb-3 mt-3'>
           <label htmlFor='crs' className='form-label small'>
             Coordinate reference system (only for GPS)
           </label>
-          <input type='number' className='form-control' id='crs' name='crs' onChange={handleInputChange} value="" required/>
+          <input type='number' className='form-control' id='crs' name='crs' onChange={handleInputChange} value={formData.crs}/>
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='videoMode' className='form-label small'>
