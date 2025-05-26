@@ -14,6 +14,7 @@ const PoseDetails = (
     widgets,
     dots,
     selectedWidgetId,
+    imgDims,
     setCameraConfig,
     setWidgets,
     setDots,
@@ -198,16 +199,13 @@ const PoseDetails = (
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Control points</h5>
         <label htmlFor='addWidget' className='form-label'>
-          You may add control points manually one by one...
+          You may add control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
         </label>
 
         <button onClick={addWidget} id="addWidget" className="btn">Add GCP</button>
         <form onSubmit={handleSubmit}>
 
         <div className='mb-3 mt-3'>
-          <label htmlFor='file' className='form-label'>
-            Or choose a file (.csv with X, Y, Z, or GeoJSON)
-          </label>
           <input type='file' className='form-control' id='file' name='file'
                  accept=".geojson,.csv" onChange={handleFileChange} required/>
         </div>
@@ -217,7 +215,7 @@ const PoseDetails = (
         </form>
 
         <button
-          onClick={() => fitGcps(api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo)}
+          onClick={() => fitGcps(widgets, imgDims, formData.crs, setWidgets, setMessageInfo)}
           className="btn"
           disabled={!validateWidgets()}
         >Validate</button>
@@ -226,12 +224,6 @@ const PoseDetails = (
             Coordinate reference system (only for GPS)
           </label>
           <input type='number' className='form-control' id='crs' name='crs' onChange={handleInputChange} value={formData.crs}/>
-        </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='videoMode' className='form-label small'>
-            Mode of video
-          </label>
-          <input type='radio' id='videoMode' name='videoMode' onChange={handleInputChange} value="1" required/>
         </div>
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>

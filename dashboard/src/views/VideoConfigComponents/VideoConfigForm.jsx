@@ -141,6 +141,97 @@ const VideoConfigForm = (
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange}
                  value={formData.name} required/>
         </div>
+        <div className="mb-3 mt-3">
+          <label htmlFor="videoMode" className="form-label">
+            Mode of video
+          </label>
+
+          <div>
+            <input
+              type="radio"
+              id="modeHomography"
+              name="videoMode"
+              onChange={handleInputChange}
+              value="homography"
+              required
+            />
+            <label htmlFor="modeHomography" style={{ marginLeft: '8px' }}>4-point homography</label>
+          </div>
+
+          <div>
+            <input
+              type="radio"
+              id="modePerspective"
+              name="videoMode"
+              onChange={handleInputChange}
+              value="perspective"
+              required
+            />
+            <label htmlFor="modePerspective" style={{ marginLeft: '8px' }}>Full perspective</label>
+          </div>
+
+          <div>
+            <input
+              type="radio"
+              id="modeDrone"
+              name="videoMode"
+              onChange={handleInputChange}
+              value="nadirDrone"
+              required
+            />
+            <label htmlFor="modeDrone" style={{ marginLeft: '8px' }}>Nadir drone</label>
+          </div>
+        </div>
+        <div className="mb-3 mt-3">
+          <label htmlFor="videoMode" className="form-label">
+            Rotate video
+          </label>
+          <div>
+            <input
+              type="radio"
+              id="0deg"
+              name="videoRotation"
+              onChange={handleInputChange}
+              value="0deg"
+              required
+            />
+            <label htmlFor="0deg" style={{ marginLeft: '8px' }}>no rotation</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="90deg"
+              name="videoRotation"
+              onChange={handleInputChange}
+              value="90deg"
+              required
+            />
+            <label htmlFor="90deg" style={{ marginLeft: '8px' }}>90 degrees clockwise</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="270deg"
+              name="videoRotation"
+              onChange={handleInputChange}
+              value="270deg"
+              required
+            />
+            <label htmlFor="270deg" style={{ marginLeft: '8px' }}>90 degrees counter-clockwise</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="180deg"
+              name="videoRotation"
+              onChange={handleInputChange}
+              value="180deg"
+              required
+            />
+            <label htmlFor="180deg" style={{ marginLeft: '8px' }}>180 degrees</label>
+          </div>
+        </div>
+
         <button type='submit' className='btn'>
           Save
         </button>

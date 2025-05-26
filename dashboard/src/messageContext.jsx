@@ -15,12 +15,12 @@ export const MessageProvider = ({ children }) => {
     setMessageType(type);
     setShowMessage(true);
 
-    // Optional: Clear the message automatically after a timeout
-    setTimeout(() => {
-      setShowMessage(false);
-      setMessage('');
-      setMessageType('');
-    }, 5000); // 5 seconds
+  //   // Optional: Clear the message automatically after a timeout
+  //   setTimeout(() => {
+  //     setShowMessage(false);
+  //     setMessage('');
+  //     setMessageType('');
+  //   }, 5000); // 5 seconds
   };
 
   return (

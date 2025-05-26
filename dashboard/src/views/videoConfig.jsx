@@ -229,6 +229,7 @@ const VideoConfig = () => {
                       widgets={widgets}
                       dots={dots}
                       selectedWidgetId={selectedWidgetId}
+                      imgDims={imgDims}
                       setCameraConfig={setCameraConfig}
                       setWidgets={setWidgets}
                       setDots={setDots}

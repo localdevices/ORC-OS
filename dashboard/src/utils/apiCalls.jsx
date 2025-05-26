@@ -1,15 +1,8 @@
-// import api from "../api.js";
+import api from "../api.js";
 
-export const fitGcps = async (api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo) => {
+export const fitGcps = async (widgets, imgDims, epsgCode, setWidgets, setMessageInfo) => {
 
   try {
-    // Checks!
-    if (widgets.length < 0) {
-      const msg = `Too few GCPs (${widgets.length} / 6)`
-      setMessageInfo('error', msg);
-//      throw new Error(msg);
-    }
-
     // Extract coordinates into separated lists
     const dst = widgets.map(({ coordinates }) => [
       parseFloat(coordinates.x) || null,
