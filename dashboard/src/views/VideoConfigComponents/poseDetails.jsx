@@ -85,6 +85,61 @@ const PoseDetails = (
     setSelectedWidgetId(null);
   }
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const GcpData = await loadFile();
+      // Clear existing widgets before adding new ones
+      clearWidgets();
+
+      // Additional steps after successful file load
+      console.log("processing control point data...")
+    } catch (error) {
+      console.log("File loading not successful, do nothing...", error);
+    }
+
+  const loadFile = async () => {
+    try {
+
+      if (!formData.file) {
+        setMessageInfo('error', 'Please select a file');
+        return;
+      }
+
+      const fileFormData = new FormData();
+      fileFormData.append("file", formData.file);
+
+      try {
+        const response = await api.post(
+          '/control_points/from_csv/',
+          fileFormData,
+          {headers: {"Content-Type": "multipart/form-data"}}
+        );
+        setMessageInfo('success', 'Successfully loaded CSV file');
+        return response.data;
+      } catch (csvError) {
+        try {
+          const geoJsonResponse = await api.post(
+            '/control_points/from_geojson/',
+            fileFormData,
+            {headers: {"Content-Type": "multipart/form-data"}}
+          );
+
+          setMessageInfo('success', 'Successfully loaded GeoJSON file');
+          return geoJsonResponse.data;
+        } catch (geoJsonError) {
+          throw new Error(`Failed to parse file as CSV (${csvError.response.data.detail}) or as GeoJSON (${geoJsonError.response.data.detail})`);
+        }
+      }
+    } catch (error) {
+      console.error("Error occurred during file upload:", error);
+      setMessageInfo('error', `Error: ${error.response?.data?.detail || error.message}`);
+      throw error;  // error outside this function
+    }
+  }
+
+
+
   const handleInputChange = async (event) => {
     const {name, value, type} = event.target;
     const updatedFormData = {
@@ -105,19 +160,27 @@ const PoseDetails = (
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        <h5>Set references</h5>
+        <h5>Control points</h5>
+        <label htmlFor='addWidget' className='form-label'>
+          You may add control points manually one by one...
+        </label>
+
+        <button onClick={addWidget} id="addWidget" className="btn">Add GCP</button>
+        <form onSubmit={handleSubmit}>
+
         <div className='mb-3 mt-3'>
-          <label htmlFor='z_0' className='form-label small'>
-            Water level in GCP axes [m]
+          <label htmlFor='file' className='form-label'>
+            Or choose a file (.csv with X, Y, Z, or GeoJSON)
           </label>
-          <input type='number' className='form-control' id='z_0' name='z_0' onChange={handleInputChange} value="" required/>
+          <input type='file' className='form-control' id='file' name='file'
+                 accept=".geojson,.csv" onChange={handleInputChange} required/>
         </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='h_ref' className='form-label small'>
-            Water level local gauge [m]
-          </label>
-          <input type='number' className='form-control' id='h_ref' name='h_ref' onChange={handleInputChange} value="" required/>
-        </div>
+        </form>
+
+        <button type='submit' className='btn'>
+          Load control points
+        </button>
+        <button onClick={() => fitGcps(api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo)} className="btn">Validate</button>
         <div className='mb-3 mt-3'>
           <label htmlFor='crs' className='form-label small'>
             Coordinate reference system (only for GPS)
@@ -132,10 +195,6 @@ const PoseDetails = (
         </div>
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        <h5>Control Points</h5>
-        <button onClick={addWidget} className="btn">Add GCP</button>
-        <button onClick={() => fitGcps(api, widgets, imgDims, epsgCode, setWidgets, setMessageInfo)} className="btn">Fit GCPs</button>
-
         {widgets.map((widget) => (
           <div key={widget.id} onClick={() =>
             setSelectedWidgetId(widget.id)

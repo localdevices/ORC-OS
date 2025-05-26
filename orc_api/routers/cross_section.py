@@ -96,13 +96,14 @@ async def update_recipe(cs: CrossSectionUpdate):
 async def upload_cs_geojson(
     file: UploadFile,
 ):
-    """Read a recipe file and return cross-section details to the front end in-memory.
+    """Read a cross section file and return cross-section details to the front end in-memory.
 
     This does not store data in the database.
     """
     cs_body = file.file.read()
     try:
         cs = json.loads(cs_body)
+
     except Exception:
         raise HTTPException(status_code=400, detail="File is not a properly formatted JSON file")
     try:
