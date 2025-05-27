@@ -15,8 +15,9 @@ const PhotoComponent = (
     scale,
     dots,
     imgDims,
+    rotate,
     setDots,
-    setImgDims
+    setImgDims,
   }) => {
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
   const [photoBbox, setPhotoBbox] = useState(null);
@@ -41,10 +42,15 @@ const PhotoComponent = (
     setFittedPoints(fP);
   }
 
-  const getFrameUrl = (frameNr) => {
+  const getFrameUrl = (frameNr, rotate) => {
     if (!video) return '';
+    console.log(rotate);
     const apiHost = api.defaults.baseURL.replace(/\/$/, '');
     const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
+    if (rotate !== null) {
+      // ensure that if rotate is set, it is also parsed
+      return `${frameUrl}?rotate=${rotate}`;
+    }
     return frameUrl
   }
   const handleMouseMove = (event) => {
@@ -273,7 +279,7 @@ const PhotoComponent = (
         onLoad={handleImageLoad}
         onMouseMove={handleMouseMove} // Track mouse movement
         onMouseLeave={handleMouseLeave}
-        src={getFrameUrl(0)}
+        src={getFrameUrl(0, rotate)}
         // src="http://localhost:5000/video/1/frame/1"
         alt="img-calibration"
       />

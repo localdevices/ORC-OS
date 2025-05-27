@@ -61,7 +61,7 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{id}/frame/{frame_nr}", response_class=FileResponse, status_code=200)
-async def get_frame(id: int, frame_nr: int, db: Session = Depends(get_db)):
+async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Session = Depends(get_db)):
     """Retrieve single frame from video."""
     video_rec = crud.video.get(db=db, id=id)
     if not video_rec:
@@ -83,6 +83,17 @@ async def get_frame(id: int, frame_nr: int, db: Session = Depends(get_db)):
     success, frame = cap.read()
     if not success:
         raise HTTPException(status_code=500, detail="Failed to read frame")
+
+    # Validate and apply rotation if specified
+    if rotate is not None:
+        if rotate not in [90, 180, 270]:
+            raise HTTPException(status_code=400, detail="Rotation must be None, 90, 180 or 270 degrees")
+        if rotate == 90:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rotate == 180:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+        elif rotate == 270:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
     # Convert the frame to jpg format
     _, buffer = cv2.imencode(".jpg", frame)

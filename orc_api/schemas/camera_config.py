@@ -79,6 +79,7 @@ class CameraConfigResponse(CameraConfigRemote):
     f: Optional[float] = Field(default=None, description="Focal length in pixels.")
     k1: Optional[float] = Field(default=None, description="Radial distortion coefficient 1 [-]")
     k2: Optional[float] = Field(default=None, description="Radial distortion coefficient 2 [-]")
+    rotation: Optional[int] = Field(default=None, description="Image rotation in degrees.")
     # gcps_per_point: Optional[List[dict]] = Field(
     #     default=None,
     #     description="GCPs organized per point, containing all information for easy use in front end."
@@ -97,6 +98,8 @@ class CameraConfigResponse(CameraConfigRemote):
                     camera_position.tolist(),
                     camera_rotation.tolist(),
                 )
+            if instance.data.rotation is not None:
+                instance.rotation = instance.data.rotation
             if instance.data.camera_matrix is not None:
                 instance.f = instance.data.camera_matrix[0][0]
             if instance.data.dist_coeffs is not None:

@@ -250,8 +250,6 @@ const PoseDetails = (
             />
           </div>
         ))}
-
-        <p>intentionally left blanc</p>
       </div>
     </div>
 

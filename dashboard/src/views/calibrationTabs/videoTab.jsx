@@ -12,26 +12,27 @@ const VideoTab = (
     updateWidget,
     dots,
     imgDims,
+    rotate,
     setDots,
-    setImgDims
+    setImgDims,
   }
 ) => {
   const [scale, setScale] = useState(1);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
 
-  // Add these handlers
-  const handleRotateLeft = () => {
-    console.log('Rotate Left');
-    // Implement rotation logic
-  };
-
-  const handleRotateRight = () => {
-    console.log('Rotate Right');
-    // Implement rotation logic
-  };
 
   const handleBoundingBox = () => {
     console.log('Draw Bounding Box');
+    // Implement bounding box logic
+  };
+
+  const handleRotateLeft = () => {
+    console.log('Rotate left');
+    // Implement bounding box logic
+  };
+
+  const handleRotateRight = () => {
+    console.log('Rotate right');
     // Implement bounding box logic
   };
 
@@ -69,6 +70,7 @@ const VideoTab = (
                    scale={scale}
                    dots={dots}
                    imgDims={imgDims}
+                   rotate={rotate}
                    setDots={setDots}
                    setImgDims={setImgDims}
                  />

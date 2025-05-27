@@ -27,7 +27,6 @@ const VideoConfig = () => {
   // consts for image clicking
   const [widgets, setWidgets] = useState([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
-  const [nextId, setNextId] = useState(1);  // widget ids increment automatically
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
   const [GCPsVisible, setGCPsVisible] = useState(false); // State to toggle GCP menu right-side
   const [cameraConfigState, setCameraConfigState] = useState({
@@ -130,6 +129,7 @@ const VideoConfig = () => {
             updateWidget={updateWidget}
             dots={dots}
             imgDims={imgDims}
+            rotate={cameraConfig?.rotation || null}
             setDots={setDots}
             setImgDims={setImgDims}
           />
