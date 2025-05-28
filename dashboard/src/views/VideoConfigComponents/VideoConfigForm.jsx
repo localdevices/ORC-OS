@@ -14,6 +14,7 @@ const VideoConfigForm = (
     setRecipe,
     setCSDischarge,
     setCSWaterLevel,
+    setSave,
     setMessageInfo
   }) => {
   const [formData, setFormData] = useState({
@@ -43,6 +44,7 @@ const VideoConfigForm = (
       [name]: value
     }
     setFormData(updatedFormData);
+    setSave(true);
   }
 
 
@@ -52,6 +54,8 @@ const VideoConfigForm = (
     const updatedCameraConfig = {
       ...cameraConfig,
       rotation: value,
+      height: cameraConfig.height,
+      width: cameraConfig.width,
     };
     setCameraConfig(updatedCameraConfig);
     // set the rotation correctly
@@ -101,7 +105,6 @@ const VideoConfigForm = (
     } else {
       filteredData.camera_config = null;
     }
-
     // predefine response object
     let response;
     try {
@@ -123,14 +126,15 @@ const VideoConfigForm = (
       video.video_config_id = response.data.id;
       // and store this in the database
       api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
+      setSave(false);
     }
   };
 
 
   return (
     <div style={{"padding": "5px"}}>
-      <p>Let's get started with some simple details and getting the video rotated correcly.</p>
-      <form onSubmit={handleFormSubmit}>
+      <p>Let's get started with some simple details and getting the video rotated correctly.</p>
+      <form id="videoConfigForm" onSubmit={handleFormSubmit}>
       <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>
             Video Config ID
@@ -200,6 +204,7 @@ const VideoConfigForm = (
               name="videoRotation"
               onChange={handleRotateChange}
               value="0"
+              checked={!cameraConfig?.rotation || cameraConfig?.rotation === 0 || cameraConfig?.rotation === null}
               required
             />
             <label htmlFor="0deg" style={{ marginLeft: '8px' }}>no rotation</label>
@@ -211,6 +216,7 @@ const VideoConfigForm = (
               name="videoRotation"
               onChange={handleRotateChange}
               value="90"
+              checked={cameraConfig?.rotation === 90 }
               required
             />
             <label htmlFor="90deg" style={{ marginLeft: '8px' }}>90 degrees clockwise</label>
@@ -222,6 +228,7 @@ const VideoConfigForm = (
               name="videoRotation"
               onChange={handleRotateChange}
               value="270"
+              checked={cameraConfig?.rotation === 270 }
               required
             />
             <label htmlFor="270deg" style={{ marginLeft: '8px' }}>90 degrees counter-clockwise</label>
@@ -233,6 +240,7 @@ const VideoConfigForm = (
               name="videoRotation"
               onChange={handleRotateChange}
               value="180"
+              checked={cameraConfig?.rotation === 180 }
               required
             />
             <label htmlFor="180deg" style={{ marginLeft: '8px' }}>180 degrees</label>

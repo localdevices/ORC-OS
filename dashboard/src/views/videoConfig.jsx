@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 import MessageBox from "../messageBox.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
+import {FaSave} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
@@ -28,12 +29,13 @@ const VideoConfig = () => {
   const [widgets, setWidgets] = useState([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
-  const [GCPsVisible, setGCPsVisible] = useState(false); // State to toggle GCP menu right-side
+  const rotateState = useRef(cameraConfig?.rotation);
   const [cameraConfigState, setCameraConfigState] = useState({
     coordinates: [],
     fittedCoordinates: [],
   }); // central controls camera config
   const [imgDims, setImgDims] = useState(null);
+  const [save, setSave] = useState(true);
 
 
   // Fetch video metadata and existing configs when the component is mounted
@@ -63,21 +65,40 @@ const VideoConfig = () => {
           }
         }
       })
-      .catch((err) => console.error("Error fetching video data:", err));
+      .catch((err) => console.error("Error fetching video data:", err))
+      .finally(() => {
+        setSave(false)
+
+      });
 
   }, [videoId]);
 
-  useEffect(() => {
-    // TODO: when camera config is loaded, then fill all relevant fields and GCPs.
-
-  }, [cameraConfig])
   useEffect(() => {
     // make sure that if a selected widget can no longer be found, the selected id is reset to null
     if (selectedWidgetId && !widgets.find(w => w.id === selectedWidgetId)) {
       setSelectedWidgetId(null);
     }
-
   }, [widgets, selectedWidgetId])
+
+  useEffect(() => {
+    setSave(true);
+  }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
+
+  useEffect(() => {
+    // check if height and width must be adapted to a new rotation
+    if (rotateState.current !== cameraConfig?.rotation && imgDims !== null) {
+      // set state to new
+      rotateState.current = cameraConfig.rotation;
+      setCameraConfig((prevConfig) => (
+        {
+          ...prevConfig,
+          height: imgDims.height,
+          width: imgDims.width
+        })
+      )
+    }
+  }, [imgDims])
+
 
   const createCameraConfig = () => {
     api.get(`/camera_config/empty/${videoId}`) // Replace with your API endpoint
@@ -102,11 +123,34 @@ const VideoConfig = () => {
   }
 
   const updateWidget = (id, updatedCoordinates) => {
-    setWidgets((prevWidgets) =>
-      prevWidgets.map((widget) =>
-        widget.id === id ? {...widget, coordinates: updatedCoordinates } : widget
-      )
-    );
+    setWidgets((prevWidgets) => {
+      const newWidgets = prevWidgets.map((widget) =>
+        widget.id === id
+          ? {
+              ...widget,
+              coordinates: {
+                ...updatedCoordinates,
+                x: parseFloat(updatedCoordinates.x) || null,
+                y: parseFloat(updatedCoordinates.y) || null,
+                z: parseFloat(updatedCoordinates.z) || null,
+                row: parseFloat(updatedCoordinates.row) || null,
+                col: parseFloat(updatedCoordinates.col) || null,
+
+            }
+          } : widget
+      );
+
+      // Update cameraConfig with new coordinates
+      setCameraConfig((prevConfig) => ({
+        ...prevConfig,
+        gcps: {
+          ...prevConfig.gcps,
+          control_points: newWidgets.map(widget => widget.coordinates)
+        }
+      }));
+
+      return newWidgets;
+    });
   };
 
   const handleTabChange = (tab) => {
@@ -121,7 +165,24 @@ const VideoConfig = () => {
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
         <div className="flex-container column" style={{"height": "100%"}}>
-          <h5>Image view</h5>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
+            <h5 style={{margin: 0}}>Image view</h5>
+            <button
+              type="submit"
+              form="videoConfigForm"
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: save ? 'pointer' : 'not-allowed',
+                color: save ? '#0d6efd' : '#6c757d',
+                padding: '5px'
+              }}
+              disabled={!save}
+            >
+              <FaSave size={20}/>
+            </button>
+          </div>
+
           <VideoTab
             video={video}
             widgets={widgets}
@@ -137,6 +198,7 @@ const VideoConfig = () => {
         </div>
           <CameraParameters
             cameraConfig={cameraConfig}
+            setCameraConfig={setCameraConfig}
           />
         </div>
         <div className="flex-container column no-padding">
@@ -198,7 +260,9 @@ const VideoConfig = () => {
               <div className="tab-container">
                 {/* Tab content */}
                 <div className="tab-content">
-                  {activeTab === 'configDetails' && (
+                  <div style={{ display: activeTab === 'configDetails' ? 'block' : 'none' }}>
+
+                  {/*{activeTab === 'configDetails' && (*/}
                     <VideoConfigForm
                       selectedVideoConfig={videoConfig}
                       setSelectedVideoConfig={setVideoConfig}
@@ -211,9 +275,11 @@ const VideoConfig = () => {
                       setRecipe={setRecipe}
                       setCSDischarge={setCSDischarge}
                       setCSWaterLevel={setCSWaterLevel}
+                      setSave={setSave}
                       setMessageInfo={setMessageInfo}
                     />
-                  )}
+                    </div>
+                  {/*)}*/}
 
                   {activeTab === 'gcps' && (
                     <CameraConfigForm
@@ -230,6 +296,7 @@ const VideoConfig = () => {
                       dots={dots}
                       selectedWidgetId={selectedWidgetId}
                       imgDims={imgDims}
+                      updateWidget={updateWidget}
                       setCameraConfig={setCameraConfig}
                       setWidgets={setWidgets}
                       setDots={setDots}

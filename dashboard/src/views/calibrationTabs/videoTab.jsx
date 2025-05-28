@@ -51,6 +51,7 @@ const VideoTab = (
             />
 
             <TransformWrapper
+              style={{ maxHeight: '95%' }}
                pinchEnabled={true}
                wheelEnabled={false}
                touchEnabled={true}
@@ -75,7 +76,7 @@ const VideoTab = (
                    setImgDims={setImgDims}
                  />
             </TransformWrapper>
-            <div style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
+            <div style={{position: 'sticky', textAlign: 'center', marginTop: '10px', color: '#555' }}>
               Zoom and pan with your mouse. Click on the photo to select row/column
             </div>
 {/*       <h2>Current Coordinates:</h2> */}

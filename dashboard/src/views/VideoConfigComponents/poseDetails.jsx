@@ -1,5 +1,5 @@
 import api from "../../api.js";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState, useRef} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
@@ -15,6 +15,7 @@ const PoseDetails = (
     dots,
     selectedWidgetId,
     imgDims,
+    updateWidget,
     setCameraConfig,
     setWidgets,
     setDots,
@@ -34,26 +35,30 @@ const PoseDetails = (
   });
 
   const [nextId, setNextId] = useState(1);  // widget ids increment automatically
-
+  const prevControlPoints = useRef(null);
 
   useEffect(() => {
-    if (cameraConfig) {
-      setFormData({
-        name: cameraConfig.name || '',
-        id: cameraConfig.id || '',
-        data: JSON.stringify(cameraConfig.data, null, 4) || '',
-        crs: JSON.stringify(cameraConfig.crs, null, 4) || '',
+    console.log(cameraConfig.gcps);
+    const controlPoints = cameraConfig?.gcps?.control_points;
+    // if (controlPoints && JSON.stringify(prevControlPoints.current) !== JSON.stringify(controlPoints)) {
+    // prevControlPoints.current = controlPoints;
+    // set up the widgets with src and dst points
+    const newWidgets = controlPoints.map((gcp, index) => {
+      const color = rainbowColors[(index) % rainbowColors.length];
+      return {
+        color: color,
+        id: index + 1, // Unique ID for widget
+        coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
+        icon: createCustomMarker(color, index + 1)
+      };
+    })
+    setWidgets(newWidgets);
+    setNextId(newWidgets.length + 1);
 
-      });
-    } else {
-      setFormData({
-        name: '',
-        id: '',
-        data: '',
-      })
-    }
-
+    // }
   }, [cameraConfig]);
+
+
 
   const addWidget = () => {
     setWidgets((prevWidgets) => {
@@ -96,6 +101,7 @@ const PoseDetails = (
   }
 
   const handleSubmit = async (event) => {
+    // submit the form with a GCP file (x, y, z csv or geojson)
     event.preventDefault();
     try {
       const GcpData = await loadFile();
@@ -104,32 +110,34 @@ const PoseDetails = (
 
       // Additional steps after successful file load
       console.log("processing control point data...")
+      // TODO: put the coordinates on the cameraConfig.gcps property
       // Parse coordinates and create new widgets
-      const updatedFormData = {
-        ...formData,
-        ["crs"]: GcpData.crs
-      }
-      setFormData(updatedFormData);
-      // formData.crs = GcpData.crs
-      const newWidgets = GcpData.control_points.map((feature, index) => {
-        const { x, y, z = 0 } = feature; // Defaults Z to 0 if not present
-        const color = rainbowColors[(index) % rainbowColors.length];
-        return {
-          color: color,
-          id: index + 1, // Unique ID for widget
-          coordinates: {x, y, z, row: "", col: ""},
-          icon: createCustomMarker(color, index + 1)
-        };
-
-      });
-      setWidgets(newWidgets);
-      setNextId(newWidgets.length + 1);  // ensure the next ID is ready for a new XYZ widget
+      // const updatedFormData = {
+      //   ...formData,
+      //   ["crs"]: GcpData.crs
+      // }
+      // setFormData(updatedFormData);
+      // // formData.crs = GcpData.crs
+      // const newWidgets = GcpData.control_points.map((feature, index) => {
+      //   const { x, y, z = 0 } = feature; // Defaults Z to 0 if not present
+      //   const color = rainbowColors[(index) % rainbowColors.length];
+      //   return {
+      //     color: color,
+      //     id: index + 1, // Unique ID for widget
+      //     coordinates: {x, y, z, row: "", col: ""},
+      //     icon: createCustomMarker(color, index + 1)
+      //   };
+      //
+      // });
+      // setWidgets(newWidgets);
+      // setNextId(newWidgets.length + 1);  // ensure the next ID is ready for a new XYZ widget
 
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
     }
   }
   const loadFile = async () => {
+    // load csv or geojson file with control points
     try {
       try {
         const response = await api.post(
@@ -215,7 +223,7 @@ const PoseDetails = (
         </form>
 
         <button
-          onClick={() => fitGcps(widgets, imgDims, formData.crs, setWidgets, setMessageInfo)}
+          onClick={() => fitGcps(widgets, imgDims, cameraConfig.gcps, setWidgets, setMessageInfo)}
           className="btn"
           disabled={!validateWidgets()}
         >Validate</button>
@@ -223,7 +231,7 @@ const PoseDetails = (
           <label htmlFor='crs' className='form-label small'>
             Coordinate reference system (only for GPS)
           </label>
-          <input type='number' className='form-control' id='crs' name='crs' onChange={handleInputChange} value={formData.crs}/>
+          <input type='number' className='form-control' id='crs' name='crs' onChange={handleInputChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
         </div>
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>

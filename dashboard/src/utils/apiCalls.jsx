@@ -1,37 +1,37 @@
 import api from "../api.js";
 
-export const fitGcps = async (widgets, imgDims, epsgCode, setWidgets, setMessageInfo) => {
+export const fitGcps = async (widgets, imgDims, gcps, setWidgets, setMessageInfo) => {
 
   try {
-    // Extract coordinates into separated lists
-    const dst = widgets.map(({ coordinates }) => [
-      parseFloat(coordinates.x) || null,
-      parseFloat(coordinates.y) || null,
-      parseFloat(coordinates.z) || null
-    ]);
-
-    const src = widgets.map(({ coordinates }) => [
-      parseFloat(coordinates.col, 10) || null,
-      parseFloat(coordinates.row, 10) || null,
-    ]);
-    // check if dst contains null
-    if (dst.some(row => row.includes(null))) {
-      setMessageInfo('error', 'GCP real-world coordinates are not complete. Ensure the coordinates are entered correctly and try again.');
-    }
-
-    // check if src contains null values
-    if (src.some(row => row.includes(null))) {
-      setMessageInfo('error', 'GCPs must have valid row and column coordinates. Please click the GCPs into the image frame to fix this.');
-      return;
-    }
-    const payload = {
-      "src": src,
-      "dst": dst,
-      "height": imgDims.height,
-      "width": imgDims.width,
-      "crs": epsgCode.toString()
-    };
-    const response = await api.post('/camera_config/fit_perspective', payload);
+    // // Extract coordinates into separated lists
+    // const dst = widgets.map(({ coordinates }) => [
+    //   parseFloat(coordinates.x) || null,
+    //   parseFloat(coordinates.y) || null,
+    //   parseFloat(coordinates.z) || null
+    // ]);
+    //
+    // const src = widgets.map(({ coordinates }) => [
+    //   parseFloat(coordinates.col, 10) || null,
+    //   parseFloat(coordinates.row, 10) || null,
+    // ]);
+    // // check if dst contains null
+    // if (dst.some(row => row.includes(null))) {
+    //   setMessageInfo('error', 'GCP real-world coordinates are not complete. Ensure the coordinates are entered correctly and try again.');
+    // }
+    //
+    // // check if src contains null values
+    // if (src.some(row => row.includes(null))) {
+    //   setMessageInfo('error', 'GCPs must have valid row and column coordinates. Please click the GCPs into the image frame to fix this.');
+    //   return;
+    // }
+    // const payload = {
+    //   "src": src,
+    //   "dst": dst,
+    //   "height": imgDims.height,
+    //   "width": imgDims.width,
+    //   "crs": epsgCode.toString()
+    // };
+    const response = await api.post('/camera_config/fit_perspective', gcps);
     // Extract `src_est` and `dst_est` from API response
     const { src_est, dst_est, error } = response.data;
     // Map the fitted coordinates back to the widgets

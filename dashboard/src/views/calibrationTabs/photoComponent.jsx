@@ -19,12 +19,32 @@ const PhotoComponent = (
     setDots,
     setImgDims,
   }) => {
+  const [loading, setLoading] = useState(true); // Track the loading state of image
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
   const [photoBbox, setPhotoBbox] = useState(null);
   const [fittedPoints, setFittedPoints] = useState([]);
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
   const [frameNr, setFrameNr] = useState(0);
   const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
+
+  const getFrameUrl = (frameNr, rotate) => {
+    if (!video) return '';
+    const apiHost = api.defaults.baseURL.replace(/\/$/, '');
+    const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
+    if (rotate !== null) {
+      // ensure that if rotate is set, it is also parsed
+      return `${frameUrl}?rotate=${rotate}`;
+    }
+    return frameUrl
+  }
+
+  useEffect(() => {
+    // Update the image URL whenever frameNr or rotate changes
+    const url = getFrameUrl(0, rotate);
+    setImageUrl(url); // Set the new image URL
+    setLoading(true); // Trigger loading state when the URL changes
+  }, [rotate, video]);
+
 
   const updateFittedPoints = () => {
     const fP = widgets.map(({id, fit, color}) => {
@@ -42,17 +62,7 @@ const PhotoComponent = (
     setFittedPoints(fP);
   }
 
-  const getFrameUrl = (frameNr, rotate) => {
-    if (!video) return '';
-    console.log(rotate);
-    const apiHost = api.defaults.baseURL.replace(/\/$/, '');
-    const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
-    if (rotate !== null) {
-      // ensure that if rotate is set, it is also parsed
-      return `${frameUrl}?rotate=${rotate}`;
-    }
-    return frameUrl
-  }
+
   const handleMouseMove = (event) => {
     if (!imageRef.current) return;
     if (!photoBbox || !imgDims || !transformState) return;
@@ -144,14 +154,6 @@ const PhotoComponent = (
     }
   }, [widgets, transformState, window]);
 
-  // useEffect(() => {
-  //   const loadFrame = async () => {
-  //     const url = await getFrame(frameNr);
-  //     if (url) setImageUrl(url);
-  //   };
-  //   loadFrame();
-  // }, [frameNr]);
-
 
   useTransformEffect(({state}) => {
     const imgElement = imageRef.current;
@@ -175,6 +177,7 @@ const PhotoComponent = (
   };
 
   const handleImageLoad = () => {
+    setLoading(false);
     if (imageRef.current) {
       setImgDims({
         width: imageRef.current.naturalWidth,
@@ -216,7 +219,6 @@ const PhotoComponent = (
       alert(`Please select a widget to update its row/column.`);
       return;
     } else {
-      console.log(`SELECTED WIDGET: ${selectedWidgetId}`)
 
       // Update the dots
       setDots((prevDots) => ({
@@ -268,9 +270,6 @@ const PhotoComponent = (
     <>
     <TransformComponent>
       <div className="image-container">
-        {/*{video ? (*/}
-        {/*<p>image loading...</p>)*/}
-        {/*: (*/}
       <img
         style={{width: '100%', height: '100%'}}
         className="img-calibration"
@@ -279,8 +278,7 @@ const PhotoComponent = (
         onLoad={handleImageLoad}
         onMouseMove={handleMouseMove} // Track mouse movement
         onMouseLeave={handleMouseLeave}
-        src={getFrameUrl(0, rotate)}
-        // src="http://localhost:5000/video/1/frame/1"
+        src={imageUrl}
         alt="img-calibration"
       />
       </div>
@@ -322,6 +320,12 @@ const PhotoComponent = (
         );
       })}
     </TransformComponent>
+      {loading && (
+        <div className="spinner-container">
+          <div className="spinner" />
+        </div>
+      )}
+
       {hoverCoordinates && (
         <div
           style={{

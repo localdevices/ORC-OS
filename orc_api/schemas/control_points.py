@@ -37,7 +37,9 @@ class ControlPoint(BaseModel):
 
     x: float
     y: float
-    z: float
+    z: Optional[float] = None
+    row: Optional[float] = None
+    col: Optional[float] = None
 
 
 class ControlPointSet(BaseModel):
@@ -45,6 +47,8 @@ class ControlPointSet(BaseModel):
 
     control_points: List[ControlPoint]
     crs: Optional[Union[str, int]] = None
+    z_0: Optional[float] = None
+    h_ref: Optional[float] = None
 
     @classmethod
     def from_gdf(cls, gdf):

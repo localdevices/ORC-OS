@@ -15,7 +15,6 @@ from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import CameraConfig, Session
 from orc_api.schemas.camera_config import (
-    CameraConfigCreate,
     CameraConfigResponse,
     CameraConfigUpdate,
     FittedPoints,
@@ -46,7 +45,7 @@ def get_nearest_utm_projection(coordinates: List[List[float]]) -> CRS:
 
 
 @router.get("/empty/{video_id}", response_model=CameraConfigResponse, status_code=200)
-async def empty_recipe(video_id: int, db: Session = Depends(get_db)):
+async def empty_camera_config(video_id: int, db: Session = Depends(get_db)):
     """Create an empty camera config in-memory."""
     # return an empty camera config for now
     video_rec = crud.video.get(db, video_id)
@@ -151,7 +150,7 @@ async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, ro
 )
 async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Update a camera config in the database."""
-    update_cam_config = camera_config.model_dump(exclude_none=True, exclude={"id"})
+    update_cam_config = camera_config.model_dump(exclude_none=True, include={"name", "data"})
     camera_config = crud.camera_config.update(db=db, id=id, camera_config=update_cam_config)
     return camera_config
 
@@ -159,7 +158,7 @@ async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Se
 @router.post(
     "/", response_model=CameraConfigResponse, status_code=201, description="Post a new complete Camera Configuration"
 )
-async def post_camera_config(camera_config: CameraConfigCreate, db: Session = Depends(get_db)):
+async def post_camera_config(camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Post a new camera configuration."""
     # Create a new device record if none exists
     new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, exclude={"id"}))

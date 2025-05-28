@@ -311,7 +311,7 @@ const Calibration = () => {
               >
                 <XYZWidget
                   id={widget.id}
-                  coordinates={widget.coordinates}
+                  coordinates={cameraConfig.gcps.control_points}
                   onUpdate={(id, coordinates) => updateWidget(id, coordinates)}
                   onDelete={deleteWidget}
                 />
