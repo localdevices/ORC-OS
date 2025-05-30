@@ -21,6 +21,16 @@
 
 }
 
+.bbox-marker {
+    position: absolute;
+    border: 2px solid #000;
+    border-radius: 7.5px;
+    background-color: rgba(26, 134, 255, 0.5);
+    z-index: 100;
+    border-color: rgba(255,255,255,0.7);
+}
+
+
 .control-styles {
     position: absolute;
     top: 10px;
@@ -53,6 +63,15 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.button-styles:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.button-styles.selected-bbox {
+    background-color: #009ed3
+}
+
 
 .button-group-styles {
     display: flex;

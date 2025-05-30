@@ -9,16 +9,16 @@ const PhotoComponent = (
   {
     video,
     imageRef,
-    selectedWidgetId,
-    updateWidget,
     widgets,
     scale,
     dots,
     imgDims,
     rotate,
-    setSelectedWidgetId,
     setDots,
     setImgDims,
+    bboxMarkers,
+    handlePhotoClick,
+    bboxClickCount
   }) => {
   const [loading, setLoading] = useState(true); // Track the loading state of image
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
@@ -64,7 +64,29 @@ const PhotoComponent = (
   }
 
 
-  const handleMouseMove = (event) => {
+  // Helper function
+  const calculateLineCoordinates = (start, end) => {
+    // Calculate pixel coordinates based on the bounding box and image dimensions
+    const startPoint = {
+      x: start.x,
+      y: start.y,
+    };
+    const endPoint = {
+      x: (end.col / imgDims.width) * photoBbox.width,
+      y: (end.row / imgDims.height) * photoBbox.height,
+    };
+
+    return { start: startPoint, end: endPoint };
+  };
+
+  const dashedLineCoordinates = bboxClickCount === 1 && bboxMarkers.length > 0 && hoverCoordinates
+    // dashed line, only displayed when the user has clicked once, and is seeking the second
+    // coordinate for a bounding box
+    ? calculateLineCoordinates(bboxMarkers[0], hoverCoordinates)
+    : null;
+
+
+    const handleMouseMove = (event) => {
     if (!imageRef.current) return;
     if (!photoBbox || !imgDims || !transformState) return;
 
@@ -165,10 +187,6 @@ const PhotoComponent = (
     updateFittedPoints();
   });
 
-  // select the widget with the current id
-  const getWidgetById = (id) => {
-    return widgets.find((widget) => widget.id === id);
-  };
 
   // Function to convert row/column to pixel coordinates
   const convertToPhotoCoordinates = (row, col) => {
@@ -187,13 +205,9 @@ const PhotoComponent = (
     }
   };
 
-
-  const getNextWidgetId = (currentId) => {
-    const currentIndex = widgets.findIndex(widget => widget.id === currentId);
-    return widgets[(currentIndex + 1) % widgets.length].id;
-  };
-
-  const handlePhotoClick = (event) => {
+  const handleMouseClick = (event) => {
+    // this function is called when the user clicks on the image. It starts with several general coordinate
+    // properties, then calling a callback handlePhotoClick to do specific things with the coordinates.
     if (!imageRef.current) return;
     event.stopPropagation();
     if (!transformState) {
@@ -220,36 +234,17 @@ const PhotoComponent = (
     // Calculate the row and column on the **original image** (as percentages)
     const originalRow = Math.round(normalizedY * imgDims.height * 100) / 100;
     const originalCol = Math.round(normalizedX * imgDims.width * 100) / 100;
-    // Add the new dot to the state with the ID of the associated widget
-    if (!selectedWidgetId) {
-      alert(`Please select a widget to update its row/column.`);
-      return;
-    } else {
-
-      // Update the dots
-      setDots((prevDots) => ({
-        ...prevDots,
-        [selectedWidgetId]: {
-          x: adjustedX,
-          y: adjustedY,
-          xNorm: normalizedX,
-          yNorm: normalizedY,
-          scale: scale,
-          color: getWidgetById(selectedWidgetId).color
-        },
-      }));
-
-      updateWidget(selectedWidgetId, {
-        ...widgets.find((widget) => widget.id === selectedWidgetId).coordinates,
-        row: originalRow,
-        col: originalCol,
-      });
-
-      // Select next widget
-      const nextWidgetId = getNextWidgetId(selectedWidgetId);
-      setSelectedWidgetId(nextWidgetId);
-    }
+    handlePhotoClick(
+      adjustedX,
+      adjustedY,
+      normalizedX,
+      normalizedY,
+      originalRow,
+      originalCol
+    );
   }
+
+
   PhotoComponent.propTypes = {
       video: PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
@@ -284,7 +279,7 @@ const PhotoComponent = (
         style={{width: '100%', height: '100%'}}
         className="img-calibration"
         ref={imageRef}
-        onClick={handlePhotoClick}
+        onClick={handleMouseClick}
         onLoad={handleImageLoad}
         onMouseMove={handleMouseMove} // Track mouse movement
         onMouseLeave={handleMouseLeave}
@@ -329,6 +324,26 @@ const PhotoComponent = (
           </div>
         );
       })}
+      {/* Render BBox markers */}
+      {bboxMarkers.map((point) => {
+        if (!point || point.x === undefined || point.y === undefined) return null;
+        return (  // a '+' sign as marker for fitted points
+          <div className="bbox-marker"
+               key={point.id}
+               style={{
+                 top: `${point.y}px`,
+                 left: `${point.x}px`,
+                 width: `${15 / scale}px`,
+                 height: `${15 / scale}px`,
+                 fontSize: `${12 / scale}px`,
+                 border: `${2 / scale}px solid white`,
+
+               }}
+          >
+          </div>
+        );
+      })}
+
     </TransformComponent>
       {loading && (
         <div className="spinner-container">
@@ -366,7 +381,47 @@ const PhotoComponent = (
           </span>
         </div>
       )}
-   </>
+      {/* Render the dashed line */}
+      {dashedLineCoordinates && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none", // Ensure it does not block interactions
+          }}
+        >
+          <svg
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <line
+              x1={dashedLineCoordinates.start.x}
+              y1={dashedLineCoordinates.start.y}
+              x2={dashedLineCoordinates.end.x}
+              y2={dashedLineCoordinates.end.y}
+
+              // x1="0"
+              // y1="0"
+              // x2="100"
+              // y2="100"
+              stroke="#009ed3"
+              strokeWidth="2"
+              strokeDasharray="5,5" // Dashed line effect
+            />
+          </svg>
+        </div>
+      )}
+
+
+    </>
   );
 };
 export default PhotoComponent;

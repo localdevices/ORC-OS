@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 // Add this component to your VideoTab return statement, before the TransformWrapper
 import {
   MdRotateLeft,
@@ -10,11 +11,11 @@ import {
 } from 'react-icons/md';
 
 import './photoComponent.css';
-import MessageBox from '../../messageBox';
 import {useMessage} from "../../messageContext.jsx";
 
-const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, cameraConfig }) => {
 
+const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, cameraConfig, bboxSelected }) => {
+  const prevCameraConfig = useRef(cameraConfig);
   // allow for setting messages
   const {setMessageInfo} = useMessage();
 
@@ -31,23 +32,22 @@ const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, came
     if (!fieldsComplete) {
       return false;
     }
-
-    // check if water level values are realistic
-    if (cameraConfig?.gcps?.control_points?.length > 0) {
-      const avgZ = cameraConfig.gcps.control_points.reduce((sum, point) => sum + point.z, 0) /
-        cameraConfig.gcps.control_points.length;
-      console.log(avgZ);
-      const zDiff = (avgZ - cameraConfig?.gcps?.z_0);
-      if (zDiff < 0) {
-        setMessageInfo("warning", `The set water level is ${Math.abs(zDiff).toFixed(2)} above the average height of the control points suggesting all control points are submerged. Is this correct?`)
-      } else if (zDiff > 20) {
-        setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
-      } else {
-        setMessageInfo("success", `Your camera calibration is now set. You can continue drawing a bounding box in the Image View`)
+    if (prevCameraConfig.current !== cameraConfig) {
+      prevCameraConfig.current = cameraConfig;
+      // check if water level values are realistic
+      if (cameraConfig?.gcps?.control_points?.length > 0) {
+        const avgZ = cameraConfig.gcps.control_points.reduce((sum, point) => sum + point.z, 0) /
+          cameraConfig.gcps.control_points.length;
+        const zDiff = (avgZ - cameraConfig?.gcps?.z_0);
+        if (zDiff < 0) {
+          setMessageInfo("warning", `The set water level is ${Math.abs(zDiff).toFixed(2)} above the average height of the control points suggesting all control points are submerged. Is this correct?`)
+        } else if (zDiff > 20) {
+          setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
+        } else {
+          setMessageInfo("success", `Your camera calibration is now set. You can continue drawing a bounding box in the Image View`)
+        }
       }
     }
-
-
     return true;
   }
 
@@ -69,10 +69,11 @@ const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, came
         >
           <MdRotateRight size={20} />
         </button>
-        <button className="button-styles"
+        <button className={`button-styles ${bboxSelected ? 'selected-bbox' : ''}`}
           onClick={() => onBoundingBox()}
           title="Draw Bounding Box (you must validate control points and set water level first)"
           disabled={!validateBboxReady()}
+
         >
           <MdCropFree size={20} />
         </button>
