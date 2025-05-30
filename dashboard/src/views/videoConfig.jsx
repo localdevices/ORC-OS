@@ -183,17 +183,19 @@ const VideoConfig = () => {
             </button>
           </div>
 
-          <VideoTab
-            video={video}
-            widgets={widgets}
-            selectedWidgetId={selectedWidgetId}
-            updateWidget={updateWidget}
-            dots={dots}
-            imgDims={imgDims}
-            rotate={cameraConfig?.rotation || null}
-            setDots={setDots}
-            setImgDims={setImgDims}
-          />
+          {video && (
+            <VideoTab
+              video={video}
+              widgets={widgets}
+              selectedWidgetId={selectedWidgetId}
+              updateWidget={updateWidget}
+              dots={dots}
+              imgDims={imgDims}
+              rotate={cameraConfig?.rotation || null}
+              setDots={setDots}
+              setImgDims={setImgDims}
+            />
+          )}
 
         </div>
           <CameraParameters
@@ -331,10 +333,12 @@ const VideoConfig = () => {
           </div>
           <div className="flex-container column" style={{"flexGrow": "0", "minHeight": "30%", "overflowY": "auto", "overflowX": "hidden"}}>
             <h5>Cross sections</h5>
+            {CSDischarge && CSWaterLevel && (
               <CrossSectionDisplay
                 CSDischarge={CSDischarge}
                 CSWaterLevel={CSWaterLevel}
-              />
+                />
+              )}
           </div>
         </div>
       </div>

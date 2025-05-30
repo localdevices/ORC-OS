@@ -77,3 +77,14 @@ class ControlPointSet(BaseModel):
         """Create control point set from DataFrame."""
         control_points = [ControlPoint(x=point["x"], y=point["y"], z=point["z"]) for _, point in df.iterrows()]
         return cls(control_points=control_points)
+
+    def parse(self):
+        """Parse control points into lists of coordinates."""
+        # in case z is always empty, only collect x and y.
+        all_z_none = all(point.z is None for point in self.control_points)
+        dst = [[point.x, point.y] if all_z_none else [point.x, point.y, point.z] for point in self.control_points]
+        src = [[point.col, point.row] for point in self.control_points]
+        # check if any src or dst coordinates are None
+        if any(None in coord for coord in src) or any(None in coord for coord in dst):
+            return None, None
+        return src, dst

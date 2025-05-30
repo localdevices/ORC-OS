@@ -1,7 +1,7 @@
 """Pydantic models for camera configurations."""
 
 import warnings
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -21,7 +21,7 @@ class GCPData(BaseModel):
 
     src: Optional[List[List[float]]] = Field(default=None, description="GCP source points.")
     dst: Optional[List[List[float]]] = Field(default=None, description="GCP destination points.")
-    crs: Optional[str] = Field(default=None, description="Coordinate Reference System of the GCPs.")
+    crs: Optional[Union[str, int]] = Field(default=None, description="Coordinate Reference System of the GCPs.")
     h_ref: Optional[float] = Field(default=None, description="Reference height of water level in local datum.")
     z_0: Optional[float] = Field(default=None, description="Reference height of water level in GCP datum.")
 
@@ -151,7 +151,7 @@ class CameraConfigResponse(CameraConfigInteraction):
                                 ControlPoint(
                                     x=coord[0],
                                     y=coord[1],
-                                    z=coord[1],
+                                    z=coord[2],
                                     col=point[0],
                                     row=point[1],
                                 )
@@ -208,6 +208,15 @@ class CameraConfigUpdate(CameraConfigInteraction):
                 rvec.tolist(),
                 tvec.tolist(),
             )
+        # handle the control points
+        if instance.gcps:
+            if instance.gcps.control_points:
+                # parse to src / dst
+                src, dst = instance.gcps.parse()
+            else:
+                src, dst = None, None
+
+            instance.data.gcps = GCPData(crs=instance.gcps.crs, src=src, dst=dst)
         return instance
 
 
@@ -226,8 +235,9 @@ class FittedPoints(BaseModel):
 
     src_est: List[List[float]]
     dst_est: List[List[float]]
-    camera_matrix: List[List[float]]
-    dist_coeffs: List[List[float]]
-    rvec: List[List[float]]
-    tvec: List[List[float]]
+    f: float
+    k1: float
+    k2: float
+    camera_position: List[float]
+    camera_rotation: List[float]
     error: float

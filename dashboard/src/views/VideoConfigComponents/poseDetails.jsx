@@ -22,13 +22,6 @@ const PoseDetails = (
     setSelectedWidgetId,
     setMessageInfo
   }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    id: '',
-    crs: '',
-    data: ''
-
-  });
 
   const [fileFormData, setFileFormData] = useState({
     file: '',
@@ -38,26 +31,39 @@ const PoseDetails = (
   const prevControlPoints = useRef(null);
 
   useEffect(() => {
-    console.log(cameraConfig.gcps);
-    const controlPoints = cameraConfig?.gcps?.control_points;
-    // if (controlPoints && JSON.stringify(prevControlPoints.current) !== JSON.stringify(controlPoints)) {
-    // prevControlPoints.current = controlPoints;
-    // set up the widgets with src and dst points
-    const newWidgets = controlPoints.map((gcp, index) => {
-      const color = rainbowColors[(index) % rainbowColors.length];
-      return {
-        color: color,
-        id: index + 1, // Unique ID for widget
-        coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
-        icon: createCustomMarker(color, index + 1)
-      };
-    })
-    setWidgets(newWidgets);
-    setNextId(newWidgets.length + 1);
-
+    console.log(cameraConfig);
+    // only change widgets when control points are really updated
+    if (prevControlPoints.current !== cameraConfig?.gcps?.control_points) {
+      // set state to new control points for later loops
+      const controlPoints = cameraConfig?.gcps?.control_points;
+      prevControlPoints.current = controlPoints;
+      // create or update widget set
+      if (controlPoints) {
+        const newWidgets = controlPoints.map((gcp, index) => {
+          const color = rainbowColors[(index) % rainbowColors.length];
+          return {
+            color: color,
+            id: index + 1, // Unique ID for widget
+            coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
+            icon: createCustomMarker(color, index + 1)
+          };
+        })
+        setWidgets(newWidgets);
+        // ensure user can set a new widget when clicking on add gcp
+        setNextId(newWidgets.length + 1);
+        // remove all pose information when gcps are altered in any way
+        setCameraConfig((prevConfig) => ({
+          ...prevConfig,
+          camera_position: null,
+          camera_rotation: null,
+          f: null,
+          k1: null,
+          k2: null,
+        }));
+      }
+    }
     // }
   }, [cameraConfig]);
-
 
 
   const addWidget = () => {
@@ -106,10 +112,20 @@ const PoseDetails = (
     try {
       const GcpData = await loadFile();
       // Clear existing widgets before adding new ones
-      clearWidgets();
+      // clearWidgets();
 
       // Additional steps after successful file load
       console.log("processing control point data...")
+      console.log(GcpData);
+      // if a crs is found, set it on cameraConfig.gcps.crs
+      if (GcpData) {
+        setCameraConfig((prevConfig) => ({
+          ...prevConfig,
+          gcps: GcpData,
+        }))
+      }
+      setDots({})
+
       // TODO: put the coordinates on the cameraConfig.gcps property
       // Parse coordinates and create new widgets
       // const updatedFormData = {
@@ -170,12 +186,14 @@ const PoseDetails = (
   }
 
   const handleInputChange = async (event) => {
-    const {name, value, type} = event.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: value
-    }
-    setFormData(updatedFormData);
+    const {value} = event.target;
+    setCameraConfig(prevConfig => ({
+      ...prevConfig,
+      gcps: {
+        ...prevConfig.gcps,
+        crs: !isNaN(value) ? parseInt(value) : value
+      }
+    }));
   }
 
     const handleFileChange = async (event) => {
@@ -184,6 +202,36 @@ const PoseDetails = (
       setFileFormData({ file });
   }
 
+  const handleFitGcps = async () => {
+
+    const GcpFit = await fitGcps(imgDims, cameraConfig.gcps, setMessageInfo)
+    const { src_est, dst_est } = GcpFit;
+    // Map the fitted coordinates back to the widgets
+    setWidgets((prevWidgets) =>
+      prevWidgets.map((widget, index) => {
+        return {
+          ...widget,
+          fit: {
+            row: src_est ? src_est[index][1] : null, // row from src_est
+            col: src_est ? src_est[index][0] : null, // col from src_est
+            x: dst_est ? dst_est[index][0] : null,  // x from dst_est
+            y: dst_est ? dst_est[index][1] : null,  // y from dst_est
+            z: dst_est ? dst_est[index][2] : null,  // z from dst_est
+          }
+        };
+      })
+    );
+    // set fields in cameraConfig
+    setCameraConfig((prevConfig) => ({
+      ...prevConfig,
+      camera_position: GcpFit.camera_position,
+      camera_rotation: GcpFit.camera_rotation,
+      f: GcpFit.f,
+      k1: GcpFit.k1,
+      k2: GcpFit.k2,
+    }));
+
+  }
   const validateWidgets = () => {
     // Check there are at least 6 widgets
     if (widgets.length < 6) return false;
@@ -223,7 +271,7 @@ const PoseDetails = (
         </form>
 
         <button
-          onClick={() => fitGcps(widgets, imgDims, cameraConfig.gcps, setWidgets, setMessageInfo)}
+          onClick={handleFitGcps}
           className="btn"
           disabled={!validateWidgets()}
         >Validate</button>

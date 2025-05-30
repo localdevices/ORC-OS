@@ -8,6 +8,7 @@ import cv2
 import pyorc.helpers
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile
 from pyorc import CameraConfig as pyorcCameraConfig
+from pyorc import cv
 from pyorc.cli.cli_utils import get_gcps_optimized_fit
 from pyproj import CRS
 
@@ -18,8 +19,9 @@ from orc_api.schemas.camera_config import (
     CameraConfigResponse,
     CameraConfigUpdate,
     FittedPoints,
-    GCPs,
+    # GCPs,
 )
+from orc_api.schemas.control_points import ControlPointSet
 from orc_api.schemas.video import VideoResponse
 
 UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
@@ -98,14 +100,15 @@ async def upload_camera_config(
 @router.post(
     "/fit_perspective", response_model=None, description="Fit perspective parameters on source and target points"
 )
-async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, row], dst as [x, y, z] and crs")):
+# async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, row], dst as [x, y, z] and crs")):
+async def fit_perspective(
+    gcps: ControlPointSet = Body(..., description="src as [column, row], dst as [x, y, z] and crs"),
+    height: int = Body(..., description="height of the video"),
+    width: int = Body(..., description="width of the video"),
+):
     """Fit perspective parameters on source and target points."""
-    # Extract information from the request
-    src = gcps.src
-    dst = gcps.dst
+    src, dst = gcps.parse()
     crs = gcps.crs
-    height = gcps.height
-    width = gcps.width
     if crs:
         try:
             crs = CRS.from_user_input(crs)
@@ -126,21 +129,24 @@ async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, ro
 
     if len(src) < 6:
         raise HTTPException(status_code=400, detail="The number of control points must be at least 6")
-
+    # TODO: also allow a 4-point or 2-point nadir solution
     # Example response (you can customize this behavior)
     try:
         src_est, dst_est, camera_matrix, dist_coeffs, rvec, tvec, error = get_gcps_optimized_fit(
             src, dst, height, width
         )
+        # reverse rvec and tvec
+        camera_rotation, camera_position = cv.pose_world_to_camera(rvec, tvec)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Perspective constraints failed: {str(e)}")
     return FittedPoints(
         src_est=src_est,
         dst_est=dst_est,
-        camera_matrix=camera_matrix,
-        dist_coeffs=dist_coeffs,
-        rvec=rvec,
-        tvec=tvec,
+        f=camera_matrix[0][0],
+        k1=dist_coeffs[0][0],
+        k2=dist_coeffs[1][0],
+        camera_position=camera_position,
+        camera_rotation=camera_rotation,
         error=error,
     )
 
