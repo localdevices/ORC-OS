@@ -216,7 +216,9 @@ class CameraConfigUpdate(CameraConfigInteraction):
             else:
                 src, dst = None, None
 
-            instance.data.gcps = GCPData(crs=instance.gcps.crs, src=src, dst=dst)
+            instance.data.gcps = GCPData(
+                crs=instance.gcps.crs, src=src, dst=dst, h_ref=instance.gcps.h_ref, z_0=instance.gcps.z_0
+            )
         return instance
 
 

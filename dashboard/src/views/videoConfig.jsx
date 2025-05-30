@@ -186,12 +186,14 @@ const VideoConfig = () => {
           {video && (
             <VideoTab
               video={video}
+              cameraConfig={cameraConfig}
               widgets={widgets}
               selectedWidgetId={selectedWidgetId}
               updateWidget={updateWidget}
               dots={dots}
               imgDims={imgDims}
               rotate={cameraConfig?.rotation || null}
+              setSelectedWidgetId={setSelectedWidgetId}
               setDots={setDots}
               setImgDims={setImgDims}
             />

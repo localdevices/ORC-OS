@@ -7,23 +7,42 @@ import PropTypes from 'prop-types';
 const VideoTab = (
   {
     video,
+    cameraConfig,
     widgets,
     selectedWidgetId,
     updateWidget,
     dots,
     imgDims,
     rotate,
+    setSelectedWidgetId,
     setDots,
     setImgDims,
   }
 ) => {
   const [scale, setScale] = useState(1);
+  const [markers, setMarkers] = useState([]);
+  const [clickCount, setClickCount] = useState(0);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
 
 
-  const handleBoundingBox = () => {
-    console.log('Draw Bounding Box');
-    // Implement bounding box logic
+  const handleBoundingBox = (event) => {
+    if (clickCount >= 3) return;
+
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const newMarkers = [...markers, {x, y}];
+    setMarkers(newMarkers);
+    setClickCount(clickCount + 1);
+
+    if (clickCount === 2) {
+      // Draw final marker and reset
+      setTimeout(() => {
+        setMarkers([]);
+        setClickCount(0);
+      }, 2000);
+    }
   };
 
   const handleRotateLeft = () => {
@@ -48,6 +67,7 @@ const VideoTab = (
               onRotateRight={handleRotateRight}
               onBoundingBox={handleBoundingBox}
               onMove={handleMove}
+              cameraConfig={cameraConfig}
             />
 
             <TransformWrapper
@@ -72,8 +92,11 @@ const VideoTab = (
                    dots={dots}
                    imgDims={imgDims}
                    rotate={rotate}
+                   setSelectedWidgetId={setSelectedWidgetId}
                    setDots={setDots}
                    setImgDims={setImgDims}
+                   markers={markers}
+                   onImageClick={handleBoundingBox}
                  />
             </TransformWrapper>
             <div style={{position: 'sticky', textAlign: 'center', marginTop: '10px', color: '#555' }}>

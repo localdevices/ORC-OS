@@ -31,12 +31,10 @@ const PoseDetails = (
   const prevControlPoints = useRef(null);
 
   useEffect(() => {
-    console.log(cameraConfig);
     // only change widgets when control points are really updated
     if (prevControlPoints.current !== cameraConfig?.gcps?.control_points) {
       // set state to new control points for later loops
       const controlPoints = cameraConfig?.gcps?.control_points;
-      prevControlPoints.current = controlPoints;
       // create or update widget set
       if (controlPoints) {
         const newWidgets = controlPoints.map((gcp, index) => {
@@ -49,22 +47,40 @@ const PoseDetails = (
           };
         })
         setWidgets(newWidgets);
+        console.log(newWidgets);
         // ensure user can set a new widget when clicking on add gcp
         setNextId(newWidgets.length + 1);
-        // remove all pose information when gcps are altered in any way
-        setCameraConfig((prevConfig) => ({
-          ...prevConfig,
-          camera_position: null,
-          camera_rotation: null,
-          f: null,
-          k1: null,
-          k2: null,
-        }));
+        if (prevControlPoints.current !== null) {
+          // remove all pose information when gcps are altered in any way
+          setCameraConfig((prevConfig) => ({
+            ...prevConfig,
+            camera_position: null,
+            camera_rotation: null,
+            f: null,
+            k1: null,
+            k2: null,
+            gcps: {
+              ...prevConfig.gcps,
+              z_0: null,
+              h_ref: null,
+            }
+          }));
+
+        }
+        prevControlPoints.current = controlPoints;
+
       }
     }
     // }
   }, [cameraConfig]);
 
+  useEffect(() => {
+    // if file is set, try to load and set it
+    if (fileFormData.file) {
+      handleSubmit();
+      // setFileFormData({})
+    }
+  }, [fileFormData]);
 
   const addWidget = () => {
     setWidgets((prevWidgets) => {
@@ -88,9 +104,15 @@ const PoseDetails = (
   };
 
   const deleteWidget = (id) => {
-    // remove current widget from the list of widgets
-    setWidgets((prevWidgets) => prevWidgets.filter((widget) => widget.id !== id));
-    // also delete the dot
+    // remove control point from the list of control points
+    setCameraConfig((prevConfig) => ({
+      ...prevConfig,
+      gcps: {
+        ...prevConfig.gcps,
+        control_points: prevConfig.gcps.control_points.filter((gcp, index) => index + 1 !== id)
+      }
+    }))
+    // TODO: dot is now actively deleted, but should be automatically regenerated using changes in widget state
     setDots((prevDots) => {
       // Copy the previous state object
       const newDots = {...prevDots};
@@ -106,13 +128,11 @@ const PoseDetails = (
     setSelectedWidgetId(null);
   }
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async () => {
     // submit the form with a GCP file (x, y, z csv or geojson)
-    event.preventDefault();
+    // event.preventDefault();
     try {
       const GcpData = await loadFile();
-      // Clear existing widgets before adding new ones
-      // clearWidgets();
 
       // Additional steps after successful file load
       console.log("processing control point data...")
@@ -125,29 +145,6 @@ const PoseDetails = (
         }))
       }
       setDots({})
-
-      // TODO: put the coordinates on the cameraConfig.gcps property
-      // Parse coordinates and create new widgets
-      // const updatedFormData = {
-      //   ...formData,
-      //   ["crs"]: GcpData.crs
-      // }
-      // setFormData(updatedFormData);
-      // // formData.crs = GcpData.crs
-      // const newWidgets = GcpData.control_points.map((feature, index) => {
-      //   const { x, y, z = 0 } = feature; // Defaults Z to 0 if not present
-      //   const color = rainbowColors[(index) % rainbowColors.length];
-      //   return {
-      //     color: color,
-      //     id: index + 1, // Unique ID for widget
-      //     coordinates: {x, y, z, row: "", col: ""},
-      //     icon: createCustomMarker(color, index + 1)
-      //   };
-      //
-      // });
-      // setWidgets(newWidgets);
-      // setNextId(newWidgets.length + 1);  // ensure the next ID is ready for a new XYZ widget
-
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
     }
@@ -185,7 +182,7 @@ const PoseDetails = (
 
   }
 
-  const handleInputChange = async (event) => {
+  const handleCrsChange = async (event) => {
     const {value} = event.target;
     setCameraConfig(prevConfig => ({
       ...prevConfig,
@@ -196,7 +193,18 @@ const PoseDetails = (
     }));
   }
 
-    const handleFileChange = async (event) => {
+  const handleWaterLevelChange = async (event) => {
+    const {name, value} = event.target;
+    setCameraConfig(prevConfig => ({
+      ...prevConfig,
+      gcps: {
+        ...prevConfig.gcps,
+        [name]: parseFloat(value)
+      }
+    }));
+  }
+
+  const handleFileChange = async (event) => {
       const file = event.target.files[0];
       if (!file) return;
       setFileFormData({ file });
@@ -249,6 +257,16 @@ const PoseDetails = (
     });
   };
 
+  const validatePose = () => {
+    // check if pose parameters are all complete
+    return cameraConfig?.camera_position && cameraConfig?.camera_rotation && cameraConfig?.f && cameraConfig?.k1 && cameraConfig?.k2;
+  }
+
+
+  const validatez0 = () => {
+    // check if pose parameters are all complete
+    return cameraConfig?.gcps?.z_0;
+  }
 
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
@@ -265,9 +283,6 @@ const PoseDetails = (
           <input type='file' className='form-control' id='file' name='file'
                  accept=".geojson,.csv" onChange={handleFileChange} required/>
         </div>
-          <button type='submit' className='btn'>
-            Load control points
-          </button>
         </form>
 
         <button
@@ -279,8 +294,33 @@ const PoseDetails = (
           <label htmlFor='crs' className='form-label small'>
             Coordinate reference system (only for GPS)
           </label>
-          <input type='number' className='form-control' id='crs' name='crs' onChange={handleInputChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
+          <input type='number' className='form-control' id='crs' name='crs' onChange={handleCrsChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
         </div>
+        <div className='mb-3 mt-3'>
+          <label htmlFor='z_0' className='form-label small'>
+            Water level in GCP coordinate system [m]
+          </label>
+          <input
+            type='number' className='form-control'
+            id='z_0' name='z_0'
+            onChange={handleWaterLevelChange}
+            value={cameraConfig?.gcps?.z_0 ? cameraConfig.gcps.z_0 : ''}
+            disabled={!validatePose()}
+          />
+        </div>
+        <div className='mb-3 mt-3'>
+          <label htmlFor='h_ref' className='form-label small'>
+            Water level in local gauge reference [m]. Only set this if you plan to process several videos with different locally measured water levels.
+          </label>
+          <input
+            type='number' className='form-control'
+            id='h_ref' name='h_ref'
+            onChange={handleWaterLevelChange}
+            value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
+            disabled={!validatez0()}
+          />
+        </div>
+
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         {widgets.map((widget) => (

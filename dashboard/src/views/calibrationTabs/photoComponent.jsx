@@ -16,6 +16,7 @@ const PhotoComponent = (
     dots,
     imgDims,
     rotate,
+    setSelectedWidgetId,
     setDots,
     setImgDims,
   }) => {
@@ -187,6 +188,11 @@ const PhotoComponent = (
   };
 
 
+  const getNextWidgetId = (currentId) => {
+    const currentIndex = widgets.findIndex(widget => widget.id === currentId);
+    return widgets[(currentIndex + 1) % widgets.length].id;
+  };
+
   const handlePhotoClick = (event) => {
     if (!imageRef.current) return;
     event.stopPropagation();
@@ -238,6 +244,10 @@ const PhotoComponent = (
         row: originalRow,
         col: originalCol,
       });
+
+      // Select next widget
+      const nextWidgetId = getNextWidgetId(selectedWidgetId);
+      setSelectedWidgetId(nextWidgetId);
     }
   }
   PhotoComponent.propTypes = {

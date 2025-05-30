@@ -1,7 +1,7 @@
 import api from "../api.js";
 
 export const fitGcps = async (imgDims, gcps, setMessageInfo) => {
-
+  console.log(gcps);
   try {
     const response = await api.post('/camera_config/fit_perspective', {
       "gcps": gcps,
