@@ -88,3 +88,16 @@ class ControlPointSet(BaseModel):
         if any(None in coord for coord in src) or any(None in coord for coord in dst):
             return None, None
         return src, dst
+
+
+class FittedPoints(BaseModel):
+    """Response model for fitted points for a camera configuration."""
+
+    src_est: List[List[float]]
+    dst_est: List[List[float]]
+    f: float
+    k1: float
+    k2: float
+    camera_position: List[float]
+    camera_rotation: List[float]
+    error: float

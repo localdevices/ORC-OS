@@ -5,6 +5,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pyorc import CameraConfig as pyorcCameraConfig
 from pyorc import cv
 from pyorc.cv import get_cam_mtx
 from pyproj.crs import CRS
@@ -38,7 +39,8 @@ class CameraConfigData(BaseModel):
     is_nadir: bool = Field(default=False, description="Whether the camera is nadir or not.")
     camera_matrix: Optional[List[List[float]]] = Field(default=None, description="Camera matrix of the camera.")
     dist_coeffs: Optional[List[List[float]]] = Field(default=None, description="Distortion coefficients of the camera.")
-    bbox: Optional[str] = Field(default=None, description="Bounding box of the camera as shape.")
+    bbox: Optional[List[List[float]]] = Field(default=None, description="Bounding (geographical) box of the AOI.")
+    bbox_camera: Optional[List[List[float]]] = Field(default=None, description="Bounding box (camera) of the AOI.")
     rvec: Optional[List[float]] = Field(default=None, description="rotation vector of camera.")
     tvec: Optional[List[float]] = Field(default=None, description="translation vector of camera.")
     rotation: Optional[int] = Field(default=None, description="Image rotation in degrees.")
@@ -120,6 +122,7 @@ class CameraConfigResponse(CameraConfigInteraction):
                     camera_position.tolist(),
                     camera_rotation.tolist(),
                 )
+            # load rotation and camera properties
             if instance.data.rotation is not None:
                 instance.rotation = instance.data.rotation
             if instance.data.camera_matrix is not None:
@@ -131,6 +134,7 @@ class CameraConfigResponse(CameraConfigInteraction):
                 instance.height = instance.data.height
             if instance.data.width is not None:
                 instance.width = instance.data.width
+            # load the gcps in appropriate fields
             if instance.data.gcps is not None:
                 if instance.data.gcps.dst is not None:
                     if len(instance.data.gcps.dst) > 0:
@@ -164,6 +168,11 @@ class CameraConfigResponse(CameraConfigInteraction):
                             h_ref=instance.data.gcps.h_ref,
                         )
                     instance.gcps = control_point_set
+            # load the bounding box and provide its fields in several forms.
+            if instance.data.bbox is not None:
+                cc = pyorcCameraConfig(**instance.data)
+                instance.bbox = cc.bbox.exterior.bounds
+                instance.bbox_camera = cc.get_bbox(camera=True).exterior.bounds
         return instance
 
 
@@ -230,16 +239,3 @@ class GCPs(BaseModel):
     crs: Optional[str]  # Coordinate Reference System as a string
     height: int
     width: int
-
-
-class FittedPoints(BaseModel):
-    """Response model for fitted points for a camera configuration."""
-
-    src_est: List[List[float]]
-    dst_est: List[List[float]]
-    f: float
-    k1: float
-    k2: float
-    camera_position: List[float]
-    camera_rotation: List[float]
-    error: float
