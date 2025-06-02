@@ -39,8 +39,7 @@ class CameraConfigData(BaseModel):
     is_nadir: bool = Field(default=False, description="Whether the camera is nadir or not.")
     camera_matrix: Optional[List[List[float]]] = Field(default=None, description="Camera matrix of the camera.")
     dist_coeffs: Optional[List[List[float]]] = Field(default=None, description="Distortion coefficients of the camera.")
-    bbox: Optional[List[List[float]]] = Field(default=None, description="Bounding (geographical) box of the AOI.")
-    bbox_camera: Optional[List[List[float]]] = Field(default=None, description="Bounding box (camera) of the AOI.")
+    bbox: Optional[str] = Field(default=None, description="Bounding (geographical) box of the AOI as WKT string.")
     rvec: Optional[List[float]] = Field(default=None, description="rotation vector of camera.")
     tvec: Optional[List[float]] = Field(default=None, description="translation vector of camera.")
     rotation: Optional[int] = Field(default=None, description="Image rotation in degrees.")
@@ -88,6 +87,8 @@ class CameraConfigInteraction(CameraConfigBase):
     gcps: Optional[ControlPointSet] = Field(default=None, description="Control point set model for use in front end.")
     height: Optional[int] = Field(default=None, description="Height of the image in pixels.")
     width: Optional[int] = Field(default=None, description="Height of the image in pixels.")
+    bbox: Optional[List[List[float]]] = Field(default=None, description="Bounding (geographical) box of the AOI.")
+    bbox_camera: Optional[List[List[float]]] = Field(default=None, description="Bounding box (camera) of the AOI.")
 
     def sync_remote(self, site: int):
         """Send the recipe to LiveORC API.
@@ -170,9 +171,9 @@ class CameraConfigResponse(CameraConfigInteraction):
                     instance.gcps = control_point_set
             # load the bounding box and provide its fields in several forms.
             if instance.data.bbox is not None:
-                cc = pyorcCameraConfig(**instance.data)
-                instance.bbox = cc.bbox.exterior.bounds
-                instance.bbox_camera = cc.get_bbox(camera=True).exterior.bounds
+                cc = pyorcCameraConfig(**instance.data.model_dump())
+                instance.bbox = list(map(list, cc.bbox.exterior.coords))
+                instance.bbox_camera = list(map(list, cc.get_bbox(camera=True, within_image=True).exterior.coords))
         return instance
 
 

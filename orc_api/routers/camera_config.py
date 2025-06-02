@@ -12,6 +12,7 @@ from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import CameraConfig, Session
 from orc_api.schemas.camera_config import (
+    CameraConfigData,
     CameraConfigResponse,
     CameraConfigUpdate,
 )
@@ -114,6 +115,8 @@ async def get_bounding_box(camera_config: CameraConfigUpdate, points: List[List[
             status_code=400, detail=f"Exactly 3 points with [column, row] must be provided. {len(points)} given"
         )
     # derive the bounding box using the points
-    cc = pyorcCameraConfig(**camera_config.data)
-    cc_new = cc.set_bbox_from_width_length(points)
-    return CameraConfigResponse(data=cc_new.to_dict())
+    cc = pyorcCameraConfig(**camera_config.data.model_dump())
+    cc.set_bbox_from_width_length(points)
+    # new cam config data field
+    data = CameraConfigData.model_validate(cc.to_dict_str())
+    return CameraConfigResponse(data=data)
