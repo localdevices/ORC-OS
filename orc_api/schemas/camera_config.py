@@ -32,7 +32,9 @@ class CameraConfigData(BaseModel):
 
     height: int = Field(description="Height of the image in pixels.")
     width: int = Field(description="Width of the image in pixels.")
-    crs: Optional[str] = Field(default=None, description="Coordinate Reference System of the area of interest.")
+    crs: Optional[Union[str, int]] = Field(
+        default=None, description="Coordinate Reference System of the area of interest."
+    )
     gcps: Optional[GCPData] = Field(default=None, description="GCP data")
     resolution: float = Field(default=0.02, description="Resolution of the reprojection.")
     window_size: int = Field(default=64, description="Window size for the PIV interrogation or STIV spacing.")
@@ -229,6 +231,9 @@ class CameraConfigUpdate(CameraConfigInteraction):
             instance.data.gcps = GCPData(
                 crs=instance.gcps.crs, src=src, dst=dst, h_ref=instance.gcps.h_ref, z_0=instance.gcps.z_0
             )
+            # also make the crs of the entire camera config equal to the crs of the gcps
+            if instance.gcps.crs is not None:
+                instance.data.crs = instance.gcps.crs
         return instance
 
 

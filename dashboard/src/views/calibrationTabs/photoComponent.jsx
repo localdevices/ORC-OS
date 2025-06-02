@@ -32,7 +32,7 @@ const PhotoComponent = (
   const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
   const debounceTimeoutRef = useRef(null);  // state for timeout checking
   const abortControllerRef = useRef(null);  // state for aborting requests to api
-  const [polygonPoints] = useState([
+  const [polygonPoints, setPolygonPoints] = useState([
     {x: 100, y: 100},
     {x: 300, y: 100},
     {x: 300, y: 300},
@@ -105,9 +105,9 @@ const PhotoComponent = (
     const hoverX = event.clientX - photoBbox.left;
     const hoverY = event.clientY - photoBbox.top;
 
-      // Adjust for zoom scale using zoom state
-      const adjustedX = hoverX / scale;
-      const adjustedY = hoverY / scale;
+    // Adjust for zoom scale using zoom state
+    const adjustedX = hoverX / scale;
+    const adjustedY = hoverY / scale;
 
       // Are we hovering *within* the photo’s boundaries?
     if (hoverX < 0 || hoverX > photoBbox.width || hoverY < 0 || hoverY > photoBbox.height) {
@@ -160,13 +160,14 @@ const PhotoComponent = (
           }
         )
           .then(response => {
-            const data = response.data;
-            const polygon = data.polygon;
-            const polygonPoints = polygon.map(p => {
-              const x = p.x / transformState.scale;
-              const y = p.y / transformState.scale;
+            // console.log(response.data.bbox_camera);
+            const bbox = response.data.bbox_camera;
+            const bboxPoints = bbox.map(p => {
+              const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+              const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
               return {x, y};
             })
+            setPolygonPoints(bboxPoints);
           })
       });
       setLineCoordinates(null);

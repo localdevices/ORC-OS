@@ -119,4 +119,4 @@ async def get_bounding_box(camera_config: CameraConfigUpdate, points: List[List[
     cc.set_bbox_from_width_length(points)
     # new cam config data field
     data = CameraConfigData.model_validate(cc.to_dict_str())
-    return CameraConfigResponse(data=data)
+    return CameraConfigResponse(name=camera_config.name, id=camera_config.id, data=data)
