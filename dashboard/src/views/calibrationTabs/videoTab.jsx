@@ -15,6 +15,7 @@ const VideoTab = (
     dots,
     imgDims,
     rotate,
+    setCameraConfig,
     setSelectedWidgetId,
     setDots,
     setImgDims,
@@ -66,6 +67,13 @@ const VideoTab = (
     const newMarkers = [...bboxMarkers, {x: adjustedX, y: adjustedY}];
     setBboxMarkers(newMarkers);
     setClickCount(clickCount + 1);
+    // if (clickCount === 1) {
+    //   // Draw first marker
+    //   setTimeout(() => {
+    //     console.log("Drawing bounding box")
+    //
+    //   }, 300);
+    // }
 
     if (clickCount === 2) {
       // Draw final marker and reset
@@ -133,10 +141,12 @@ const VideoTab = (
                    selectedWidgetId={selectedWidgetId}
                    updateWidget={updateWidget}
                    widgets={widgets}
+                   cameraConfig={cameraConfig}
                    scale={scale}
                    dots={dots}
                    imgDims={imgDims}
                    rotate={rotate}
+                   setCameraConfig={setCameraConfig}
                    setSelectedWidgetId={setSelectedWidgetId}
                    setDots={setDots}
                    setImgDims={setImgDims}

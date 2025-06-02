@@ -23,6 +23,7 @@
 
 .bbox-marker {
     position: absolute;
+    transform: translate(-50%, -50%);
     border: 2px solid #000;
     border-radius: 7.5px;
     background-color: rgba(26, 134, 255, 0.5);

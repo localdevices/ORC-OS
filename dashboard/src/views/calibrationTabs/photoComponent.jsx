@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zoom-pan-pinch';
 
 import './photoComponent.css';
@@ -10,23 +10,34 @@ const PhotoComponent = (
     video,
     imageRef,
     widgets,
+    cameraConfig,
     scale,
     dots,
     imgDims,
     rotate,
+    setCameraConfig,
     setDots,
     setImgDims,
     bboxMarkers,
     handlePhotoClick,
     bboxClickCount
   }) => {
-  const [loading, setLoading] = useState(true); // Track the loading state of image
+  const [loading, setLoading] = useState(false); // Track the loading state of image
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
   const [photoBbox, setPhotoBbox] = useState(null);
   const [fittedPoints, setFittedPoints] = useState([]);
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
+  const [lineCoordinates, setLineCoordinates] = useState(null);
   const [frameNr, setFrameNr] = useState(0);
   const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
+  const debounceTimeoutRef = useRef(null);  // state for timeout checking
+  const abortControllerRef = useRef(null);  // state for aborting requests to api
+  const [polygonPoints] = useState([
+    {x: 100, y: 100},
+    {x: 300, y: 100},
+    {x: 300, y: 300},
+    {x: 100, y: 300}
+  ]);
 
   const getFrameUrl = (frameNr, rotate) => {
     if (!video) return '';
@@ -72,19 +83,19 @@ const PhotoComponent = (
       y: start.y,
     };
     const endPoint = {
-      x: (end.col / imgDims.width) * photoBbox.width,
-      y: (end.row / imgDims.height) * photoBbox.height,
+      x: end.x, // (end.col / imgDims.width) * photoBbox.width,
+      y: end.y // (end.row / imgDims.height) * photoBbox.height,
     };
 
     return { start: startPoint, end: endPoint };
   };
 
-  const dashedLineCoordinates = bboxClickCount === 1 && bboxMarkers.length > 0 && hoverCoordinates
-    // dashed line, only displayed when the user has clicked once, and is seeking the second
-    // coordinate for a bounding box
-    ? calculateLineCoordinates(bboxMarkers[0], hoverCoordinates)
-    : null;
-
+  // const dashedLineCoordinates = bboxClickCount === 1 && bboxMarkers.length > 0 && hoverCoordinates
+  //   // dashed line, only displayed when the user has clicked once, and is seeking the second
+  //   // coordinate for a bounding box
+  //   ? calculateLineCoordinates(bboxMarkers[0], hoverCoordinates)
+  //   : null;
+  //
 
     const handleMouseMove = (event) => {
     if (!imageRef.current) return;
@@ -94,7 +105,11 @@ const PhotoComponent = (
     const hoverX = event.clientX - photoBbox.left;
     const hoverY = event.clientY - photoBbox.top;
 
-    // Are we hovering *within* the photo’s boundaries?
+      // Adjust for zoom scale using zoom state
+      const adjustedX = hoverX / scale;
+      const adjustedY = hoverY / scale;
+
+      // Are we hovering *within* the photo’s boundaries?
     if (hoverX < 0 || hoverX > photoBbox.width || hoverY < 0 || hoverY > photoBbox.height) {
       setHoverCoordinates(null);
       return;
@@ -108,11 +123,63 @@ const PhotoComponent = (
     const col = Math.round(normalizedX * imgDims.width * 100) / 100;
 
     setHoverCoordinates({ row, col });
+    if (bboxClickCount === 1) {
+      // a line should only be plotted dynamically when the user has already clicked once for a bounding box
+      setLineCoordinates(calculateLineCoordinates(bboxMarkers[0], {x: adjustedX, y: adjustedY}));
+    } else if (bboxClickCount === 2) {
+      console.log(bboxMarkers);
+      // when user has clicked twice, a dynamic polygon should be retrieved from api and plotted.
+      // a timeout is necessary to ensure the polygon is only updated once every 0.3 seconds, to prevent too many calls
+      // to the api.
+      if (debounceTimeoutRef.current) {
+        // get rid of earlier timeout if it exists
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      // also cancel any ongoing api call if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // set up a new abort controller for the new request upon mouse move
+      abortControllerRef.current = new AbortController();
+      const abortSignal = abortControllerRef.current.signal;
+
+      // setup a timeout event with api call
+      debounceTimeoutRef.current = setTimeout(async () => {
+        // make simple list of lists for API call
+        const points = bboxMarkers.map(p => [p.x, p.y]);
+        points.push([adjustedX, adjustedY]);
+        console.log(points);
+        const url = "/camera_config/bounding_box/";
+        const response = await api.post(
+          url,
+          {
+            "camera_config": cameraConfig,
+            "points": points,
+          }
+        )
+          .then(response => {
+            const data = response.data;
+            const polygon = data.polygon;
+            const polygonPoints = polygon.map(p => {
+              const x = p.x / transformState.scale;
+              const y = p.y / transformState.scale;
+              return {x, y};
+            })
+          })
+      });
+      setLineCoordinates(null);
+    }  else {
+      console.log("bboxClickCount === 2")
+    }
+
   };
 
   // Reset hoverCoordinates when the mouse leaves the image
   const handleMouseLeave = () => {
     setHoverCoordinates(null);
+    setLineCoordinates(null);
   };
 
   // update the dot locations when user resizes the browser window
@@ -333,8 +400,8 @@ const PhotoComponent = (
                style={{
                  top: `${point.y}px`,
                  left: `${point.x}px`,
-                 width: `${15 / scale}px`,
-                 height: `${15 / scale}px`,
+                 width: `${20 / scale}px`,
+                 height: `${20 / scale}px`,
                  fontSize: `${12 / scale}px`,
                  border: `${2 / scale}px solid white`,
 
@@ -343,6 +410,79 @@ const PhotoComponent = (
           </div>
         );
       })}
+      {transformState && photoBbox && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+        >
+          <svg
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <polygon
+              // points={polygonPoints
+              //   .map(p => `${p.x / transformState.scale},${p.y / transformState.scale}`)
+              //   .join(' ')}
+              points={polygonPoints
+                .map(p => `${p.x},${p.y}`)
+                .join(' ')}
+              fill="rgba(255, 255, 255, 0.3)"
+              stroke="white"
+              strokeWidth={2 / transformState.scale}
+            />
+          </svg>
+        </div>
+      )}
+      {/* Render the dashed line */}
+      {lineCoordinates && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none", // Ensure it does not block interactions
+          }}
+        >
+          <svg
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <line
+              x1={lineCoordinates.start.x}
+              y1={lineCoordinates.start.y}
+              x2={lineCoordinates.end.x}
+              y2={lineCoordinates.end.y}
+
+              // x1="0"
+              // y1="0"
+              // x2="100"
+              // y2="100"
+              stroke="#009ed3"
+              strokeWidth="2"
+              strokeDasharray="5,5" // Dashed line effect
+            />
+          </svg>
+        </div>
+      )}
+
 
     </TransformComponent>
       {loading && (
@@ -379,44 +519,6 @@ const PhotoComponent = (
           <span style={{ display: 'inline-block', width: '5ch', textAlign: 'right' }}>
             {hoverCoordinates.col.toString().padStart(3, '0')}
           </span>
-        </div>
-      )}
-      {/* Render the dashed line */}
-      {dashedLineCoordinates && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none", // Ensure it does not block interactions
-          }}
-        >
-          <svg
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            <line
-              x1={dashedLineCoordinates.start.x}
-              y1={dashedLineCoordinates.start.y}
-              x2={dashedLineCoordinates.end.x}
-              y2={dashedLineCoordinates.end.y}
-
-              // x1="0"
-              // y1="0"
-              // x2="100"
-              // y2="100"
-              stroke="#009ed3"
-              strokeWidth="2"
-              strokeDasharray="5,5" // Dashed line effect
-            />
-          </svg>
         </div>
       )}
 

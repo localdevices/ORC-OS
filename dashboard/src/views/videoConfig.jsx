@@ -193,6 +193,7 @@ const VideoConfig = () => {
               dots={dots}
               imgDims={imgDims}
               rotate={cameraConfig?.rotation || null}
+              setCameraConfig={setCameraConfig}
               setSelectedWidgetId={setSelectedWidgetId}
               setDots={setDots}
               setImgDims={setImgDims}

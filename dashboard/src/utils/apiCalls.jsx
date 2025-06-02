@@ -27,6 +27,22 @@ export const fitGcps = async (imgDims, gcps, setMessageInfo) => {
   }
 };
 
+export const get_bbox = async (cameraConfig, points) => {
+  try {
+    const response = await api.post(
+      "/camera_config/bounding_box",
+      {
+        "camera_config": cameraConfig,
+        "points": points,
+      }
+    )
+    return response.data;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+
 export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
   try {
     const response = await api.post(
