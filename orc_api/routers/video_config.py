@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 from orc_api import crud, routers
 from orc_api.database import get_db
 from orc_api.db import VideoConfig
-from orc_api.schemas.camera_config import CameraConfigCreate, CameraConfigRemote
+from orc_api.schemas.camera_config import CameraConfigUpdate
 from orc_api.schemas.cross_section import CrossSectionCreate, CrossSectionUpdate
 from orc_api.schemas.recipe import RecipeRemote
-from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
+from orc_api.schemas.video_config import VideoConfigResponse, VideoConfigUpdate
 
 router: APIRouter = APIRouter(prefix="/video_config", tags=["video_config"])
 
@@ -40,21 +40,20 @@ async def delete_video_config(id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=VideoConfigResponse, status_code=201)
-async def post_video_config(video_config: VideoConfigBase, db: Session = Depends(get_db)):
+async def post_video_config(video_config: VideoConfigUpdate, db: Session = Depends(get_db)):
     """Create a new or update existing video config."""
     if video_config.camera_config:
         if video_config.camera_config.name is None:
             video_config.camera_config.name = video_config.name
+        cc_update = CameraConfigUpdate.model_validate(video_config.camera_config)
+
         if video_config.camera_config.id:
             # update existing
-            cc_update = CameraConfigRemote.model_validate(video_config.camera_config)
             camera_config = await routers.camera_config.patch_camera_config(
                 db=db, id=video_config.camera_config.id, camera_config=cc_update
             )
         else:
-            camera_config = await routers.camera_config.post_camera_config(
-                db=db, camera_config=CameraConfigCreate.model_validate(video_config.camera_config)
-            )
+            camera_config = await routers.camera_config.post_camera_config(db=db, camera_config=cc_update)
     else:
         camera_config = None
     if video_config.recipe:

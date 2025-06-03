@@ -11,6 +11,7 @@ import '../nav/Navbar.css'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 import {createCustomMarker} from '../utils/leafletUtils';
 import {fitGcps} from '../utils/apiCalls';
+import {rainbowColors} from '../utils/helpers';
 
 
 const Calibration = () => {
@@ -31,12 +32,6 @@ const Calibration = () => {
 
   // allow for setting messages
   const {setMessageInfo} = useMessage();
-
-  // make some colors
-  const rainbowColors = Array.from({length: 10}, (_, i) => {
-    const hue = (i / 10) * 360; // Distributes hues evenly across 360 degrees
-    return `hsl(${hue}, 100%, 50%)`;
-  });
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -316,7 +311,7 @@ const Calibration = () => {
               >
                 <XYZWidget
                   id={widget.id}
-                  coordinates={widget.coordinates}
+                  coordinates={cameraConfig.gcps.control_points}
                   onUpdate={(id, coordinates) => updateWidget(id, coordinates)}
                   onDelete={deleteWidget}
                 />

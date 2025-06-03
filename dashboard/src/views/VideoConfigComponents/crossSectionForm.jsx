@@ -1,5 +1,5 @@
 import api from "../../api.js";
-import {useEffect, useState, useRef} from "react";
+import React, {useEffect, useState, useRef} from "react";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 
 const CrossSectionForm = (
@@ -130,7 +130,7 @@ const CrossSectionForm = (
     } catch (error) {
       console.error("Error occurred during file upload:", error);
       setMessageInfo('error', `Error: ${error.response?.data?.detail || error.message}`);
-      throw error;  // exit function with error so that we can catch that outside of this function
+      throw error;  // error outside this function
     }
   }
 
@@ -168,6 +168,13 @@ const CrossSectionForm = (
         <h5>Select optical water level cross section</h5>
         <DropdownMenu dropdownLabel="Optical water level cross section" callbackFunc={handleWaterLevelCS} data={availableCrossSections} value={CSWaterLevel.id}/>
       </div>
+      <div className='mb-3 mt-3'>
+        <label htmlFor='z_0' className='form-label small'>
+          Water level in GCP axes [m]
+        </label>
+        <input type='number' className='form-control' id='z_0' name='z_0' onChange={handleInputChange} value="" required/>
+      </div>
+
       </div>
     </div>
 

@@ -197,15 +197,15 @@ class RecipeUpdate(RecipeBase):
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
     v_corr: Optional[float] = Field(default=None, ge=0.5, le=1.0, description="Alpha coefficient.")
     quiver_scale_grid: Optional[float] = Field(
-        default=None,
-        ge=0.001,
-        le=0.1,
+        default=1.0,
+        ge=0.2,
+        le=2,
         description="Scaling of the 2D quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
     )
     quiver_scale_cs: Optional[float] = Field(
-        default=None,
-        ge=0.001,
-        le=0.1,
+        default=1.0,
+        ge=0.2,
+        le=2,
         description="Scaling of the cross-section quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
     )
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(

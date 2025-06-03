@@ -20,3 +20,62 @@
     font-weight: normal;
 
 }
+
+.bbox-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: 2px solid #000;
+    border-radius: 7.5px;
+    background-color: rgba(26, 134, 255, 0.5);
+    z-index: 100;
+    border-color: rgba(255,255,255,0.7);
+}
+
+
+.control-styles {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255,255,255,0.2);
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+.button-styles {
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    padding: 5px;
+    margin: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: background 0.2s;
+}
+
+.button-styles:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.button-styles:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.button-styles.selected-bbox {
+    background-color: #009ed3
+}
+
+
+.button-group-styles {
+    display: flex;
+
+    margin-bottom: 5px;
+}

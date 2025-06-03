@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaWifi } from 'react-icons/fa'; // Import WiFi icon
+import {FaUser} from 'react-icons/fa'; // Import User icon
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
@@ -13,9 +13,9 @@ const Navbar = () => {
     const handleClose = () => {
       setIsOpen(false); // Closes the navbar when called
     };
-    const handleWiFiButtonClick = () => {
-        // Add your WiFi connection logic here
-        alert('Connect to WiFi functionality to be implemented.');
+    const handleUserButtonClick = () => {
+        // Add your login logic here
+        alert('User login functionality to be implemented.');
     };
 
     return (
@@ -26,10 +26,9 @@ const Navbar = () => {
                         <span className="navbar-toggler-icon"></span>
                     </button>
                     <div className="navbar-right">
-                        <FaWifi className="wifi-button" onClick={handleWiFiButtonClick}
+                        <FaUser className="user-button" onClick={handleUserButtonClick}
                         />
                     </div>
-
                 </div>
             </nav>
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>

@@ -1,11 +1,13 @@
 """Video routers."""
 
+import io
 import mimetypes
 import os
 from datetime import datetime
 from typing import List, Optional
 from zipfile import ZIP_DEFLATED
 
+import cv2
 import zipstream
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -46,7 +48,7 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
     if not video:
         raise HTTPException(status_code=404, detail="Video not found.")
     if not video.thumbnail:
-        raise HTTPException(status_code=404, detail="Video is found, but thumbnail is not found.")
+        raise HTTPException(status_code=404, detail="Video record is found, but thumbnail is not found.")
     # convert into schema and return data
     video = VideoResponse.model_validate(video)
     # Determine the MIME type of the file
@@ -56,6 +58,51 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
         mime_type = "application/octet-stream"  # Fallback MIME type
 
     return FileResponse(video.get_thumbnail(base_path=UPLOAD_DIRECTORY), media_type=mime_type)
+
+
+@router.get("/{id}/frame/{frame_nr}", response_class=FileResponse, status_code=200)
+async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Session = Depends(get_db)):
+    """Retrieve single frame from video."""
+    video_rec = crud.video.get(db=db, id=id)
+    if not video_rec:
+        raise HTTPException(status_code=404, detail="Video not found.")
+
+    # Open the video file
+    video = VideoResponse.model_validate(video_rec)
+    if not video.file:
+        raise HTTPException(status_code=404, detail="Video record is found, but video file is not found.")
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # open video
+    cap = cv2.VideoCapture(file_path)
+
+    # set to frame
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
+
+    # Read the frame
+    success, frame = cap.read()
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to read frame")
+
+    # Validate and apply rotation if specified
+    if rotate is not None:
+        if rotate not in [90, 180, 270]:
+            raise HTTPException(status_code=400, detail="Rotation must be None, 90, 180 or 270 degrees")
+        if rotate == 90:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rotate == 180:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+        elif rotate == 270:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    # Convert the frame to jpg format
+    _, buffer = cv2.imencode(".jpg", frame)
+    io_buf = io.BytesIO(buffer.tobytes())
+    # Clean up
+    cap.release()
+
+    # Return the frame as a streaming response
+    return StreamingResponse(io_buf, media_type="image/jpeg")
 
 
 @router.get("/", response_model=List[VideoResponse], status_code=200)

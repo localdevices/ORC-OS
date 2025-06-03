@@ -5,21 +5,16 @@ import os
 from typing import List
 
 import cv2
-import pyorc.helpers
-from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pyorc import CameraConfig as pyorcCameraConfig
-from pyorc.cli.cli_utils import get_gcps_optimized_fit
-from pyproj import CRS
 
 from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import CameraConfig, Session
 from orc_api.schemas.camera_config import (
-    CameraConfigCreate,
+    CameraConfigData,
     CameraConfigResponse,
     CameraConfigUpdate,
-    FittedPoints,
-    GCPs,
 )
 from orc_api.schemas.video import VideoResponse
 
@@ -28,25 +23,8 @@ UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 router: APIRouter = APIRouter(prefix="/camera_config", tags=["camera_config"])
 
 
-def get_nearest_utm_projection(coordinates: List[List[float]]) -> CRS:
-    """Get nearest UTM zone from list of coordinates."""
-    if not coordinates:
-        raise ValueError("No coordinates provided.")
-
-    # Compute the average longitude and latitude
-    avg_longitude = sum(point[0] for point in coordinates) / len(coordinates)
-    avg_latitude = sum(point[1] for point in coordinates) / len(coordinates)
-
-    # Determine the UTM zone based on the average coordinates
-    utm_zone = int((avg_longitude + 180) / 6) + 1
-    is_northern = avg_latitude >= 0
-
-    # Generate the CRS for the UTM zone
-    return CRS(proj="utm", zone=utm_zone, ellps="WGS84", south=not is_northern)
-
-
 @router.get("/empty/{video_id}", response_model=CameraConfigResponse, status_code=200)
-async def empty_recipe(video_id: int, db: Session = Depends(get_db)):
+async def empty_camera_config(video_id: int, db: Session = Depends(get_db)):
     """Create an empty camera config in-memory."""
     # return an empty camera config for now
     video_rec = crud.video.get(db, video_id)
@@ -96,62 +74,12 @@ async def upload_camera_config(
     return CameraConfigResponse(data=camera_config_dict)
 
 
-@router.post(
-    "/fit_perspective", response_model=None, description="Fit perspective parameters on source and target points"
-)
-async def fit_perspective(gcps: GCPs = Body(..., description="src as [column, row], dst as [x, y, z] and crs")):
-    """Fit perspective parameters on source and target points."""
-    # Extract information from the request
-    src = gcps.src
-    dst = gcps.dst
-    crs = gcps.crs
-    height = gcps.height
-    width = gcps.width
-    if crs:
-        try:
-            crs = CRS.from_user_input(crs)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid CRS: {e}")
-        if not crs.is_projected:
-            if crs.to_epsg() == 4326:
-                # Find the nearest UTM zone of the src coordinates using the helper function
-                crs_to = get_nearest_utm_projection(dst)
-                # TODO: convert dst to nearest UTM projection
-                dst = pyorc.helpers.xyz_transform(dst, crs, crs_to)
-            else:
-                raise HTTPException(status_code=400, detail="Only lat lon is supported if CRS is geographic")
-
-    # understand if points are sufficient and equal in length
-    if len(src) != len(dst):
-        raise HTTPException(status_code=400, detail="The number of source and destination points must be the same")
-
-    if len(src) < 6:
-        raise HTTPException(status_code=400, detail="The number of control points must be at least 6")
-
-    # Example response (you can customize this behavior)
-    try:
-        src_est, dst_est, camera_matrix, dist_coeffs, rvec, tvec, error = get_gcps_optimized_fit(
-            src, dst, height, width
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Perspective constraints failed: {str(e)}")
-    return FittedPoints(
-        src_est=src_est,
-        dst_est=dst_est,
-        camera_matrix=camera_matrix,
-        dist_coeffs=dist_coeffs,
-        rvec=rvec,
-        tvec=tvec,
-        error=error,
-    )
-
-
 @router.patch(
     "/{id}/", status_code=200, response_model=CameraConfigResponse, description="Update a camera configuration"
 )
 async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
-    """Update a recipe in the database."""
-    update_cam_config = camera_config.model_dump(exclude_none=True, exclude={"id"})
+    """Update a camera config in the database."""
+    update_cam_config = camera_config.model_dump(exclude_none=True, include={"name", "data"})
     camera_config = crud.camera_config.update(db=db, id=id, camera_config=update_cam_config)
     return camera_config
 
@@ -159,10 +87,11 @@ async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Se
 @router.post(
     "/", response_model=CameraConfigResponse, status_code=201, description="Post a new complete Camera Configuration"
 )
-async def post_camera_config(camera_config: CameraConfigCreate, db: Session = Depends(get_db)):
+async def post_camera_config(camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Post a new camera configuration."""
-    # Create a new device record if none exists
-    new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, exclude={"id"}))
+    # Create a new device record if none exists, only include the name and data fields,
+    # all others are only for front end
+    new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, include={"name", "data"}))
     db.add(new_camera_config)
     db.commit()
     db.refresh(new_camera_config)
@@ -177,3 +106,18 @@ async def update_camera_config(camera_config: CameraConfigUpdate):
     No storage on the database is performed.
     """
     return camera_config
+
+
+@router.post("/bounding_box/", response_model=CameraConfigResponse, status_code=201)
+async def get_bounding_box(camera_config: CameraConfigUpdate, points: List[List[float]]):
+    """Construct a bounding box from a set of points, provided by user."""
+    if len(points) != 3:
+        raise HTTPException(
+            status_code=400, detail=f"Exactly 3 points with [column, row] must be provided. {len(points)} given"
+        )
+    # derive the bounding box using the points
+    cc = pyorcCameraConfig(**camera_config.data.model_dump())
+    cc.set_bbox_from_width_length(points)
+    # new cam config data field
+    data = CameraConfigData.model_validate(cc.to_dict_str())
+    return CameraConfigResponse(name=camera_config.name, id=camera_config.id, data=data)

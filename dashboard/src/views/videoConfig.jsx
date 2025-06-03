@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 import MessageBox from "../messageBox.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
+import {FaSave} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
+import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
 import CrossSectionForm from "./VideoConfigComponents/crossSectionForm.jsx";
 import CrossSectionDisplay from "./VideoConfigComponents/crossSectionDisplay.jsx";
-
+import VideoTab from "./calibrationTabs/videoTab.jsx";
+import CameraParameters from "./calibrationTabs/cameraParameters.jsx";
 import {useMessage} from "../messageContext.jsx";
 
 const VideoConfig = () => {
@@ -22,6 +25,19 @@ const VideoConfig = () => {
   const [activeTab, setActiveTab] = useState('configDetails');
   const {setMessageInfo} = useMessage();
 
+  // consts for image clicking
+  const [widgets, setWidgets] = useState([]);
+  const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
+  const [dots, setDots] = useState({}); // Array of { x, y, id } objects
+  const rotateState = useRef(cameraConfig?.rotation);
+  const [cameraConfigState, setCameraConfigState] = useState({
+    coordinates: [],
+    fittedCoordinates: [],
+  }); // central controls camera config
+  const [imgDims, setImgDims] = useState(null);
+  const [save, setSave] = useState(true);
+
+
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
     createNewRecipe();  // if recipe exists it will be overwritten later
@@ -30,11 +46,9 @@ const VideoConfig = () => {
     api.get(`/video/${videoId}`)
       .then((response) => {
         setVideo(response.data);
-        console.log(response.data);
         if (response.data.video_config !== null) {
           setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
           if (response.data.video_config.recipe !== null) {
-            console.log("RECIPE DATA FOUND")
             setRecipe(response.data.video_config.recipe);
           } else {
             console.log("RECIPE DATA NOT FOUND in ", response.data)
@@ -51,9 +65,40 @@ const VideoConfig = () => {
           }
         }
       })
-      .catch((err) => console.error("Error fetching video data:", err));
+      .catch((err) => console.error("Error fetching video data:", err))
+      .finally(() => {
+        setSave(false)
+
+      });
 
   }, [videoId]);
+
+  useEffect(() => {
+    // make sure that if a selected widget can no longer be found, the selected id is reset to null
+    if (selectedWidgetId && !widgets.find(w => w.id === selectedWidgetId)) {
+      setSelectedWidgetId(null);
+    }
+  }, [widgets, selectedWidgetId])
+
+  useEffect(() => {
+    setSave(true);
+  }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
+
+  useEffect(() => {
+    // check if height and width must be adapted to a new rotation
+    if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
+      // set state to new
+      rotateState.current = cameraConfig.rotation;
+      setCameraConfig((prevConfig) => (
+        {
+          ...prevConfig,
+          height: imgDims.height,
+          width: imgDims.width
+        })
+      )
+    }
+  }, [imgDims])
+
 
   const createCameraConfig = () => {
     api.get(`/camera_config/empty/${videoId}`) // Replace with your API endpoint
@@ -77,42 +122,89 @@ const VideoConfig = () => {
 
   }
 
-  // // Function for creating a new config
-  // const createNewConfig = (configName) => {
-  //   if (!configName.trim()) {
-  //     alert("Config name cannot be empty!");
-  //     return;
-  //   }
-  //   api.post("/video-config/", { video_id: videoId, config_name: configName })
-  //     .then((res) => {
-  //       alert("Config created successfully!");
-  //       setExistingConfigs([...existingConfigs, res.data]); // Add the new config
-  //     })
-  //     .catch((error) => console.error("Error creating config:", error));
-  // };
+  const updateWidget = (id, updatedCoordinates) => {
+    setWidgets((prevWidgets) => {
+      const newWidgets = prevWidgets.map((widget) =>
+        widget.id === id
+          ? {
+              ...widget,
+              coordinates: {
+                ...updatedCoordinates,
+                x: parseFloat(updatedCoordinates.x) || null,
+                y: parseFloat(updatedCoordinates.y) || null,
+                z: parseFloat(updatedCoordinates.z) || null,
+                row: parseFloat(updatedCoordinates.row) || null,
+                col: parseFloat(updatedCoordinates.col) || null,
+
+            }
+          } : widget
+      );
+
+      // Update cameraConfig with new coordinates
+      setCameraConfig((prevConfig) => ({
+        ...prevConfig,
+        gcps: {
+          ...prevConfig.gcps,
+          control_points: newWidgets.map(widget => widget.coordinates)
+        }
+      }));
+
+      return newWidgets;
+    });
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
 
+
   return (
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <MessageBox/>
-      <div className="split-screen">
+      <div className="split-screen flex">
         <div className="flex-container column no-padding">
-        <div className="flex-container column">
-          <h5>Image view</h5>
-          <p> Placeholder for video </p>
-          {video ? (
-            <div>
-              <p><strong>Timestamp:</strong> {video.timestamp}</p>
-              {/* Add any other video-specific details */}
-            </div>
-          ) : (
-            <p>Loading video details...</p>
+        <div className="flex-container column" style={{"height": "100%"}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
+            <h5 style={{margin: 0}}>Image view</h5>
+            <button
+              type="submit"
+              form="videoConfigForm"
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: save ? 'pointer' : 'not-allowed',
+                color: save ? '#0d6efd' : '#6c757d',
+                padding: '5px'
+              }}
+              disabled={!save}
+            >
+              <FaSave size={20}/>
+            </button>
+          </div>
+
+          {video && (
+            <VideoTab
+              video={video}
+              cameraConfig={cameraConfig}
+              widgets={widgets}
+              selectedWidgetId={selectedWidgetId}
+              updateWidget={updateWidget}
+              dots={dots}
+              imgDims={imgDims}
+              rotate={cameraConfig?.rotation || null}
+              setCameraConfig={setCameraConfig}
+              setSelectedWidgetId={setSelectedWidgetId}
+              setDots={setDots}
+              setImgDims={setImgDims}
+            />
           )}
+
         </div>
+          <CameraParameters
+            cameraConfig={cameraConfig}
+            setCameraConfig={setCameraConfig}
+          />
         </div>
         <div className="flex-container column no-padding">
           <div className="flex-container column" style={{"height": "60%"}}>
@@ -141,6 +233,15 @@ const VideoConfig = () => {
                     Camera pose
                   </button>
                   <button
+                    className={activeTab === 'pose' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('pose');
+                    }}
+                  >
+                    Camera pose 2
+                  </button>
+                  <button
                     className={activeTab === 'recipe' ? 'active-tab' : ''}
                     onClick={(e) => {
                       e.preventDefault();
@@ -164,7 +265,9 @@ const VideoConfig = () => {
               <div className="tab-container">
                 {/* Tab content */}
                 <div className="tab-content">
-                  {activeTab === 'configDetails' && (
+                  <div style={{ display: activeTab === 'configDetails' ? 'block' : 'none' }}>
+
+                  {/*{activeTab === 'configDetails' && (*/}
                     <VideoConfigForm
                       selectedVideoConfig={videoConfig}
                       setSelectedVideoConfig={setVideoConfig}
@@ -177,14 +280,32 @@ const VideoConfig = () => {
                       setRecipe={setRecipe}
                       setCSDischarge={setCSDischarge}
                       setCSWaterLevel={setCSWaterLevel}
+                      setSave={setSave}
                       setMessageInfo={setMessageInfo}
                     />
-                  )}
+                    </div>
+                  {/*)}*/}
 
                   {activeTab === 'gcps' && (
                     <CameraConfigForm
                       selectedCameraConfig={cameraConfig}
                       setSelectedCameraConfig={setCameraConfig}
+                      setMessageInfo={setMessageInfo}
+                    />
+                  )}
+
+                  {activeTab === 'pose' && (
+                    <PoseDetails
+                      cameraConfig={cameraConfig}
+                      widgets={widgets}
+                      dots={dots}
+                      selectedWidgetId={selectedWidgetId}
+                      imgDims={imgDims}
+                      updateWidget={updateWidget}
+                      setCameraConfig={setCameraConfig}
+                      setWidgets={setWidgets}
+                      setDots={setDots}
+                      setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
                     />
                   )}
@@ -213,12 +334,14 @@ const VideoConfig = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{"flex-grow": "0", "minHeight": "30%", "overflow-y": "auto", "overflow-x": "hidden"}}>
+          <div className="flex-container column" style={{"flexGrow": "0", "minHeight": "30%", "overflowY": "auto", "overflowX": "hidden"}}>
             <h5>Cross sections</h5>
+            {CSDischarge && CSWaterLevel && (
               <CrossSectionDisplay
                 CSDischarge={CSDischarge}
                 CSWaterLevel={CSWaterLevel}
-              />
+                />
+              )}
           </div>
         </div>
       </div>

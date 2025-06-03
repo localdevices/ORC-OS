@@ -13,9 +13,9 @@ from orc_api.database import get_session
 from orc_api.db import SyncStatus
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.callback_url import CallbackUrlResponse
-from orc_api.schemas.camera_config import CameraConfigResponse
+from orc_api.schemas.camera_config import CameraConfigResponse, CameraConfigUpdate
 from orc_api.schemas.cross_section import CrossSectionResponse
-from orc_api.schemas.recipe import RecipeResponse
+from orc_api.schemas.recipe import RecipeResponse, RecipeUpdate
 
 # only import for type checking on run time, preventing circular imports
 if TYPE_CHECKING:
@@ -207,5 +207,11 @@ class VideoConfigResponse(VideoConfigRemote):
         return video_config
 
 
-class VideoConfigPatch(VideoConfigBase):
+class VideoConfigUpdate(VideoConfigResponse):
     """Patch schema for VideoConfig."""
+
+    # override the camera config and recipe models by update models
+    camera_config: Optional[CameraConfigUpdate] = Field(
+        default=None, description="Associated CameraConfig object (if available)."
+    )
+    recipe: Optional[RecipeUpdate] = Field(None, description="Associated Recipe object (if available).")

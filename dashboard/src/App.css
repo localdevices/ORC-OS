@@ -30,8 +30,8 @@
 .flex-container {
   display: flex;
   gap: 10px;
-  margin: 20px;
-  padding: 20px;
+  margin: 5px;
+  padding: 10px;
   flex-direction: row;
   background-color: #ffffff;
   border: 0 solid #ccc;
@@ -61,6 +61,30 @@
   max-height: 100%; /* Full height of the viewport */
   /*box-sizing: border-box;*/
   overflow: hidden;
+}
+
+.split-screen.flex {}
+
+@media (max-width: 960px) {
+  .split-screen.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+.split-screen.three-columns {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.split-screen.three-columns.flex {
+
+}
+
+@media (max-width: 768px) {
+  .split-screen.three-columns.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
 }
 
 .split-screen > .flex-container {
@@ -308,4 +332,31 @@ a:hover {
 .custom-file-button:hover label {
   background-color: #dde0e3;
   cursor: pointer;
+}
+
+
+.spinner-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000; /* Higher than the image */
+}
+
+.spinner {
+  border: 8px solid rgba(0, 0, 0, 0.1); /* Gray background */
+  border-top: 8px solid #3498db; /* Blue color for the spinner */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

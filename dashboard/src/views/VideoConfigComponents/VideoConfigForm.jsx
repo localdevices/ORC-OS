@@ -14,6 +14,7 @@ const VideoConfigForm = (
     setRecipe,
     setCSDischarge,
     setCSWaterLevel,
+    setSave,
     setMessageInfo
   }) => {
   const [formData, setFormData] = useState({
@@ -35,15 +36,6 @@ const VideoConfigForm = (
 
   }, [selectedVideoConfig]);
 
-  // // Utility function to safely parse JSON
-  // const safelyParseJSON = (jsonString) => {
-  //   try {
-  //     return JSON.parse(jsonString); // Parse if valid JSON string
-  //   } catch (error) {
-  //     console.warn("Invalid JSON string:", error);
-  //     return jsonString; // Fallback: Leave it as the original string
-  //   }
-  // };
 
   const handleInputChange = async (event) => {
     const {name, value, type} = event.target;
@@ -52,6 +44,21 @@ const VideoConfigForm = (
       [name]: value
     }
     setFormData(updatedFormData);
+    setSave(true);
+  }
+
+
+  const handleRotateChange = async (event) => {
+    const value = event.target.value === "0" ? null : parseInt(event.target.value);
+    // set the rotation correctly
+    const updatedCameraConfig = {
+      ...cameraConfig,
+      rotation: value,
+      height: cameraConfig.height,
+      width: cameraConfig.width,
+    };
+    setCameraConfig(updatedCameraConfig);
+    // set the rotation correctly
   }
 
   const handleFormSubmit = async (event) => {
@@ -98,7 +105,6 @@ const VideoConfigForm = (
     } else {
       filteredData.camera_config = null;
     }
-
     // predefine response object
     let response;
     try {
@@ -120,15 +126,16 @@ const VideoConfigForm = (
       video.video_config_id = response.data.id;
       // and store this in the database
       api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
+      setSave(false);
     }
   };
 
 
   return (
     <div style={{"padding": "5px"}}>
-      <p>Name for VideoConfig</p>
-      <form onSubmit={handleFormSubmit}>
-        <div className='mb-3 mt-3'>
+      <p>Let's get started with some simple details and getting the video rotated correctly.</p>
+      <form id="videoConfigForm" onSubmit={handleFormSubmit}>
+      <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>
             Video Config ID
           </label>
@@ -141,6 +148,105 @@ const VideoConfigForm = (
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange}
                  value={formData.name} required/>
         </div>
+        <div className="mb-3 mt-3">
+          <label htmlFor="videoMode" className="form-label">
+            Mode of video
+          </label>
+          <div>
+            <input
+              type="radio"
+              id="modePerspective"
+              name="videoMode"
+              onChange={handleInputChange}
+              value="perspective"
+              required
+              checked={true}
+
+            />
+            <label htmlFor="modePerspective" style={{ marginLeft: '8px' }}>Full perspective with 6 or more points in x, y, z</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="modeHomography"
+              name="videoMode"
+              onChange={handleInputChange}
+              value="homography"
+              required
+              disabled={true}
+              title="This option is not yet available, only full perspective is available so far."
+            />
+            <label htmlFor="modeHomography" style={{marginLeft: '8px'}} title="This option is not yet available">4
+              points on a flat surface x, y only</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="modeDrone"
+              name="videoMode"
+              onChange={handleInputChange}
+              value="nadirDrone"
+              required
+              disabled={true}
+              title="This option is not yet available, only full perspective is available so far."
+            />
+            <label htmlFor="modeDrone" style={{ marginLeft: '8px' }}>Nadir drone with 2 points x, y</label>
+          </div>
+        </div>
+        <div className="mb-3 mt-3">
+          <label htmlFor="videoMode" className="form-label">
+            Rotate video
+          </label>
+          <div>
+            <input
+              type="radio"
+              id="0deg"
+              name="videoRotation"
+              onChange={handleRotateChange}
+              value="0"
+              checked={!cameraConfig?.rotation || cameraConfig?.rotation === 0 || cameraConfig?.rotation === null}
+              required
+            />
+            <label htmlFor="0deg" style={{ marginLeft: '8px' }}>no rotation</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="90deg"
+              name="videoRotation"
+              onChange={handleRotateChange}
+              value="90"
+              checked={cameraConfig?.rotation === 90 }
+              required
+            />
+            <label htmlFor="90deg" style={{ marginLeft: '8px' }}>90 degrees clockwise</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="270deg"
+              name="videoRotation"
+              onChange={handleRotateChange}
+              value="270"
+              checked={cameraConfig?.rotation === 270 }
+              required
+            />
+            <label htmlFor="270deg" style={{ marginLeft: '8px' }}>90 degrees counter-clockwise</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="180deg"
+              name="videoRotation"
+              onChange={handleRotateChange}
+              value="180"
+              checked={cameraConfig?.rotation === 180 }
+              required
+            />
+            <label htmlFor="180deg" style={{ marginLeft: '8px' }}>180 degrees</label>
+          </div>
+        </div>
+
         <button type='submit' className='btn'>
           Save
         </button>

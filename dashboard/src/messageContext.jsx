@@ -11,16 +11,15 @@ export const MessageProvider = ({ children }) => {
 
   // Function to set a message
   const setMessageInfo = (type, content) => {
+    // Clear existing message first
+    setShowMessage(false);
+    setMessage('');
+    setMessageType('');
+
+    // Set new message
     setMessage(content);
     setMessageType(type);
     setShowMessage(true);
-
-    // Optional: Clear the message automatically after a timeout
-    setTimeout(() => {
-      setShowMessage(false);
-      setMessage('');
-      setMessageType('');
-    }, 5000); // 5 seconds
   };
 
   return (

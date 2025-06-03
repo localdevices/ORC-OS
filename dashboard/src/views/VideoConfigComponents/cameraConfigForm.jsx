@@ -83,11 +83,12 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
           );
           if (response.status === 201) {
             // set the camera config data (only data, not id and name)
-            setSelectedCameraConfig(prevState => ({
-                ...prevState,
-                data: response.data.data
-              }))
-            // setSelectedCameraConfig(response.data);
+            // setSelectedCameraConfig(prevState => ({
+            //     ...prevState,
+            //     data: response.data.data
+            //   }))
+            const { id, name, remote_id, created_at, sync_status, ...updatedData } = response.data
+            setSelectedCameraConfig(updatedData);
           } else {
             console.error("Error occurred during file upload:", response.data);
             setMessageInfo('error', response.data.detail);
