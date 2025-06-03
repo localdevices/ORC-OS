@@ -26,6 +26,9 @@ const VideoTab = (
   const [clickCount, setClickCount] = useState(0);
   const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
+  const [polygonPoints, setPolygonPoints] = useState(
+    null
+  );
 
   const {setMessageInfo} = useMessage();
 
@@ -64,21 +67,12 @@ const VideoTab = (
   const handleBoundingBoxClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     if (clickCount >= 3) return;
     console.log("Adding marker", adjustedX, adjustedY);
-    const newMarkers = [...bboxMarkers, {x: adjustedX, y: adjustedY}];
+    const newMarkers = [...bboxMarkers, {x: adjustedX, y: adjustedY, col: originalCol, row: originalRow}];
     setBboxMarkers(newMarkers);
     setClickCount(clickCount + 1);
-    // if (clickCount === 1) {
-    //   // Draw first marker
-    //   setTimeout(() => {
-    //     console.log("Drawing bounding box")
-    //
-    //   }, 300);
-    // }
-
     if (clickCount === 2) {
       // Draw final marker and reset
       setTimeout(() => {
-        console.log("Resetting bbox")
         setBboxSelected(false);
         setBboxMarkers([]);
         setClickCount(0);
@@ -117,7 +111,10 @@ const VideoTab = (
             <ControlPanel
               onRotateLeft={handleRotateLeft}
               onRotateRight={handleRotateRight}
-              onBoundingBox={() => {setBboxSelected(true);}}
+              onBoundingBox={() => {
+                setBboxSelected(true);
+                setPolygonPoints(null);
+              }}
               onMove={handleMove}
               cameraConfig={cameraConfig}
               bboxSelected={bboxSelected}
@@ -146,10 +143,12 @@ const VideoTab = (
                    dots={dots}
                    imgDims={imgDims}
                    rotate={rotate}
+                   polygonPoints={polygonPoints}
                    setCameraConfig={setCameraConfig}
                    setSelectedWidgetId={setSelectedWidgetId}
                    setDots={setDots}
                    setImgDims={setImgDims}
+                   setPolygonPoints={setPolygonPoints}
                    bboxMarkers={bboxMarkers}
                    handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
                    bboxClickCount={clickCount}

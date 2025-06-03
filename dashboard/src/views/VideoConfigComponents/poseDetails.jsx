@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 import {createCustomMarker} from "../../utils/leafletUtils.js";
-import {rainbowColors} from "../../utils/helpers.jsx";
+import {rainbowColors, areControlPointsEqual} from "../../utils/helpers.jsx";
 import XYZWidget from "../calibrationTabs/XyzWidget.jsx";
 import {fitGcps} from "../../utils/apiCalls.jsx";
 
@@ -31,8 +31,8 @@ const PoseDetails = (
   const prevControlPoints = useRef(null);
 
   useEffect(() => {
-    // only change widgets when control points are really updated
-    if (prevControlPoints.current !== cameraConfig?.gcps?.control_points) {
+    // only change widgets when control points are really individually updated
+      if (!areControlPointsEqual(prevControlPoints.current, cameraConfig?.gcps?.control_points)) {
       // set state to new control points for later loops
       const controlPoints = cameraConfig?.gcps?.control_points;
       // create or update widget set
@@ -51,6 +51,7 @@ const PoseDetails = (
         // ensure user can set a new widget when clicking on add gcp
         setNextId(newWidgets.length + 1);
         if (prevControlPoints.current !== null) {
+          console.log("REMOVING FIELDS TVEC/RVEC")
           // remove all pose information when gcps are altered in any way
           setCameraConfig((prevConfig) => ({
             ...prevConfig,
@@ -83,24 +84,38 @@ const PoseDetails = (
   }, [fileFormData]);
 
   const addWidget = () => {
-    setWidgets((prevWidgets) => {
-      const color = rainbowColors[(nextId - 1) % rainbowColors.length];
-      const newWidget = {
-        id: nextId,
-        color: color,
-        coordinates: { x: '', y: '', z:'', row: '', col: ''},
-        icon: createCustomMarker(color, nextId)  // for geographical plotting
-      }
-      // automatically select the newly created widget for editing
-      setSelectedWidgetId(newWidget.id);
+    // we add a control point to cameraConfig, this triggers recreation of the widgets through state
+    setCameraConfig((prevConfig) => ({
+      ...prevConfig,
+      gcps: {
+        ...prevConfig.gcps,
 
-      return [
-        ...prevWidgets,
-        newWidget
-      ]
-    });
-    setNextId((prevId) => prevId + 1); // increment the unique id for the next widget
-    // setSelectedWidgetId
+        control_points: [
+          ...(prevConfig.gcps?.control_points || []),
+          { x: '', y: '', z: '', row: '', col: '' }
+        ]
+        // automatically select the newly created widget for editing
+      }
+    }))
+    setSelectedWidgetId(nextId)
+    // setWidgets((prevWidgets) => {
+    //   const color = rainbowColors[(nextId - 1) % rainbowColors.length];
+    //   const newWidget = {
+    //     id: nextId,
+    //     color: color,
+    //     coordinates: { x: '', y: '', z:'', row: '', col: ''},
+    //     icon: createCustomMarker(color, nextId)  // for geographical plotting
+    //   }
+    //   // automatically select the newly created widget for editing
+    //   setSelectedWidgetId(newWidget.id);
+    //
+    //   return [
+    //     ...prevWidgets,
+    //     newWidget
+    //   ]
+    // });
+    // setNextId((prevId) => prevId + 1); // increment the unique id for the next widget
+    // // setSelectedWidgetId
   };
 
   const deleteWidget = (id) => {

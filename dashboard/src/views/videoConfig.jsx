@@ -86,7 +86,7 @@ const VideoConfig = () => {
 
   useEffect(() => {
     // check if height and width must be adapted to a new rotation
-    if (rotateState.current !== cameraConfig?.rotation && imgDims !== null) {
+    if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
       // set state to new
       rotateState.current = cameraConfig.rotation;
       setCameraConfig((prevConfig) => (

@@ -89,8 +89,9 @@ async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Se
 )
 async def post_camera_config(camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Post a new camera configuration."""
-    # Create a new device record if none exists
-    new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, exclude={"id"}))
+    # Create a new device record if none exists, only include the name and data fields,
+    # all others are only for front end
+    new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, include={"name", "data"}))
     db.add(new_camera_config)
     db.commit()
     db.refresh(new_camera_config)

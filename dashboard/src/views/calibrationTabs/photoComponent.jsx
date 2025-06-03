@@ -15,9 +15,11 @@ const PhotoComponent = (
     dots,
     imgDims,
     rotate,
+    polygonPoints,
     setCameraConfig,
     setDots,
     setImgDims,
+    setPolygonPoints,
     bboxMarkers,
     handlePhotoClick,
     bboxClickCount
@@ -32,12 +34,70 @@ const PhotoComponent = (
   const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
   const debounceTimeoutRef = useRef(null);  // state for timeout checking
   const abortControllerRef = useRef(null);  // state for aborting requests to api
-  const [polygonPoints, setPolygonPoints] = useState([
-    {x: 100, y: 100},
-    {x: 300, y: 100},
-    {x: 300, y: 300},
-    {x: 100, y: 300}
-  ]);
+  const lastResponse = useRef(null);  // store last API response
+
+
+  // triggered when user resizes the window, after this, the dot locations must be updated
+  useEffect(() => {
+    updateDots();
+  }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
+
+  useEffect(() => {
+    console.log("BBOX CLICK COUNT:", bboxClickCount);
+    if (bboxClickCount === 3) {
+      setCameraConfig(lastResponse.current.data)
+    }
+  }, [bboxClickCount])
+
+  useEffect(() => {
+    console.log("Reloading camera config", cameraConfig)
+    // check if image and dimensions are entirely intialized
+    if (
+      cameraConfig &&
+      cameraConfig.bbox_camera !== null &&
+      photoBbox !== null &&
+      imgDims !== null &&
+      transformState !== null &&
+      imgDims?.width !== 0 &&
+      imgDims?.height !== 0
+
+    ) {
+      // update the polygon points with the cameraConfig.bbox_image points
+      const newBboxPoints = cameraConfig.bbox_camera.map(p => {
+        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+        return {x, y};
+      })
+      setPolygonPoints(newBboxPoints);
+    }
+  }, [cameraConfig, imgDims]);
+
+
+
+  useEffect(() => {
+    try {
+      const imgElement = imageRef.current;
+      setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
+      setPhotoBbox(imgElement.getBoundingClientRect());
+      updateFittedPoints();
+
+      // updateFittedPoints();
+    } catch {
+      console.error("Image not yet initialized.")
+    }
+  }, [widgets, transformState, window]);
+
+
+  useTransformEffect(({state}) => {
+    const imgElement = imageRef.current;
+    if (!imgElement) return;
+    setPhotoBbox(imgElement.getBoundingClientRect());
+    setTransformState(state); // Update the transformState on every transformation
+
+    updateFittedPoints();
+  });
+
+
 
   const getFrameUrl = (frameNr, rotate) => {
     if (!video) return '';
@@ -75,7 +135,7 @@ const PhotoComponent = (
   }
 
 
-  // Helper function
+  // create line coordinates for dashed line from first to second point for bounding box
   const calculateLineCoordinates = (start, end) => {
     // Calculate pixel coordinates based on the bounding box and image dimensions
     const startPoint = {
@@ -90,12 +150,6 @@ const PhotoComponent = (
     return { start: startPoint, end: endPoint };
   };
 
-  // const dashedLineCoordinates = bboxClickCount === 1 && bboxMarkers.length > 0 && hoverCoordinates
-  //   // dashed line, only displayed when the user has clicked once, and is seeking the second
-  //   // coordinate for a bounding box
-  //   ? calculateLineCoordinates(bboxMarkers[0], hoverCoordinates)
-  //   : null;
-  //
 
     const handleMouseMove = (event) => {
     if (!imageRef.current) return;
@@ -127,7 +181,6 @@ const PhotoComponent = (
       // a line should only be plotted dynamically when the user has already clicked once for a bounding box
       setLineCoordinates(calculateLineCoordinates(bboxMarkers[0], {x: adjustedX, y: adjustedY}));
     } else if (bboxClickCount === 2) {
-      console.log(bboxMarkers);
       // when user has clicked twice, a dynamic polygon should be retrieved from api and plotted.
       // a timeout is necessary to ensure the polygon is only updated once every 0.3 seconds, to prevent too many calls
       // to the api.
@@ -146,11 +199,11 @@ const PhotoComponent = (
       const abortSignal = abortControllerRef.current.signal;
 
       // setup a timeout event with api call
+      var bboxPoints = [];
       debounceTimeoutRef.current = setTimeout(async () => {
         // make simple list of lists for API call
-        const points = bboxMarkers.map(p => [p.x, p.y]);
-        points.push([adjustedX, adjustedY]);
-        console.log(points);
+        const points = bboxMarkers.map(p => [p.col, p.row]);
+        points.push([col, row]);
         const url = "/camera_config/bounding_box/";
         const response = await api.post(
           url,
@@ -160,19 +213,21 @@ const PhotoComponent = (
           }
         )
           .then(response => {
-            // console.log(response.data.bbox_camera);
+            lastResponse.current = response;
+            // console.log(lastResponse.current.data);
             const bbox = response.data.bbox_camera;
-            const bboxPoints = bbox.map(p => {
+            // set the bbox_camera on the current cameraConfig
+            // console.log(bbox);
+            bboxPoints = bbox.map(p => {
               const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
               const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
               return {x, y};
             })
             setPolygonPoints(bboxPoints);
           })
-      });
+      }, 300);
+      // console.log(polygonPoints);
       setLineCoordinates(null);
-    }  else {
-      console.log("bboxClickCount === 2")
     }
 
   };
@@ -226,36 +281,6 @@ const PhotoComponent = (
 
   }, [imageRef, updateFittedPoints]);
 
-  // triggered when user resizes the window, after this, the dot locations must be updated
-  useEffect(() => {
-    updateDots();
-  }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
-
-
-  useEffect(() => {
-    try {
-      const imgElement = imageRef.current;
-      setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
-      setPhotoBbox(imgElement.getBoundingClientRect());
-      updateFittedPoints();
-
-      // updateFittedPoints();
-    } catch {
-      console.error("Image not yet initialized")
-    }
-  }, [widgets, transformState, window]);
-
-
-  useTransformEffect(({state}) => {
-    const imgElement = imageRef.current;
-    if (!imgElement) return;
-    setPhotoBbox(imgElement.getBoundingClientRect());
-    setTransformState(state); // Update the transformState on every transformation
-
-    updateFittedPoints();
-  });
-
-
   // Function to convert row/column to pixel coordinates
   const convertToPhotoCoordinates = (row, col) => {
     const x = col / imgDims.width * photoBbox.width / transformState.scale;
@@ -308,7 +333,7 @@ const PhotoComponent = (
       normalizedX,
       normalizedY,
       originalRow,
-      originalCol
+      originalCol,
     );
   }
 
@@ -411,7 +436,7 @@ const PhotoComponent = (
           </div>
         );
       })}
-      {transformState && photoBbox && (
+      {transformState && photoBbox && polygonPoints && (
         <div
           style={{
             position: "absolute",
