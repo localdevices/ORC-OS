@@ -1,16 +1,10 @@
 import React from 'react';
 import './widget.css'
 
-const XYZWidget = ({ id, coordinates, onUpdate, onDelete }) => {
+const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setSelectedWidgetId, rowColor }) => {
   const handleChange = (e) => {
-    console.log(e);
     const { name, value } = e.target;
-
-    if (name === 'row' || name === 'col') {
-      onUpdate(id, {...coordinates, [name]: value });
-    } else {
-      onUpdate(id, {...coordinates, [name]: value});
-    }
+    onUpdate(id, {...coordinates, [name]: value });
   };
 
   const handleDelete = () => {
@@ -18,66 +12,158 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete }) => {
   };
 
   return (
-    <div className="widget">
-      <div style={{ marginTop: '5px', display: 'flex', gap: '15px' }}>
-          <label>
-            row:
+        <tr
+          onClick={() => setSelectedWidgetId(id)} // Highlight the row when clicked
+          style={{
+            // backgroundColor: selectedWidgetId === id ? rowColor : 'white',
+            // border: selectedWidgetId === id ? `4px solid ${rowColor}` : `4px solid ${rowColor}`,
+            cursor: 'pointer',
+          }}
+        >
+          <td>
+            <div className="gcp-icon"
+                 key={id}
+                 style={{
+                   width: "30px",
+                   position: "relative",
+                   transform: "translate(0%, 0%)",
+                   height: "30px",
+                   backgroundColor: selectedWidgetId === id ? `${rowColor}` : 'white',
+                   // color: selectedWidgetId === id ? 'white' : 'black',
+                   border: selectedWidgetId === id ? `4px solid ${rowColor}` : `2px solid ${rowColor}`,
+                   fontSize: "12px",
+                   fontWeight:  selectedWidgetId === id ? "bold" : "normal"
+                 }}
+            >
+              {id}
+            </div>
+          </td>
+          <td>
             <input
               type="number"
               name="row"
-              step="1"
               value={coordinates.row || ''}
-              onChange={handleChange}
               disabled
+              className="form-control form-control-sm"
             />
-          </label>
-          <label>
-            column:
+          </td>
+          <td>
             <input
               type="number"
               name="col"
-              step="1"
               value={coordinates.col || ''}
-              onChange={handleChange}
               disabled
+              className="form-control form-control-sm"
             />
-          </label>
-          <button className="close-button" onClick={handleDelete}>
-            &times;
-          </button>
-      </div>
-      <div style={{ display: 'flex', gap: '5px', marginTop: '0px'}}>
-          <label>
-            X:
+          </td>
+          <td>
             <input
               type="number"
               name="x"
               value={coordinates.x || ''}
               onChange={handleChange}
+              className="form-control form-control-sm"
             />
-          </label>
-          <label>
-            Y:
+          </td>
+          <td>
             <input
               type="number"
               name="y"
               value={coordinates.y || ''}
               onChange={handleChange}
+              className="form-control form-control-sm"
             />
-          </label>
-          <label>
-            Z:
+          </td>
+          <td>
             <input
               type="number"
               name="z"
               value={coordinates.z || ''}
               onChange={handleChange}
+              className="form-control form-control-sm"
             />
-          </label>
-      </div>
-
-    </div>
+          </td>
+          <td>
+            <button
+              className="close-button"
+              onClick={handleDelete}
+              style={{
+                background: "none",
+                border: "none",
+                color: "red",
+                cursor: "pointer",
+                fontSize: "1.2em",
+              }}
+            >
+              &times;
+            </button>
+          </td>
+        </tr>
   );
 };
+
+//   return (
+//     <div className="widget" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+//       <input
+//         type="number"
+//         name="row"
+//         placeholder="Row"
+//         step="1"
+//         value={coordinates.row || ''}
+//         onChange={handleChange}
+//         disabled
+//         style={{ flex: 1, textAlign: "center" }}
+//       />
+//       <input
+//         type="number"
+//         name="col"
+//         placeholder="Col"
+//         step="1"
+//         value={coordinates.col || ''}
+//         onChange={handleChange}
+//         disabled
+//         style={{ flex: 1, textAlign: "center" }}
+//       />
+//       <input
+//         type="number"
+//         name="x"
+//         placeholder="X"
+//         value={coordinates.x || ''}
+//         onChange={handleChange}
+//
+//         style={{ flex: 1, textAlign: "center" }}
+//       />
+//       <input
+//         type="number"
+//         name="y"
+//         placeholder="Y"
+//         value={coordinates.y || ''}
+//         onChange={handleChange}
+//         style={{ flex: 1, textAlign: "center" }}
+//       />
+//       <input
+//         type="number"
+//         name="z"
+//         placeholder="Z"
+//         value={coordinates.z || ''}
+//         onChange={handleChange}
+//         style={{ flex: 1, textAlign: "center" }}
+//       />
+//       <button
+//         className="close-button"
+//         onClick={handleDelete}
+//         style={{
+//           background: "none",
+//           border: "none",
+//           color: "red",
+//           cursor: "pointer",
+//           fontSize: "1.2em",
+//         }}
+//       >
+//         &times;
+//       </button>
+//     </div>
+//   );
+// };
 
 export default XYZWidget;

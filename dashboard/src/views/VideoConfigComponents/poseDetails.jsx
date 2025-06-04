@@ -1,5 +1,5 @@
 import api from "../../api.js";
-import {useEffect, useState, useRef} from "react";
+import React, {useEffect, useState, useRef} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
@@ -284,7 +284,7 @@ const PoseDetails = (
   }
 
   return (
-    <div className="split-screen" style={{overflow: 'auto'}}>
+    <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Control points</h5>
         <label htmlFor='addWidget' className='form-label'>
@@ -311,59 +311,82 @@ const PoseDetails = (
           </label>
           <input type='number' className='form-control' id='crs' name='crs' onChange={handleCrsChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
         </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='z_0' className='form-label small'>
-            Water level in GCP coordinate system [m]
-          </label>
-          <input
-            type='number' className='form-control'
-            id='z_0' name='z_0'
-            onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.z_0 ? cameraConfig.gcps.z_0 : ''}
-            disabled={!validatePose()}
-          />
-        </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='h_ref' className='form-label small'>
-            Water level in local gauge reference [m]. Only set this if you plan to process several videos with different locally measured water levels.
-          </label>
-          <input
-            type='number' className='form-control'
-            id='h_ref' name='h_ref'
-            onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
-            disabled={!validatez0()}
-          />
-        </div>
 
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        {widgets.map((widget) => (
-          <div key={widget.id} onClick={() =>
-            setSelectedWidgetId(widget.id)
-          }
-               style={{
-                 border: selectedWidgetId === widget.id ? `4px solid ${widget.color}` : `1px solid ${widget.color}`,
-                 marginTop: '10px',
-                 marginBottom: '10px',
-                 padding: '5px',
-                 color: 'white',
-                 cursor: 'pointer',
-               }}
-          >
+      </div>
+
+    <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+      <div className="table-responsive">
+        <table className="table table-bordered table-sm text-center">
+          <thead className="table-dark">
+          <tr>
+            <th>Select</th>
+            <th>Row</th>
+            <th>Col</th>
+            <th>X</th>
+            <th>Y</th>
+            <th>Z</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+
+          {widgets.map((widget) => (
+            // <div key={widget.id} onClick={() =>
+            //   setSelectedWidgetId(widget.id)
+            // }
+            //      style={{
+            //        border: selectedWidgetId === widget.id ? `4px solid ${widget.color}` : `1px solid ${widget.color}`,
+            //        marginTop: '10px',
+            //        // marginBottom: '10px',
+            //        // padding: '5px',
+            //        color: 'white',
+            //        cursor: 'pointer',
+            //      }}
+            //      >
+
             <XYZWidget
+              key={widget.id}
               id={widget.id}
               coordinates={widget.coordinates}
               onUpdate={(id, coordinates) => updateWidget(id, coordinates)}
-              onDelete={() => {
-                deleteWidget(widget.id);
-              }}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+              onDelete={() => {deleteWidget(widget.id)}}
+              selectedWidgetId={selectedWidgetId}
+              setSelectedWidgetId={setSelectedWidgetId}
+              rowColor={widget.color}
+          />
+            // </div>
 
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/*    {widgets.map((widget) => (*/}
+      {/*  <div key={widget.id} onClick={() =>*/}
+      {/*    setSelectedWidgetId(widget.id)*/}
+      {/*  }*/}
+      {/*       style={{*/}
+      {/*         border: selectedWidgetId === widget.id ? `4px solid ${widget.color}` : `1px solid ${widget.color}`,*/}
+      {/*         marginTop: '10px',*/}
+      {/*         marginBottom: '10px',*/}
+      {/*         padding: '5px',*/}
+      {/*         color: 'white',*/}
+      {/*         cursor: 'pointer',*/}
+      {/*       }}*/}
+      {/*  >*/}
+      {/*    <XYZWidget*/}
+      {/*      id={widget.id}*/}
+      {/*      coordinates={widget.coordinates}*/}
+      {/*      onUpdate={(id, coordinates) => updateWidget(id, coordinates)}*/}
+      {/*      onDelete={() => {*/}
+      {/*        deleteWidget(widget.id);*/}
+      {/*      }}*/}
+      {/*    />*/}
+      {/*  </div>*/}
+      {/*))}*/}
+    </div>
+    </div>
   )
 
 };

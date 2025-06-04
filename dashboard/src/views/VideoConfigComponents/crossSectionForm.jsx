@@ -168,12 +168,31 @@ const CrossSectionForm = (
         <h5>Select optical water level cross section</h5>
         <DropdownMenu dropdownLabel="Optical water level cross section" callbackFunc={handleWaterLevelCS} data={availableCrossSections} value={CSWaterLevel.id}/>
       </div>
-      <div className='mb-3 mt-3'>
-        <label htmlFor='z_0' className='form-label small'>
-          Water level in GCP axes [m]
-        </label>
-        <input type='number' className='form-control' id='z_0' name='z_0' onChange={handleInputChange} value="" required/>
-      </div>
+        <div className='mb-3 mt-3'>
+          <label htmlFor='z_0' className='form-label small'>
+            Water level in GCP coordinate system [m]
+          </label>
+          <input
+            type='number' className='form-control'
+            id='z_0' name='z_0'
+            onChange={handleWaterLevelChange}
+            value={cameraConfig?.gcps?.z_0 ? cameraConfig.gcps.z_0 : ''}
+            // disabled={!validatePose()}
+          />
+        </div>
+
+        <div className='mb-3 mt-3'>
+          <label htmlFor='h_ref' className='form-label small'>
+            Water level in local gauge reference [m]. Only set this if you plan to process several videos with different locally measured water levels.
+          </label>
+          <input
+            type='number' className='form-control'
+            id='h_ref' name='h_ref'
+            onChange={handleWaterLevelChange}
+            value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
+            disabled={!validatez0()}
+          />
+        </div>
 
       </div>
     </div>

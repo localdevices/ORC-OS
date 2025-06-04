@@ -294,6 +294,19 @@ const VideoConfig = () => {
                     />
                   )}
 
+                  {activeTab === 'crossSection' &&
+                    (
+                      <CrossSectionForm
+                        crossSection={crossSection}
+                        CSDischarge={CSDischarge}
+                        CSWaterLevel={CSWaterLevel}
+                        setCrossSection={setCrossSection}
+                        setCSDischarge={setCSDischarge}
+                        setCSWaterLevel={setCSWaterLevel}
+                        setMessageInfo={setMessageInfo}
+                      />
+                    )
+                  }
                   {activeTab === 'pose' && (
                     <PoseDetails
                       cameraConfig={cameraConfig}
@@ -317,19 +330,6 @@ const VideoConfig = () => {
                         setMessageInfo={setMessageInfo}
                       />
                     )}
-                  {activeTab === 'crossSection' &&
-                    (
-                      <CrossSectionForm
-                        crossSection={crossSection}
-                        CSDischarge={CSDischarge}
-                        CSWaterLevel={CSWaterLevel}
-                        setCrossSection={setCrossSection}
-                        setCSDischarge={setCSDischarge}
-                        setCSWaterLevel={setCSWaterLevel}
-                        setMessageInfo={setMessageInfo}
-                      />
-                    )
-                  }
                 </div>
               </div>
             </div>
