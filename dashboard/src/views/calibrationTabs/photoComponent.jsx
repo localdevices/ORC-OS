@@ -16,6 +16,8 @@ const PhotoComponent = (
     imgDims,
     rotate,
     polygonPoints,
+    CSDischarge,
+    CSWaterLevel,
     setCameraConfig,
     setDots,
     setImgDims,
@@ -43,14 +45,12 @@ const PhotoComponent = (
   }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
 
   useEffect(() => {
-    console.log("BBOX CLICK COUNT:", bboxClickCount);
     if (bboxClickCount === 3) {
       setCameraConfig(lastResponse.current.data)
     }
   }, [bboxClickCount])
 
   useEffect(() => {
-    console.log("Reloading camera config", cameraConfig)
     // check if image and dimensions are entirely intialized
     if (
       cameraConfig &&
@@ -62,6 +62,7 @@ const PhotoComponent = (
       imgDims?.height !== 0
 
     ) {
+
       // update the polygon points with the cameraConfig.bbox_image points
       const newBboxPoints = cameraConfig.bbox_camera.map(p => {
         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
@@ -70,7 +71,7 @@ const PhotoComponent = (
       })
       setPolygonPoints(newBboxPoints);
     }
-  }, [cameraConfig, imgDims]);
+  }, [cameraConfig, imgDims, transformState, photoBbox]);
 
 
 
@@ -289,12 +290,12 @@ const PhotoComponent = (
   };
 
   const handleImageLoad = () => {
-    setLoading(false);
     if (imageRef.current) {
       setImgDims({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
       });
+      setLoading(false); // Ensure loading state is set to false after dimensions are set
     }
   };
 
@@ -496,11 +497,6 @@ const PhotoComponent = (
               y1={lineCoordinates.start.y}
               x2={lineCoordinates.end.x}
               y2={lineCoordinates.end.y}
-
-              // x1="0"
-              // y1="0"
-              // x2="100"
-              // y2="100"
               stroke="#009ed3"
               strokeWidth="2"
               strokeDasharray="5,5" // Dashed line effect
@@ -508,8 +504,6 @@ const PhotoComponent = (
           </svg>
         </div>
       )}
-
-
     </TransformComponent>
       {loading && (
         <div className="spinner-container">

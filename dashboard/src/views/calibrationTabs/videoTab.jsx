@@ -15,6 +15,8 @@ const VideoTab = (
     dots,
     imgDims,
     rotate,
+    CSDischarge,
+    CSWaterLevel,
     setCameraConfig,
     setSelectedWidgetId,
     setDots,
@@ -107,7 +109,7 @@ const VideoTab = (
   };
 
   return (
-          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'hidden', position: 'relative'}}>
+          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
             <ControlPanel
               onRotateLeft={handleRotateLeft}
               onRotateRight={handleRotateRight}
@@ -121,7 +123,6 @@ const VideoTab = (
             />
 
             <TransformWrapper
-              style={{ maxHeight: '95%' }}
                pinchEnabled={true}
                wheelEnabled={false}
                touchEnabled={true}
@@ -144,6 +145,8 @@ const VideoTab = (
                    imgDims={imgDims}
                    rotate={rotate}
                    polygonPoints={polygonPoints}
+                   CSDischarge={CSDischarge}
+                   CSWaterLevel={CSWaterLevel}
                    setCameraConfig={setCameraConfig}
                    setSelectedWidgetId={setSelectedWidgetId}
                    setDots={setDots}

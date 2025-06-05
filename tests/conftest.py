@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytest
 import yaml
-from pyorc import sample_data
+from pyorc import CameraConfig, sample_data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -47,7 +47,13 @@ def recipe(recipe_file):
 @pytest.fixture
 def cam_config(cam_config_file):
     with open(cam_config_file, "r") as f:
-        return json.load(f)
+        # ensure that a rvec and tvec are added before passing
+        cam_config_dict = json.load(f)
+    cam_config = CameraConfig(**cam_config_dict)
+    rvec, tvec = cam_config.pnp
+    cam_config.rvec = rvec
+    cam_config.tvec = tvec
+    return cam_config.to_dict_str()
 
 
 @pytest.fixture

@@ -6,11 +6,24 @@ from typing import List, Optional
 import geopandas as gpd
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pyorc import CameraConfig as pyorcCameraConfig
+from pyorc import CrossSection as pyorcCrossSection
 from pyorc.cli.cli_utils import read_shape_as_gdf
 
 from orc_api import crud
 from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
+from orc_api.schemas.camera_config import CameraConfigResponse
+
+
+def pose_info_complete(camera_config: CameraConfigResponse):
+    """Check if all pose information is available."""
+    return (
+        camera_config.data.rvec is not None
+        and camera_config.data.tvec is not None
+        and camera_config.data.camera_matrix is not None
+        and camera_config.data.dist_coeffs is not None
+    )
 
 
 # Pydantic model for responses
@@ -83,6 +96,41 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             )
             return CrossSectionResponse.model_validate(r)
         return None
+
+
+class CrossSectionResponseCameraConfig(CrossSectionResponse):
+    """Response model for a cross-section with camera configuration."""
+
+    camera_config: CameraConfigResponse = Field(default_factory=dict)
+    bottom_surface: List[List[float]] = Field(default=[])
+    wetted_surface: List[List[float]] = Field(default=[])
+
+    @model_validator(mode="after")
+    def create_perspective_fields(cls, v):
+        """Add fields that allow plotting in camera perspective."""
+        # create fields for plotting
+        if v.camera_config is not None:
+            if pose_info_complete(v.camera_config):
+                # create a cross section object with the camera configuration
+                camera_config = pyorcCameraConfig(**v.camera_config.data.model_dump())
+                h = 0.0
+                # overwrite when h_ref is defined
+                if camera_config.gcps is not None:
+                    if camera_config.gcps["h_ref"] is not None:
+                        h = camera_config.gcps["h_ref"]
+
+                cs = pyorcCrossSection(camera_config=camera_config, cross_section=v.gdf)
+                # add the fields for plotting
+                v.bottom_surface = list(
+                    map(
+                        list,
+                        cs.get_bottom_surface(length=2.0, offset=0.0, camera=True, swap_y_coords=True).exterior.coords,
+                    )
+                )
+                v.wetted_surface = list(
+                    map(list, cs.get_wetted_surface(camera=True, swap_y_coords=True, h=h).exterior.coords)
+                )
+        return v
 
 
 class CrossSectionUpdate(CrossSectionBase):

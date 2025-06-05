@@ -208,17 +208,6 @@ const PoseDetails = (
     }));
   }
 
-  const handleWaterLevelChange = async (event) => {
-    const {name, value} = event.target;
-    setCameraConfig(prevConfig => ({
-      ...prevConfig,
-      gcps: {
-        ...prevConfig.gcps,
-        [name]: parseFloat(value)
-      }
-    }));
-  }
-
   const handleFileChange = async (event) => {
       const file = event.target.files[0];
       if (!file) return;
@@ -278,11 +267,6 @@ const PoseDetails = (
   }
 
 
-  const validatez0 = () => {
-    // check if pose parameters are all complete
-    return cameraConfig?.gcps?.z_0;
-  }
-
   return (
     <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
@@ -327,7 +311,7 @@ const PoseDetails = (
             <th>X</th>
             <th>Y</th>
             <th>Z</th>
-            <th>Actions</th>
+            <th>Delete</th>
           </tr>
           </thead>
           <tbody>

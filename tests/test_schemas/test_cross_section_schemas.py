@@ -5,9 +5,10 @@ import pytest
 from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.db import CallbackUrl, CrossSection, SyncStatus
+from orc_api.db import CallbackUrl, CameraConfig, CrossSection, SyncStatus
 from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
-from orc_api.schemas.cross_section import CrossSectionResponse
+from orc_api.schemas.camera_config import CameraConfigResponse
+from orc_api.schemas.cross_section import CrossSectionResponse, CrossSectionResponseCameraConfig
 
 
 @pytest.fixture
@@ -17,9 +18,27 @@ def cross_section_response(session_cross_section: Session):
     return CrossSectionResponse.model_validate(cs_rec)
 
 
+@pytest.fixture
+def camera_config(session_cam_config: Session):
+    cam_config_rec = session_cam_config.query(CameraConfig).first()
+    return CameraConfigResponse.model_validate(cam_config_rec)
+
+
 def test_cross_section_schema(cross_section_response):
     # check if crs is available
     assert cross_section_response.crs is not None
+
+
+def test_cross_section_schema_camera_config(cross_section_response, camera_config):
+    cs_with_cam_config = CrossSectionResponseCameraConfig(
+        id=cross_section_response.id,
+        name=cross_section_response.name,
+        features=cross_section_response.features,
+        camera_config=camera_config,
+    )
+    assert cs_with_cam_config.camera_config is not None
+    assert isinstance(cs_with_cam_config.bottom_surface, list)
+    assert len(cs_with_cam_config.bottom_surface) > 0
 
 
 def test_cross_section_sync(session_cross_section, cross_section_response, monkeypatch):

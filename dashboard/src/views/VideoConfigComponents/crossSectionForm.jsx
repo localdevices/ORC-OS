@@ -4,9 +4,11 @@ import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 
 const CrossSectionForm = (
   {
+    cameraConfig,
     crossSection,
     CSDischarge,
     CSWaterLevel,
+    setCameraConfig,
     setCrossSection,
     setCSDischarge,
     setCSWaterLevel,
@@ -44,9 +46,14 @@ const CrossSectionForm = (
 
   const handleDischargeCS = async (event) => {
     const {name, value, type} = event.target;
+    console.log("CAMERA CONFIG:", cameraConfig);
     try {
-      const response = await api.get(`cross_section/${value}`);
+      const response = await api.post(
+        `cross_section/${value}/camera_config`,
+        cameraConfig
+      );
       setCSDischarge(response.data);
+      console.log(response.data);
       setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
 
     } catch (error) {
@@ -66,6 +73,18 @@ const CrossSectionForm = (
     }
   }
 
+
+  const handleWaterLevelChange = async (event) => {
+    const {name, value} = event.target;
+    setCameraConfig(prevConfig => ({
+      ...prevConfig,
+      gcps: {
+        ...prevConfig.gcps,
+        [name]: parseFloat(value)
+      }
+    }));
+  }
+
   const handleInputChange = (event) => {
     const value = event.target.type === 'file' ? event.target.files[0] : event.target.value;
 
@@ -73,6 +92,12 @@ const CrossSectionForm = (
       ...formData,
       [event.target.name]: value
     });
+  }
+
+
+  const validatez0 = () => {
+    // check if pose parameters are all complete
+    return cameraConfig?.gcps?.z_0;
   }
 
   const handleSubmit = async (event) => {
@@ -137,7 +162,7 @@ const CrossSectionForm = (
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        <h5>Create new cross sections</h5>
+        <h5>Upload new cross sections</h5>
         <form onSubmit={handleSubmit}>
         <div className='mb-3 mt-3'>
             <label htmlFor='name' className='form-label'>
@@ -155,7 +180,7 @@ const CrossSectionForm = (
           </div>
 
           <button type='submit' className='btn'>
-            Submit
+            Upload
           </button>
         </form>
       </div>

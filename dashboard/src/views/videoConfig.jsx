@@ -193,6 +193,8 @@ const VideoConfig = () => {
               dots={dots}
               imgDims={imgDims}
               rotate={cameraConfig?.rotation || null}
+              CSDischarge={CSDischarge}
+              CSWaterLevel={CSWaterLevel}
               setCameraConfig={setCameraConfig}
               setSelectedWidgetId={setSelectedWidgetId}
               setDots={setDots}
@@ -242,15 +244,6 @@ const VideoConfig = () => {
                     Camera pose 2
                   </button>
                   <button
-                    className={activeTab === 'recipe' ? 'active-tab' : ''}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleTabChange('recipe');
-                    }}
-                  >
-                    Processing
-                  </button>
-                  <button
                     className={activeTab === 'crossSection' ? 'active-tab' : ''}
                     onClick={(e) => {
                       e.preventDefault();
@@ -258,6 +251,15 @@ const VideoConfig = () => {
                     }}
                   >
                     Cross sections
+                  </button>
+                  <button
+                    className={activeTab === 'recipe' ? 'active-tab' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('recipe');
+                    }}
+                  >
+                    Processing
                   </button>
 
                 </div>
@@ -297,9 +299,11 @@ const VideoConfig = () => {
                   {activeTab === 'crossSection' &&
                     (
                       <CrossSectionForm
+                        cameraConfig={cameraConfig}
                         crossSection={crossSection}
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
+                        setCameraConfig={setCameraConfig}
                         setCrossSection={setCrossSection}
                         setCSDischarge={setCSDischarge}
                         setCSWaterLevel={setCSWaterLevel}

@@ -14,7 +14,13 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import CrossSection
-from orc_api.schemas.cross_section import CrossSectionCreate, CrossSectionResponse, CrossSectionUpdate
+from orc_api.schemas.camera_config import CameraConfigResponse
+from orc_api.schemas.cross_section import (
+    CrossSectionCreate,
+    CrossSectionResponse,
+    CrossSectionResponseCameraConfig,
+    CrossSectionUpdate,
+)
 
 router: APIRouter = APIRouter(prefix="/cross_section", tags=["cross_section"])
 
@@ -35,11 +41,23 @@ async def get_list_cs(db: Session = Depends(get_db)):
 
 @router.get("/{id}/", response_model=CrossSectionResponse, status_code=200)
 async def get_cs(id: int, db: Session = Depends(get_db)):
-    """Retrieve a recipe."""
+    """Retrieve a cross section."""
     cs = crud.cross_section.get(db=db, id=id)
     if not cs:
         raise HTTPException(status_code=404, detail="Cross section not found.")
     return cs
+
+
+@router.post("/{id}/camera_config", response_model=CrossSectionResponseCameraConfig, status_code=200)
+async def get_cs_cam_config(id: int, camera_config: CameraConfigResponse, db: Session = Depends(get_db)):
+    """Retrieve a cross section with attempt to fill camera view coordinates using a provided camera configuration."""
+    cs = crud.cross_section.get(db=db, id=id)
+    if not cs:
+        raise HTTPException(status_code=404, detail="Cross section not found.")
+    cs_response = CrossSectionResponseCameraConfig(
+        id=cs.id, name=cs.name, features=cs.features, camera_config=camera_config
+    )
+    return cs_response
 
 
 @router.get("/{id}/download/", response_model=CrossSectionResponse, status_code=200)

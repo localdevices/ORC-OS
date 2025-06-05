@@ -99,7 +99,6 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
   return (
     <div>
       <div className="split-screen three-columns">
-
         <div className="flex-container column">
           <h6>Camera location</h6>
           <div className="form-check">
