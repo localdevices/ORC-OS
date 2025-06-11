@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 
 import pytest
+from pyorc import CameraConfig as pyorcCameraConfig
+from pyorc import CrossSection as pyorcCrossSection
 from sqlalchemy.orm import Session
 
 from orc_api import crud
@@ -37,6 +39,20 @@ def test_cross_section_schema_camera_config(cross_section_response, camera_confi
         camera_config=camera_config,
     )
     assert cs_with_cam_config.camera_config is not None
+    # set up a cross section instance and do some tests
+    camera_config = pyorcCameraConfig(**cs_with_cam_config.camera_config.data.model_dump())
+    cs = pyorcCrossSection(camera_config=camera_config, cross_section=cs_with_cam_config.gdf)
+
+    # # check if cross section is visible within the image objective
+    # pix = cs.camera_config.project_points(
+    #     np.array(list(map(list, cs.cs_linestring.coords))) + 4, within_image=True, swap_y_coords=True
+    # )
+    # # check which points fall within the image objective
+    # within_image = np.all([pix[:, 0] >= 0, pix[:, 0] < 1920, pix[:, 1] >= 0, pix[:, 1] < 1080], axis=0)
+    # # check if there are any points within the image objective
+    # assert np.any(within_image)
+    assert cs.within_image
+    assert cs.distance_camera < 10
     assert isinstance(cs_with_cam_config.bottom_surface, list)
     assert len(cs_with_cam_config.bottom_surface) > 0
 

@@ -29,32 +29,41 @@ const CrossSectionForm = (
   const [showJsonData, setShowJsonData] = useState(false);
   const [availableCrossSections, setAvailableCrossSections] = useState([]);
 
+  const fetchCrossSections = async () => {
+    try {
+      const response = await api.get('/cross_section');
+      setAvailableCrossSections(response.data);
+    } catch (error) {
+      setMessageInfo({
+        type: 'error',
+        message: 'Failed to fetch cross sections: ' + error.message
+      });
+    }
+  };
+
   useEffect(() => {
-    const fetchCrossSections = async () => {
-      try {
-        const response = await api.get('/cross_section');
-        setAvailableCrossSections(response.data);
-      } catch (error) {
-        setMessageInfo({
-          type: 'error',
-          message: 'Failed to fetch cross sections: ' + error.message
-        });
-      }
-    };
     fetchCrossSections();
   }, []);
 
   const handleDischargeCS = async (event) => {
-    const {name, value, type} = event.target;
+    const {value} = event.target;
     console.log("CAMERA CONFIG:", cameraConfig);
     try {
       const response = await api.post(
-        `cross_section/${value}/camera_config`,
+        `cross_section/${value}/camera_config/`,
         cameraConfig
       );
-      setCSDischarge(response.data);
-      console.log(response.data);
-      setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
+      if (!response.data.within_image) {
+        setMessageInfo('error', `Discharge cross section is not within the image`)
+      } else if (response.data.distance_camera > 1000) {
+        setMessageInfo('error', `Discharge cross section is too far away from the camera (> 1000 m.)`)
+      }
+        else {
+        setCSDischarge(response.data);
+        console.log(response.data);
+        setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
+
+      }
 
     } catch (error) {
       setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
@@ -62,7 +71,7 @@ const CrossSectionForm = (
   }
 
   const handleWaterLevelCS = async (event) => {
-    const {name, value, type} = event.target;
+    const {value} = event.target;
     try {
       const response = await api.get(`cross_section/${value}`);
       setCSWaterLevel(response.data);
@@ -113,6 +122,9 @@ const CrossSectionForm = (
         };
         await api.post('/cross_section/', updatedFormSubmitData);
         setMessageInfo('success', 'Successfully created cross section');
+        // refresh the cross section data
+        fetchCrossSections();
+
       }
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);

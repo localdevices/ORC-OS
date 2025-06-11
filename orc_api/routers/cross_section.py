@@ -48,14 +48,20 @@ async def get_cs(id: int, db: Session = Depends(get_db)):
     return cs
 
 
-@router.post("/{id}/camera_config", response_model=CrossSectionResponseCameraConfig, status_code=200)
+@router.post("/{id}/camera_config/", response_model=CrossSectionResponseCameraConfig, status_code=200)
 async def get_cs_cam_config(id: int, camera_config: CameraConfigResponse, db: Session = Depends(get_db)):
     """Retrieve a cross section with attempt to fill camera view coordinates using a provided camera configuration."""
     cs = crud.cross_section.get(db=db, id=id)
     if not cs:
         raise HTTPException(status_code=404, detail="Cross section not found.")
     cs_response = CrossSectionResponseCameraConfig(
-        id=cs.id, name=cs.name, features=cs.features, camera_config=camera_config
+        id=cs.id,
+        created_at=cs.created_at,
+        remote_id=cs.remote_id,
+        sync_status=cs.sync_status,
+        name=cs.name,
+        features=cs.features,
+        camera_config=camera_config,
     )
     return cs_response
 

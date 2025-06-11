@@ -104,6 +104,8 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
     camera_config: CameraConfigResponse = Field(default_factory=dict)
     bottom_surface: List[List[float]] = Field(default=[])
     wetted_surface: List[List[float]] = Field(default=[])
+    distance_camera: Optional[float] = Field(default=None)
+    within_image: Optional[bool] = Field(default=None)
 
     @model_validator(mode="after")
     def create_perspective_fields(cls, v):
@@ -130,6 +132,9 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                 v.wetted_surface = list(
                     map(list, cs.get_wetted_surface(camera=True, swap_y_coords=True, h=h).exterior.coords)
                 )
+                # also provide the info to determine if the cross section is within the image and not too far off
+                v.within_image = cs.within_image
+                v.distance_camera = cs.distance_camera
         return v
 
 
