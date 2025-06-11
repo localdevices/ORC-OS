@@ -28,7 +28,7 @@ const VideoTab = (
   const [clickCount, setClickCount] = useState(0);
   const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
-  const [polygonPoints, setPolygonPoints] = useState(
+  const [bBoxPolygon, setBBoxPolygon] = useState(
     null
   );
 
@@ -115,7 +115,15 @@ const VideoTab = (
               onRotateRight={handleRotateRight}
               onBoundingBox={() => {
                 setBboxSelected(true);
-                setPolygonPoints(null);
+                setBBoxPolygon(null);
+                // remove bbox_camera from cameraConfig
+                setCameraConfig(prevConfig => {
+                  const newConfig = {
+                    ...prevConfig,
+                    bbox_camera: null,
+                  };
+                  return newConfig;
+                })
               }}
               onMove={handleMove}
               cameraConfig={cameraConfig}
@@ -144,14 +152,14 @@ const VideoTab = (
                    dots={dots}
                    imgDims={imgDims}
                    rotate={rotate}
-                   polygonPoints={polygonPoints}
+                   bBoxPolygon={bBoxPolygon}
                    CSDischarge={CSDischarge}
                    CSWaterLevel={CSWaterLevel}
                    setCameraConfig={setCameraConfig}
                    setSelectedWidgetId={setSelectedWidgetId}
                    setDots={setDots}
                    setImgDims={setImgDims}
-                   setPolygonPoints={setPolygonPoints}
+                   setBBoxPolygon={setBBoxPolygon}
                    bboxMarkers={bboxMarkers}
                    handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
                    bboxClickCount={clickCount}

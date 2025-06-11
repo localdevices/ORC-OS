@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import CrossSection
-from orc_api.schemas.camera_config import CameraConfigResponse
+from orc_api.schemas.camera_config import CameraConfigUpdate
 from orc_api.schemas.cross_section import (
     CrossSectionCreate,
     CrossSectionResponse,
@@ -49,7 +49,7 @@ async def get_cs(id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{id}/camera_config/", response_model=CrossSectionResponseCameraConfig, status_code=200)
-async def get_cs_cam_config(id: int, camera_config: CameraConfigResponse, db: Session = Depends(get_db)):
+async def get_cs_cam_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Retrieve a cross section with attempt to fill camera view coordinates using a provided camera configuration."""
     cs = crud.cross_section.get(db=db, id=id)
     if not cs:

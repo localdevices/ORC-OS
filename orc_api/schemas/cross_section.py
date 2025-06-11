@@ -101,7 +101,7 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
 class CrossSectionResponseCameraConfig(CrossSectionResponse):
     """Response model for a cross-section with camera configuration."""
 
-    camera_config: CameraConfigResponse = Field(default_factory=dict)
+    camera_config: Optional[CameraConfigResponse] = Field(default=None)
     bottom_surface: List[List[float]] = Field(default=[])
     wetted_surface: List[List[float]] = Field(default=[])
     distance_camera: Optional[float] = Field(default=None)
@@ -126,11 +126,13 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                 v.bottom_surface = list(
                     map(
                         list,
-                        cs.get_bottom_surface(length=2.0, offset=0.0, camera=True, swap_y_coords=True).exterior.coords,
+                        cs.get_bottom_surface(
+                            length=0.01, offset=0.0, camera=True, swap_y_coords=False
+                        ).exterior.coords,
                     )
                 )
                 v.wetted_surface = list(
-                    map(list, cs.get_wetted_surface(camera=True, swap_y_coords=True, h=h).exterior.coords)
+                    map(list, cs.get_wetted_surface(camera=True, swap_y_coords=False, h=h).exterior.coords)
                 )
                 # also provide the info to determine if the cross section is within the image and not too far off
                 v.within_image = cs.within_image

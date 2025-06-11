@@ -50,9 +50,6 @@ const VideoConfig = () => {
           setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
           if (response.data.video_config.recipe !== null) {
             setRecipe(response.data.video_config.recipe);
-          } else {
-            console.log("RECIPE DATA NOT FOUND in ", response.data)
-
           }
           if (response.data.video_config.camera_config) {
             setCameraConfig(response.data.video_config.camera_config);

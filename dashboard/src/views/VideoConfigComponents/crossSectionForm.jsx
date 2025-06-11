@@ -45,42 +45,53 @@ const CrossSectionForm = (
     fetchCrossSections();
   }, []);
 
-  const handleDischargeCS = async (event) => {
-    const {value} = event.target;
-    console.log("CAMERA CONFIG:", cameraConfig);
-    try {
-      const response = await api.post(
-        `cross_section/${value}/camera_config/`,
-        cameraConfig
-      );
-      if (!response.data.within_image) {
-        setMessageInfo('error', `Discharge cross section is not within the image`)
-      } else if (response.data.distance_camera > 1000) {
-        setMessageInfo('error', `Discharge cross section is too far away from the camera (> 1000 m.)`)
+  const handleCS = async (event, setter) => {
+    const {value, name} = event.target;
+    const nameCapitalize = name.charAt(0).toUpperCase() + name.slice(1);
+    if (value) {
+      try {
+        const response = await api.post(
+          `cross_section/${value}/camera_config/?${new Date().getTime()}`,
+          cameraConfig
+        );
+        if (!response.data.within_image) {
+          setMessageInfo('error', `${nameCapitalize} cross section is not within the image`)
+        } else if (response.data.distance_camera > 1000) {
+          setMessageInfo('error', `${nameCapitalize} cross section is too far away from the camera (> 1000 m.)`)
+        } else {
+          setter(response.data);
+          console.log(response.data);
+          setMessageInfo('success', `Successfully set ${name} cross section to ID ${value}`)
+        }
+      } catch (error) {
+        setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.message}`)
       }
-        else {
-        setCSDischarge(response.data);
-        console.log(response.data);
-        setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
-
-      }
-
-    } catch (error) {
-      setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
+    } else {
+      setter({});
+      setMessageInfo('success', `Successfully removed ${name} cross section`)
     }
   }
 
-  const handleWaterLevelCS = async (event) => {
-    const {value} = event.target;
-    try {
-      const response = await api.get(`cross_section/${value}`);
-      setCSWaterLevel(response.data);
-      setMessageInfo('success', `Successfully set discharge cross section to cross section ID ${value}`)
-
-    } catch (error) {
-      setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
-    }
-  }
+  // const handleWaterLevelCS = async (event) => {
+  //   const {value} = event.target;
+  //   console.log(event.target.value);
+  //   console.log("CSWATERLEVEL: ", CSWaterLevel)
+  //   if (value) {
+  //     try {
+  //       console.log(`cross_section/${value}`)
+  //       const response = await api.get(`cross_section/${value}`);
+  //       console.log(response.data);
+  //       setCSWaterLevel(response.data);
+  //       setMessageInfo('success', `Successfully set water level cross section to cross section ID ${value}`)
+  //
+  //     } catch (error) {
+  //       setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
+  //     }
+  //   } else {
+  //     setCSWaterLevel({});
+  //     setMessageInfo('success', `Successfully removed water level cross section`)
+  //   }
+  // }
 
 
   const handleWaterLevelChange = async (event) => {
@@ -199,11 +210,23 @@ const CrossSectionForm = (
       <div className='container'>
       <div className='container' style={{marginTop: '5px'}}>
         <h5>Select discharge cross section</h5>
-        <DropdownMenu dropdownLabel="Discharge cross section" callbackFunc={handleDischargeCS} data={availableCrossSections} value={CSDischarge.id}/>
+        <DropdownMenu
+          dropdownLabel="Discharge cross section"
+          name="discharge"
+          callbackFunc={(event) => handleCS(event, setCSDischarge)}
+          data={availableCrossSections}
+          value={CSDischarge.id}
+        />
       </div>
       <div className='container' style={{marginTop: '5px'}}>
         <h5>Select optical water level cross section</h5>
-        <DropdownMenu dropdownLabel="Optical water level cross section" callbackFunc={handleWaterLevelCS} data={availableCrossSections} value={CSWaterLevel.id}/>
+        <DropdownMenu
+          dropdownLabel="Optical water level cross section"
+          name="water level"
+          callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
+          data={availableCrossSections}
+          value={CSWaterLevel.id}
+        />
       </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='z_0' className='form-label small'>

@@ -14,7 +14,7 @@ from orc_api.db import SyncStatus
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.callback_url import CallbackUrlResponse
 from orc_api.schemas.camera_config import CameraConfigResponse, CameraConfigUpdate
-from orc_api.schemas.cross_section import CrossSectionResponse
+from orc_api.schemas.cross_section import CrossSectionResponse, CrossSectionResponseCameraConfig
 from orc_api.schemas.recipe import RecipeResponse, RecipeUpdate
 
 # only import for type checking on run time, preventing circular imports
@@ -58,10 +58,10 @@ class VideoConfigBase(BaseModel):
         default=None, description="Associated CameraConfig object (if available)."
     )
     recipe: Optional[RecipeResponse] = Field(None, description="Associated Recipe object (if available).")
-    cross_section: Optional[CrossSectionResponse] = Field(
+    cross_section: Optional[CrossSectionResponseCameraConfig] = Field(
         default=None, description="Associated CrossSection object (if available)."
     )
-    cross_section_wl: Optional[CrossSectionResponse] = Field(
+    cross_section_wl: Optional[CrossSectionResponseCameraConfig] = Field(
         default=None, description="Associated CrossSection object for water level estimation (if available)."
     )
     model_config = {"from_attributes": True}
@@ -78,6 +78,20 @@ class VideoConfigBase(BaseModel):
                     # transform cross-section coordinates
                     gdf = v.cross_section.gdf.to_crs(v.camera_config.crs)
                     v.cross_section.features = json.loads(gdf.to_json())
+        return v
+
+    @model_validator(mode="after")
+    def complete_cross_sections(cls, v):
+        """Complete the cross-sections with the camera configuration."""
+        if v.cross_section and v.camera_config:
+            cs = v.cross_section
+            cs.camera_config = v.camera_config
+            v.cross_section = CrossSectionResponseCameraConfig.model_validate(cs)
+            print(v.cross_section)
+        if v.cross_section_wl and v.camera_config:
+            cs = v.cross_section_wl
+            cs.camera_config = v.camera_config
+            v.cross_section_wl = CrossSectionResponseCameraConfig.model_validate(cs)
         return v
 
     @property

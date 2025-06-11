@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value}) => {
+export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, name}) => {
 
   return (
     <>
@@ -9,7 +9,9 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value}) => {
       </label>
       <select
         id={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`}
-        onChange={(event) => callbackFunc(event)}
+        name={name}
+        // onChange={(event) => callbackFunc(event)}
+        onChange={callbackFunc}
         className='form-control'
         value={value || ""}
       >
