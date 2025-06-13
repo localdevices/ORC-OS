@@ -12,14 +12,12 @@ const PhotoComponent = (
     widgets,
     cameraConfig,
     scale,
-    dots,
     imgDims,
     rotate,
     bBoxPolygon,
     CSDischarge,
     CSWaterLevel,
     setCameraConfig,
-    setDots,
     setImgDims,
     setBBoxPolygon,
     bboxMarkers,
@@ -40,6 +38,7 @@ const PhotoComponent = (
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
+  const [dots, setDots] = useState({}); // Array of { x, y, id } objects
 
 
   const checkImageReady = () => {
@@ -84,8 +83,6 @@ const PhotoComponent = (
       CSDischarge &&
       CSDischarge?.bottom_surface
     ) {
-      console.log("CS", CSDischarge)
-      console.log("CS discharge or dependency changed")
       const newCSPolPoints = CSDischarge.bottom_surface.map(p => {
         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
         const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
@@ -111,8 +108,7 @@ const PhotoComponent = (
       CSWaterLevel &&
       CSWaterLevel?.bottom_surface
     ) {
-      console.log("CS", CSDischarge)
-      console.log("CS discharge or dependency changed")
+
       const newCSPolPoints = CSWaterLevel.bottom_surface.map(p => {
         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
         const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
@@ -128,11 +124,12 @@ const PhotoComponent = (
 
   useEffect(() => {
     try {
+      console.log("WIDGETS", widgets);
       const imgElement = imageRef.current;
       setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
       setPhotoBbox(imgElement.getBoundingClientRect());
       updateFittedPoints();
-
+      updateDots();
       // updateFittedPoints();
     } catch {
       console.error("Image not yet initialized.")
@@ -145,7 +142,6 @@ const PhotoComponent = (
     if (!imgElement) return;
     setPhotoBbox(imgElement.getBoundingClientRect());
     setTransformState(state); // Update the transformState on every transformation
-
     updateFittedPoints();
   });
 
@@ -290,25 +286,32 @@ const PhotoComponent = (
     setLineCoordinates(null);
   };
 
-  // update the dot locations when user resizes the browser window
+  // update the dot locations when user resizes the browser window or changes gcps otherwise
   const updateDots = () => {
     try {
-      const updatedDots = Object.entries(dots).reduce((newDots, [id, dot]) => {
-        const newX = dot.xNorm * photoBbox.width / transformState.scale; //
-        const newY = dot.yNorm * photoBbox.height / transformState.scale; //
-        // Recalculate the actual position relative to the new photoBbox and dimensions
-        newDots[id] = {
-          ...dot,
-          x: newX,
-          y: newY,
+      const updatedDots = widgets.reduce((acc, widget) => {
+        if (!widget.coordinates) return acc;
+
+        const screenPoint = convertToPhotoCoordinates(
+          widget.coordinates.row,
+          widget.coordinates.col
+        );
+
+        acc[widget.id] = {
+          x: screenPoint.x,
+          y: screenPoint.y,
+          // xNorm: widget.coordinates.col / imgDims.width,
+          // yNorm: widget.coordinates.row / imgDims.height,
+          color: widget.color || '#ffffff'
         };
-        return newDots;
+
+        return acc;
       }, {});
+
       setDots(updatedDots);
     } catch {
       console.log("Skipping dot rendering, image not yet initialized")
     }
-
   }
 
   // run these as soon as the TransformComponent is ready
@@ -612,8 +615,8 @@ const PhotoComponent = (
                 .map(p => `${p.x},${p.y}`)
                 .join(' ')}
               fill="rgba(255, 99, 132, 0.3)"
-              stroke="rgba(255, 99, 132, 1)"
-              strokeWidth={2 / transformState.scale}
+              stroke="rgba(255, 160, 0, 1)"
+              strokeWidth={4 / transformState.scale}
             />
           </svg>
         </div>

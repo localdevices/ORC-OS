@@ -12,13 +12,11 @@ const PoseDetails = (
   {
     cameraConfig,
     widgets,
-    dots,
     selectedWidgetId,
     imgDims,
     updateWidget,
     setCameraConfig,
     setWidgets,
-    setDots,
     setSelectedWidgetId,
     setMessageInfo
   }) => {
@@ -43,7 +41,7 @@ const PoseDetails = (
             color: color,
             id: index + 1, // Unique ID for widget
             coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
-            icon: createCustomMarker(color, index + 1)
+            // icon: createCustomMarker(color, index + 1)
           };
         })
         setWidgets(newWidgets);
@@ -128,18 +126,18 @@ const PoseDetails = (
       }
     }))
     // TODO: dot is now actively deleted, but should be automatically regenerated using changes in widget state
-    setDots((prevDots) => {
-      // Copy the previous state object
-      const newDots = {...prevDots};
-      delete newDots[id];
-      return newDots;
-    });
+    // setDots((prevDots) => {
+    //   // Copy the previous state object
+    //   const newDots = {...prevDots};
+    //   delete newDots[id];
+    //   return newDots;
+    // });
   };
 
   // remove all existing widgets
   const clearWidgets = () => {
     setWidgets([]);
-    setDots([]);
+    // setDots([]);
     setSelectedWidgetId(null);
   }
 
@@ -159,7 +157,7 @@ const PoseDetails = (
           gcps: GcpData,
         }))
       }
-      setDots({})
+      // setDots({})
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
     }

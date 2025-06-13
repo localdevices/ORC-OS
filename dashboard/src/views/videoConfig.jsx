@@ -28,7 +28,6 @@ const VideoConfig = () => {
   // consts for image clicking
   const [widgets, setWidgets] = useState([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
-  const [dots, setDots] = useState({}); // Array of { x, y, id } objects
   const rotateState = useRef(cameraConfig?.rotation);
   const [cameraConfigState, setCameraConfigState] = useState({
     coordinates: [],
@@ -187,14 +186,12 @@ const VideoConfig = () => {
               widgets={widgets}
               selectedWidgetId={selectedWidgetId}
               updateWidget={updateWidget}
-              dots={dots}
               imgDims={imgDims}
               rotate={cameraConfig?.rotation || null}
               CSDischarge={CSDischarge}
               CSWaterLevel={CSWaterLevel}
               setCameraConfig={setCameraConfig}
               setSelectedWidgetId={setSelectedWidgetId}
-              setDots={setDots}
               setImgDims={setImgDims}
             />
           )}
@@ -312,13 +309,11 @@ const VideoConfig = () => {
                     <PoseDetails
                       cameraConfig={cameraConfig}
                       widgets={widgets}
-                      dots={dots}
                       selectedWidgetId={selectedWidgetId}
                       imgDims={imgDims}
                       updateWidget={updateWidget}
                       setCameraConfig={setCameraConfig}
                       setWidgets={setWidgets}
-                      setDots={setDots}
                       setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
                     />

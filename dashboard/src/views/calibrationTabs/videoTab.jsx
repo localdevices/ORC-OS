@@ -12,14 +12,12 @@ const VideoTab = (
     widgets,
     selectedWidgetId,
     updateWidget,
-    dots,
     imgDims,
     rotate,
     CSDischarge,
     CSWaterLevel,
     setCameraConfig,
     setSelectedWidgetId,
-    setDots,
     setImgDims,
   }
 ) => {
@@ -41,18 +39,18 @@ const VideoTab = (
       return;
     } else {
 
-      // Update the dots
-      setDots((prevDots) => ({
-        ...prevDots,
-        [selectedWidgetId]: {
-          x: adjustedX,
-          y: adjustedY,
-          xNorm: normalizedX,
-          yNorm: normalizedY,
-          scale: scale,
-          color: getWidgetById(selectedWidgetId).color
-        },
-      }));
+      // // Update the dots
+      // setDots((prevDots) => ({
+      //   ...prevDots,
+      //   [selectedWidgetId]: {
+      //     x: adjustedX,
+      //     y: adjustedY,
+      //     xNorm: normalizedX,
+      //     yNorm: normalizedY,
+      //     scale: scale,
+      //     color: getWidgetById(selectedWidgetId).color
+      //   },
+      // }));
 
       updateWidget(selectedWidgetId, {
         ...widgets.find((widget) => widget.id === selectedWidgetId).coordinates,
@@ -149,7 +147,6 @@ const VideoTab = (
                    widgets={widgets}
                    cameraConfig={cameraConfig}
                    scale={scale}
-                   dots={dots}
                    imgDims={imgDims}
                    rotate={rotate}
                    bBoxPolygon={bBoxPolygon}
@@ -157,7 +154,6 @@ const VideoTab = (
                    CSWaterLevel={CSWaterLevel}
                    setCameraConfig={setCameraConfig}
                    setSelectedWidgetId={setSelectedWidgetId}
-                   setDots={setDots}
                    setImgDims={setImgDims}
                    setBBoxPolygon={setBBoxPolygon}
                    bboxMarkers={bboxMarkers}
