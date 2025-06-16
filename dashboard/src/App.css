@@ -4,6 +4,7 @@
   /* text-align: center; */
   height: 100%;
   font-family: Barlow;
+  display: flex;
 }
 .app-container {
   display: flex;
@@ -38,7 +39,8 @@
   border-radius: 10px 10px 10px 10px; /* Rounded top corners */
   height: 100%;
   box-sizing: border-box;
-  max-height: 100%;
+
+  /*max-height: 100%;*/
 
 }
 

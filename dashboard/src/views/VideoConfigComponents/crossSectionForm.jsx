@@ -96,13 +96,15 @@ const CrossSectionForm = (
 
   const handleWaterLevelChange = async (event) => {
     const {name, value} = event.target;
-    setCameraConfig(prevConfig => ({
-      ...prevConfig,
+    const newConfig = {
+      ...cameraConfig,
       gcps: {
-        ...prevConfig.gcps,
+        ...cameraConfig.gcps,
         [name]: parseFloat(value)
+
       }
-    }));
+    }
+    setCameraConfig(newConfig);
   }
 
   const handleInputChange = (event) => {

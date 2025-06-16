@@ -79,7 +79,7 @@ const CrossSectionDisplay = ({CSDischarge, CSWaterLevel}) => {
     }
 }
   return (
-    <div style={{ height: "400px" }}>
+    <div style={{ minHeight: "200px", height: "100%" }}>
     <Scatter
       data={data}
       options={options}

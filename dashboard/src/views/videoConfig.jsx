@@ -23,6 +23,7 @@ const VideoConfig = () => {
   const [CSDischarge, setCSDischarge] = useState({}); // Video metadata
   const [CSWaterLevel, setCSWaterLevel] = useState({}); // Video metadata
   const [activeTab, setActiveTab] = useState('configDetails');
+  const [activeView, setActiveView] = useState('sideView');
   const {setMessageInfo} = useMessage();
 
   // consts for image clicking
@@ -84,10 +85,7 @@ const VideoConfig = () => {
 
   useEffect(() => {
     // make sure that if a selected widget can no longer be found, the selected id is reset to null
-    console.log(widgets)
-    console.log(selectedWidgetId)
     if (selectedWidgetId && !widgets.find(w => w.id === selectedWidgetId)) {
-      console.log("widget not found, resetting selected id")
       setSelectedWidgetId(null);
     }
   }, [widgets])
@@ -98,7 +96,6 @@ const VideoConfig = () => {
   }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
 
   useEffect(() => {
-    console.log("set rotation")
     // check if height and width of camera config must be adapted to a new rotation
     if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
       // set state to new
@@ -107,12 +104,6 @@ const VideoConfig = () => {
         ...cameraConfig,
         height: imgDims.height,
         width: imgDims.width,
-        // gcps: null,
-        // camera_position: null,
-        // camera_rotation: null,
-        // f: null,
-        // k1: null,
-        // k2: null
       }
       setCameraConfig(newConfig)
     }
@@ -121,15 +112,13 @@ const VideoConfig = () => {
   // if any cross section is set, make sure that the CS camera perspective is only provided when lens parameters are
   // complete
   useEffect(() => {
-    console.log("set cross section", cameraConfig)
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
-      console.log("camera not calibrated")
       if (CSDischarge !== null && CSDischarge?.camera_config !== null) {
         setCSDischarge((prevCS) => ({
           ...prevCS,
           camera_config: null,
-          bottom_surface: null,
-          wetted_surface: null,
+          bottom_surface: [],
+          wetted_surface: [],
           distance_camera: null,
           within_image: null,
         }));
@@ -138,8 +127,8 @@ const VideoConfig = () => {
         setCSWaterLevel((prevCS) => ({
           ...prevCS,
           camera_config: null,
-          bottom_surface: null,
-          wetted_surface: null,
+          bottom_surface: [],
+          wetted_surface: [],
           distance_camera: null,
           within_image: null,
         }));
@@ -196,15 +185,28 @@ const VideoConfig = () => {
         gcps: {
           ...cameraConfig.gcps,
           control_points: newWidgets.map(widget => widget.coordinates)
-        }
+        },
+        camera_position: null,
+        camera_rotation: null,
+        f: null,
+        k1: null,
+        k2: null,
+        bbox_camera: [],
+        bbox: []
+
       }
       setCameraConfig(newConfig);
+      // also remove selected cross sections
       return newWidgets;
     });
   };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+  };
+
+  const handleViewChange = (view) => {
+    setActiveView(view);
   };
 
 
@@ -384,14 +386,50 @@ const VideoConfig = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{"flexGrow": "0", "minHeight": "30%", "overflowY": "auto", "overflowX": "hidden"}}>
-            <h5>Cross sections</h5>
-            {CSDischarge && CSWaterLevel && (
-              <CrossSectionDisplay
-                CSDischarge={CSDischarge}
-                CSWaterLevel={CSWaterLevel}
-                />
-              )}
+          <div className="flex-container column no-padding" style={{"maxHeight": "40%", "overflowY": "hidden"}}>
+            <div className="flex-container column" style={{
+              "height": "100%",
+              "overflowY": "hidden",
+              "overflowX": "hidden"
+            }}>
+              <div className="tabbed-form-container">
+                <div className="tabs-header">
+                  <h5>Side and top view</h5>
+                  <div className="tabs-row">
+                    <button
+                      className={activeView === 'sideView' ? 'active-tab' : ''}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleViewChange('sideView');
+                      }}
+                    >
+                      Side view
+                    </button>
+                    <button
+                      className={activeView === 'topView' ? 'active-tab' : ''}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleViewChange('topView');
+                      }}
+                    >
+                      Top view
+                    </button>
+                  </div>
+                </div>
+                <div className="tab-container">
+                  {/* Tab content */}
+                  <div className="tab-content">
+
+                    {CSDischarge && CSWaterLevel && (
+                      <CrossSectionDisplay
+                        CSDischarge={CSDischarge}
+                        CSWaterLevel={CSWaterLevel}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

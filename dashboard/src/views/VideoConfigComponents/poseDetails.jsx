@@ -98,8 +98,6 @@ const PoseDetails = (
   }
 
   useEffect(() => {
-    console.log("REFRESHING WIDGETS")
-    console.log("cam config", cameraConfig)
     if (cameraConfig?.gcps?.control_points) {
       refreshWidgets();
 
@@ -129,13 +127,8 @@ const PoseDetails = (
       bbox: []
     }
     setSelectedWidgetId(newConfig.gcps.control_points.length);
-    console.log("newConfig", newConfig)
-    console.log("amount of control points: ", newConfig.gcps.control_points.length)
     setCameraConfig(newConfig);
     // ensure user can set a new widget when clicking on add gcp
-    // console.log("nextID", nextId)
-
-    // refresh visual control points
   };
 
   const deleteWidget = (id) => {
