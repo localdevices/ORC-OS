@@ -4,6 +4,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 import './photoComponent.css';
 import PropTypes from 'prop-types';
 import api from "../../api.js";
+import {rainbowColors} from "../../utils/helpers.jsx";
 
 const PhotoComponent = (
   {
@@ -51,36 +52,43 @@ const PhotoComponent = (
       imgDims?.height !== 0
     );
   };
-  // triggered when user resizes the window, after this, the dot locations must be updated
-  useEffect(() => {
-    updateDots();
-  }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
-
-  useEffect(() => {
-    if (bboxClickCount === 3) {
-      setCameraConfig(lastResponse.current.data)
-    }
-  }, [bboxClickCount])
+  // // triggered when user resizes the window, after this, the dot locations must be updated
+  // useEffect(() => {
+  //   updateDots();
+  // }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
+  //
+  // useEffect(() => {
+  //   if (bboxClickCount === 3) {
+  //     setCameraConfig(lastResponse.current.data)
+  //   }
+  // }, [bboxClickCount])
 
   useEffect(() => {
     // check if image and dimensions are entirely intialized
-    if (checkImageReady() && cameraConfig &&
-    cameraConfig.bbox_camera !== null
-  ) {
-      // update the polygon points with the cameraConfig.bbox_image points
-      const newBboxPoints = cameraConfig.bbox_camera.map(p => {
-        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-        return {x, y};
-      })
-      setBBoxPolygon(newBboxPoints);
+    if (checkImageReady()) {
+      if (cameraConfig && cameraConfig?.bbox_camera && cameraConfig?.bbox_camera !== null) {
+        // update the polygon points with the cameraConfig.bbox_image points
+        const newBboxPoints = cameraConfig.bbox_camera.map(p => {
+          const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+          const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+          return {x, y};
+        })
+        setBBoxPolygon(newBboxPoints);
+      }
+      if (cameraConfig && cameraConfig?.gcps?.control_points) {
+        updateFittedPoints();
+        updateDots();
+      }
     }
+
   }, [cameraConfig, imgDims, transformState, photoBbox]);
 
+
   useEffect(() => {
+    // set cross sections
     if (
       checkImageReady() &&
-      CSDischarge &&
+      // CSDischarge &&
       CSDischarge?.bottom_surface
     ) {
       const newCSPolPoints = CSDischarge.bottom_surface.map(p => {
@@ -100,12 +108,12 @@ const PhotoComponent = (
       setCSDischargePolygon([]);
       setCSWettedSurfacePolygon([]);
     }
-  }, [CSDischarge, cameraConfig, imgDims, transformState, photoBbox]);
+  }, [CSDischarge?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 
   useEffect(() => {
     if (
       checkImageReady() &&
-      CSWaterLevel &&
+      // CSWaterLevel &&
       CSWaterLevel?.bottom_surface
     ) {
 
@@ -120,21 +128,21 @@ const PhotoComponent = (
     } else {
       setCSWaterLevelPolygon([]);
     }
-  }, [CSWaterLevel, cameraConfig, imgDims, transformState, photoBbox]);
+  }, [CSWaterLevel?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 
-  useEffect(() => {
-    try {
-      console.log("WIDGETS", widgets);
-      const imgElement = imageRef.current;
-      setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
-      setPhotoBbox(imgElement.getBoundingClientRect());
-      updateFittedPoints();
-      updateDots();
+  // useEffect(() => {
+  //   try {
+  //     console.log("WIDGETS", widgets);
+      // const imgElement = imageRef.current;
+      // setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
+      // setPhotoBbox(imgElement.getBoundingClientRect());
       // updateFittedPoints();
-    } catch {
-      console.error("Image not yet initialized.")
-    }
-  }, [widgets, transformState, window]);
+      // updateDots();
+      // updateFittedPoints();
+  //   } catch {
+  //     console.error("Image not yet initialized.")
+  //   }
+  // }, [widgets, transformState, window]);
 
 
   useTransformEffect(({state}) => {
@@ -142,7 +150,7 @@ const PhotoComponent = (
     if (!imgElement) return;
     setPhotoBbox(imgElement.getBoundingClientRect());
     setTransformState(state); // Update the transformState on every transformation
-    updateFittedPoints();
+    // updateFittedPoints();
   });
 
 
@@ -289,22 +297,15 @@ const PhotoComponent = (
   // update the dot locations when user resizes the browser window or changes gcps otherwise
   const updateDots = () => {
     try {
-      const updatedDots = widgets.reduce((acc, widget) => {
-        if (!widget.coordinates) return acc;
-
-        const screenPoint = convertToPhotoCoordinates(
-          widget.coordinates.row,
-          widget.coordinates.col
-        );
-
-        acc[widget.id] = {
-          x: screenPoint.x,
-          y: screenPoint.y,
-          // xNorm: widget.coordinates.col / imgDims.width,
-          // yNorm: widget.coordinates.row / imgDims.height,
-          color: widget.color || '#ffffff'
-        };
-
+      const updatedDots = cameraConfig.gcps.control_points.reduce((acc, gcp, idx) => {
+        if (gcp.row !== null && gcp.col !== null) {
+          const screenPoint = convertToPhotoCoordinates(gcp.row, gcp.col);
+          acc[idx + 1] = {
+            x: screenPoint.x,
+            y: screenPoint.y,
+            color: rainbowColors[(idx) % rainbowColors.length] || 'ffffff'
+          };
+        }
         return acc;
       }, {});
 
@@ -410,12 +411,10 @@ const PhotoComponent = (
       color: PropTypes.string
     })).isRequired,
     scale: PropTypes.number,
-    dots: PropTypes.object.isRequired,
     imgDims: PropTypes.shape({
       width: PropTypes.number.isRequired,
       height: PropTypes.number.isRequired
     }),
-    setDots: PropTypes.func.isRequired,
     setImgDims: PropTypes.func.isRequired
   };
 

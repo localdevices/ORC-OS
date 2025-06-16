@@ -17,7 +17,7 @@ const VideoConfig = () => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
   const [video, setVideo] = useState(null); // Video metadata
   const [recipe, setRecipe] = useState(null); // Video metadata
-  const [cameraConfig, setCameraConfig] = useState(null); // Video metadata
+  const [cameraConfig, setCameraConfigInstance] = useState(null); // Video metadata
   const [videoConfig, setVideoConfig] = useState(null);
   const [crossSection, setCrossSection] = useState({}); // Video metadata
   const [CSDischarge, setCSDischarge] = useState({}); // Video metadata
@@ -29,18 +29,28 @@ const VideoConfig = () => {
   const [widgets, setWidgets] = useState([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
   const rotateState = useRef(cameraConfig?.rotation);
-  const [cameraConfigState, setCameraConfigState] = useState({
-    coordinates: [],
-    fittedCoordinates: [],
-  }); // central controls camera config
   const [imgDims, setImgDims] = useState(null);
   const [save, setSave] = useState(true);
 
+  const setCameraConfig = (newConfig) => {
+    const cameraConfigInstance = {
+      ...newConfig,
+      isCalibrated: function () {
+        return (
+          this.f !== null &&
+          this.k1 !== null &&
+          this.k2 !== null &&
+          this.camera_position !== null &&
+          this.camera_rotation !== null
+        )
+      }
+    }
+    setCameraConfigInstance(cameraConfigInstance);
+
+  }
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
-    createNewRecipe();  // if recipe exists it will be overwritten later
-    createCameraConfig();  // if cam config exists, it will be overwritten later
 
     api.get(`/video/${videoId}`)
       .then((response) => {
@@ -59,6 +69,9 @@ const VideoConfig = () => {
           if (response.data.video_config.cross_section_wl) {
             setCSWaterLevel(response.data.video_config.cross_section_wl)
           }
+        } else {
+          createNewRecipe();  // if recipe exists it will be overwritten later
+          createCameraConfig();  // if cam config exists, it will be overwritten later
         }
       })
       .catch((err) => console.error("Error fetching video data:", err))
@@ -71,29 +84,70 @@ const VideoConfig = () => {
 
   useEffect(() => {
     // make sure that if a selected widget can no longer be found, the selected id is reset to null
+    console.log(widgets)
+    console.log(selectedWidgetId)
     if (selectedWidgetId && !widgets.find(w => w.id === selectedWidgetId)) {
+      console.log("widget not found, resetting selected id")
       setSelectedWidgetId(null);
     }
-  }, [widgets, selectedWidgetId])
+  }, [widgets])
 
   useEffect(() => {
+    // ensure user can save if any of the video config items changes
     setSave(true);
   }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
 
   useEffect(() => {
-    // check if height and width must be adapted to a new rotation
+    console.log("set rotation")
+    // check if height and width of camera config must be adapted to a new rotation
     if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
       // set state to new
       rotateState.current = cameraConfig.rotation;
-      setCameraConfig((prevConfig) => (
-        {
-          ...prevConfig,
-          height: imgDims.height,
-          width: imgDims.width
-        })
-      )
+      const newConfig = {
+        ...cameraConfig,
+        height: imgDims.height,
+        width: imgDims.width,
+        // gcps: null,
+        // camera_position: null,
+        // camera_rotation: null,
+        // f: null,
+        // k1: null,
+        // k2: null
+      }
+      setCameraConfig(newConfig)
     }
   }, [imgDims])
+
+  // if any cross section is set, make sure that the CS camera perspective is only provided when lens parameters are
+  // complete
+  useEffect(() => {
+    console.log("set cross section", cameraConfig)
+    if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
+      console.log("camera not calibrated")
+      if (CSDischarge !== null && CSDischarge?.camera_config !== null) {
+        setCSDischarge((prevCS) => ({
+          ...prevCS,
+          camera_config: null,
+          bottom_surface: null,
+          wetted_surface: null,
+          distance_camera: null,
+          within_image: null,
+        }));
+    }
+      if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null) {
+        setCSWaterLevel((prevCS) => ({
+          ...prevCS,
+          camera_config: null,
+          bottom_surface: null,
+          wetted_surface: null,
+          distance_camera: null,
+          within_image: null,
+        }));
+      }
+
+    }
+
+  }, [cameraConfig, CSWaterLevel, CSDischarge])
 
 
   const createCameraConfig = () => {
@@ -137,14 +191,14 @@ const VideoConfig = () => {
       );
 
       // Update cameraConfig with new coordinates
-      setCameraConfig((prevConfig) => ({
-        ...prevConfig,
+      const newConfig = {
+        ...cameraConfig,
         gcps: {
-          ...prevConfig.gcps,
+          ...cameraConfig.gcps,
           control_points: newWidgets.map(widget => widget.coordinates)
         }
-      }));
-
+      }
+      setCameraConfig(newConfig);
       return newWidgets;
     });
   };
