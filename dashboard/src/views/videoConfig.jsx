@@ -114,24 +114,36 @@ const VideoConfig = () => {
   useEffect(() => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
       if (CSDischarge !== null && CSDischarge?.camera_config !== null) {
-        setCSDischarge((prevCS) => ({
-          ...prevCS,
-          camera_config: null,
-          bottom_surface: [],
-          wetted_surface: [],
-          distance_camera: null,
-          within_image: null,
-        }));
+        const newConfig = {
+          ...cameraConfig,
+          gcps: {
+            ...cameraConfig.gcps,
+            z_0: null,
+            h_ref: null
+          }
+
+        }
+        setCameraConfig(newConfig)
+        // setCSDischarge((prevCS) => ({
+        //   ...prevCS,
+        //   camera_config: null,
+        //   bottom_surface: [],
+        //   wetted_surface: [],
+        //   distance_camera: null,
+        //   within_image: null,
+        // }));
+        setCSDischarge({});
     }
       if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null) {
-        setCSWaterLevel((prevCS) => ({
-          ...prevCS,
-          camera_config: null,
-          bottom_surface: [],
-          wetted_surface: [],
-          distance_camera: null,
-          within_image: null,
-        }));
+      //   setCSWaterLevel((prevCS) => ({
+      //     ...prevCS,
+      //     camera_config: null,
+      //     bottom_surface: [],
+      //     wetted_surface: [],
+      //     distance_camera: null,
+      //     within_image: null,
+      //   }));
+        setCSWaterLevel({});
       }
 
     }

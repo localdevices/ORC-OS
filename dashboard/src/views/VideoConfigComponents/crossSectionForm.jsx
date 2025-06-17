@@ -209,27 +209,9 @@ const CrossSectionForm = (
           </button>
         </form>
       </div>
-      <div className='container'>
-      <div className='container' style={{marginTop: '5px'}}>
+      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Select discharge cross section</h5>
-        <DropdownMenu
-          dropdownLabel="Discharge cross section"
-          name="discharge"
-          callbackFunc={(event) => handleCS(event, setCSDischarge)}
-          data={availableCrossSections}
-          value={CSDischarge.id}
-        />
-      </div>
-      <div className='container' style={{marginTop: '5px'}}>
-        <h5>Select optical water level cross section</h5>
-        <DropdownMenu
-          dropdownLabel="Optical water level cross section"
-          name="water level"
-          callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
-          data={availableCrossSections}
-          value={CSWaterLevel.id}
-        />
-      </div>
+
         <div className='mb-3 mt-3'>
           <label htmlFor='z_0' className='form-label small'>
             Water level in GCP coordinate system [m]
@@ -253,6 +235,28 @@ const CrossSectionForm = (
             onChange={handleWaterLevelChange}
             value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
             disabled={!validatez0()}
+          />
+        </div>
+        <div className='container' style={{marginTop: '5px'}}>
+          <h5>Select discharge cross section</h5>
+          <DropdownMenu
+            dropdownLabel="Discharge cross section"
+            name="discharge"
+            callbackFunc={(event) => handleCS(event, setCSDischarge)}
+            data={availableCrossSections}
+            value={CSDischarge.id}
+            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
+          />
+        </div>
+        <div className='container' style={{marginTop: '5px'}}>
+          <h5>Select optical water level cross section</h5>
+          <DropdownMenu
+            dropdownLabel="Optical water level cross section"
+            name="water level"
+            callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
+            data={availableCrossSections}
+            value={CSWaterLevel.id}
+            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
           />
         </div>
 

@@ -149,6 +149,7 @@ const PoseDetails = (
 
     }
     setCameraConfig(newConfig);
+    setCS
   };
 
 
