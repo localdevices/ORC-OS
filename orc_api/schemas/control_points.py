@@ -45,7 +45,7 @@ class ControlPoint(BaseModel):
 class ControlPointSet(BaseModel):
     """Model for a set of control points."""
 
-    control_points: List[ControlPoint]
+    control_points: Optional[List[ControlPoint]] = None
     crs: Optional[Union[str, int]] = None
     z_0: Optional[float] = None
     h_ref: Optional[float] = None

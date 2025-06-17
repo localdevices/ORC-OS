@@ -64,7 +64,8 @@ const CrossSectionForm = (
           setMessageInfo('success', `Successfully set ${name} cross section to ID ${value}`)
         }
       } catch (error) {
-        setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.message}`)
+        console.log(error);
+        setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.response.data.detail || error.message}`)
       }
     } else {
       setter({});

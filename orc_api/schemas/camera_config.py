@@ -225,12 +225,12 @@ class CameraConfigUpdate(CameraConfigInteraction):
             if instance.gcps.control_points:
                 # parse to src / dst
                 src, dst = instance.gcps.parse()
+                # only parse if serc and dst are not None
+                instance.data.gcps = GCPData(
+                    crs=instance.gcps.crs, src=src, dst=dst, h_ref=instance.gcps.h_ref, z_0=instance.gcps.z_0
+                )
             else:
                 src, dst = None, None
-
-            instance.data.gcps = GCPData(
-                crs=instance.gcps.crs, src=src, dst=dst, h_ref=instance.gcps.h_ref, z_0=instance.gcps.z_0
-            )
             # also make the crs of the entire camera config equal to the crs of the gcps
             if instance.gcps.crs is not None:
                 instance.data.crs = instance.gcps.crs

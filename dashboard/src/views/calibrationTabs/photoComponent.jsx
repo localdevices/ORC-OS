@@ -105,8 +105,12 @@ const PhotoComponent = (
       setCSWettedSurfacePolygon(newWetPolPoints);
 
     } else {
-      setCSDischargePolygon([]);
-      setCSWettedSurfacePolygon([]);
+      if (CSDischargePolygon.length > 0) {
+        setCSDischargePolygon([]);
+      }
+      if (CSWettedSurfacePolygon.length > 0) {
+        setCSWettedSurfacePolygon([]);
+      }
     }
   }, [CSDischarge?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 
@@ -126,7 +130,9 @@ const PhotoComponent = (
 
 
     } else {
-      setCSWaterLevelPolygon([]);
+      if (CSWaterLevelPolygon.length > 0) {
+        setCSWaterLevelPolygon([]);
+      }
     }
   }, [CSWaterLevel?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 

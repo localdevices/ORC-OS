@@ -54,15 +54,18 @@ async def get_cs_cam_config(id: int, camera_config: CameraConfigUpdate, db: Sess
     cs = crud.cross_section.get(db=db, id=id)
     if not cs:
         raise HTTPException(status_code=404, detail="Cross section not found.")
-    cs_response = CrossSectionResponseCameraConfig(
-        id=cs.id,
-        created_at=cs.created_at,
-        remote_id=cs.remote_id,
-        sync_status=cs.sync_status,
-        name=cs.name,
-        features=cs.features,
-        camera_config=camera_config,
-    )
+    try:
+        cs_response = CrossSectionResponseCameraConfig(
+            id=cs.id,
+            created_at=cs.created_at,
+            remote_id=cs.remote_id,
+            sync_status=cs.sync_status,
+            name=cs.name,
+            features=cs.features,
+            camera_config=camera_config,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e).split(", ")[1])
     return cs_response
 
 

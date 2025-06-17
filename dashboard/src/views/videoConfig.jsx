@@ -43,8 +43,16 @@ const VideoConfig = () => {
           this.camera_position !== null &&
           this.camera_rotation !== null
         )
+      },
+      isPoseReady: function () {
+        // check if camera config is ready for doing the camera pose
+        return (
+          this.name !== null &&
+          this.id !== null
+        )
       }
     }
+
     setCameraConfigInstance(cameraConfigInstance);
 
   }
@@ -112,17 +120,7 @@ const VideoConfig = () => {
   // complete
   useEffect(() => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
-      if (CSDischarge !== null && CSDischarge?.camera_config !== null) {
-        const newConfig = {
-          ...cameraConfig,
-          gcps: {
-            ...cameraConfig.gcps,
-            z_0: null,
-            h_ref: null
-          }
-
-        }
-        setCameraConfig(newConfig)
+      if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
         // setCSDischarge((prevCS) => ({
         //   ...prevCS,
         //   camera_config: null,
@@ -133,7 +131,7 @@ const VideoConfig = () => {
         // }));
         setCSDischarge({});
     }
-      if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null) {
+      if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
       //   setCSWaterLevel((prevCS) => ({
       //     ...prevCS,
       //     camera_config: null,
@@ -142,6 +140,8 @@ const VideoConfig = () => {
       //     distance_camera: null,
       //     within_image: null,
       //   }));
+        console.log('here')
+        console.log(CSWaterLevel)
         setCSWaterLevel({});
       }
 
@@ -291,6 +291,7 @@ const VideoConfig = () => {
                       e.preventDefault();
                       handleTabChange('gcps');
                     }}
+                    disabled={!cameraConfig?.isPoseReady()}
                   >
                     Camera pose
                   </button>
@@ -300,6 +301,7 @@ const VideoConfig = () => {
                       e.preventDefault();
                       handleTabChange('pose');
                     }}
+                    disabled={!cameraConfig?.isPoseReady()}
                   >
                     Camera pose 2
                   </button>
@@ -309,6 +311,7 @@ const VideoConfig = () => {
                       e.preventDefault();
                       handleTabChange('crossSection');
                     }}
+                    disabled={!cameraConfig?.isCalibrated()}
                   >
                     Cross sections
                   </button>
