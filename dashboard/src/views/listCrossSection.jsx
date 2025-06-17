@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import PaginatedCrossSections from "./crossSectionComponents/paginatedCrossSections.jsx";
-import MessageBox from '../messageBox';
 
 const ListCrossSection = () => {
   const [crossSectionData, setCrossSectionData] = useState([]); // Stores video metadata
@@ -24,7 +23,6 @@ const ListCrossSection = () => {
   return (
     <div className="container mt-4">
       <h1>Cross Sections</h1>
-      <MessageBox />
        Cross sections consist of x, y, z points, taken across the stream, describing a natural profile, or a
        profile that is followed by the optical water level detection scheme.
       <PaginatedCrossSections

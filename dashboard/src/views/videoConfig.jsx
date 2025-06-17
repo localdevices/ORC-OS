@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
-import MessageBox from "../messageBox.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
@@ -225,7 +224,6 @@ const VideoConfig = () => {
   return (
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
-      <MessageBox/>
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
         <div className="flex-container column" style={{"height": "100%"}}>

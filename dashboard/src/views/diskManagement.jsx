@@ -1,7 +1,6 @@
 import {useState, useEffect} from 'react';
 import api from '../api';
 import {useMessage} from '../messageContext';
-import MessageBox from '../messageBox';
 
 const DiskManagement = () => {
 
@@ -79,8 +78,6 @@ const DiskManagement = () => {
     return (
         <div className='container'>
             Change your disk management settings.
-            <MessageBox/>
-
             <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>

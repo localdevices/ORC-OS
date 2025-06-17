@@ -36,13 +36,36 @@ const MessageBox = () => {
   return (
     <div
       style={{
+        // position: 'absolute', // Position absolutely within a parent container (e.g., Navbar)
+        // top: '50%', // Center the message box vertically
+        // right: '50%', // Center the message box horizontally
+        // // left: '50px',
+        // transform: 'translate(-50%, -50%)', // Adjust for width/height shift due to centering
+        // zIndex: 1000, // Ensure it appears on top of other elements
+        // width: '800px', // Fixed width
+        // maxWidth: '800px',
+        // height: '40px', // Fixed height
+        //
+        // backgroundColor: getBackgroundColor(),
+        // color: getTextColor(),
+        // padding: '7px',
+        // borderRadius: '5px',
+        // textAlign: 'center',
+        position: 'absolute', // Position absolutely within a parent container (e.g., Navbar)
+        top: '50%', // Center the message box vertically
+        left: 'max(30px, 50%)',
+        transform: 'translate(-110%, -50%)', // Adjust for width/height shift due to centering
+        zIndex: 1000, // Ensure it appears on top of other elements
+        width: '1400px', // Fixed maximum width
+        maxWidth: 'calc(100vw - 140px)',
+        height: '40px', // Fixed height
+
         backgroundColor: getBackgroundColor(),
         color: getTextColor(),
-        padding: '15px',
+        padding: '7px',
         borderRadius: '5px',
-        marginBottom: '20px',
         textAlign: 'center',
-        position: 'relative'
+
       }}
     >
       <FaTimes

@@ -1,7 +1,6 @@
 import {useState, useEffect} from 'react';
 import api from '../api';
 import { DropdownMenu } from "../utils/dropdownMenu.jsx";
-import MessageBox from '../messageBox';
 import {useMessage} from '../messageContext';
 
 const Settings = () => {
@@ -110,7 +109,6 @@ const Settings = () => {
     };
     return (
         <div className='container'>
-            <MessageBox/>
             Change your Daemon settings for automated processing of videos and water levels.
             <hr/>
             <form onSubmit={handleFormSubmit}>

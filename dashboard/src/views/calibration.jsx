@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {FaChevronLeft, FaChevronRight} from 'react-icons/fa';
 import {useMessage} from '../messageContext';
-import MessageBox from '../messageBox';
 import VideoTab from './calibrationTabs/videoTab'
 import XYZWidget from './calibrationTabs/XyzWidget';
 import MapTab from './calibrationTabs/mapTab';
@@ -173,7 +172,6 @@ const Calibration = () => {
 
   return (
     <div className="tabbed-form-container">
-      <MessageBox/>
       <h1>Camera calibration</h1>
 
       {/* Tabs row */}
