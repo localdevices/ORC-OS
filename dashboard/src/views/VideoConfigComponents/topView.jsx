@@ -1,5 +1,5 @@
 import {rainbowColors} from "../../utils/helpers.jsx";
-import {Line, Scatter} from 'react-chartjs-2';
+import {Line, Scatter, Chart } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,23 +29,24 @@ const pointIndexPlugin = {
   id: 'pointIndexPlugin', // Unique ID for the plugin
   afterDatasetsDraw(chart) {
     const { ctx, data } = chart;
-    const controlPointsDataset = data.datasets.find(dataset => dataset.label === 'control points');
-    if (controlPointsDataset !== -1) {
+    const controlPointsDatasetIndex = data.datasets.findIndex(
+      dataset => dataset.label === "control points"
+    );
+    if (controlPointsDatasetIndex !== -1) {
 
     // data.datasets.forEach((dataset, datasetIndex) => {
-      const meta = chart.getDatasetMeta(controlPointsDataset);
-      console.log(meta);
+      const meta = chart.getDatasetMeta(controlPointsDatasetIndex);
       meta.data.forEach((element, index) => {
         // Get the data value
         const value = index + 1; // Index + 1 as the label
         const position = element.tooltipPosition(); // Position of the point
-
+        // console.log(position);
         // Draw the text
         ctx.font = '12px sans-serif'; // Set font style
         ctx.textAlign = 'center'; // Align text at the center of the point
         ctx.textBaseline = 'middle'; // Align text vertically at the center
         ctx.fillStyle = 'black'; // Set text color
-        ctx.fillText(value, position.x, position.y - 10); // Draw above the point (adjust y as needed)
+        ctx.fillText(value, position.x, position.y); // Draw above the point (adjust y as needed)
       });
     };
   },
@@ -69,6 +70,7 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
     datasets: [
       {
         label: "Cross section Q", // First scatter plot
+        type: "line",
         data: CSDischarge?.x ? CSDischarge.x.map((x, i) => ({x: x, y: CSDischarge.y[i]})) : [], // Map s and z to (x, y) points
         backgroundColor: "rgba(75, 192, 192, 0.6)", // Point color
         borderColor: "rgba(75, 192, 192, 1)", // Optional: Line color
@@ -77,6 +79,7 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
       },
       {
         label: "Cross section WL", // Second scatter plot
+        type: "line",
         data: CSWaterLevel?.x ? CSWaterLevel.x.map((x, i) => ({x: x, y: CSWaterLevel.y[i]})) : [], // Map s and z to (x, y) points
         backgroundColor: "rgba(255, 99, 132, 0.6)", // Point color
         borderColor: "rgba(255, 99, 132, 1)", // Optional: Line color
@@ -90,13 +93,14 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
         backgroundColor: "rgba(153, 102, 255, 0.5)", // Polygon fill color
         borderColor: "rgba(153, 102, 255, 1)", // Polygon edge color
         showLine: true, // Connect the points to form the polygon
-        fill: "stack", // Fill the inside of the polygon
+        fill: true, // Fill the inside of the polygon
         tension: 0,
       },
       {
         label: "control points",
+        type: "scatter",
         data: gcpPoints,
-        backgroundColor: "rgba(255, 255, 255, 0.6)",
+        backgroundColor: "rgba(200, 200, 200, 0.6)",
         borderColor: gcpPoints.map((_, index) => {
           return rainbowColors[(index) % rainbowColors.length]
         }),
@@ -122,7 +126,8 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
   };
 
   const options = {
-    responsive: true,
+    // responsive: true,
+    aspectRatio: 1,
     maintainAspectRatio: true,
     scales: {
       x: {
@@ -133,7 +138,7 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
         ticks: {
           // ensure not more than 2 decimal digits
           callback: function (value) {
-            return Number(value).toFixed(2);
+            return Number(value).toFixed(1);
           }
         }
       },
@@ -145,7 +150,7 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
 
         ticks: {
           callback: function (value) {
-            return Number(value).toFixed(2);
+            return Number(value).toFixed(1);
           }
         }
       }
@@ -159,8 +164,9 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
 
   }
   return (
-    <div style={{ minHeight: "200px", height: "100%" }}>
-      <Scatter
+    <div style={{ minHeight: "200px", overflowY: "auto"}}>
+      <Chart
+        type="scatter"
         key={Math.random()}
         data={data}
         options={options}

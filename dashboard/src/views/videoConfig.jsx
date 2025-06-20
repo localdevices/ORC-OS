@@ -230,23 +230,29 @@ const VideoConfig = () => {
         <div className="flex-container column" style={{"height": "100%"}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
             <h5 style={{margin: 0}}>Image view</h5>
-            {/*<button*/}
-            {/*  type="submit"*/}
-            {/*  form="videoConfigForm"*/}
-            {/*  style={{*/}
-            {/*    backgroundColor: 'transparent',*/}
-            {/*    border: 'none',*/}
-            {/*    cursor: save ? 'pointer' : 'not-allowed',*/}
-            {/*    color: save ? '#0d6efd' : '#6c757d',*/}
-            {/*    padding: '5px'*/}
-            {/*  }}*/}
-            {/*  disabled={!save}*/}
-            {/*>*/}
-            {/*  <FaSave size={20}/>*/}
-            {/*</button>*/}
+          </div>
+          <div className="tabs-row">
+            <button
+              className={activeView === 'sideView' ? 'active-tab' : ''}
+              onClick={(e) => {
+                e.preventDefault();
+                handleViewChange('sideView');
+              }}
+            >
+              Side view
+            </button>
+            <button
+              className={activeView === 'topView' ? 'active-tab' : ''}
+              onClick={(e) => {
+                e.preventDefault();
+                handleViewChange('topView');
+              }}
+            >
+              Top view
+            </button>
           </div>
 
-          {video && (
+          {video && activeView === 'sideView' && (
             <VideoTab
               video={video}
               cameraConfig={cameraConfig}
@@ -261,6 +267,16 @@ const VideoConfig = () => {
               setSelectedWidgetId={setSelectedWidgetId}
               setImgDims={setImgDims}
             />
+          )}
+          {activeView === 'topView' && (
+            <TopView
+              CSDischarge={CSDischarge}
+              CSWaterLevel={CSWaterLevel}
+              Gcps={cameraConfig?.gcps?.control_points}
+              cameraPosition={cameraConfig?.camera_position}
+              bBox={cameraConfig?.bbox}
+            />
+
           )}
 
         </div>
@@ -421,57 +437,44 @@ const VideoConfig = () => {
               "overflowY": "hidden",
               "overflowX": "hidden"
             }}>
-              <div className="tabbed-form-container">
-                <div className="tabs-header">
-                  <h5>Side and top view</h5>
-                  <div className="tabs-row">
-                    <button
-                      className={activeView === 'sideView' ? 'active-tab' : ''}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleViewChange('sideView');
-                      }}
-                    >
-                      Side view
-                    </button>
-                    <button
-                      className={activeView === 'topView' ? 'active-tab' : ''}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleViewChange('topView');
-                      }}
-                    >
-                      Top view
-                    </button>
-                  </div>
-                </div>
-                <div className="tab-container">
-                  {/* Tab content */}
-                  <div className="tab-content">
-                    {activeView === 'sideView' && (
-                    // {CSDischarge && CSWaterLevel && (
+              {/*<div className="tabbed-form-container">*/}
+              {/*  <div className="tabs-header">*/}
+                  <h5>Side view</h5>
+                  {/*<div className="tabs-row">*/}
+                  {/*  <button*/}
+                  {/*    className={activeView === 'sideView' ? 'active-tab' : ''}*/}
+                  {/*    onClick={(e) => {*/}
+                  {/*      e.preventDefault();*/}
+                  {/*      handleViewChange('sideView');*/}
+                  {/*    }}*/}
+                  {/*  >*/}
+                  {/*    Side view*/}
+                  {/*  </button>*/}
+                  {/*  <button*/}
+                  {/*    className={activeView === 'topView' ? 'active-tab' : ''}*/}
+                  {/*    onClick={(e) => {*/}
+                  {/*      e.preventDefault();*/}
+                  {/*      handleViewChange('topView');*/}
+                  {/*    }}*/}
+                  {/*  >*/}
+                  {/*    Top view*/}
+                  {/*  </button>*/}
+                  {/*</div>*/}
+                {/*</div>*/}
+                {/*<div className="tab-container">*/}
+                {/*  /!* Tab content *!/*/}
+                {/*  <div className="tab-content">*/}
                       <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
                       />
-                    )}
-                    {activeView === 'topView' && (
-                      <TopView
-                        CSDischarge={CSDischarge}
-                        CSWaterLevel={CSWaterLevel}
-                        Gcps={cameraConfig?.gcps?.control_points}
-                        cameraPosition={cameraConfig?.camera_position}
-                        bBox={cameraConfig?.bbox}
-                      />
-
-                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+        {/*  </div>*/}
+        {/*</div>*/}
+      {/*</div>*/}
     </div>
   );
 };
