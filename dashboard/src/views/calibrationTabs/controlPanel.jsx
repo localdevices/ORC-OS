@@ -54,6 +54,14 @@ const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, came
   return (
     <div className="control-styles">
       <div className="button-group-styles">
+        <button className={`button-styles ${bboxSelected ? 'selected-bbox' : ''}`}
+                onClick={() => onBoundingBox()}
+                title="Draw Bounding Box (you must validate control points and set water level first)"
+                disabled={!validateBboxReady()}
+
+        >
+          <MdCropFree size={20} />
+        </button>
         <button className="button-styles"
           onClick={() => onRotateLeft()}
           title="Rotate bounding box left"
@@ -69,16 +77,6 @@ const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, came
         >
           <MdRotateRight size={20} />
         </button>
-        <button className={`button-styles ${bboxSelected ? 'selected-bbox' : ''}`}
-          onClick={() => onBoundingBox()}
-          title="Draw Bounding Box (you must validate control points and set water level first)"
-          disabled={!validateBboxReady()}
-
-        >
-          <MdCropFree size={20} />
-        </button>
-      </div>
-      <div className="button-group-styles">
         <button className="button-styles"
           onClick={() => onMove('up')}
           title="Move bounding box up"

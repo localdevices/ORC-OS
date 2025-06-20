@@ -12,12 +12,12 @@ const VideoTab = (
     widgets,
     selectedWidgetId,
     updateWidget,
-    dots,
     imgDims,
     rotate,
+    CSDischarge,
+    CSWaterLevel,
     setCameraConfig,
     setSelectedWidgetId,
-    setDots,
     setImgDims,
   }
 ) => {
@@ -26,9 +26,7 @@ const VideoTab = (
   const [clickCount, setClickCount] = useState(0);
   const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
-  const [polygonPoints, setPolygonPoints] = useState(
-    null
-  );
+  const [bBoxPolygon, setBBoxPolygon] = useState(null);
 
   const {setMessageInfo} = useMessage();
 
@@ -38,28 +36,14 @@ const VideoTab = (
       setMessageInfo('info', 'Please select a widget first');
       return;
     } else {
-
-      // Update the dots
-      setDots((prevDots) => ({
-        ...prevDots,
-        [selectedWidgetId]: {
-          x: adjustedX,
-          y: adjustedY,
-          xNorm: normalizedX,
-          yNorm: normalizedY,
-          scale: scale,
-          color: getWidgetById(selectedWidgetId).color
-        },
-      }));
-
       updateWidget(selectedWidgetId, {
         ...widgets.find((widget) => widget.id === selectedWidgetId).coordinates,
         row: originalRow,
         col: originalCol,
       });
 
-      // Select next widget
-  const nextWidgetId = getNextWidgetId(selectedWidgetId);
+    // Select next widget
+    const nextWidgetId = getNextWidgetId(selectedWidgetId);
       setSelectedWidgetId(nextWidgetId);
     }
   }
@@ -79,7 +63,6 @@ const VideoTab = (
       }, 2000);
     }
   };
-
 
   const getNextWidgetId = (currentId) => {
     const currentIndex = widgets.findIndex(widget => widget.id === currentId);
@@ -101,19 +84,21 @@ const VideoTab = (
     // Implement move logic
   };
 
-  // select the widget with the current id
-  const getWidgetById = (id) => {
-    return widgets.find((widget) => widget.id === id);
-  };
-
   return (
-          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'hidden', position: 'relative'}}>
+          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
             <ControlPanel
               onRotateLeft={handleRotateLeft}
               onRotateRight={handleRotateRight}
               onBoundingBox={() => {
                 setBboxSelected(true);
-                setPolygonPoints(null);
+                setBBoxPolygon(null);
+                // remove bbox_camera from cameraConfig
+                const newConfig = {
+                  ...cameraConfig,
+                  bbox_camera: null,
+                };
+
+                setCameraConfig(newConfig);
               }}
               onMove={handleMove}
               cameraConfig={cameraConfig}
@@ -121,7 +106,6 @@ const VideoTab = (
             />
 
             <TransformWrapper
-              style={{ maxHeight: '95%' }}
                pinchEnabled={true}
                wheelEnabled={false}
                touchEnabled={true}
@@ -135,20 +119,20 @@ const VideoTab = (
                  <PhotoComponent
                    video={video}
                    imageRef={imageRef}
-                   selectedWidgetId={selectedWidgetId}
-                   updateWidget={updateWidget}
+                   // selectedWidgetId={selectedWidgetId}
+                   // updateWidget={updateWidget}
                    widgets={widgets}
                    cameraConfig={cameraConfig}
                    scale={scale}
-                   dots={dots}
                    imgDims={imgDims}
                    rotate={rotate}
-                   polygonPoints={polygonPoints}
+                   bBoxPolygon={bBoxPolygon}
+                   CSDischarge={CSDischarge}
+                   CSWaterLevel={CSWaterLevel}
                    setCameraConfig={setCameraConfig}
-                   setSelectedWidgetId={setSelectedWidgetId}
-                   setDots={setDots}
+                   // setSelectedWidgetId={setSelectedWidgetId}
                    setImgDims={setImgDims}
-                   setPolygonPoints={setPolygonPoints}
+                   setBBoxPolygon={setBBoxPolygon}
                    bboxMarkers={bboxMarkers}
                    handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
                    bboxClickCount={clickCount}
@@ -169,9 +153,7 @@ VideoTab.propTypes = {
   widgets: PropTypes.array.isRequired,
   selectedWidgetId: PropTypes.oneOfType([PropTypes.number]),
   updateWidget: PropTypes.func.isRequired,
-  dots: PropTypes.object.isRequired,
   imgDims: PropTypes.object,
-  setDots: PropTypes.func.isRequired,
   setImgDims: PropTypes.func.isRequired,
 };
 

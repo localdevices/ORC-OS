@@ -1,7 +1,6 @@
 import {useState, useEffect} from 'react';
 import api from '../api';
 import {useMessage} from '../messageContext';
-import MessageBox from '../messageBox';
 
 const WaterLevel = () => {
     const [scriptTypeStatus, setScriptTypeStatus] = useState([]);
@@ -97,8 +96,6 @@ const WaterLevel = () => {
         <div className='container'>
             Change your water level settings. You can let ORC-OS read and store water levels automatically using
             a user-defined script.
-            <MessageBox/>
-
             <hr/>
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>

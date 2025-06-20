@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react';
 import { FaTimes } from 'react-icons/fa';
 import orcLogo from '/orc_favicon.svg'
 import api from '../api';
-import MessageBox from "../messageBox.jsx";
 import {useMessage} from '../messageContext';
 
 const Home = () => {

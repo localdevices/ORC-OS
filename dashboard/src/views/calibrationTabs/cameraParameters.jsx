@@ -57,12 +57,13 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
     }
     // Use a timeout to let the state update take effect before proceeding
     setTimeout(() => {
-      setCameraConfig((prevConfig) => ({
-        ...prevConfig,
-        camera_rotation: prevConfig.camera_rotation.map((item, i) =>
+      const newConfig = {
+        ...cameraConfig,
+        camera_rotation: cameraConfig.camera_rotation.map((item, i) =>
           i === index ? value : item
         ),
-      }));
+      }
+      setCameraConfig(newConfig);
     }, 0);
   }
 
@@ -76,30 +77,19 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
     }
     // Use a timeout to let the state update take effect before proceeding
     setTimeout(() => {
-      setCameraConfig((prevConfig) => ({
-        ...prevConfig,
-        camera_position: prevConfig.camera_position.map((item, i) =>
+      const newConfig = {
+        ...cameraConfig,
+        camera_position: cameraConfig.camera_position.map((item, i) =>
           i === index ? value : item
-        ),
-      }));
+        )
+      }
+      setCameraConfig(newConfig);
     }, 0);
-  }
-
-
-  const handleInputChange = (event) => {
-    console.log(event);
-    const value = event.target.value;
-    setFormData({
-      ...formData,
-      [event.target.name]: parseFloat(value)
-    });
-    console.log("setting form data", formData);
   }
 
   return (
     <div>
       <div className="split-screen three-columns">
-
         <div className="flex-container column">
           <h6>Camera location</h6>
           <div className="form-check">

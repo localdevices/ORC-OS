@@ -1,7 +1,6 @@
 import {useState, useEffect} from 'react';
 import api from '../api';
 import {useMessage} from '../messageContext';
-import MessageBox from '../messageBox';
 
 const CallbackUrl = () => {
 
@@ -135,7 +134,6 @@ const CallbackUrl = () => {
     <div className='container'>
       Setup or change a Live connection with a LiveOpenRiverCam server to exchange videos, and receive task forms.
       <hr/>
-      <MessageBox/>
       <form onSubmit={handleFormSubmit}>
         <div className='mb-3 mt-3'>
           <label htmlFor='url' className='form-label'>

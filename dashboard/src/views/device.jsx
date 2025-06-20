@@ -8,7 +8,6 @@ import {
 } from 'chart.js';
 
 import api from '../api';
-import MessageBox from '../messageBox';
 import {useMessage} from '../messageContext';
 
 // Register ChartJS components
@@ -182,7 +181,6 @@ const Device = () => {
 
     return (
         <div className='container'>
-            <MessageBox/>
             Change your device name and check your device health.
             <hr/>
             <div className="flex-container">

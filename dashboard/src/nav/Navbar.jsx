@@ -3,6 +3,7 @@ import {FaUser} from 'react-icons/fa'; // Import User icon
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
+import MessageBox from "../messageBox.jsx";
 
 
 const Navbar = () => {
@@ -26,6 +27,8 @@ const Navbar = () => {
                         <span className="navbar-toggler-icon"></span>
                     </button>
                     <div className="navbar-right">
+                        <MessageBox/>
+
                         <FaUser className="user-button" onClick={handleUserButtonClick}
                         />
                     </div>

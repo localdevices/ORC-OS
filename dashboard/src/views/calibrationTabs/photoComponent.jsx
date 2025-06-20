@@ -4,6 +4,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 import './photoComponent.css';
 import PropTypes from 'prop-types';
 import api from "../../api.js";
+import {rainbowColors} from "../../utils/helpers.jsx";
 
 const PhotoComponent = (
   {
@@ -12,14 +13,14 @@ const PhotoComponent = (
     widgets,
     cameraConfig,
     scale,
-    dots,
     imgDims,
     rotate,
-    polygonPoints,
+    bBoxPolygon,
+    CSDischarge,
+    CSWaterLevel,
     setCameraConfig,
-    setDots,
     setImgDims,
-    setPolygonPoints,
+    setBBoxPolygon,
     bboxMarkers,
     handlePhotoClick,
     bboxClickCount
@@ -35,57 +36,117 @@ const PhotoComponent = (
   const debounceTimeoutRef = useRef(null);  // state for timeout checking
   const abortControllerRef = useRef(null);  // state for aborting requests to api
   const lastResponse = useRef(null);  // store last API response
+  const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
+  const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
+  const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
+  const [dots, setDots] = useState({}); // Array of { x, y, id } objects
 
 
-  // triggered when user resizes the window, after this, the dot locations must be updated
-  useEffect(() => {
-    updateDots();
-  }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
-
-  useEffect(() => {
-    console.log("BBOX CLICK COUNT:", bboxClickCount);
-    if (bboxClickCount === 3) {
-      setCameraConfig(lastResponse.current.data)
-    }
-  }, [bboxClickCount])
-
-  useEffect(() => {
-    console.log("Reloading camera config", cameraConfig)
-    // check if image and dimensions are entirely intialized
-    if (
-      cameraConfig &&
-      cameraConfig.bbox_camera !== null &&
+  const checkImageReady = () => {
+    // check if image is loaded, transform wrapper is ready and image dimensions set
+    return (
       photoBbox !== null &&
       imgDims !== null &&
       transformState !== null &&
       imgDims?.width !== 0 &&
       imgDims?.height !== 0
+    );
+  };
 
+  useEffect(() => {
+    // ensure if click count is 3, the camera config is updated with the set bbox
+    if (bboxClickCount === 3) {
+      console.log("last response", lastResponse.current.data);
+      setCameraConfig(lastResponse.current.data)
+    }
+  }, [bboxClickCount])
+
+  useEffect(() => {
+    // check if image and dimensions are entirely intialized
+    if (checkImageReady()) {
+      if (cameraConfig && cameraConfig?.bbox_camera && cameraConfig?.bbox_camera !== null) {
+        // update the polygon points with the cameraConfig.bbox_image points
+        const newBboxPoints = cameraConfig.bbox_camera.map(p => {
+          const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+          const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+          return {x, y};
+        })
+        setBBoxPolygon(newBboxPoints);
+      }
+      if (cameraConfig && cameraConfig?.gcps?.control_points) {
+        updateFittedPoints();
+        updateDots();
+      }
+    }
+
+  }, [cameraConfig, imgDims, transformState, photoBbox]);
+
+
+  useEffect(() => {
+    // set cross sections
+    if (
+      checkImageReady() &&
+      // CSDischarge &&
+      CSDischarge?.bottom_surface
     ) {
-      // update the polygon points with the cameraConfig.bbox_image points
-      const newBboxPoints = cameraConfig.bbox_camera.map(p => {
+      const newCSPolPoints = CSDischarge.bottom_surface.map(p => {
         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
         const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
         return {x, y};
       })
-      setPolygonPoints(newBboxPoints);
+      setCSDischargePolygon(newCSPolPoints);
+      const newWetPolPoints = CSDischarge.wetted_surface.map(p => {
+        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+        return {x, y};
+      })
+      setCSWettedSurfacePolygon(newWetPolPoints);
+
+    } else {
+      if (CSDischargePolygon.length > 0) {
+        setCSDischargePolygon([]);
+      }
+      if (CSWettedSurfacePolygon.length > 0) {
+        setCSWettedSurfacePolygon([]);
+      }
     }
-  }, [cameraConfig, imgDims]);
-
-
+  }, [CSDischarge?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 
   useEffect(() => {
-    try {
-      const imgElement = imageRef.current;
-      setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
-      setPhotoBbox(imgElement.getBoundingClientRect());
-      updateFittedPoints();
+    if (
+      checkImageReady() &&
+      // CSWaterLevel &&
+      CSWaterLevel?.bottom_surface
+    ) {
 
-      // updateFittedPoints();
-    } catch {
-      console.error("Image not yet initialized.")
+      const newCSPolPoints = CSWaterLevel.bottom_surface.map(p => {
+        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+        return {x, y};
+      })
+      setCSWaterLevelPolygon(newCSPolPoints);
+
+
+    } else {
+      if (CSWaterLevelPolygon.length > 0) {
+        setCSWaterLevelPolygon([]);
+      }
     }
-  }, [widgets, transformState, window]);
+  }, [CSWaterLevel?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
+
+  // useEffect(() => {
+  //   try {
+  //     console.log("WIDGETS", widgets);
+      // const imgElement = imageRef.current;
+      // setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
+      // setPhotoBbox(imgElement.getBoundingClientRect());
+      // updateFittedPoints();
+      // updateDots();
+      // updateFittedPoints();
+  //   } catch {
+  //     console.error("Image not yet initialized.")
+  //   }
+  // }, [widgets, transformState, window]);
 
 
   useTransformEffect(({state}) => {
@@ -93,8 +154,7 @@ const PhotoComponent = (
     if (!imgElement) return;
     setPhotoBbox(imgElement.getBoundingClientRect());
     setTransformState(state); // Update the transformState on every transformation
-
-    updateFittedPoints();
+    // updateFittedPoints();
   });
 
 
@@ -217,15 +277,14 @@ const PhotoComponent = (
             // console.log(lastResponse.current.data);
             const bbox = response.data.bbox_camera;
             // set the bbox_camera on the current cameraConfig
-            // console.log(bbox);
             bboxPoints = bbox.map(p => {
               const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
               const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
               return {x, y};
             })
-            setPolygonPoints(bboxPoints);
+            setBBoxPolygon(bboxPoints);
           })
-      }, 300);
+      }, 100);
       // console.log(polygonPoints);
       setLineCoordinates(null);
     }
@@ -238,25 +297,25 @@ const PhotoComponent = (
     setLineCoordinates(null);
   };
 
-  // update the dot locations when user resizes the browser window
+  // update the dot locations when user resizes the browser window or changes gcps otherwise
   const updateDots = () => {
     try {
-      const updatedDots = Object.entries(dots).reduce((newDots, [id, dot]) => {
-        const newX = dot.xNorm * photoBbox.width / transformState.scale; //
-        const newY = dot.yNorm * photoBbox.height / transformState.scale; //
-        // Recalculate the actual position relative to the new photoBbox and dimensions
-        newDots[id] = {
-          ...dot,
-          x: newX,
-          y: newY,
-        };
-        return newDots;
+      const updatedDots = cameraConfig.gcps.control_points.reduce((acc, gcp, idx) => {
+        if (gcp.row !== null && gcp.col !== null) {
+          const screenPoint = convertToPhotoCoordinates(gcp.row, gcp.col);
+          acc[idx + 1] = {
+            x: screenPoint.x,
+            y: screenPoint.y,
+            color: rainbowColors[(idx) % rainbowColors.length] || 'ffffff'
+          };
+        }
+        return acc;
       }, {});
+
       setDots(updatedDots);
     } catch {
       console.log("Skipping dot rendering, image not yet initialized")
     }
-
   }
 
   // run these as soon as the TransformComponent is ready
@@ -289,12 +348,12 @@ const PhotoComponent = (
   };
 
   const handleImageLoad = () => {
-    setLoading(false);
     if (imageRef.current) {
       setImgDims({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
       });
+      setLoading(false); // Ensure loading state is set to false after dimensions are set
     }
   };
 
@@ -355,12 +414,10 @@ const PhotoComponent = (
       color: PropTypes.string
     })).isRequired,
     scale: PropTypes.number,
-    dots: PropTypes.object.isRequired,
     imgDims: PropTypes.shape({
       width: PropTypes.number.isRequired,
       height: PropTypes.number.isRequired
     }),
-    setDots: PropTypes.func.isRequired,
     setImgDims: PropTypes.func.isRequired
   };
 
@@ -436,7 +493,7 @@ const PhotoComponent = (
           </div>
         );
       })}
-      {transformState && photoBbox && polygonPoints && (
+      {transformState && photoBbox && bBoxPolygon && (
         <div
           style={{
             position: "absolute",
@@ -460,7 +517,7 @@ const PhotoComponent = (
               // points={polygonPoints
               //   .map(p => `${p.x / transformState.scale},${p.y / transformState.scale}`)
               //   .join(' ')}
-              points={polygonPoints
+              points={bBoxPolygon
                 .map(p => `${p.x},${p.y}`)
                 .join(' ')}
               fill="rgba(255, 255, 255, 0.3)"
@@ -470,6 +527,106 @@ const PhotoComponent = (
           </svg>
         </div>
       )}
+      {/*Render Discharge Cross Section*/}
+      {transformState && photoBbox && CSDischargePolygon && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+        >
+          <svg
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <polygon
+              points={CSDischargePolygon
+                .map(p => `${p.x},${p.y}`)
+                .join(' ')}
+              fill="rgba(75, 192, 192, 0.3)"
+              stroke="white"
+              strokeWidth={2 / transformState.scale}
+            />
+          </svg>
+        </div>
+      )}
+      {/*Render Discharge Cross Section*/}
+      {transformState && photoBbox && CSWettedSurfacePolygon && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+        >
+          <svg
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <polygon
+              points={CSWettedSurfacePolygon
+                .map(p => `${p.x},${p.y}`)
+                .join(' ')}
+              fill="rgba(75, 130, 192, 0.3)"
+              stroke="white"
+              strokeWidth={2 / transformState.scale}
+            />
+          </svg>
+        </div>
+      )}
+      {/*Render Water Level Cross Section*/}
+      {transformState && photoBbox && CSWaterLevelPolygon && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+        >
+          <svg
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <polygon
+              points={CSWaterLevelPolygon
+                .map(p => `${p.x},${p.y}`)
+                .join(' ')}
+              fill="rgba(255, 99, 132, 0.3)"
+              stroke="rgba(255, 160, 0, 1)"
+              strokeWidth={4 / transformState.scale}
+            />
+          </svg>
+        </div>
+      )}
+
+
+
+
       {/* Render the dashed line */}
       {lineCoordinates && (
         <div
@@ -496,11 +653,6 @@ const PhotoComponent = (
               y1={lineCoordinates.start.y}
               x2={lineCoordinates.end.x}
               y2={lineCoordinates.end.y}
-
-              // x1="0"
-              // y1="0"
-              // x2="100"
-              // y2="100"
               stroke="#009ed3"
               strokeWidth="2"
               strokeDasharray="5,5" // Dashed line effect
@@ -508,8 +660,6 @@ const PhotoComponent = (
           </svg>
         </div>
       )}
-
-
     </TransformComponent>
       {loading && (
         <div className="spinner-container">

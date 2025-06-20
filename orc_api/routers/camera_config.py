@@ -26,7 +26,7 @@ router: APIRouter = APIRouter(prefix="/camera_config", tags=["camera_config"])
 @router.get("/empty/{video_id}", response_model=CameraConfigResponse, status_code=200)
 async def empty_camera_config(video_id: int, db: Session = Depends(get_db)):
     """Create an empty camera config in-memory."""
-    # return an empty camera config for now
+    # return an empty camera config for now with height and width of current video
     video_rec = crud.video.get(db, video_id)
     video = VideoResponse.model_validate(video_rec)
     fn = video.get_video_file(base_path=UPLOAD_DIRECTORY)

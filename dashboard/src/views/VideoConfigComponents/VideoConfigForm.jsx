@@ -101,7 +101,8 @@ const VideoConfigForm = (
       filteredData.recipe = null;
     }
     if (cameraConfig.data) {
-      filteredData.camera_config = cameraConfig
+      const {isCalibrated, isPoseReady, ...cameraConfigWithoutCalibrated} = cameraConfig;
+      filteredData.camera_config = cameraConfigWithoutCalibrated;
     } else {
       filteredData.camera_config = null;
     }

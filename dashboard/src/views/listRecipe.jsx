@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import PaginatedRecipes from "./recipeComponents/paginatedRecipes.jsx";
-import MessageBox from '../messageBox';
-
 const ListRecipe = () => {
   const [recipeData, setRecipeData] = useState([]); // Stores video metadata
 
@@ -24,7 +22,6 @@ const ListRecipe = () => {
   return (
     <div className="container mt-4">
       <h1>Recipes </h1>
-      <MessageBox />
       Recipes define how videos are processed from selected frames to projected frames, to velocities, to cross section velocities
       and to river discharge. Also plotting options can be defined.
       <div className="flex-container column" style={{margin: "0px", marginTop: "20px", marginBottom: "20px"}}>

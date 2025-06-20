@@ -1,5 +1,5 @@
 import api from "../../api.js";
-import {useEffect, useState, useRef} from "react";
+import React, {useEffect, useState, useRef} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
@@ -12,13 +12,11 @@ const PoseDetails = (
   {
     cameraConfig,
     widgets,
-    dots,
     selectedWidgetId,
     imgDims,
     updateWidget,
     setCameraConfig,
     setWidgets,
-    setDots,
     setSelectedWidgetId,
     setMessageInfo
   }) => {
@@ -27,53 +25,54 @@ const PoseDetails = (
     file: '',
   });
 
-  const [nextId, setNextId] = useState(1);  // widget ids increment automatically
-  const prevControlPoints = useRef(null);
+  // const [nextId, setNextId] = useState(1);  // widget ids increment automatically
+  // const prevControlPoints = useRef(null);
 
-  useEffect(() => {
-    // only change widgets when control points are really individually updated
-      if (!areControlPointsEqual(prevControlPoints.current, cameraConfig?.gcps?.control_points)) {
-      // set state to new control points for later loops
-      const controlPoints = cameraConfig?.gcps?.control_points;
-      // create or update widget set
-      if (controlPoints) {
-        const newWidgets = controlPoints.map((gcp, index) => {
-          const color = rainbowColors[(index) % rainbowColors.length];
-          return {
-            color: color,
-            id: index + 1, // Unique ID for widget
-            coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
-            icon: createCustomMarker(color, index + 1)
-          };
-        })
-        setWidgets(newWidgets);
-        console.log(newWidgets);
-        // ensure user can set a new widget when clicking on add gcp
-        setNextId(newWidgets.length + 1);
-        if (prevControlPoints.current !== null) {
-          console.log("REMOVING FIELDS TVEC/RVEC")
-          // remove all pose information when gcps are altered in any way
-          setCameraConfig((prevConfig) => ({
-            ...prevConfig,
-            camera_position: null,
-            camera_rotation: null,
-            f: null,
-            k1: null,
-            k2: null,
-            gcps: {
-              ...prevConfig.gcps,
-              z_0: null,
-              h_ref: null,
-            }
-          }));
-
-        }
-        prevControlPoints.current = controlPoints;
-
-      }
-    }
-    // }
-  }, [cameraConfig]);
+  // useEffect(() => {
+  //   // only change widgets when control points are really individually updated
+  //     if (!areControlPointsEqual(prevControlPoints.current, cameraConfig?.gcps?.control_points)) {
+  //     // set state to new control points for later loops
+  //     const controlPoints = cameraConfig?.gcps?.control_points;
+  //     // create or update widget set
+  //     if (controlPoints) {
+  //       const newWidgets = controlPoints.map((gcp, index) => {
+  //         const color = rainbowColors[(index) % rainbowColors.length];
+  //         return {
+  //           color: color,
+  //           id: index + 1, // Unique ID for widget
+  //           coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
+  //           // icon: createCustomMarker(color, index + 1)
+  //         };
+  //       })
+  //       setWidgets(newWidgets);
+  //       // ensure user can set a new widget when clicking on add gcp
+  //       setNextId(newWidgets.length + 1);
+  //       if (prevControlPoints.current !== null) {
+  //         // remove all pose information when gcps are altered in any way
+  //
+  //         setCameraConfig((prevConfig) => ({
+  //           ...prevConfig,
+  //           camera_position: null,
+  //           camera_rotation: null,
+  //           f: null,
+  //           k1: null,
+  //           k2: null,
+  //           gcps: {
+  //             ...prevConfig.gcps,
+  //             z_0: null,
+  //             h_ref: null,
+  //           },
+  //           bbox_camera: [],
+  //           bbox: []
+  //         }));
+  //
+  //       }
+  //       prevControlPoints.current = controlPoints;
+  //
+  //     }
+  //   }
+  //   // }
+  // }, [cameraConfig]);
 
   useEffect(() => {
     // if file is set, try to load and set it
@@ -83,65 +82,76 @@ const PoseDetails = (
     }
   }, [fileFormData]);
 
-  const addWidget = () => {
-    // we add a control point to cameraConfig, this triggers recreation of the widgets through state
-    setCameraConfig((prevConfig) => ({
-      ...prevConfig,
-      gcps: {
-        ...prevConfig.gcps,
+  const refreshWidgets = () => {
+    const controlPoints = cameraConfig?.gcps?.control_points;
+    const newWidgets = controlPoints.map((gcp, index) => {
+      const color = rainbowColors[(index) % rainbowColors.length];
+      return {
+        color: color,
+        id: index + 1, // Unique ID for widget
+        coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
+      };
+    })
+    setWidgets(newWidgets);
+    // setSelectedWidgetId(nextId);
 
+  }
+
+  useEffect(() => {
+    if (cameraConfig?.gcps?.control_points) {
+      refreshWidgets();
+
+    }
+  }, [cameraConfig?.gcps?.control_points]);
+
+
+  const addWidget = () => {
+    const newConfig = {
+      ...cameraConfig,
+      gcps: {
+        ...cameraConfig.gcps,
+        z_0: null,
+        h_ref: null,
         control_points: [
-          ...(prevConfig.gcps?.control_points || []),
+          ...(cameraConfig.gcps?.control_points || []),
           { x: '', y: '', z: '', row: '', col: '' }
-        ]
+        ], // reset any pose dependent parameters
         // automatically select the newly created widget for editing
-      }
-    }))
-    setSelectedWidgetId(nextId)
-    // setWidgets((prevWidgets) => {
-    //   const color = rainbowColors[(nextId - 1) % rainbowColors.length];
-    //   const newWidget = {
-    //     id: nextId,
-    //     color: color,
-    //     coordinates: { x: '', y: '', z:'', row: '', col: ''},
-    //     icon: createCustomMarker(color, nextId)  // for geographical plotting
-    //   }
-    //   // automatically select the newly created widget for editing
-    //   setSelectedWidgetId(newWidget.id);
-    //
-    //   return [
-    //     ...prevWidgets,
-    //     newWidget
-    //   ]
-    // });
-    // setNextId((prevId) => prevId + 1); // increment the unique id for the next widget
-    // // setSelectedWidgetId
+      },
+      camera_position: null,
+      camera_rotation: null,
+      f: null,
+      k1: null,
+      k2: null,
+      bbox_camera: [],
+      bbox: []
+    }
+    setSelectedWidgetId(newConfig.gcps.control_points.length);
+    setCameraConfig(newConfig);
+    // ensure user can set a new widget when clicking on add gcp
   };
 
   const deleteWidget = (id) => {
     // remove control point from the list of control points
-    setCameraConfig((prevConfig) => ({
-      ...prevConfig,
+    const newConfig = {
+      ...cameraConfig,
       gcps: {
-        ...prevConfig.gcps,
-        control_points: prevConfig.gcps.control_points.filter((gcp, index) => index + 1 !== id)
-      }
-    }))
-    // TODO: dot is now actively deleted, but should be automatically regenerated using changes in widget state
-    setDots((prevDots) => {
-      // Copy the previous state object
-      const newDots = {...prevDots};
-      delete newDots[id];
-      return newDots;
-    });
+        ...cameraConfig.gcps,
+        control_points: cameraConfig.gcps.control_points.filter((gcp, index) => index + 1 !== id)
+      }, // reset any pose dependent parameters
+      camera_position: null,
+      camera_rotation: null,
+      f: null,
+      k1: null,
+      k2: null,
+      bbox_camera: [],
+      bbox: []
+
+    }
+    setCameraConfig(newConfig);
+    setCS
   };
 
-  // remove all existing widgets
-  const clearWidgets = () => {
-    setWidgets([]);
-    setDots([]);
-    setSelectedWidgetId(null);
-  }
 
   const handleSubmit = async () => {
     // submit the form with a GCP file (x, y, z csv or geojson)
@@ -150,16 +160,16 @@ const PoseDetails = (
       const GcpData = await loadFile();
 
       // Additional steps after successful file load
-      console.log("processing control point data...")
-      console.log(GcpData);
       // if a crs is found, set it on cameraConfig.gcps.crs
       if (GcpData) {
-        setCameraConfig((prevConfig) => ({
-          ...prevConfig,
+        const newConfig = {
+          ...cameraConfig,
           gcps: GcpData,
-        }))
+
+        }
+        setCameraConfig(newConfig);
       }
-      setDots({})
+      // setDots({})
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
     }
@@ -199,24 +209,15 @@ const PoseDetails = (
 
   const handleCrsChange = async (event) => {
     const {value} = event.target;
-    setCameraConfig(prevConfig => ({
-      ...prevConfig,
+    const newConfig = {
+      ...cameraConfig,
       gcps: {
-        ...prevConfig.gcps,
+        ...cameraConfig.gcps,
         crs: !isNaN(value) ? parseInt(value) : value
       }
-    }));
-  }
 
-  const handleWaterLevelChange = async (event) => {
-    const {name, value} = event.target;
-    setCameraConfig(prevConfig => ({
-      ...prevConfig,
-      gcps: {
-        ...prevConfig.gcps,
-        [name]: parseFloat(value)
-      }
-    }));
+    }
+    setCameraConfig(newConfig);
   }
 
   const handleFileChange = async (event) => {
@@ -245,14 +246,16 @@ const PoseDetails = (
       })
     );
     // set fields in cameraConfig
-    setCameraConfig((prevConfig) => ({
-      ...prevConfig,
+    const newConfig = {
+      ...cameraConfig,
       camera_position: GcpFit.camera_position,
       camera_rotation: GcpFit.camera_rotation,
       f: GcpFit.f,
       k1: GcpFit.k1,
       k2: GcpFit.k2,
-    }));
+
+    }
+    setCameraConfig(newConfig);
 
   }
   const validateWidgets = () => {
@@ -272,28 +275,17 @@ const PoseDetails = (
     });
   };
 
-  const validatePose = () => {
-    // check if pose parameters are all complete
-    return cameraConfig?.camera_position && cameraConfig?.camera_rotation && cameraConfig?.f && cameraConfig?.k1 && cameraConfig?.k2;
-  }
-
-
-  const validatez0 = () => {
-    // check if pose parameters are all complete
-    return cameraConfig?.gcps?.z_0;
-  }
-
   return (
-    <div className="split-screen" style={{overflow: 'auto'}}>
+    <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Control points</h5>
         <label htmlFor='addWidget' className='form-label'>
           You may add control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
         </label>
-
-        <button onClick={addWidget} id="addWidget" className="btn">Add GCP</button>
+        <div>
+          <button onClick={addWidget} id="addWidget" className="btn">Add GCP</button>
+        </div>
         <form onSubmit={handleSubmit}>
-
         <div className='mb-3 mt-3'>
           <input type='file' className='form-control' id='file' name='file'
                  accept=".geojson,.csv" onChange={handleFileChange} required/>
@@ -311,59 +303,82 @@ const PoseDetails = (
           </label>
           <input type='number' className='form-control' id='crs' name='crs' onChange={handleCrsChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
         </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='z_0' className='form-label small'>
-            Water level in GCP coordinate system [m]
-          </label>
-          <input
-            type='number' className='form-control'
-            id='z_0' name='z_0'
-            onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.z_0 ? cameraConfig.gcps.z_0 : ''}
-            disabled={!validatePose()}
-          />
-        </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='h_ref' className='form-label small'>
-            Water level in local gauge reference [m]. Only set this if you plan to process several videos with different locally measured water levels.
-          </label>
-          <input
-            type='number' className='form-control'
-            id='h_ref' name='h_ref'
-            onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
-            disabled={!validatez0()}
-          />
-        </div>
 
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        {widgets.map((widget) => (
-          <div key={widget.id} onClick={() =>
-            setSelectedWidgetId(widget.id)
-          }
-               style={{
-                 border: selectedWidgetId === widget.id ? `4px solid ${widget.color}` : `1px solid ${widget.color}`,
-                 marginTop: '10px',
-                 marginBottom: '10px',
-                 padding: '5px',
-                 color: 'white',
-                 cursor: 'pointer',
-               }}
-          >
+      </div>
+
+    <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+      <div className="table-responsive">
+        <table className="table table-bordered table-sm text-center">
+          <thead className="table-dark">
+          <tr>
+            <th>Select</th>
+            <th>Row</th>
+            <th>Col</th>
+            <th>X</th>
+            <th>Y</th>
+            <th>Z</th>
+            <th>Delete</th>
+          </tr>
+          </thead>
+          <tbody>
+
+          {widgets.map((widget) => (
+            // <div key={widget.id} onClick={() =>
+            //   setSelectedWidgetId(widget.id)
+            // }
+            //      style={{
+            //        border: selectedWidgetId === widget.id ? `4px solid ${widget.color}` : `1px solid ${widget.color}`,
+            //        marginTop: '10px',
+            //        // marginBottom: '10px',
+            //        // padding: '5px',
+            //        color: 'white',
+            //        cursor: 'pointer',
+            //      }}
+            //      >
+
             <XYZWidget
+              key={widget.id}
               id={widget.id}
               coordinates={widget.coordinates}
               onUpdate={(id, coordinates) => updateWidget(id, coordinates)}
-              onDelete={() => {
-                deleteWidget(widget.id);
-              }}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+              onDelete={() => {deleteWidget(widget.id)}}
+              selectedWidgetId={selectedWidgetId}
+              setSelectedWidgetId={setSelectedWidgetId}
+              rowColor={widget.color}
+          />
+            // </div>
 
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/*    {widgets.map((widget) => (*/}
+      {/*  <div key={widget.id} onClick={() =>*/}
+      {/*    setSelectedWidgetId(widget.id)*/}
+      {/*  }*/}
+      {/*       style={{*/}
+      {/*         border: selectedWidgetId === widget.id ? `4px solid ${widget.color}` : `1px solid ${widget.color}`,*/}
+      {/*         marginTop: '10px',*/}
+      {/*         marginBottom: '10px',*/}
+      {/*         padding: '5px',*/}
+      {/*         color: 'white',*/}
+      {/*         cursor: 'pointer',*/}
+      {/*       }}*/}
+      {/*  >*/}
+      {/*    <XYZWidget*/}
+      {/*      id={widget.id}*/}
+      {/*      coordinates={widget.coordinates}*/}
+      {/*      onUpdate={(id, coordinates) => updateWidget(id, coordinates)}*/}
+      {/*      onDelete={() => {*/}
+      {/*        deleteWidget(widget.id);*/}
+      {/*      }}*/}
+      {/*    />*/}
+      {/*  </div>*/}
+      {/*))}*/}
+    </div>
+    </div>
   )
 
 };

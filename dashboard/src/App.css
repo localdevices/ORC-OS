@@ -4,6 +4,7 @@
   /* text-align: center; */
   height: 100%;
   font-family: Barlow;
+  display: flex;
 }
 .app-container {
   display: flex;
@@ -38,7 +39,8 @@
   border-radius: 10px 10px 10px 10px; /* Rounded top corners */
   height: 100%;
   box-sizing: border-box;
-  max-height: 100%;
+
+  /*max-height: 100%;*/
 
 }
 
@@ -131,23 +133,36 @@
   border-radius: 5px 5px 0 0; /* Rounded top corners */
   padding: 10px 20px;
   margin-right: 5px; /* Space between tabs */
-  background: #e9ecef; /* Default background color */
+  background: #42a5da; /* Default background color */
   color: #000;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 13px;
 }
 
-/* Hover effect for tabs */
-.tabs-row button:hover {
-  background: #d6dade; /* Slightly darker hover color */
+/* Disabled button style */
+.tabs-row button:disabled {
+  background: #d69a20; /* Light gray background for disabled state */
+  cursor: not-allowed; /* Indicate no interaction is possible */
+  opacity: 0.6; /* Slightly transparent effect */
 }
+
+
+/* Hover effect for tabs */
+.tabs-row button:hover:enabled {
+  /*background: #d6dade; !* Slightly darker hover color *!*/
+  /*opacity: 0.6;*/
+  font-weight: bold;
+}
+
+
 
 /* Active tab styling */
 .tabs-row .active-tab {
   background: #fff; /* Active tab matches content background */
-  border-bottom: 2px solid white; /* Matches the background */
+  /*border-bottom: 2px solid black; !* Matches the background *!*/
   font-weight: bold; /* Highlight active tab with bold text */
+  border: 2px solid #aaa;
 }
 
 .tab-container {

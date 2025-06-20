@@ -1,24 +1,51 @@
-.widget {
-  border: 1px solid black;
-  margin: 0px;
-  padding: 5px;
-  background-color: #0a4777;
-  color: white;
-  font-size: 10px;
+
+table {
+  border-collapse: collapse; /* Merge borders into a single line */
+  /*border-spacing: 2 8px;*/
+
 }
 
-.widget input {
-  font-size: 14px; /* Smaller text size */
-  padding: 2px 2px; /* Compact padding for inputs */
-  width: 70px; /* Smaller input width */
-  margin-left: 5px; /* Spacing between label and input */
-  border: 1px solid #ddd; /* Subtle border */
-  border-radius: 3px; /* Rounded input borders */
-  background-color: #fff; /* White background */
+/* Override .table-dark background color */
+.table-dark th {
+  background-color: #0a4777 !important; /* Custom dark blue color */
+  color: white !important; /* Ensure text is visible on dark background */
 }
 
-.widget input:disabled {
-  background-color: #555;
-  color: white;
+td, th {
+  border: 0px solid transparent; /* Remove visible borders */
+  padding: 0; /* Remove inner padding for tight Excel-like layout */
+  text-align: center; /* Center-align content */
+  vertical-align: middle; /* Align cell content to the middle */
+  align-items: center; /* Align cell content to the middle */
+  justify-content: center;
+  line-height: 1; /* Set consistent line height to remove extra vertical space */
+  height: 20px; /* Adjust height for better control */
+
 }
 
+/* Styling for the cells to fit the Excel-like appearance */
+td input {
+  font-size: 14px; /* Text size matching table content */
+  border: none; /* Remove input box border */
+  width: 100%; /* Expand input to fill its cell */
+  height: 100%; /* Ensure input covers the entire cell height */
+  padding: 0; /* Remove internal padding */
+  margin: 0; /* Remove margins */
+  text-align: center; /* Align content within the input */
+  background-color: transparent; /* Make input background blend in */
+}
+
+/* Highlight focused field like an Excel cell */
+td input:focus {
+  outline: 2px solid #007bff; /* Add a subtle blue outline */
+  background-color: #eaf6ff; /* Slightly lighter background for enhanced visibility */
+}
+
+/* Style for the row highlighting (dynamic border adjustment) */
+tr {
+  padding: 1px;
+  margin: 1px;
+  margin-bottom: 1px;
+  border: 1px;
+  transition: background-color 0.2s, border 0.2s; /* Smooth transition for hover and selection */
+}

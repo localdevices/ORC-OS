@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 
 import api from '../api';
 import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
-import MessageBox from '../messageBox';
 import VideoUploader from './videoComponents/videoUpload.jsx';
 
 const ListVideo = () => {
@@ -33,7 +32,6 @@ const ListVideo = () => {
   return (
     <div className="container mt-4">
       <h1>Video </h1>
-      <MessageBox />
       Drop new videos. Browse through your videos, delete them, view details, download, or perform single runs tasks.
       <PaginatedVideos
         initialData={videoData}
