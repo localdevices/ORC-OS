@@ -274,6 +274,7 @@ const VideoConfig = () => {
               CSWaterLevel={CSWaterLevel}
               Gcps={cameraConfig?.gcps?.control_points}
               cameraPosition={cameraConfig?.camera_position}
+              rotation={cameraConfig?.camera_rotation ? cameraConfig?.camera_rotation[1] : 0}  // only down-pose rotation is needed
               bBox={cameraConfig?.bbox}
             />
 

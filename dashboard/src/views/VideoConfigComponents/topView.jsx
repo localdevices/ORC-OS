@@ -52,10 +52,81 @@ const pointIndexPlugin = {
   },
 };
 
+const cameraIconPlugin = {
+  id: "cameraIconPlugin",
+  afterDatasetsDraw(chart, args, options) {
+    const { ctx } = chart;
+    const cameraDataset = chart.data.datasets.find(dataset => dataset.label === "Camera Position");
+
+    if (cameraDataset && cameraDataset.data.length > 0) {
+      const meta = chart.getDatasetMeta(chart.data.datasets.indexOf(cameraDataset));
+      const cameraPoint = meta.data[0]; // The single point representing the camera position
+
+      if (cameraPoint) {
+        const { x, y } = cameraPoint.getProps(["x", "y"]); // Camera's position
+        const cameraSize = 30;  // Size of the camera body
+        const lensRadius = 10;  // Lens radius
+        const directionLength = 20; // Direction triangle length
+        const rotationAngle = options.rotation - 0.5 * Math.PI || 0;
+        // Helper function to calculate rotated coordinates
+        const calculateRotatedPoint = (xOffset, yOffset) => {
+          return {
+            x: x + xOffset * Math.cos(rotationAngle) - yOffset * Math.sin(rotationAngle),
+            y: y + xOffset * Math.sin(rotationAngle) + yOffset * Math.cos(rotationAngle),
+          };
+        };
+
+        // Calculate the corners of the camera's body (rectangle)
+        const topLeft = calculateRotatedPoint(-cameraSize / 2, -cameraSize / 4);
+        const topRight = calculateRotatedPoint(cameraSize / 2, -cameraSize / 4);
+        const bottomLeft = calculateRotatedPoint(-cameraSize / 2, cameraSize / 4);
+        const bottomRight = calculateRotatedPoint(cameraSize / 2, cameraSize / 4);
+
+        // Draw the camera body as a rotated rectangle
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        ctx.moveTo(topLeft.x, topLeft.y);
+        ctx.lineTo(topRight.x, topRight.y);
+        ctx.lineTo(bottomRight.x, bottomRight.y);
+        ctx.lineTo(bottomLeft.x, bottomLeft.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Calculate the center of the lens
+        const lensCenter = calculateRotatedPoint(0, 0);
+
+        // Draw the lens as a circle
+        ctx.beginPath();
+        ctx.fillStyle = "blue";
+        ctx.arc(lensCenter.x, lensCenter.y, lensRadius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Draw the directional indicator (triangle pointing forward)
+        const tip = calculateRotatedPoint(cameraSize / 2 + directionLength, 0); // Triangle tip
+        const baseLeft = calculateRotatedPoint(cameraSize / 2, -cameraSize / 8); // Triangle base left
+        const baseRight = calculateRotatedPoint(cameraSize / 2, cameraSize / 8); // Triangle base right
+
+        ctx.beginPath();
+        ctx.fillStyle = "red";
+        ctx.moveTo(tip.x, tip.y);
+        ctx.lineTo(baseLeft.x, baseLeft.y);
+        ctx.lineTo(baseRight.x, baseRight.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+
+
+    }
+  },
+};
+
+// Register the plugins
 ChartJS.register(pointIndexPlugin);
+ChartJS.register(cameraIconPlugin);
 
 
-const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
+const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBox}) => {
   const polygonData =
     bBox && bBox.length > 0
       ? bBox.map((coord) => ({ x: coord[0], y: coord[1] }))
@@ -90,8 +161,8 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
         label: "AOI", // New polygon dataset
         type: "line",
         data: polygonData,
-        backgroundColor: "rgba(153, 102, 255, 0.5)", // Polygon fill color
-        borderColor: "rgba(153, 102, 255, 1)", // Polygon edge color
+        backgroundColor: "rgb(122,184,255)", // Polygon fill color
+        borderColor: "rgb(122,184,255)", // Polygon edge color
         showLine: true, // Connect the points to form the polygon
         fill: true, // Fill the inside of the polygon
         tension: 0,
@@ -120,7 +191,16 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
         },
 
 
+      },
+      {
+        label: "Camera Position",
+        type: "scatter", // Scatter for controlling the (x, y) position
+        data: cameraPosition ? [{ x: cameraPosition[0], y: cameraPosition[1] }] : [], // Single camera position
+        backgroundColor: "rgba(0, 0, 0, 0)", // Transparent so it doesn't show default points
+        borderColor: "transparent",         // No border
+        pointRadius: 0,                     // No visible radius
       }
+
 
     ],
   };
@@ -157,8 +237,17 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, bBox}) => {
     },
     plugins: {
       legend: {
+        labels: {
+          filter: (item) => item.text !== "Camera Position",
+          boxWidth: 10,
+          boxHeight: 10,
+          usePointStyle: false,
+        },
         display: true,
       },
+      cameraIconPlugin: {
+        rotation: rotation || 0,
+      }
 
     },
 
