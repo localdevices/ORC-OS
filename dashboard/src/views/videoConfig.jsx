@@ -7,7 +7,8 @@ import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
 import CrossSectionForm from "./VideoConfigComponents/crossSectionForm.jsx";
-import CrossSectionDisplay from "./VideoConfigComponents/crossSectionDisplay.jsx";
+import SideView from "./VideoConfigComponents/sideView.jsx";
+import TopView from "./VideoConfigComponents/topView.jsx";
 import VideoTab from "./calibrationTabs/videoTab.jsx";
 import CameraParameters from "./calibrationTabs/cameraParameters.jsx";
 import {useMessage} from "../messageContext.jsx";
@@ -432,12 +433,22 @@ const VideoConfig = () => {
                 <div className="tab-container">
                   {/* Tab content */}
                   <div className="tab-content">
-
-                    {CSDischarge && CSWaterLevel && (
-                      <CrossSectionDisplay
+                    {activeView === 'sideView' && (
+                    // {CSDischarge && CSWaterLevel && (
+                      <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
                       />
+                    )}
+                    {activeView === 'topView' && (
+                      <TopView
+                        CSDischarge={CSDischarge}
+                        CSWaterLevel={CSWaterLevel}
+                        Gcps={cameraConfig?.gcps?.control_points}
+                        cameraPosition={cameraConfig?.camera_position}
+                        bBox={cameraConfig?.bbox}
+                      />
+
                     )}
                   </div>
                 </div>

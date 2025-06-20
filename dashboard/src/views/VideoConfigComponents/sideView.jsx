@@ -25,7 +25,7 @@ import PropTypes from 'prop-types';
 
 
 
-const CrossSectionDisplay = ({CSDischarge, CSWaterLevel}) => {
+const SideView = ({CSDischarge, CSWaterLevel}) => {
 
   const data = {
   datasets: [
@@ -91,11 +91,11 @@ const CrossSectionDisplay = ({CSDischarge, CSWaterLevel}) => {
   // aspectRatio: 0.75,
 }
 
-CrossSectionDisplay.propTypes = {
+SideView.propTypes = {
   CSDischarge: PropTypes.shape({
     s: PropTypes.arrayOf(PropTypes.number).isRequired,
     z: PropTypes.arrayOf(PropTypes.number).isRequired
   }).isRequired,
   CSWaterLevel: PropTypes.any // Update based on the actual usage of CSWaterLevel
 };
-export default CrossSectionDisplay;
+export default SideView;

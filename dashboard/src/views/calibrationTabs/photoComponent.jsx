@@ -52,16 +52,14 @@ const PhotoComponent = (
       imgDims?.height !== 0
     );
   };
-  // // triggered when user resizes the window, after this, the dot locations must be updated
-  // useEffect(() => {
-  //   updateDots();
-  // }, [photoBbox]);  // TODO: updateDots is a dependency, but it changes all the time, perhaps put updateDots inside useEffect
-  //
-  // useEffect(() => {
-  //   if (bboxClickCount === 3) {
-  //     setCameraConfig(lastResponse.current.data)
-  //   }
-  // }, [bboxClickCount])
+
+  useEffect(() => {
+    // ensure if click count is 3, the camera config is updated with the set bbox
+    if (bboxClickCount === 3) {
+      console.log("last response", lastResponse.current.data);
+      setCameraConfig(lastResponse.current.data)
+    }
+  }, [bboxClickCount])
 
   useEffect(() => {
     // check if image and dimensions are entirely intialized
@@ -279,7 +277,6 @@ const PhotoComponent = (
             // console.log(lastResponse.current.data);
             const bbox = response.data.bbox_camera;
             // set the bbox_camera on the current cameraConfig
-            // console.log(bbox);
             bboxPoints = bbox.map(p => {
               const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
               const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;

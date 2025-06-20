@@ -137,6 +137,10 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                 # also provide the info to determine if the cross section is within the image and not too far off
                 v.within_image = cs.within_image
                 v.distance_camera = cs.distance_camera
+                v.x = cs.x.tolist()
+                v.y = cs.y.tolist()
+                v.z = cs.z.tolist()
+                v.s = np.append(np.array(0.0), np.cumsum((np.diff(cs.x) ** 2 + np.diff(cs.y) ** 2) ** 0.5)).tolist()
         return v
 
 
