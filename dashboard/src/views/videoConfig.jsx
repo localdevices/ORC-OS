@@ -230,20 +230,20 @@ const VideoConfig = () => {
         <div className="flex-container column" style={{"height": "100%"}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
             <h5 style={{margin: 0}}>Image view</h5>
-            <button
-              type="submit"
-              form="videoConfigForm"
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: save ? 'pointer' : 'not-allowed',
-                color: save ? '#0d6efd' : '#6c757d',
-                padding: '5px'
-              }}
-              disabled={!save}
-            >
-              <FaSave size={20}/>
-            </button>
+            {/*<button*/}
+            {/*  type="submit"*/}
+            {/*  form="videoConfigForm"*/}
+            {/*  style={{*/}
+            {/*    backgroundColor: 'transparent',*/}
+            {/*    border: 'none',*/}
+            {/*    cursor: save ? 'pointer' : 'not-allowed',*/}
+            {/*    color: save ? '#0d6efd' : '#6c757d',*/}
+            {/*    padding: '5px'*/}
+            {/*  }}*/}
+            {/*  disabled={!save}*/}
+            {/*>*/}
+            {/*  <FaSave size={20}/>*/}
+            {/*</button>*/}
           </div>
 
           {video && (
@@ -273,8 +273,23 @@ const VideoConfig = () => {
           <div className="flex-container column" style={{"height": "60%"}}>
             <div className="tabbed-form-container">
               <div className="tabs-header">
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
                 <h5>Manage configuration</h5>
-
+                  <button
+                    type="submit"
+                    form="videoConfigForm"
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: save ? 'pointer' : 'not-allowed',
+                      color: save ? '#0d6efd' : '#6c757d',
+                      padding: '5px'
+                    }}
+                    disabled={!save}
+                  >
+                    <FaSave size={20}/>
+                  </button>
+                </div>
                 {/* Tabs row */}
                 <div className="tabs-row">
                   <button
