@@ -87,7 +87,6 @@ class VideoConfigBase(BaseModel):
             cs = v.cross_section
             cs.camera_config = v.camera_config
             v.cross_section = CrossSectionResponseCameraConfig.model_validate(cs)
-            print(v.cross_section)
         if v.cross_section_wl and v.camera_config:
             cs = v.cross_section_wl
             cs.camera_config = v.camera_config

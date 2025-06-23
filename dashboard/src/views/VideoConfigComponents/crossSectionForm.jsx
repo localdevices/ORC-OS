@@ -73,28 +73,6 @@ const CrossSectionForm = (
     }
   }
 
-  // const handleWaterLevelCS = async (event) => {
-  //   const {value} = event.target;
-  //   console.log(event.target.value);
-  //   console.log("CSWATERLEVEL: ", CSWaterLevel)
-  //   if (value) {
-  //     try {
-  //       console.log(`cross_section/${value}`)
-  //       const response = await api.get(`cross_section/${value}`);
-  //       console.log(response.data);
-  //       setCSWaterLevel(response.data);
-  //       setMessageInfo('success', `Successfully set water level cross section to cross section ID ${value}`)
-  //
-  //     } catch (error) {
-  //       setMessageInfo('error', `Failed to fetch cross section discharge: ${error.message}`)
-  //     }
-  //   } else {
-  //     setCSWaterLevel({});
-  //     setMessageInfo('success', `Successfully removed water level cross section`)
-  //   }
-  // }
-
-
   const handleWaterLevelChange = async (event) => {
     const {name, value} = event.target;
     const newConfig = {

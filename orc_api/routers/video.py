@@ -123,6 +123,28 @@ async def get_video(id: int, db: Session = Depends(get_db)):
     return video
 
 
+@router.get("/{id}/frame_count/", response_model=int, status_code=200)
+async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
+    """Retrieve the end frame of a video."""
+    video_rec = crud.video.get(db=db, id=id)
+    if not video_rec:
+        raise HTTPException(status_code=404, detail="Video not found.")
+
+    # Open the video file
+    video = VideoResponse.model_validate(video_rec)
+
+    # open video
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # open video
+    cap = cv2.VideoCapture(file_path)
+
+    # check amount of frames
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    return frame_count
+
+
 @router.delete("/{id}/", status_code=204, response_model=None)
 async def delete_video(id: int, db: Session = Depends(get_db)):
     """Delete a video."""

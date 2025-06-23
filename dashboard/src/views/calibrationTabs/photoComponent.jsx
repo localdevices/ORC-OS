@@ -9,6 +9,7 @@ import {rainbowColors} from "../../utils/helpers.jsx";
 const PhotoComponent = (
   {
     video,
+    frameNr,
     imageRef,
     widgets,
     cameraConfig,
@@ -31,8 +32,7 @@ const PhotoComponent = (
   const [fittedPoints, setFittedPoints] = useState([]);
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
   const [lineCoordinates, setLineCoordinates] = useState(null);
-  const [frameNr, setFrameNr] = useState(0);
-  const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
+  const [imageUrl, setImageUrl] = useState('');  ///frame_001.jpg
   const debounceTimeoutRef = useRef(null);  // state for timeout checking
   const abortControllerRef = useRef(null);  // state for aborting requests to api
   const lastResponse = useRef(null);  // store last API response
@@ -134,21 +134,6 @@ const PhotoComponent = (
     }
   }, [CSWaterLevel?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 
-  // useEffect(() => {
-  //   try {
-  //     console.log("WIDGETS", widgets);
-      // const imgElement = imageRef.current;
-      // setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
-      // setPhotoBbox(imgElement.getBoundingClientRect());
-      // updateFittedPoints();
-      // updateDots();
-      // updateFittedPoints();
-  //   } catch {
-  //     console.error("Image not yet initialized.")
-  //   }
-  // }, [widgets, transformState, window]);
-
-
   useTransformEffect(({state}) => {
     const imgElement = imageRef.current;
     if (!imgElement) return;
@@ -156,8 +141,6 @@ const PhotoComponent = (
     setTransformState(state); // Update the transformState on every transformation
     // updateFittedPoints();
   });
-
-
 
   const getFrameUrl = (frameNr, rotate) => {
     if (!video) return '';
@@ -170,12 +153,25 @@ const PhotoComponent = (
     return frameUrl
   }
 
+  // set / reset timer for reloading of image with requested changes
+  const debounce = (callback, delay) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => callback(...args), delay);
+    };
+  };
+
   useEffect(() => {
-    // Update the image URL whenever frameNr or rotate changes
-    const url = getFrameUrl(0, rotate);
-    setImageUrl(url); // Set the new image URL
-    setLoading(true); // Trigger loading state when the URL changes
-  }, [rotate, video]);
+    const debouncedUpdate = debounce(() => {
+      // Update the image URL whenever frameNr or rotate changes
+      const url = getFrameUrl(frameNr, rotate);
+      setImageUrl(url); // Set the new image URL
+      setLoading(true); // Trigger loading state when the URL changes
+    }, 300);
+    debouncedUpdate();
+    return () => clearTimeout(debouncedUpdate);
+  }, [rotate, video, frameNr]);
 
 
   const updateFittedPoints = () => {

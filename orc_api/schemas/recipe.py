@@ -13,7 +13,7 @@ class VideoData(BaseModel):
     """Video default data model."""
 
     start_frame: int = Field(default=0)
-    end_frame: int = Field(default=150)
+    end_frame: Optional[int] = Field(default=None)
     freq: int = Field(default=1)
 
 
@@ -22,7 +22,7 @@ class FramesData(BaseModel):
 
     time_diff: dict = Field(default={"abs": False, "thres": 5})
     minmax: dict = Field(default={"min": 5})
-    project: dict = Field(default={"method": "numpy", "resolution": 0.01})
+    project: dict = Field(default={"method": "numpy", "resolution": 0.02})
 
 
 class VelocimetryData(BaseModel):

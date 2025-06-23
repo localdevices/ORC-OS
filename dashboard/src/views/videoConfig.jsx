@@ -32,6 +32,7 @@ const VideoConfig = () => {
   const rotateState = useRef(cameraConfig?.rotation);
   const [imgDims, setImgDims] = useState(null);
   const [save, setSave] = useState(true);
+  const [frameCount, setFrameCount] = useState(0);
 
   const setCameraConfig = (newConfig) => {
     const cameraConfigInstance = {
@@ -60,7 +61,6 @@ const VideoConfig = () => {
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
-
     api.get(`/video/${videoId}`)
       .then((response) => {
         setVideo(response.data);
@@ -88,6 +88,11 @@ const VideoConfig = () => {
         setSave(false)
 
       });
+    api.get(`/video/${videoId}/frame_count/`)
+      .then((respone) => {
+        setFrameCount(respone.data)
+      })
+      .catch((err) => console.error("Error fetching frame count:", err))
 
   }, [videoId]);
 
@@ -163,8 +168,9 @@ const VideoConfig = () => {
   }
 
   const createNewRecipe = () => {
-    api.post(`/recipe/empty/`) // Replace with your API endpoint
+    api.post(`/recipe/empty/`)
       .then((response) => {
+        console.log(response.data)
         setRecipe(response.data);
       })
       .catch((error) => {
@@ -255,6 +261,7 @@ const VideoConfig = () => {
           {video && activeView === 'sideView' && (
             <VideoTab
               video={video}
+              frameNr={recipe?.start_frame}
               cameraConfig={cameraConfig}
               widgets={widgets}
               selectedWidgetId={selectedWidgetId}
@@ -425,6 +432,7 @@ const VideoConfig = () => {
                       <RecipeForm
                         selectedRecipe={recipe}
                         setSelectedRecipe={setRecipe}
+                        frameCount={frameCount}
                         setMessageInfo={setMessageInfo}
                       />
                     )}

@@ -1,9 +1,12 @@
 import api from "../../api.js";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
+import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
+import './recipeComponents.css'
+import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 
-const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
+const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageInfo}) => {
   const [formData, setFormData] = useState({
     name: '',
     id: '',
@@ -14,7 +17,16 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     data: ''
   });
   const [showJsonData, setShowJsonData] = useState(false);
-
+  const roughnessValues = [
+      {id: 1, name: "Extremely rough (not a suitable location)", value: "0.50"},
+      {id: 2, name: "Very rough (is this a suitable location?)", value: "0.60"},
+      {id: 3, name: "Rough (very large boulders)", value: "0.65"},
+      {id: 4, name: "Somewhat rough (boulders)", value: "0.75"},
+      {id: 5, name: "A little rough (Rocks and pebbles)", value: "0.80"},
+      {id: 6, name: "Normal (sandy with some ripples)", value: "0.85"},
+      {id: 7, name: "Smooth (e.g. rough concrete)", value: "0.90"},
+      {id: 8, name: "Very smooth (smooth concrete)", value: "0.95"}
+    ]
   useEffect(() => {
     if (selectedRecipe) {
       setFormData({
@@ -37,7 +49,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
         data: '',
       })
     }
-
   }, [selectedRecipe]);
 
   // Utility function to safely parse JSON
@@ -57,8 +68,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     input.accept = ".yml";
     // Wait for the user to select a file
     input.addEventListener('change', async (event) => {
-
-      // input.onchange = async (event) => {
       const file = event.target.files[0]; // Get the selected file
       if (file) {
         const formData = new FormData(); // Prepare form data for file upload
@@ -79,9 +88,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
     });
     // trigger input dialog box to open
     input.click();
-
   }
-
 
   const submitData = (formData) => {
     return {
@@ -102,12 +109,42 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
       [name]: name === "resolution" ? parseFloat(value) : (type === "number" ? parseInt(value) : value)
     }
     setFormData(updatedFormData);
-
     try {
       const response = await api.post('/recipe/update/', submitData(updatedFormData));
       setSelectedRecipe(response.data);
     } catch (error) {
-      console.error('Error updating YML:', error);
+      console.error('Error updating recipe:', error);
+    }
+  }
+
+  const handleRangeChange = async (values) => {
+    const minimumDifference = 10;
+    let [startValue, endValue] = values;
+
+    // Ensure values are at least `minimumDifference` apart
+    if (endValue - startValue < minimumDifference) {
+      if (frameCount >= minimumDifference) {
+        if (startValue + minimumDifference <= frameCount) {
+          endValue = startValue + minimumDifference;
+        } else {
+          startValue = endValue - minimumDifference;
+        }
+      } else {
+          startValue = 0
+          endValue = frameCount;
+        }
+    }
+    const updatedFormData = {
+      ...formData,
+      start_frame: startValue,
+      end_frame: endValue
+    }
+    setFormData(updatedFormData);
+    try {
+      const response = await api.post('/recipe/update/', submitData(updatedFormData));
+      setSelectedRecipe(response.data);
+    } catch (error) {
+      console.error('Error updating recipe:', error);
     }
   }
 
@@ -160,37 +197,48 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
       >
         Upload from .yml
       </button>
-
+      <div style={{"padding": "5px"}}>
       <form onSubmit={handleFormSubmit}>
-        <div className='mb-3 mt-3'>
+        <div className='mb-3 mt-3' style={{display: 'none'}}>
           <label htmlFor='id' className='form-label'>
             Recipe ID
           </label>
           <input type='str' className='form-control' id='id' name='id' value={formData.id} disabled />
         </div>
-        <div className='mb-3 mt-3'>
+        <div className='mb-3 mt-3' style={{display: 'none'}}>
           <label htmlFor='name' className='form-label'>
             Name of recipe
           </label>
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required />
         </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='start_frame' className='form-label'>
-            Start frame [nr]
+
+        <div className="mb-3 mt-3">
+          <label htmlFor="start_end_slider" className="form-label">
+            Start and end frame [-]
           </label>
-          <input type='number' className='form-control' id='start_frame' name='start_frame' step="1" onChange={handleInputChange} value={formData.start_frame} required />
-        </div>
-        <div className='mb-3 mt-3'>
-          <label htmlFor='end_frame' className='form-label'>
-            End frame [nr]
-          </label>
-          <input type='number' className='form-control' id='end_frame' name='end_frame' step="1" onChange={handleInputChange} value={formData.end_frame} required />
+          <div className="button-container">
+          <ReactSlider
+            className="horizontal-slider"
+            thumbClassName="thumb"
+            trackClassName="track"
+            value={[formData.start_frame || 0, formData.end_frame || frameCount]} // Default values if unset
+            min={0}
+            max={frameCount}
+            step={1}
+            renderThumb={(props, state) => (
+              <div {...props}>
+                <div className="thumb-value">{state.valueNow}</div>
+              </div>
+            )}
+            onChange={handleRangeChange}
+          />
+          </div>
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='freq' className='form-label'>
-            Process every X frames [nr]
+            Resample frame distance [-]. 1 means every frame, 2 means every other frame, etc.
           </label>
-          <input type='number' className='form-control' id='freq' name='freq' step="1" onChange={handleInputChange} value={formData.freq} required />
+          <input type='number' className='form-control' id='freq' name='freq' step="1" min='1' max='4' onChange={handleInputChange} value={formData.freq} required />
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='resolution' className='form-label'>
@@ -198,10 +246,19 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
           </label>
           <input type='number' className='form-control' id='resolution' name='resolution' step="0.001" min='0.001' max='0.05' onChange={handleInputChange} value={formData.resolution} required />
         </div>
+        <DropdownMenu
+          dropdownLabel="Roughness"
+          name="alpha"
+          callbackFunc={(event) => handleCS(event, setCSDischarge)}
+          data={roughnessValues}
+          value={formData.alpha}
+        />
+
+
         <button type='submit' className='btn'>
           Save
         </button>
-        <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)
+        <div className='mb-3 mt-3'>Toggle JSON view (advanced users)
           <div className="form-check form-switch">
             <label className="form-label" htmlFor="toggleJson" style={{ marginLeft: '0' }}></label>
             <input
@@ -231,6 +288,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
         </div>
 
       </form>
+      </div>
     </div>
 
   )
@@ -239,6 +297,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, setMessageInfo}) => {
 RecipeForm.propTypes = {
     selectedRecipe: PropTypes.object,
     setSelectedRecipe: PropTypes.func.isRequired,
+    frameCount: PropTypes.number.isRequired,
     setMessageInfo: PropTypes.func.isRequired,
 };
 
