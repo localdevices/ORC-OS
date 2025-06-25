@@ -18,15 +18,15 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
   });
   const [showJsonData, setShowJsonData] = useState(false);
   const roughnessValues = [
-      {id: 1, name: "Extremely rough (not a suitable location)", value: "0.50"},
-      {id: 2, name: "Very rough (is this a suitable location?)", value: "0.60"},
-      {id: 3, name: "Rough (very large boulders)", value: "0.65"},
-      {id: 4, name: "Somewhat rough (boulders)", value: "0.75"},
-      {id: 5, name: "A little rough (Rocks and pebbles)", value: "0.80"},
-      {id: 6, name: "Normal (sandy with some ripples)", value: "0.85"},
-      {id: 7, name: "Smooth (e.g. rough concrete)", value: "0.90"},
-      {id: 8, name: "Very smooth (smooth concrete)", value: "0.95"}
-    ]
+    {name: "Obstructions", value: "0.50"},
+    {name: "Very rough", value: "0.60"},
+    {name: "Some boulders", value: "0.65"},
+    {name: "Rocks and pebbles", value: "0.75"},
+    {name: "Sandy some ripples", value: "0.80"},
+    {name: "Smooth e.g. concrete", value: "0.85"},
+    {name: "Very smooth concrete", value: "0.90"},
+  ]
+
   useEffect(() => {
     if (selectedRecipe) {
       setFormData({
@@ -37,6 +37,11 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         freq: selectedRecipe.freq || '',
         resolution: selectedRecipe.resolution || '',
         data: JSON.stringify(selectedRecipe.data, null, 4) || '',
+        alpha: selectedRecipe.alpha,
+        quiver_scale_grid: selectedRecipe.quiver_scale_grid,
+        quiver_scale_cs: selectedRecipe.quiver_scale_cs,
+        quiver_width_grid: selectedRecipe.quiver_width_grid,
+        quiver_width_cs: selectedRecipe.quiver_width_cs
       });
     } else {
       setFormData({
@@ -46,6 +51,11 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         end_frame: '',
         freq: '',
         resolution: '',
+        alpha: '',
+        quiver_scale_grid: '',
+        quiver_scale_cs: '',
+        quiver_width_grid: '',
+        quiver_width_cs: '',
         data: '',
       })
     }
@@ -60,6 +70,24 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       return jsonString; // Fallback: Leave it as the original string
     }
   };
+
+  const renderAlphaValue = (value) => {
+    for (let i = 0; i < roughnessValues.length - 1; i++) {
+      const currentValue = parseFloat(roughnessValues[i].value);
+      const nextValue = parseFloat(roughnessValues[i + 1].value);
+      if (value >= currentValue && value < nextValue) {
+        return `${value}: ${roughnessValues[i].name}`;
+      }
+    }
+    // Handle the last value range
+    if (value >= parseFloat(roughnessValues[roughnessValues.length - 1].value)) {
+      return `${value}: ${roughnessValues[roughnessValues.length - 1].name}`;
+    }
+    // Handle values below the first range
+    if (value < parseFloat(roughnessValues[0].value)) {
+      return `${value}: ${roughnessValues[0].name}`;
+    }
+  }
 
   const loadModal = async () => {
     console.log("load modal");
@@ -99,6 +127,11 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       end_frame: formData.end_frame,
       freq: formData.freq,
       resolution: formData.resolution,
+      alpha: formData.alpha,
+      quiver_scale_grid: formData.quiver_scale_grid,
+      quiver_scale_cs: formData.quiver_scale_cs,
+      quiver_width_grid: formData.quiver_width_grid,
+      quiver_width_cs: formData.quiver_width_cs
     }
   }
 
@@ -117,7 +150,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     }
   }
 
-  const handleRangeChange = async (values) => {
+  const handleFrameChange = async (values) => {
     const minimumDifference = 10;
     let [startValue, endValue] = values;
 
@@ -140,6 +173,22 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       end_frame: endValue
     }
     setFormData(updatedFormData);
+    try {
+      const response = await api.post('/recipe/update/', submitData(updatedFormData));
+      setSelectedRecipe(response.data);
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+    }
+  }
+
+  const handleSliderChange = async (name, value) => {
+    // Ensure values are at least `minimumDifference` apart
+    const updatedFormData = {
+      ...formData,
+      [name]: value,
+    }
+    setFormData(updatedFormData);
+    console.log(updatedFormData);
     try {
       const response = await api.post('/recipe/update/', submitData(updatedFormData));
       setSelectedRecipe(response.data);
@@ -211,12 +260,12 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
           </label>
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required />
         </div>
-
-        <div className="mb-3 mt-3">
+        <h5>Video settings</h5>
+        <div className="mb-3 mt-3 form-horizontal">
           <label htmlFor="start_end_slider" className="form-label">
             Start and end frame [-]
           </label>
-          <div className="button-container">
+          {/*<div className="button-container" style={{margin: '20px'}}>*/}
           <ReactSlider
             className="horizontal-slider"
             thumbClassName="thumb"
@@ -230,34 +279,139 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                 <div className="thumb-value">{state.valueNow}</div>
               </div>
             )}
-            onChange={handleRangeChange}
+            onChange={handleFrameChange}
           />
-          </div>
+          {/*</div>*/}
         </div>
-        <div className='mb-3 mt-3'>
+        <div className='mb-3 mt-3 form-horizontal'>
           <label htmlFor='freq' className='form-label'>
-            Resample frame distance [-]. 1 means every frame, 2 means every other frame, etc.
+            Resample frame distance [-]
           </label>
           <input type='number' className='form-control' id='freq' name='freq' step="1" min='1' max='4' onChange={handleInputChange} value={formData.freq} required />
         </div>
-        <div className='mb-3 mt-3'>
+        <div className='mb-3 mt-3 form-horizontal'>
           <label htmlFor='resolution' className='form-label'>
             Resolution [m]
           </label>
           <input type='number' className='form-control' id='resolution' name='resolution' step="0.001" min='0.001' max='0.05' onChange={handleInputChange} value={formData.resolution} required />
         </div>
-        <DropdownMenu
-          dropdownLabel="Roughness"
-          name="alpha"
-          callbackFunc={(event) => handleCS(event, setCSDischarge)}
-          data={roughnessValues}
-          value={formData.alpha}
-        />
+        <h5>Discharge estimation</h5>
+        <div className="mb-3 mt-3 form-horizontal">
+          <label htmlFor="roughness" className="form-label">
+            Roughness (alpha) [-]
+          </label>
+          {/*<div className="button-container" style={{margin: '20px'}}>*/}
+            <ReactSlider
 
+            className="horizontal-slider"
+            thumbClassName="thumb"
+            trackClassName="track"
+            value={formData.alpha || 0.85} // Default values if unset
+            min={0.5}
+            max={0.95}
+            step={0.01}
+            renderThumb={(props, state) => (
+              <div {...props}>
+                <div className="thumb-value">{renderAlphaValue(state.valueNow)}</div>
+              </div>
+            )}
+            onChange={(value) => {handleSliderChange("alpha", value)}}
+          />
+        {/*</div>*/}
+        </div>
+        <h5>Plotting</h5>
+        <div className="mb-3 mt-3 form-horizontal">
+          <label htmlFor="quiver_scale_grid" className="form-label">
+            grid arrow scale [-]
+          </label>
+          {/*<div className="button-container" style={{margin: '20px'}}>*/}
+            <ReactSlider
+              className="horizontal-slider"
+              thumbClassName="thumb"
+              trackClassName="track"
+              value={formData.quiver_scale_grid || 1} // Default values if unset
+              min={0.2}
+              max={2}
+              step={0.1}
+              renderThumb={(props, state) => (
+                <div {...props}>
+                  <div className="thumb-value">{state.valueNow}</div>
+                </div>
+              )}
+              onChange={(value) => {handleSliderChange("quiver_scale_grid", value)}}
+            />
+          {/*</div>*/}
+        </div>
+        <div className="mb-3 mt-3 form-horizontal">
+          <label htmlFor="quiver_scale_cs" className="form-label">
+            cross section arrow scale [-]
+          </label>
+          {/*<div className="button-container" style={{margin: '20px'}}>*/}
+            <ReactSlider
+              className="horizontal-slider"
+              thumbClassName="thumb"
+              trackClassName="track"
+              value={formData.quiver_scale_cs || 1}
+              min={0.2}
+              max={2}
+              step={0.1}
+              renderThumb={(props, state) => (
+                <div {...props}>
+                  <div className="thumb-value">{state.valueNow}</div>
+                </div>
+              )}
+              onChange={(value) => {handleSliderChange("quiver_scale_cs", value)}}
+            />
+          {/*</div>*/}
+        </div>
+        <div className="mb-3 mt-3 form-horizontal">
+          <label htmlFor="quiver_width_grid" className="form-label">
+            grid arrow width [-]
+          </label>
+          {/*<div className="button-container" style={{margin: '20px'}}>*/}
+            <ReactSlider
+              className="horizontal-slider"
+              thumbClassName="thumb"
+              trackClassName="track"
+              value={formData.quiver_width_grid || 1}
+              min={0.2}
+              max={2}
+              step={0.1}
+              renderThumb={(props, state) => (
+                <div {...props}>
+                  <div className="thumb-value">{state.valueNow}</div>
+                </div>
+              )}
+              onChange={(value) => {handleSliderChange("quiver_width_grid", value)}}
+            />
+          {/*</div>*/}
+        </div>
+        <div className="mb-3 mt-3 form-horizontal">
+          <label htmlFor="quiver_width_cs" className="form-label">
+            Cross section arrow width [-]
+          </label>
+          {/*<div className="button-container" style={{margin: '20px'}}>*/}
+            <ReactSlider
+              className="horizontal-slider"
+              thumbClassName="thumb"
+              trackClassName="track"
+              value={formData.quiver_width_cs || 1}
+              min={0.2}
+              max={2}
+              step={0.1}
+              renderThumb={(props, state) => (
+                <div {...props}>
+                  <div className="thumb-value">{state.valueNow}</div>
+                </div>
+              )}
+              onChange={(value) => {handleSliderChange("quiver_width_cs", value)}}
+            />
+          {/*</div>*/}
+        </div>
 
-        <button type='submit' className='btn'>
-          Save
-        </button>
+        {/*<button type='submit' className='btn'>*/}
+        {/*  Save*/}
+        {/*</button>*/}
         <div className='mb-3 mt-3'>Toggle JSON view (advanced users)
           <div className="form-check form-switch">
             <label className="form-label" htmlFor="toggleJson" style={{ marginLeft: '0' }}></label>

@@ -51,8 +51,15 @@ class PlotData(BaseModel):
     plot_quiver: dict = Field(
         default={
             "frames": {},
-            "velocimetry": {"alpha": 0.3, "cmap": "rainbow", "vmax": 2.0},
-            "transect": {"cmap": "rainbow", "add_colorbar": True, "add_text": True, "vmin": 0.0, "vmax": 2.0},
+            "velocimetry": {"alpha": 0.4, "cmap": "rainbow", "vmax": 2.0, "scale": 1.0, "width": 1.0},
+            "transect": {
+                "alpha": 0.8,
+                "cmap": "rainbow",
+                "add_colorbar": True,
+                "add_text": True,
+                "scale": 1.0,
+                "width": 1.0,
+            },
             "mode": "camera",
             "reducer": "mean",
             "write_pars": {"dpi": 300, "bbox_inches": "tight"},
@@ -107,19 +114,32 @@ class RecipeResponse(RecipeRemote):
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
-    v_corr: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
+    alpha: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
     quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
         le=2,
-        description="Scaling of the 2D quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
+        description="Scaling of the 2D quiver plot. 1.0 default",
     )
     quiver_scale_cs: Optional[float] = Field(
         default=1.0,
         ge=0.2,
         le=2,
-        description="Scaling of the cross-section quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
+        description="Scaling of the cross-section quiver plot. 1.0 default",
     )
+    quiver_width_grid: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the 2D quiver plot. 1.0 default",
+    )
+    quiver_width_cs: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the cross-section quiver plot. 1.0 default",
+    )
+
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default="medium", description="Quality of the generated images."
     )
@@ -137,7 +157,20 @@ class RecipeResponse(RecipeRemote):
         instance.end_frame = data.video.end_frame
         instance.freq = data.video.freq
         instance.resolution = data.frames.project["resolution"]
-        instance.velocimetry = "piv"  # make variable once other methods are available
+        # instance.velocimetry = "piv"  # make variable once other methods are available
+        if "v_corr" in data.transect.transect_1["get_q"]:
+            instance.alpha = data.transect.transect_1["get_q"]["v_corr"]
+        if "velocimetry" in data.plot.plot_quiver:
+            if "scale" in data.plot.plot_quiver["velocimetry"]:
+                instance.quiver_scale_grid = 1 / data.plot.plot_quiver["velocimetry"]["scale"]
+            if "width" in data.plot.plot_quiver["velocimetry"]:
+                instance.quiver_width_grid = data.plot.plot_quiver["velocimetry"]["width"]
+        if "transect" in data.plot.plot_quiver:
+            if "scale" in data.plot.plot_quiver["transect"]:
+                instance.quiver_scale_cs = 1 / data.plot.plot_quiver["transect"]["scale"]
+            if "width" in data.plot.plot_quiver["transect"]:
+                instance.quiver_width_cs = data.plot.plot_quiver["transect"]["width"]
+
         # instance.v_corr = 0.85
         # instance.quiver_scale_grid = 1.0
         # instance.quiver_scale_cs = 1.0
@@ -195,7 +228,7 @@ class RecipeUpdate(RecipeBase):
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
-    v_corr: Optional[float] = Field(default=None, ge=0.5, le=1.0, description="Alpha coefficient.")
+    alpha: Optional[float] = Field(default=None, ge=0.5, le=0.95, description="Alpha coefficient.")
     quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
@@ -207,6 +240,18 @@ class RecipeUpdate(RecipeBase):
         ge=0.2,
         le=2,
         description="Scaling of the cross-section quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
+    )
+    quiver_width_grid: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the 2D quiver plot. 1.0 default",
+    )
+    quiver_width_cs: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the cross-section quiver plot. 1.0 default",
     )
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default=None, description="Quality of the generated images."
@@ -231,6 +276,17 @@ class RecipeUpdate(RecipeBase):
             data.frames.project["resolution"] = instance.resolution
         if instance.velocimetry is not None:
             pass
+        if instance.alpha is not None:
+            data.transect.transect_1["get_q"]["v_corr"] = instance.alpha
+        if instance.quiver_scale_grid is not None:
+            data.plot.plot_quiver["velocimetry"]["scale"] = 1 / instance.quiver_scale_grid
+        if instance.quiver_scale_cs is not None:
+            data.plot.plot_quiver["transect"]["scale"] = 1 / instance.quiver_scale_grid
+        if instance.quiver_width_grid is not None:
+            data.plot.plot_quiver["velocimetry"]["width"] = instance.quiver_width_grid
+        if instance.quiver_width_cs is not None:
+            data.plot.plot_quiver["transect"]["width"] = instance.quiver_width_cs
+
         # instance.v_corr = 0.85
         # instance.quiver_scale_grid = 1.0
         # instance.quiver_scale_cs = 1.0

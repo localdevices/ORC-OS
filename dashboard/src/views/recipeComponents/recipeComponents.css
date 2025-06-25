@@ -42,3 +42,18 @@
     border: 1px solid #ccc;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+.form-horizontal {
+    display: flex; /* Use flexbox for horizontal alignment */
+    align-items: center; /* Align label and input vertically */
+    gap: 1rem; /* Standard distance between label and input */
+    font-size: 14px;
+}
+
+.form-horizontal label {
+    width: 200px; /* Optional: Set a fixed width for uniformity */
+}
+
+.form-horizontal input {
+    flex: 1; /* Allow the input to grow and take remaining space if needed */
+}
