@@ -434,6 +434,8 @@ const VideoConfig = () => {
                         setSelectedRecipe={setRecipe}
                         frameCount={frameCount}
                         setMessageInfo={setMessageInfo}
+                        CSWaterLevel={CSWaterLevel}
+                        CSDischarge={CSDischarge}
                       />
                     )}
                 </div>
