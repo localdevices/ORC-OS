@@ -30,7 +30,7 @@ def delete(db: Session, id: int):
     """Delete a single video."""
     query = db.query(models.VideoConfig).filter(models.VideoConfig.id == id)
     if query.count() == 0:
-        raise ValueError(f"Video with id {id} does not exist.")
+        raise ValueError(f"Video config with id {id} does not exist.")
     video_config = query.first()
     db.delete(video_config)
     db.commit()

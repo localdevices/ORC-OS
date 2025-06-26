@@ -13,7 +13,7 @@ class VideoData(BaseModel):
     """Video default data model."""
 
     start_frame: int = Field(default=0)
-    end_frame: Optional[int] = Field(default=None)
+    end_frame: Optional[int] = Field(default=108000)  # assuming 30 minutes with 30 fps is the max video size
     freq: int = Field(default=1)
 
 

@@ -400,7 +400,6 @@ const PhotoComponent = (
 
     imageRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
     selectedWidgetId: PropTypes.number,
-    updateWidget: PropTypes.func.isRequired,
     widgets: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.number.isRequired,
       fit: PropTypes.shape({

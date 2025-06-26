@@ -85,11 +85,7 @@ async def create_recipe(recipe: RecipeResponse, db: Session = Depends(get_db)):
     """Create a new recipe and store it in the database."""
     # exclude fields that are already in the dict structure of the recipe
     recipe_ready_for_db = RecipeRemote(**recipe.model_dump())
-    new_recipe_rec = Recipe(**recipe_ready_for_db.model_dump(exclude_none=True, exclude={"id"}))
-    #     **recipe.model_dump(
-    #         exclude_none=True, exclude={"id", "start_frame", "end_frame", "freq", "resolution", "velocimetry"}
-    #     )
-    # )
+    new_recipe_rec = Recipe(**recipe_ready_for_db.model_dump(exclude_none=True, exclude={"id"}, exclude_unset=True))
     recipe_rec = crud.recipe.add(db=db, recipe=new_recipe_rec)
     return recipe_rec
 

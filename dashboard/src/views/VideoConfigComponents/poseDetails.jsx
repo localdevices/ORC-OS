@@ -280,7 +280,7 @@ const PoseDetails = (
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Control points</h5>
         <label htmlFor='addWidget' className='form-label'>
-          You may add control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
+          Add and provide x, y, z control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
         </label>
         <div>
           <button onClick={addWidget} id="addWidget" className="btn">Add GCP</button>

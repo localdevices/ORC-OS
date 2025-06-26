@@ -119,14 +119,18 @@ def add_water_level(mapper, connection, target):
     db = Session(bind=connection)
     # check if a record is available
     settings = crud.settings.get(db)
-    timestamp = datetime.now() if not target.timestamp else target.timestamp
-    timeseries_record = crud.time_series.get_closest(
-        db,
-        timestamp,
-        allowed_dt=settings.allowed_dt,
-    )
-    if timeseries_record:
-        # link the time series with target
-        target.time_series_id = timeseries_record.id
+    if settings:
+        timestamp = datetime.now() if not target.timestamp else target.timestamp
+        timeseries_record = crud.time_series.get_closest(
+            db,
+            timestamp,
+            allowed_dt=settings.allowed_dt,
+        )
+        if timeseries_record:
+            # link the time series with target
+            target.time_series_id = timeseries_record.id
+        else:
+            print(f"No water level record available for timestamp {timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.")
     else:
-        print(f"No water level record available for timestamp {timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.")
+        # no daemon settings available, so we do not have to provide a water level
+        print("No settings available, skipping attaching time series to videos.")

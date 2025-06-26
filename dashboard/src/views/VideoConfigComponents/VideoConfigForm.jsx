@@ -73,10 +73,10 @@ const VideoConfigForm = (
       filteredData.sample_video_id = video.id;
     }
     // the entire video config is stored in one go
-    if (CSDischarge?.name === undefined) {
+    if (Object.keys(CSDischarge).length > 0 && CSDischarge?.name === undefined) {
       CSDischarge.name = filteredData.name;
     }
-    if (CSWaterLevel?.name === undefined) {
+    if (Object.keys(CSWaterLevel).length > 0 && CSWaterLevel?.name === undefined) {
       CSWaterLevel.name = filteredData.name;
     }
     if (recipe?.name === undefined) {
@@ -109,15 +109,24 @@ const VideoConfigForm = (
     // predefine response object
     let response;
     try {
-      console.log(filteredData);
       response = await api.post('/video_config/', filteredData);
-      console.log(response);
       if (response.status !== 201 && response.status !== 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       } else {
         // set the updated camera config, recipe and cross-section details
         setSelectedVideoConfig(response.data);
+        // also set the camera config id and recipe id
+        setCameraConfig({
+            ...cameraConfig,
+            id: response.data.camera_config.id,
+            name: response.data.camera_config.name
+        });
+        setRecipe({
+            ...recipe,
+            id: response.data.recipe.id,
+            name: response.data.recipe.name
+        });
       }
       setMessageInfo('success', 'Video config stored successfully');
     } catch (err) {
@@ -126,7 +135,7 @@ const VideoConfigForm = (
       // now also update the video where needed
       video.video_config_id = response.data.id;
       // and store this in the database
-      api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
+      await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
       setSave(false);
     }
   };
@@ -134,7 +143,7 @@ const VideoConfigForm = (
 
   return (
     <div style={{"padding": "5px"}}>
-      <p>Let's get started with some simple details and getting the video rotated correctly.</p>
+      <p>Get started with some simple details and getting the video rotated correctly. First save before you continue!</p>
       <form id="videoConfigForm" onSubmit={handleFormSubmit}>
       <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>
