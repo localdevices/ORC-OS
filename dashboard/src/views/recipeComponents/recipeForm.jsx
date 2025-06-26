@@ -172,12 +172,14 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
   }
 
   const handleInputLiteralChange = async (event) => {
+
     const {name, value, type} = event.target;
     const updatedFormData = {
       ...formData,
       [name]: value
     }
     setFormData(updatedFormData);
+    console.log(submitData(updatedFormData));
     try {
       const response = await api.post('/recipe/update/', submitData(updatedFormData));
       setSelectedRecipe(response.data);
@@ -435,7 +437,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   }}
                 />
               </div>
-              <div className="mb-3 mt-3 form-horizontal">
+              <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
                 <label htmlFor="bank" className="form-label">
                   Best visible bank for detection (if in doubt, select far)
                 </label>
@@ -447,6 +449,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     name="bank"
                     id="far"
                     value="far"
+                    checked={formData.bank === "far"}
                   />
                   <label className="form-check-label" htmlFor="grayscale">
                     Far bank
@@ -459,6 +462,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     name="bank"
                     id="near"
                     value="near"
+                    checked={formData.bank === "near"}
                   />
                   <label className="form-check-label" htmlFor="hue">
                     Near bank
@@ -476,6 +480,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     name="wl_get_frames_method"
                     id="grayscale"
                     value="grayscale"
+                    checked={formData.wl_get_frames_method === "grayscale"}
                   />
                   <label className="form-check-label" htmlFor="grayscale">
                     Grayscale
@@ -488,6 +493,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     name="wl_get_frames_method"
                     id="hue"
                     value="hue"
+                    checked={formData.wl_get_frames_method === "hue"}
                   />
                   <label className="form-check-label" htmlFor="hue">
                     Color differences
@@ -505,6 +511,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     name="wl_preprocess"
                     id="none"
                     value=""
+                    checked={formData.wl_preprocess === null}
                   />
                   <label className="form-check-label" htmlFor="none">
                     None
@@ -517,6 +524,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     name="wl_preprocess"
                     id="range"
                     value="range"
+                    checked={formData.wl_preprocess === "range"}
                   />
                   <label className="form-check-label" htmlFor="range">
                     time-range intensity

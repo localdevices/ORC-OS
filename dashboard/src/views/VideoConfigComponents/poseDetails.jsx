@@ -25,55 +25,6 @@ const PoseDetails = (
     file: '',
   });
 
-  // const [nextId, setNextId] = useState(1);  // widget ids increment automatically
-  // const prevControlPoints = useRef(null);
-
-  // useEffect(() => {
-  //   // only change widgets when control points are really individually updated
-  //     if (!areControlPointsEqual(prevControlPoints.current, cameraConfig?.gcps?.control_points)) {
-  //     // set state to new control points for later loops
-  //     const controlPoints = cameraConfig?.gcps?.control_points;
-  //     // create or update widget set
-  //     if (controlPoints) {
-  //       const newWidgets = controlPoints.map((gcp, index) => {
-  //         const color = rainbowColors[(index) % rainbowColors.length];
-  //         return {
-  //           color: color,
-  //           id: index + 1, // Unique ID for widget
-  //           coordinates: {x: gcp.x, y: gcp.y, z: gcp.z, row: gcp.row, col: gcp.col},
-  //           // icon: createCustomMarker(color, index + 1)
-  //         };
-  //       })
-  //       setWidgets(newWidgets);
-  //       // ensure user can set a new widget when clicking on add gcp
-  //       setNextId(newWidgets.length + 1);
-  //       if (prevControlPoints.current !== null) {
-  //         // remove all pose information when gcps are altered in any way
-  //
-  //         setCameraConfig((prevConfig) => ({
-  //           ...prevConfig,
-  //           camera_position: null,
-  //           camera_rotation: null,
-  //           f: null,
-  //           k1: null,
-  //           k2: null,
-  //           gcps: {
-  //             ...prevConfig.gcps,
-  //             z_0: null,
-  //             h_ref: null,
-  //           },
-  //           bbox_camera: [],
-  //           bbox: []
-  //         }));
-  //
-  //       }
-  //       prevControlPoints.current = controlPoints;
-  //
-  //     }
-  //   }
-  //   // }
-  // }, [cameraConfig]);
-
   useEffect(() => {
     // if file is set, try to load and set it
     if (fileFormData.file) {

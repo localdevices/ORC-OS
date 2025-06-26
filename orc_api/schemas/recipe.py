@@ -333,7 +333,8 @@ class RecipeUpdate(RecipeBase):
             min_h=getattr(instance, "min_h", None),
             max_h=getattr(instance, "max_h", None),
         )
-        data.water_level.frames_options.method = instance.wl_preprocess
+        data.water_level.method = getattr(instance, "wl_get_frames_method", "grayscale")
+        data.water_level.frames_options.method = getattr(instance, "wl_preprocess", None)
         instance.data = data.model_dump()
         return instance
 

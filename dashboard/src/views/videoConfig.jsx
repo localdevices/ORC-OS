@@ -497,6 +497,8 @@ const VideoConfig = () => {
                       <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
+                        recipe={recipe}
+                        cameraConfig={cameraConfig}
                       />
                   </div>
                 </div>

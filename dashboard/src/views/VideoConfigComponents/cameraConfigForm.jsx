@@ -114,14 +114,11 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
     // predefine response object
     let response;
     try {
-      console.log(submitData(filteredData));
-
       if (filteredData.id === undefined) {
         response = await api.post('/camera_config/', submitData(filteredData));
       } else {
         response = await api.patch(`/recipe/${filteredData.id}`, submitData(filteredData));
       }
-      console.log(response);
       if (response.status !== 201 && response.status !== 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);

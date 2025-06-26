@@ -48,6 +48,7 @@
     align-items: center; /* Align label and input vertically */
     gap: 1rem; /* Standard distance between label and input */
     font-size: 14px;
+    width: 97%; /* leave a tiny bit of space to render numbers below without causing a scrollbar */
 }
 
 .form-horizontal label {
