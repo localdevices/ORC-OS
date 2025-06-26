@@ -25,6 +25,30 @@ class FramesData(BaseModel):
     project: dict = Field(default={"method": "numpy", "resolution": 0.02})
 
 
+class FramesOptions(BaseModel):
+    """Frames options default data model."""
+
+    method: Optional[Literal["range"]] = Field(default=None)
+
+
+class WaterLevelOptions(BaseModel):
+    """Water level options default data model."""
+
+    bank: Literal["far", "near"] = Field(default="far")
+    length: float = Field(default=3.0)
+    padding: float = Field(default=0.5)
+    min_h: Optional[float] = Field(default=None)  # minimum water level detection
+    max_h: Optional[float] = Field(default=None)  # maximum water level detection
+
+
+class WaterLevel(BaseModel):
+    """Water level default data model."""
+
+    method: str = Field(default="grayscale")
+    water_level_options: WaterLevelOptions = Field(default_factory=WaterLevelOptions)
+    frames_options: FramesOptions = Field(default_factory=FramesOptions)
+
+
 class VelocimetryData(BaseModel):
     """Velocimetry default data model."""
 
@@ -81,6 +105,7 @@ class RecipeData(BaseModel):
     """Recipe data model."""
 
     video: VideoData = Field(default_factory=VideoData)
+    water_level: WaterLevel = Field(default_factory=WaterLevel)
     frames: FramesData = Field(default_factory=FramesData)
     velocimetry: VelocimetryData = Field(default_factory=VelocimetryData)
     mask: dict = Field(default=mask_data)
@@ -114,7 +139,23 @@ class RecipeResponse(RecipeRemote):
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
+    wl_get_frames_method: Optional[Literal["hue", "grayscale"]] = Field(
+        default="grayscale", description="Method for extracting frames for water level estimation."
+    )
+    wl_preprocess: Optional[Literal["range"]] = Field(
+        default=None, description="Method for preprocessing frames for water level estimation."
+    )
     alpha: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
+    min_h: Optional[float] = Field(default=None, description="Minimum water level.")
+    max_h: Optional[float] = Field(default=None, description="Maximum water level.")
+    padding: Optional[float] = Field(
+        default=0.5, description="Padding of the rectangles to measure water level optically."
+    )
+    length: Optional[float] = Field(
+        default=3.0, description="Length of the rectangles for measuring water level optically."
+    )
+    bank: Optional[Literal["far", "near"]] = Field(default="far", description="Bank of the water level measurement.")
+
     quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
@@ -151,8 +192,6 @@ class RecipeResponse(RecipeRemote):
             data = RecipeData()
         else:
             data = RecipeData(**instance.data)
-        # data.pop("transect", None)
-        # data.pop("plot", None)
         instance.start_frame = data.video.start_frame
         instance.end_frame = data.video.end_frame
         instance.freq = data.video.freq
@@ -171,25 +210,20 @@ class RecipeResponse(RecipeRemote):
             if "width" in data.plot.plot_quiver["transect"]:
                 instance.quiver_width_cs = data.plot.plot_quiver["transect"]["width"]
 
-        # instance.v_corr = 0.85
-        # instance.quiver_scale_grid = 1.0
-        # instance.quiver_scale_cs = 1.0
-        # if hasattr(instance, "start_frame") and instance.start_frame is not None:
-        #     data.video.start_frame = instance.start_frame
-        # if hasattr(instance, "end_frame") and instance.end_frame is not None:
-        #     data.video.end_frame = instance.end_frame
-        # if hasattr(instance, "freq") and instance.freq is not None:
-        #     data.video.freq = instance.freq
-        # if hasattr(instance, "resolution") and instance.resolution is not None:
-        #     data.frames.project["resolution"] = instance.resolution
-        # if hasattr(instance, "velocimetry") and instance.velocimetry is not None:
-        #     # when multiple velocimetry methods are available, provide a means to alter this
-        #     pass
+        # fill the optical level estimation parameters
+        if data.water_level:
+            if data.water_level.method:
+                instance.wl_get_frames_method = data.water_level.method
+            if data.water_level.frames_options:
+                # set options for frame extraction and preprocessing
+                instance.wl_preprocess = data.water_level.frames_options.method
+            if data.water_level.water_level_options:
+                # set options for the detection algorithm (literally the same names are used
+                for k, v in data.water_level.water_level_options.model_dump().items():
+                    if v is not None:
+                        setattr(instance, k, v)
+        # finally add the data arg itself as raw dict
         instance.data = data.model_dump()
-        # return instance
-        # instance.quiver_scale_grid = data["quiver_scale_grid"]
-        # instance.quiver_scale_cs = data["quiver_scale_cs"]
-        # instance.image_quality = data["image_quality"]
         return instance
 
     def sync_remote(self, institute: int):
@@ -228,7 +262,23 @@ class RecipeUpdate(RecipeBase):
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
-    alpha: Optional[float] = Field(default=None, ge=0.5, le=0.95, description="Alpha coefficient.")
+    wl_get_frames_method: Optional[Literal["hue", "grayscale"]] = Field(
+        default="grayscale", description="Method for extracting frames for water level estimation."
+    )
+    wl_preprocess: Optional[Literal["range"]] = Field(
+        default=None, description="Method for preprocessing frames for water level estimation."
+    )
+    alpha: Optional[float] = Field(default=0.85, ge=0.5, le=0.95, description="Alpha coefficient.")
+    min_h: Optional[float] = Field(default=None, description="Minimum water level.")
+    max_h: Optional[float] = Field(default=None, description="Maximum water level.")
+    padding: Optional[float] = Field(
+        default=0.5, description="Padding of the rectangles to measure water level optically."
+    )
+    length: Optional[float] = Field(
+        default=3.0, description="Length of the rectangles for measuring water level optically."
+    )
+    bank: Optional[Literal["far", "near"]] = Field(default="far", description="Bank of the water level measurement.")
+
     quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
@@ -264,48 +314,27 @@ class RecipeUpdate(RecipeBase):
             data = RecipeData()
         else:
             data = RecipeData(**instance.data)
-        # data.pop("transect", None)
-        # data.pop("plot", None)
-        if instance.start_frame is not None:
-            data.video.start_frame = instance.start_frame
+        data.video.start_frame = getattr(instance, "start_frame", 0)
         if instance.end_frame is not None:
             data.video.end_frame = instance.end_frame
-        if instance.freq is not None:
-            data.video.freq = instance.freq
-        if instance.resolution is not None:
-            data.frames.project["resolution"] = instance.resolution
+        data.video.freq = getattr(instance, "freq", 1)
+        data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
         if instance.velocimetry is not None:
             pass
-        if instance.alpha is not None:
-            data.transect.transect_1["get_q"]["v_corr"] = instance.alpha
-        if instance.quiver_scale_grid is not None:
-            data.plot.plot_quiver["velocimetry"]["scale"] = 1 / instance.quiver_scale_grid
-        if instance.quiver_scale_cs is not None:
-            data.plot.plot_quiver["transect"]["scale"] = 1 / instance.quiver_scale_grid
-        if instance.quiver_width_grid is not None:
-            data.plot.plot_quiver["velocimetry"]["width"] = instance.quiver_width_grid
-        if instance.quiver_width_cs is not None:
-            data.plot.plot_quiver["transect"]["width"] = instance.quiver_width_cs
-
-        # instance.v_corr = 0.85
-        # instance.quiver_scale_grid = 1.0
-        # instance.quiver_scale_cs = 1.0
-        # if hasattr(instance, "start_frame") and instance.start_frame is not None:
-        #     data.video.start_frame = instance.start_frame
-        # if hasattr(instance, "end_frame") and instance.end_frame is not None:
-        #     data.video.end_frame = instance.end_frame
-        # if hasattr(instance, "freq") and instance.freq is not None:
-        #     data.video.freq = instance.freq
-        # if hasattr(instance, "resolution") and instance.resolution is not None:
-        #     data.frames.project["resolution"] = instance.resolution
-        # if hasattr(instance, "velocimetry") and instance.velocimetry is not None:
-        #     # when multiple velocimetry methods are available, provide a means to alter this
-        #     pass
+        data.transect.transect_1["get_q"]["v_corr"] = getattr(instance, "alpha", 0.85)
+        data.plot.plot_quiver["velocimetry"]["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
+        data.plot.plot_quiver["transect"]["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
+        data.plot.plot_quiver["velocimetry"]["width"] = getattr(instance, "quiver_width_grid", 1.0)
+        data.plot.plot_quiver["transect"]["width"] = getattr(instance, "quiver_width_cs", 1.0)
+        data.water_level.water_level_options = WaterLevelOptions(
+            bank=getattr(instance, "bank", "far"),
+            length=getattr(instance, "length", 3.0),
+            padding=getattr(instance, "padding", 0.5),
+            min_h=getattr(instance, "min_h", None),
+            max_h=getattr(instance, "max_h", None),
+        )
+        data.water_level.frames_options.method = instance.wl_preprocess
         instance.data = data.model_dump()
-        # return instance
-        # instance.quiver_scale_grid = data["quiver_scale_grid"]
-        # instance.quiver_scale_cs = data["quiver_scale_cs"]
-        # instance.image_quality = data["image_quality"]
         return instance
 
 

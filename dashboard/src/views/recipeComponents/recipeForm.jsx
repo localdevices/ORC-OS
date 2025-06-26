@@ -6,7 +6,6 @@ import '../cameraAim.scss'
 import './recipeComponents.css'
 
 const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageInfo, CSWaterLevel, CSDischarge}) => {
-  let sliderDebounceTimer = null;
   const [formData, setFormData] = useState({
     name: '',
     id: '',
@@ -42,8 +41,14 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         quiver_scale_cs: selectedRecipe.quiver_scale_cs,
         quiver_width_grid: selectedRecipe.quiver_width_grid,
         quiver_width_cs: selectedRecipe.quiver_width_cs,
-        min_water_level: selectedRecipe.min_water_level,
-        max_water_level: selectedRecipe.max_water_level
+        min_h: selectedRecipe.min_h,
+        max_h: selectedRecipe.max_h,
+        wl_preprocess: selectedRecipe.wl_preprocess,
+        wl_get_frames_method: selectedRecipe.wl_get_frames_method,
+        padding: selectedRecipe.padding,
+        length: selectedRecipe.length,
+        bank: selectedRecipe.bank
+
       });
     } else {
       setFormData({
@@ -58,8 +63,13 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         quiver_scale_cs: '',
         quiver_width_grid: '',
         quiver_width_cs: '',
-        min_water_level: '',
-        max_water_level: '',
+        min_h: '',
+        max_h: '',
+        wl_preprocess: '',
+        wl_get_frames_method: '',
+        padding: '',
+        length: '',
+        bank: '',
         data: '',
       })
     }
@@ -136,8 +146,13 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       quiver_scale_cs: formData.quiver_scale_cs,
       quiver_width_grid: formData.quiver_width_grid,
       quiver_width_cs: formData.quiver_width_cs,
-      min_water_level: formData.min_water_level,
-      max_water_level: formData.max_water_level
+      min_h: formData.min_h,
+      max_h: formData.max_h,
+      wl_preprocess: formData.wl_preprocess,
+      wl_get_frames_method: formData.wl_get_frames_method,
+      padding: formData.padding,
+      length: formData.length,
+      bank: formData.bank
     }
   }
 
@@ -146,6 +161,21 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     const updatedFormData = {
       ...formData,
       [name]: name === "resolution" ? parseFloat(value) : (type === "number" ? parseInt(value) : value)
+    }
+    setFormData(updatedFormData);
+    try {
+      const response = await api.post('/recipe/update/', submitData(updatedFormData));
+      setSelectedRecipe(response.data);
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+    }
+  }
+
+  const handleInputLiteralChange = async (event) => {
+    const {name, value, type} = event.target;
+    const updatedFormData = {
+      ...formData,
+      [name]: value
     }
     setFormData(updatedFormData);
     try {
@@ -206,11 +236,12 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     }
     const updatedFormData = {
       ...formData,
-      min_water_level: minValue,
-      max_water_level: maxValue
+      min_h: minValue,
+      max_h: maxValue
     }
     setFormData(updatedFormData);
     try {
+      console.log(submitData(updatedFormData));
       const response = await api.post('/recipe/update/', submitData(updatedFormData));
       setSelectedRecipe(response.data);
     } catch (error) {
@@ -221,29 +252,19 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
 
 
   const handleSliderChange = async (name, value) => {
-    // util to just sleep for a while before executing the next function
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     // Ensure values are at least `minimumDifference` apart
     const updatedFormData = {
       ...formData,
       [name]: value,
     }
     setFormData(updatedFormData);
-    // set a timeout to prevent too many API calls
-    if (sliderDebounceTimer) {
-      clearTimeout(sliderDebounceTimer);
-    }
 
-    // new timeout
-    sliderDebounceTimer = setTimeout(async () => {
-      try {
-        await sleep(300);
-        const response = await api.post('/recipe/update/', submitData(updatedFormData));
-        setSelectedRecipe(response.data);
-      } catch (error) {
-        console.error('Error updating recipe:', error);
-      }
-    }, 500);
+    try {
+      const response = await api.post('/recipe/update/', submitData(updatedFormData));
+      setSelectedRecipe(response.data);
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+    }
   }
 
   const handleFormSubmit = async (event) => {
@@ -358,7 +379,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   className="horizontal-slider"
                   thumbClassName="thumb"
                   trackClassName="track"
-                  value={[formData.min_water_level || Math.min(...CSWaterLevel?.z), formData.max_water_level || Math.max(...CSWaterLevel?.z)]} // Default values if unset
+                  value={[formData.min_h || Math.min(...CSWaterLevel?.z), formData.max_h || Math.max(...CSWaterLevel?.z)]} // Default values if unset
                   min={Math.min(...CSWaterLevel.z) || 0}
                   max={Math.max(...CSWaterLevel.z) || 1}
                   step={0.001}
@@ -371,15 +392,88 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                 />
               </div>
               <div className="mb-3 mt-3 form-horizontal">
-                <label htmlFor="frame_extraction_method" className="form-label">
-                  Frame extraction method for water level
+                <label htmlFor="padding" className="form-label">
+                  Land in/outward distance to measure intensity differences on [m]
+                </label>
+                <ReactSlider
+                  className="horizontal-slider"
+                  thumbClassName="thumb"
+                  trackClassName="track"
+                  value={formData.padding || 0.5} // Default values if unset
+                  min={0.1}
+                  max={5}
+                  step={0.05}
+                  renderThumb={(props, state) => (
+                    <div {...props}>
+                      <div className="thumb-value">{state.valueNow}</div>
+                    </div>
+                  )}
+                  onChange={(value) => {
+                    handleSliderChange("padding", value)
+                  }}
+                />
+              </div>
+              <div className="mb-3 mt-3 form-horizontal">
+                <label htmlFor="rectangle_length" className="form-label">
+                  Size of element to measure water level on [m]
+                </label>
+                <ReactSlider
+                  className="horizontal-slider"
+                  thumbClassName="thumb"
+                  trackClassName="track"
+                  value={formData.length || 3} // Default values if unset
+                  min={0.1}
+                  max={15}
+                  step={0.05}
+                  renderThumb={(props, state) => (
+                    <div {...props}>
+                      <div className="thumb-value">{state.valueNow}</div>
+                    </div>
+                  )}
+                  onChange={(value) => {
+                    handleSliderChange("length", value)
+                  }}
+                />
+              </div>
+              <div className="mb-3 mt-3 form-horizontal">
+                <label htmlFor="bank" className="form-label">
+                  Best visible bank for detection (if in doubt, select far)
                 </label>
                 {/*<div onChange={(e) => setFrameExtractionMethod(e.target.value)}>*/}
                 <div className="form-check">
                   <input
                     className="form-check-input"
                     type="radio"
-                    name="frame_extraction_method"
+                    name="bank"
+                    id="far"
+                    value="far"
+                  />
+                  <label className="form-check-label" htmlFor="grayscale">
+                    Far bank
+                  </label>
+                </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="bank"
+                    id="near"
+                    value="near"
+                  />
+                  <label className="form-check-label" htmlFor="hue">
+                    Near bank
+                  </label>
+                </div>
+              </div>
+              <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
+                <label htmlFor="wl_get_frames_method" className="form-label">
+                  Frame extraction method for water level
+                </label>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="wl_get_frames_method"
                     id="grayscale"
                     value="grayscale"
                   />
@@ -391,7 +485,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   <input
                     className="form-check-input"
                     type="radio"
-                    name="frame_extraction_method"
+                    name="wl_get_frames_method"
                     id="hue"
                     value="hue"
                   />
@@ -400,16 +494,15 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   </label>
                 </div>
               </div>
-              <div className="mb-3 mt-3 form-horizontal">
-                <label htmlFor="preprocessing" className="form-label">
+              <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
+                <label htmlFor="wl_preprocess" className="form-label">
                   Preprocess frames
                 </label>
-                {/*<div onChange={(e) => setFrameExtractionMethod(e.target.value)}>*/}
                 <div className="form-check">
                   <input
                     className="form-check-input"
                     type="radio"
-                    name="preprocessing"
+                    name="wl_preprocess"
                     id="none"
                     value=""
                   />
@@ -421,19 +514,14 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   <input
                     className="form-check-input"
                     type="radio"
-                    name="preprocessing"
+                    name="wl_preprocess"
                     id="range"
                     value="range"
                   />
                   <label className="form-check-label" htmlFor="range">
-                    Extract time-range intensity
+                    time-range intensity
                   </label>
                 </div>
-              </div>
-              <div className="mb-3 mt-3 form-horizontal">
-                <label htmlFor="" className="form-label">
-                  Frame extraction method for discharge
-                </label>
               </div>
             </div>
           ) : (

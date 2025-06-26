@@ -91,13 +91,13 @@ async def create_recipe(recipe: RecipeResponse, db: Session = Depends(get_db)):
 
 
 @router.post("/update/", response_model=RecipeUpdate, status_code=201)
-async def update_recipe(recipe: RecipeUpdate):
+async def update_recipe(recipe: dict):  # RecipeUpdate
     """Update an in-memory recipe.
 
     This only validates the input and adds default fields where necessary.
     No storage on the database is performed.
     """
-    return recipe
+    return RecipeUpdate.model_validate(recipe)
 
 
 @router.post("/from_file/", response_model=RecipeResponse, status_code=201)
