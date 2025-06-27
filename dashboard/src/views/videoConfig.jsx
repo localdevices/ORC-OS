@@ -467,33 +467,7 @@ const VideoConfig = () => {
               "overflowY": "hidden",
               "overflowX": "hidden"
             }}>
-              {/*<div className="tabbed-form-container">*/}
-              {/*  <div className="tabs-header">*/}
                   <h5>Side view</h5>
-                  {/*<div className="tabs-row">*/}
-                  {/*  <button*/}
-                  {/*    className={activeView === 'sideView' ? 'active-tab' : ''}*/}
-                  {/*    onClick={(e) => {*/}
-                  {/*      e.preventDefault();*/}
-                  {/*      handleViewChange('sideView');*/}
-                  {/*    }}*/}
-                  {/*  >*/}
-                  {/*    Side view*/}
-                  {/*  </button>*/}
-                  {/*  <button*/}
-                  {/*    className={activeView === 'topView' ? 'active-tab' : ''}*/}
-                  {/*    onClick={(e) => {*/}
-                  {/*      e.preventDefault();*/}
-                  {/*      handleViewChange('topView');*/}
-                  {/*    }}*/}
-                  {/*  >*/}
-                  {/*    Top view*/}
-                  {/*  </button>*/}
-                  {/*</div>*/}
-                {/*</div>*/}
-                {/*<div className="tab-container">*/}
-                {/*  /!* Tab content *!/*/}
-                {/*  <div className="tab-content">*/}
                       <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
@@ -504,9 +478,6 @@ const VideoConfig = () => {
                 </div>
               </div>
             </div>
-        {/*  </div>*/}
-        {/*</div>*/}
-      {/*</div>*/}
     </div>
   );
 };

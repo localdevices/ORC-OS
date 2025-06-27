@@ -8,9 +8,16 @@ export const MessageProvider = ({ children }) => {
   const [message, setMessage] = useState(''); // Message content
   const [messageType, setMessageType] = useState(''); // 'error', 'success', 'warning'
   const [showMessage, setShowMessage] = useState(false); // Control visibility
+  const [timeoutId, setTimeoutId] = useState(null);
 
   // Function to set a message
   const setMessageInfo = (type, content) => {
+    // Clear existing time out
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+
     // Clear existing message first
     setShowMessage(false);
     setMessage('');
@@ -20,6 +27,14 @@ export const MessageProvider = ({ children }) => {
     setMessage(content);
     setMessageType(type);
     setShowMessage(true);
+
+    // Automatically hide the message after 5 seconds
+    const newTimeoutId = setTimeout(() => {
+      setShowMessage(false);
+    }, 5000);
+
+    setTimeoutId(newTimeoutId);
+
   };
 
   return (

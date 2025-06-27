@@ -157,9 +157,14 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
 
 SideView.propTypes = {
   CSDischarge: PropTypes.shape({
-    s: PropTypes.arrayOf(PropTypes.number).isRequired,
-    z: PropTypes.arrayOf(PropTypes.number).isRequired
+    s: PropTypes.arrayOf(PropTypes.number),
+    z: PropTypes.arrayOf(PropTypes.number)
   }).isRequired,
-  CSWaterLevel: PropTypes.any // Update based on the actual usage of CSWaterLevel
+  CSWaterLevel: PropTypes.shape({
+    s: PropTypes.arrayOf(PropTypes.number),
+    z: PropTypes.arrayOf(PropTypes.number)
+  }).isRequired,
+  recipe: PropTypes.object,
+  cameraConfig: PropTypes.object,
 };
 export default SideView;
