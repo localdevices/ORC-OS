@@ -146,6 +146,20 @@ class VideoConfigBase(BaseModel):
         recipe_new["data"] = recipe
         return RecipeResponse(**recipe_new)
 
+    @property
+    def allowed_to_run(self):
+        """Check if the video config is ready to run."""
+        # check if camera config is complete, it must have fitted pose, bounding box
+        if self.camera_config is None:
+            return False
+        if self.recipe is None:
+            return False
+        if not self.camera_config.allowed_to_run:
+            return False
+        if not self.cross_section:
+            return False
+        return True
+
 
 class VideoConfigRemote(VideoConfigBase, RemoteModel):
     """Remote schema for VideoConfig."""
@@ -165,6 +179,14 @@ class VideoConfigResponse(VideoConfigRemote):
     cross_section_wl_id: Optional[int] = Field(
         default=None, description="Optional foreign key to the water level cross section.", ge=1
     )
+    ready_to_run: bool = Field(default=False, description="Flag to indicate if the video config is ready to run.")
+    model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def check_if_ready_to_run(cls, v):
+        """Ensure that ready to run state is provided to front end."""
+        v.ready_to_run = v.allowed_to_run
+        return v
 
     def sync_remote(self, site: int):
         """Send the video config to LiveORC API.

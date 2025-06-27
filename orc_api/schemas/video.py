@@ -46,7 +46,6 @@ class VideoResponse(VideoBase, RemoteModel):
     time_series: Optional[TimeSeriesResponse] = Field(default=None, description="Time series attached to video.")
     time_series_id: Optional[int] = Field(default=None, description="ID of time series attached to video.")
     video_config: Optional[VideoConfigResponse] = Field(description="Video configuration.", default=None)
-
     model_config = ConfigDict(from_attributes=True)
 
     @property
@@ -85,7 +84,7 @@ class VideoResponse(VideoBase, RemoteModel):
             # we are not allowed to try optical water levels, so return False
             return False, "Not allowed to run optical water levels and no water level available."
         # we are allowed optical, so check if there is a cross section
-        if self.video_config.cross_section is None:
+        if self.video_config.cross_section_wl is None:
             return (
                 False,
                 "No cross section available, required for optical water levels. Please add one using the UI or API.",

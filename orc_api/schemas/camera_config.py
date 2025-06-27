@@ -92,6 +92,29 @@ class CameraConfigInteraction(CameraConfigBase):
     bbox: Optional[List[List[float]]] = Field(default=None, description="Bounding (geographical) box of the AOI.")
     bbox_camera: Optional[List[List[float]]] = Field(default=None, description="Bounding box (camera) of the AOI.")
 
+    @property
+    def allowed_to_run(self):
+        """Check if the camera configuration is allowed to run."""
+        # Check if camera position and rotation are set and have 3 components each
+        if not self.camera_position or not self.camera_rotation:
+            return False
+        if len(self.camera_position) != 3 or len(self.camera_rotation) != 3:
+            return False
+
+        # Check if any components are None
+        if any(x is None for x in self.camera_position) or any(x is None for x in self.camera_rotation):
+            return False
+
+        # Check if focal length and distortion coefficients are set
+        if self.f is None or self.k1 is None or self.k2 is None:
+            return False
+
+        # Check if bounding box is set
+        if self.bbox is None:
+            return False
+
+        return True
+
     def sync_remote(self, site: int):
         """Send the recipe to LiveORC API.
 
@@ -203,11 +226,9 @@ class CameraConfigUpdate(CameraConfigInteraction):
         if instance.f is not None:
             camera_matrix = get_cam_mtx(height=instance.data.height, width=instance.data.width, focal_length=instance.f)
             instance.data.camera_matrix = camera_matrix.tolist()
-        if instance.data.dist_coeffs is not None:
-            dist_coeffs = np.array(instance.data.dist_coeffs)
         else:
-            dist_coeffs = np.zeros((5, 1), dtype=np.float64)
-
+            instance.data.camera_matrix = None
+        dist_coeffs = np.zeros((5, 1), dtype=np.float64)
         if instance.k1 is not None:
             dist_coeffs[0][0] = instance.k1
         if instance.k2 is not None:
@@ -220,6 +241,10 @@ class CameraConfigUpdate(CameraConfigInteraction):
                 rvec.tolist(),
                 tvec.tolist(),
             )
+        else:
+            # if either one is missing, we set everything to None
+            instance.data.rvec, instance.data.tvec = None, None
+
         # handle the control points
         if instance.gcps:
             if instance.gcps.control_points:
