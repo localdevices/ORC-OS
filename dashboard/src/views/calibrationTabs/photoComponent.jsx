@@ -19,6 +19,7 @@ const PhotoComponent = (
     bBoxPolygon,
     CSDischarge,
     CSWaterLevel,
+    dragging,
     setCameraConfig,
     setImgDims,
     setBBoxPolygon,
@@ -40,6 +41,9 @@ const PhotoComponent = (
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
+
+  // set a mouseDown state for tracking mouse behaviour
+  const mouseDownTimeRef = useRef(0);
 
 
   const checkImageReady = () => {
@@ -80,7 +84,6 @@ const PhotoComponent = (
     }
 
   }, [cameraConfig, imgDims, transformState, photoBbox]);
-
 
   useEffect(() => {
     // set cross sections
@@ -141,6 +144,7 @@ const PhotoComponent = (
     setTransformState(state); // Update the transformState on every transformation
     // updateFittedPoints();
   });
+
 
   const getFrameUrl = (frameNr, rotate) => {
     if (!video) return '';
@@ -206,8 +210,23 @@ const PhotoComponent = (
     return { start: startPoint, end: endPoint };
   };
 
+  // Mouse behaviour functions
+  // -------------------------
+  // Handle mouse down
+  const handleMouseDown = () => {
+    mouseDownTimeRef.current = Date.now(); // Save the current time
+  };
 
-    const handleMouseMove = (event) => {
+  // Handle mouse up
+  const handleMouseUp = (event) => {
+    const clickDuration = Date.now() - mouseDownTimeRef.current;
+    // Only consider it a "click" if dragging did not occur and the click was fast enough
+    if (clickDuration < 200) {
+      handleMouseClick(event); // Call your existing click logic
+    }
+  };
+
+  const handleMouseMove = (event) => {
     if (!imageRef.current) return;
     if (!photoBbox || !imgDims || !transformState) return;
 
@@ -353,16 +372,16 @@ const PhotoComponent = (
     }
   };
 
+
   const handleMouseClick = (event) => {
     // this function is called when the user clicks on the image. It starts with several general coordinate
     // properties, then calling a callback handlePhotoClick to do specific things with the coordinates.
     if (!imageRef.current) return;
-    event.stopPropagation();
+
     if (!transformState) {
       console.error("TransformContext state is null or uninitialized");
       return;
     }
-
     // Get the (x, y) position of the click relative to the visible image
     const clickX = event.clientX - photoBbox.left;
     const clickY = event.clientY - photoBbox.top;
@@ -424,9 +443,11 @@ const PhotoComponent = (
         style={{width: '100%', height: '100%'}}
         className="img-calibration"
         ref={imageRef}
-        onClick={handleMouseClick}
+        // onClick={handleMouseClick}
         onLoad={handleImageLoad}
         onMouseMove={handleMouseMove} // Track mouse movement
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         src={imageUrl}
         alt="img-calibration"
@@ -657,8 +678,10 @@ const PhotoComponent = (
       )}
     </TransformComponent>
       {loading && (
-        <div className="spinner-container">
+        <div className="spinner-viewport">
           <div className="spinner" />
+          <div>Loading frame...</div>
+
         </div>
       )}
 

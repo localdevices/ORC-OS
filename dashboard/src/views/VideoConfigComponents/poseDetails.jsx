@@ -16,6 +16,8 @@ const PoseDetails = (
     imgDims,
     updateWidget,
     setCameraConfig,
+    setCSDischarge,
+    setCSWaterLevel,
     setWidgets,
     setSelectedWidgetId,
     setMessageInfo
@@ -90,6 +92,8 @@ const PoseDetails = (
       ...cameraConfig,
       gcps: {
         ...cameraConfig.gcps,
+        z_0: null,
+        h_ref: null,
         control_points: cameraConfig.gcps.control_points.filter((gcp, index) => index + 1 !== id)
       }, // reset any pose dependent parameters
       camera_position: null,
@@ -102,7 +106,8 @@ const PoseDetails = (
 
     }
     setCameraConfig(newConfig);
-    setCS
+    setCSDischarge({});
+    setCSWaterLevel({});
   };
 
 

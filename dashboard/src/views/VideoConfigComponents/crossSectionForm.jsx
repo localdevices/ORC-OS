@@ -198,6 +198,7 @@ const CrossSectionForm = (
           <input
             type='number' className='form-control'
             id='z_0' name='z_0'
+            step={0.01}
             onChange={handleWaterLevelChange}
             value={cameraConfig?.gcps?.z_0 ? cameraConfig.gcps.z_0 : ''}
             // disabled={!validatePose()}
@@ -211,6 +212,7 @@ const CrossSectionForm = (
           <input
             type='number' className='form-control'
             id='h_ref' name='h_ref'
+            step={0.01}
             onChange={handleWaterLevelChange}
             value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
             disabled={!validatez0()}

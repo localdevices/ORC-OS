@@ -109,6 +109,7 @@ const VideoConfigForm = (
     // predefine response object
     let response;
     try {
+      console.log(filteredData);
       response = await api.post('/video_config/', filteredData);
       if (response.status !== 201 && response.status !== 200) {
         const errorData = await response.json()
@@ -130,13 +131,18 @@ const VideoConfigForm = (
       }
       setMessageInfo('success', 'Video config stored successfully');
     } catch (err) {
-      setMessageInfo('Error while storing video config', err.response.data);
+      console.log("ERROR: ", err);
+      setMessageInfo('error', `Error while storing video config ${err.response.data.detail}`);
     } finally {
-      // now also update the video where needed
-      video.video_config_id = response.data.id;
-      // and store this in the database
-      await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
-      setSave(false);
+      try {
+        // now also update the video where needed
+        video.video_config_id = response.data.id;
+        // and store this in the database
+        await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
+        setSave(false);
+      } catch (err) {
+        console.log(`Failed to set video config id for video ${video.id}`);
+      }
     }
   };
 

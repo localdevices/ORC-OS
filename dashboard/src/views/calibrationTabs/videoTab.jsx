@@ -22,6 +22,7 @@ const VideoTab = (
     setImgDims,
   }
 ) => {
+  const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(1);
   const [bboxMarkers, setBboxMarkers] = useState([]);
   const [clickCount, setClickCount] = useState(0);
@@ -111,7 +112,7 @@ const VideoTab = (
                touchEnabled={true}
                panEnabled={true}
                preventWheel={true}
-               // ensure the scale is tracked all the time
+              // ensure the scale is tracked all the time
                onTransformed={(e) => {
                  setScale(e.state.scale)
                }}
@@ -128,6 +129,7 @@ const VideoTab = (
                    bBoxPolygon={bBoxPolygon}
                    CSDischarge={CSDischarge}
                    CSWaterLevel={CSWaterLevel}
+                   dragging={dragging}
                    setCameraConfig={setCameraConfig}
                    setImgDims={setImgDims}
                    setBBoxPolygon={setBBoxPolygon}

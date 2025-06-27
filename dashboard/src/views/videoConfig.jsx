@@ -52,6 +52,13 @@ const VideoConfig = () => {
           this.name !== null &&
           this.id !== null
         )
+      },
+      isReadyForProcessing: function () {
+        return (
+          this.isCalibrated() &&
+          this.isPoseReady() &&
+          this.bbox !== null
+        )
       }
     }
 
@@ -204,6 +211,8 @@ const VideoConfig = () => {
         ...cameraConfig,
         gcps: {
           ...cameraConfig.gcps,
+          z_0: null,
+          h_ref: null,
           control_points: newWidgets.map(widget => widget.coordinates)
         },
         camera_position: null,
@@ -212,10 +221,16 @@ const VideoConfig = () => {
         k1: null,
         k2: null,
         bbox_camera: [],
-        bbox: []
+        bbox: [],
+        data: {
+          ...cameraConfig.data,
+          bbox: null
+        }
 
       }
       setCameraConfig(newConfig);
+      setCSDischarge({});
+      setCSWaterLevel({});
       // also remove selected cross sections
       return newWidgets;
     });
@@ -441,6 +456,8 @@ const VideoConfig = () => {
                       imgDims={imgDims}
                       updateWidget={updateWidget}
                       setCameraConfig={setCameraConfig}
+                      setCSDischarge={setCSDischarge}
+                      setCSWaterLevel={setCSWaterLevel}
                       setWidgets={setWidgets}
                       setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
