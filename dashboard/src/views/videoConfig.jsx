@@ -71,6 +71,7 @@ const VideoConfig = () => {
     api.get(`/video/${videoId}`)
       .then((response) => {
         setVideo(response.data);
+        console.log("VIDEO INFO:", response.data);
         if (response.data.video_config !== null) {
           setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
           if (response.data.video_config.recipe !== null) {

@@ -102,6 +102,88 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         return <FaSync style={{ color: "grey" }} />; // Default spinner
     }
   };
+  const getVideoConfigIcon = (video) => {
+    // If video_config is not present
+    if (!video.video_config) {
+      return (
+        <TbCameraCancel
+          style={{ color: "red" }}
+          size={20}
+          className="pulsating-icon"
+        />
+      );
+    }
+
+    // If video_config.sample_video_id matches video.id
+    if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
+      return (
+        <TbCameraPin
+          style={{ color: "blue" }}
+          size={20}
+          className="btn-icon"
+        />
+      );
+    }
+    if (video.video_config.sample_video_id === video.id) {
+      return (
+        <TbCameraPin
+          style={{ color: "orange" }}
+          size={20}
+          className="pulsating-icon"
+        />
+      );
+    }
+      // Catch-all case for video_config
+    return (
+      <TbCameraCheck
+        style={{ color: "green" }}
+        size={20}
+        className="btn-icon"
+      />
+    );
+  };
+
+  const getVideoConfigTitle = (video) => {
+    // If video_config is not present
+    if (!video.video_config) {
+      return "No video configuration is set. Click to select an existing video configuration or create a new one based on this video, if it contains control point information."
+
+    }
+    // If video_config.sample_video_id matches video.id
+    if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
+      return "This video acts as a reference video for a video configuration and is ready to use. Click to change video configuration."
+    }
+    if (video.video_config.sample_video_id === video.id) {
+      return "This video acts as a reference video for a video configuration and is not ready to use. Click to finish video configuration."
+    }
+    return "This video has another video as a reference video. Click to change that video configuration."
+  }
+
+
+
+  const renderVideoConfigButton = (video) => {
+      return (
+        <button
+          className="btn-icon"
+          onClick={() => handleVideoConfig(video)}
+          title={getVideoConfigTitle(video)}
+      >
+        {/*First check if has a config or not,
+                    then check if video id is equal to the sample video id, if so this is a control video*/}
+        {getVideoConfigIcon(video)}
+        {/*{video.video_config ? (*/}
+        {/*  video.video_config.sample_video_id === video.id ? (*/}
+        {/*    <TbCameraPin style={{"color": "blue"}} size={20} className="btn-icon"/>*/}
+        {/*  ) : (*/}
+        {/*    <TbCameraCheck style={{"color": "green"}} size={20} className="btn-icon"/>*/}
+
+        {/*  )*/}
+        {/*) : (*/}
+        {/*  <TbCameraCancel style={{"color": "red"}} size={20} className="pulsating-icon"/>*/}
+        {/*)}*/}
+      </button>
+      )
+  }
 
   const toggleSelect = (id) => {
     setSelectedIds((prevSelectedIds) =>
@@ -252,32 +334,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
                 >
                   <FaTrash className="danger"/>
                 </button>
-                <button className="btn-icon"
-                      onClick={() => handleVideoConfig(video)}
-                      title={video.video_config ? (
-                        video.video_config.sample_video_id === video.id ? (
-                          "This video acts as a reference video for a video configuration. Click to change video configuration"
-                        ): (
-                          "This video has another video as a reference video. Click to change that video configuration"
-                        )
-                      ) : (
-                        "No video configuration is set. Click to select an existing video configuration or create a new one based on this video, if it contains control point information."
-                      )}
-
-                >
-                  {/*First check if has a config or not,
-                  then check if video id is equal to the sample video id, if so this is a control video*/}
-                  {video.video_config ? (
-                    video.video_config.sample_video_id === video.id ? (
-                      <TbCameraPin style={{"color": "blue"}} size={20} className="btn-icon"/>
-                    ) : (
-                      <TbCameraCheck style={{"color": "green"}} size={20} className="btn-icon"/>
-
-                    )
-                  ) : (
-                    <TbCameraCancel style={{"color": "red"}} size={20} className="pulsating-icon"/>
-                  )}
-                </button>
+                {renderVideoConfigButton(video)}
               </td>
             </tr>
           ))}
