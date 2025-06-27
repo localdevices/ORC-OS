@@ -69,6 +69,12 @@ class Settings(Base):
         Boolean, default=False, comment="Flag for syncing video files to remote server"
     )
     sync_image: Mapped[bool] = mapped_column(Boolean, default=False, comment="Flag for syncing images to remote server")
+    active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        comment="Flag for enabling the daemon. If disabled, the daemon will not be started and only "
+        "interactive processing is done.",
+    )
 
     def __str__(self):
         return "Settings {} ({})".format(self.created_at, self.id)

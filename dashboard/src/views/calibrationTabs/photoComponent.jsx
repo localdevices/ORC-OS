@@ -156,6 +156,11 @@ const PhotoComponent = (
     }
     return frameUrl
   }
+  const isImageCached = (url) => {
+    const img = new Image();
+    img.src = url; // Set the source
+    return img.complete; // This will be true for cached images
+  };
 
   // set / reset timer for reloading of image with requested changes
   const debounce = (callback, delay) => {
@@ -171,7 +176,11 @@ const PhotoComponent = (
       // Update the image URL whenever frameNr or rotate changes
       const url = getFrameUrl(frameNr, rotate);
       setImageUrl(url); // Set the new image URL
-      setLoading(true); // Trigger loading state when the URL changes
+      if (isImageCached(url)) {
+        setLoading(false);  // skil loading stage if cached (prevents race issues)
+      } else {
+        setLoading(true);   // Trigger loading state when the URL changes
+      }
     }, 300);
     debouncedUpdate();
     return () => clearTimeout(debouncedUpdate);
@@ -363,7 +372,7 @@ const PhotoComponent = (
   };
 
   const handleImageLoad = () => {
-    if (imageRef.current) {
+    if (imageRef.current && imageUrl) {
       setImgDims({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
@@ -445,6 +454,11 @@ const PhotoComponent = (
         ref={imageRef}
         // onClick={handleMouseClick}
         onLoad={handleImageLoad}
+        onError={() => {
+          setLoading(false); // Always unset loading on error
+          console.error('Image failed to load.');
+        }}
+
         onMouseMove={handleMouseMove} // Track mouse movement
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}

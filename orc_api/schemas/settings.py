@@ -46,6 +46,7 @@ class SettingsBase(BaseModel):
     sync_image: Optional[bool] = Field(
         default=None, description="Flag for syncing the result image file with the remote site."
     )
+    active: Optional[bool] = Field(default=None, description="Flag for enabling/disabling the daemon.")
 
 
 class SettingsResponse(SettingsBase):

@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import api from '../api';
 import { DropdownMenu } from "../utils/dropdownMenu.jsx";
 import {useMessage} from '../messageContext';
@@ -16,6 +16,11 @@ const Settings = () => {
         parse_dates_from_file: true,
         reboot_after: '',
         video_config_id: '',
+        remote_site_id: '',
+        sync_file: false,
+        sync_image: false,
+        active: false
+
     });
     // set message box
     const {setMessageInfo} = useMessage();
@@ -30,7 +35,8 @@ const Settings = () => {
         // also get available video configs
         const response = api.get('/video_config/');
         response.then(response => {
-            setVideoConfigs(response.data);
+            const filteredConfigs = response.data.filter(config => config.ready_to_run === true);
+            setVideoConfigs(filteredConfigs);
         });
 
     }, []);
@@ -39,19 +45,23 @@ const Settings = () => {
             setFormData({
                 video_file_fmt: settings.video_file_fmt || '',
                 allowed_dt: settings.allowed_dt || '',
-                shutdown_after_task: settings.shutdown_after_task || '',
-                parse_dates_from_file: settings.parse_dates_from_file || '',
+                shutdown_after_task: settings.shutdown_after_task || false,
+                parse_dates_from_file: settings.parse_dates_from_file || false,
                 reboot_after: settings.reboot_after || '',
                 video_config_id: settings.video_config_id || '',
                 remote_site_id: settings.remote_site_id || '',
-                sync_file: settings.sync_file || '',
-                sync_image: settings.sync_image || ''
+                sync_file: settings.sync_file || false,
+                sync_image: settings.sync_image || false,
+                active: settings.active || false
+
             });
         }
     }, [settings]);
 
     const handleInputChange = (event) => {
+        console.log(event.target.checked, event.target.value);
         const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+        console.log(value);
         setFormData({
             ...formData,
             [event.target.name]: value,
@@ -73,14 +83,27 @@ const Settings = () => {
             [name]: type === "number" ? parseInt(value) : value
         });
     };
+
+    const validateSettings = () => {
+        // daemon runner can only be active when video format, allowed time difference, and video config is set
+        // to a valid input
+        if (formData.video_file_fmt && formData.allowed_dt && formData.video_config_id) {
+            return true;
+        }
+        return false;
+    }
     const handleFormSubmit = async (event) => {
         try {
             event.preventDefault();
             console.log(formData);
             // Dynamically filter only fields with non-empty values
             const filteredData = Object.fromEntries(
-              Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
+              Object.entries(formData).map(([key, value]) => [key, value === '' ? null : value])
             );
+            //
+            // const filteredData = Object.fromEntries(
+            //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
+            // );
             console.log(filteredData);
             const response = await api.post('/settings/', filteredData);
             if (!response.status === 200) {
@@ -95,13 +118,14 @@ const Settings = () => {
             setFormData({
                 video_file_fmt: '',
                 allowed_dt: '',
-                shutdown_after_task: '',
-                parse_dates_from_file: '',
+                shutdown_after_task: false,
+                parse_dates_from_file: false,
                 reboot_after: '',
                 video_config_id: '',
                 remote_site_id: '',
-                sync_file: '',
-                sync_image: ''
+                sync_file: false,
+                sync_image: false,
+                active: false
             });
         } catch (err) {
             setMessageInfo('error', err.response.data);
@@ -171,7 +195,7 @@ const Settings = () => {
                 </div>
                 <div className='mb-3 mt-3'>
                   <DropdownMenu
-                    dropdownLabel={"Video configurations"}
+                    dropdownLabel={"Video configurations. Only entirely completed configurations can be selected here"}
                     callbackFunc={handleInputDropdown}
                     data={videoConfigs}
                     value={formData.video_config_id}
@@ -213,6 +237,23 @@ const Settings = () => {
                         Synchronize result image file with LiveORC server (if configured)
                     </label>
                 </div>
+                <div className='mb-3 mt-3'>Activate the daemon runner.
+                    <div className="form-check form-switch">
+                        <label className="form-label" htmlFor="active" style={{marginLeft: '0'}}></label>
+                        <input
+                          style={{width: "40px", height: "20px", borderRadius: "15px"}}
+                          className="form-check-input"
+                          type="checkbox"
+                          id="active"
+                          name="active"
+                          onChange={handleInputChange}
+                          value={validateSettings() ? (formData.active) : false}
+                          checked={validateSettings() ? (formData.active): false}
+                          disabled={!validateSettings()}
+                        />
+                    </div>
+                </div>
+
                 <button type='submit' className='btn'>
                     Submit
                 </button>
