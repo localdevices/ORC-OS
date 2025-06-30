@@ -661,13 +661,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                 handleSliderChange("quiver_width_cs", value)
               }}
             />
-            {/*</div>*/}
           </div>
-
-          {/*<button type='submit' className='btn'>*/}
-          {/*  Save*/}
-          {/*</button>*/}
-
           <hr></hr>
           <h5>Expert users</h5>
           <div className='mb-3 mt-3'>Toggle JSON view for inspection

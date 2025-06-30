@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY
 from orc_api.log import logger
 from orc_api.utils import disk_management as dm
 
@@ -14,7 +15,6 @@ from orc_api.utils import disk_management as dm
 class DiskManagementBase(BaseModel):
     """Base schema for disk management."""
 
-    home_folder: Optional[str] = Field(default=None, description="Home folder of the device.")
     min_free_space: Optional[float] = Field(default=None, description="GB of minimum free space required.")
     critical_space: Optional[float] = Field(default=None, description="GB of free space critical for the device.")
     frequency: Optional[int] = Field(default=None, description="Frequency [s] for checking disk status and cleanup.")
@@ -22,7 +22,7 @@ class DiskManagementBase(BaseModel):
     @property
     def incoming_path(self):
         """Path to the incoming folder."""
-        path = os.path.join(self.home_folder, "incoming")
+        path = INCOMING_DIRECTORY
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -30,7 +30,7 @@ class DiskManagementBase(BaseModel):
     @property
     def failed_path(self):
         """Path to the failed folder."""
-        path = os.path.join(self.home_folder, "failed")
+        path = os.path.join(UPLOAD_DIRECTORY, "failed")
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -38,7 +38,7 @@ class DiskManagementBase(BaseModel):
     @property
     def results_path(self):
         """Path to the results folder."""
-        path = os.path.join(self.home_folder, "results")
+        path = os.path.join(UPLOAD_DIRECTORY, "results")
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -46,7 +46,7 @@ class DiskManagementBase(BaseModel):
     @property
     def log_path(self):
         """Path to the logs folder."""
-        path = os.path.join(self.home_folder, "logs")
+        path = os.path.join(UPLOAD_DIRECTORY, "logs")
         if not os.path.exists(path):
             os.makedirs(path)
         return path

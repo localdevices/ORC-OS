@@ -22,3 +22,12 @@
   font-size: 0.9rem;
   align-items: center;
 }
+
+/* lighter coloured link style for dark bars */
+.dark-link {
+  color: #FFFFFF;
+}
+.dark-link:hover {
+  color: #FFFFFF;
+  font-weight: bold;
+}

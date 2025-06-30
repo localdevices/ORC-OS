@@ -88,16 +88,16 @@ class Settings(Base):
         if value.replace(" ", "") == "":
             raise ValueError("video_file_fmt cannot be empty")
         # check string within {}, see if that can be parsed to datetime
-        check_datetime_fmt(cls, value)
+        check_datetime_fmt(value, parse_dates_from_file=cls.parse_dates_from_file)
         return value
 
 
-def check_datetime_fmt(cls, fn_fmt):
+def check_datetime_fmt(fn_fmt, parse_dates_from_file=False):
     """Validate that the provided string is a valid datetime format string."""
     # check string within {}, see if that can be parsed to datetime
     if not ("{" in fn_fmt and "}" in fn_fmt):
-        # there is no datestring in format, then cls.parse_dates_from_file MUST be False
-        if cls.parse_dates_from_file:
+        # there is no datestring in format, then parse_dates_from_file MUST be False
+        if parse_dates_from_file:
             raise ValueError(
                 '{:s} does not contain a datetime format between {{""}} signs. Either set parse_dates_from_file to '
                 'False or provide a filename template with datetime format between {{""}}'.format(fn_fmt)
