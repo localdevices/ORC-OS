@@ -61,6 +61,7 @@ def session_video_config(session_config, recipe, cam_config, cross_section):
         name="some video config",
         recipe_id=r.id,
         cross_section_id=cs.id,
+        cross_section_wl_id=cs.id,
         camera_config_id=c.id,
     )
     # now create the VideoConfig

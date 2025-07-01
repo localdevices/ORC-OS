@@ -43,17 +43,54 @@ def rodrigues_to_matrix(rvec):
     return R
 
 
+def _rotate_translate_cross_section(cross_section, rvec, tvec):
+    # Ensure rvec and tvec are numpy arrays
+    rvec = np.array(rvec, dtype=np.float64)
+    tvec = np.array(tvec, dtype=np.float64)
+
+    # Convert rotation vector to rotation matrix using Rodrigues' formula
+    rotation_matrix = rodrigues_to_matrix(rvec)
+    # Transform the features
+    gdf = copy.deepcopy(cross_section.gdf)
+    geoms = gdf.geometry
+    x, y, z = geoms.x.values, geoms.y.values, geoms.z.values
+    # reduce by mean
+    x_mean, y_mean, z_mean = np.mean(x), np.mean(y), np.mean(z)
+    _x, _y, _z = x - x_mean, y - y_mean, z - z_mean
+    points = np.array([_x, _y, _z])
+
+    transformed_points = (rotation_matrix @ points).T + tvec
+    # now add the original mean
+    transformed_points += np.array([x_mean, y_mean, z_mean])
+    new_geoms = gpd.points_from_xy(transformed_points[:, 0], transformed_points[:, 1], transformed_points[:, 2])
+    gdf.geometry = new_geoms
+    geo_dict = json.loads(gdf.to_json())
+    # make a new VideoConfig
+    cross_new = cross_section.model_dump(exclude=["features"])
+    cross_new["features"] = geo_dict
+    return CrossSectionResponse(**cross_new)
+
+
 class VideoConfigBase(BaseModel):
     """Pydantic schema for VideoConfig validation."""
 
     id: Optional[int] = Field(default=None, description="Video configuration ID")
     name: str = Field(description="Named description of the video configuration.")
     rvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
-        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection with CameraConfig."
+        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection for discharge with CameraConfig."
     )
     tvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
-        default=[0.0, 0.0, 0.0], description="Translation vector for matching CrossSection with CameraConfig."
+        default=[0.0, 0.0, 0.0],
+        description="Translation vector for matching CrossSection for discharge with CameraConfig.",
     )
+    rvec_wl: Optional[conlist(float, min_length=3, max_length=3)] = Field(
+        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection for water level with CameraConfig."
+    )
+    tvec_wl: Optional[conlist(float, min_length=3, max_length=3)] = Field(
+        default=[0.0, 0.0, 0.0],
+        description="Translation vector for matching CrossSection for water level with CameraConfig.",
+    )
+
     camera_config: Optional[CameraConfigResponse] = Field(
         default=None, description="Associated CameraConfig object (if available)."
     )
@@ -101,32 +138,43 @@ class VideoConfigBase(BaseModel):
         """
         if not self.cross_section or not hasattr(self.cross_section, "features"):
             raise ValueError("cross_section or its features are not defined.")
+        return _rotate_translate_cross_section(self.cross_section, self.rvec, self.tvec)
 
-        # Ensure rvec and tvec are numpy arrays
-        rvec = np.array(self.rvec, dtype=np.float64)
-        tvec = np.array(self.tvec, dtype=np.float64)
+    @property
+    def cross_section_wl_rt(self):
+        """Transform the cross_section.features by applying rotation (rvec) and translation (tvec).
 
-        # Convert rotation vector to rotation matrix using Rodrigues' formula
-        rotation_matrix = rodrigues_to_matrix(rvec)
-        # Transform the features
-        gdf = copy.deepcopy(self.cross_section.gdf)
-        geoms = gdf.geometry
-        x, y, z = geoms.x.values, geoms.y.values, geoms.z.values
-        # reduce by mean
-        x_mean, y_mean, z_mean = np.mean(x), np.mean(y), np.mean(z)
-        _x, _y, _z = x - x_mean, y - y_mean, z - z_mean
-        points = np.array([_x, _y, _z])
+        Returns CrossSectionResponse with transformed features.
+        """
+        if not self.cross_section_wl or not hasattr(self.cross_section_wl, "features"):
+            raise ValueError("cross_section_wl or its features are not defined.")
+        return _rotate_translate_cross_section(self.cross_section_wl, self.rvec_wl, self.tvec_wl)
 
-        transformed_points = (rotation_matrix @ points).T + tvec
-        # now add the original mean
-        transformed_points += np.array([x_mean, y_mean, z_mean])
-        new_geoms = gpd.points_from_xy(transformed_points[:, 0], transformed_points[:, 1], transformed_points[:, 2])
-        gdf.geometry = new_geoms
-        geo_dict = json.loads(gdf.to_json())
-        # make a new VideoConfig
-        cross_new = self.cross_section.model_dump(exclude=["features"])
-        cross_new["features"] = geo_dict
-        return CrossSectionResponse(**cross_new)
+        # # Ensure rvec and tvec are numpy arrays
+        # rvec = np.array(self.rvec, dtype=np.float64)
+        # tvec = np.array(self.tvec, dtype=np.float64)
+        #
+        # # Convert rotation vector to rotation matrix using Rodrigues' formula
+        # rotation_matrix = rodrigues_to_matrix(rvec)
+        # # Transform the features
+        # gdf = copy.deepcopy(self.cross_section.gdf)
+        # geoms = gdf.geometry
+        # x, y, z = geoms.x.values, geoms.y.values, geoms.z.values
+        # # reduce by mean
+        # x_mean, y_mean, z_mean = np.mean(x), np.mean(y), np.mean(z)
+        # _x, _y, _z = x - x_mean, y - y_mean, z - z_mean
+        # points = np.array([_x, _y, _z])
+        #
+        # transformed_points = (rotation_matrix @ points).T + tvec
+        # # now add the original mean
+        # transformed_points += np.array([x_mean, y_mean, z_mean])
+        # new_geoms = gpd.points_from_xy(transformed_points[:, 0], transformed_points[:, 1], transformed_points[:, 2])
+        # gdf.geometry = new_geoms
+        # geo_dict = json.loads(gdf.to_json())
+        # # make a new VideoConfig
+        # cross_new = self.cross_section.model_dump(exclude=["features"])
+        # cross_new["features"] = geo_dict
+        # return CrossSectionResponse(**cross_new)
 
     @property
     def recipe_transect_filled(self):

@@ -30,7 +30,7 @@ def test_video_run(
     assert video.image is not None
 
 
-@pytest.mark.skip(reason="Testing full video run without water level only done on interactive request.")
+# @pytest.mark.skip(reason="Testing full video run without water level only done on interactive request.")
 def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, monkeypatch):
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
     assert video_response_no_ts.time_series is None

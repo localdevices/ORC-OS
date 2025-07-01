@@ -25,10 +25,10 @@ class FramesData(BaseModel):
     project: dict = Field(default={"method": "numpy", "resolution": 0.02})
 
 
-class FramesOptions(BaseModel):
-    """Frames options default data model."""
-
-    method: Optional[Literal["range"]] = Field(default=None)
+# class FramesOptions(BaseModel):
+#     """Frames options default data model."""
+#
+#     range: Optional[dict] = Field(default={})
 
 
 class WaterLevelOptions(BaseModel):
@@ -46,7 +46,7 @@ class WaterLevel(BaseModel):
 
     method: str = Field(default="grayscale")
     water_level_options: WaterLevelOptions = Field(default_factory=WaterLevelOptions)
-    frames_options: FramesOptions = Field(default_factory=FramesOptions)
+    frames_options: dict = Field(default={})
 
 
 class VelocimetryData(BaseModel):
@@ -216,7 +216,10 @@ class RecipeResponse(RecipeRemote):
                 instance.wl_get_frames_method = data.water_level.method
             if data.water_level.frames_options:
                 # set options for frame extraction and preprocessing
-                instance.wl_preprocess = data.water_level.frames_options.method
+                if "range" in data.water_level.frames_options.keys():
+                    instance.wl_preprocess = "range"
+                else:
+                    instance.wl_preprocess = None
             if data.water_level.water_level_options:
                 # set options for the detection algorithm (literally the same names are used
                 for k, v in data.water_level.water_level_options.model_dump().items():
@@ -321,17 +324,11 @@ class RecipeUpdate(RecipeBase):
         data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
         if instance.velocimetry is not None:
             pass
-        data.transect.transect_1["get_q"]["v_corr"] = getattr(instance, "alpha", 0.85)
-        data.plot.plot_quiver.setdefault("velocimetry", {}).setdefault(
-            "scale", 1 / getattr(instance, "quiver_scale_grid", 1.0)
-        )
-        data.plot.plot_quiver.setdefault("transect", {}).setdefault(
-            "scale", 1 / getattr(instance, "quiver_scale_grid", 1.0)
-        )
-        data.plot.plot_quiver.setdefault("velocimetry", {}).setdefault(
-            "width", getattr(instance, "quiver_width_grid", 1.0)
-        )
-        data.plot.plot_quiver.setdefault("transect", {}).setdefault("width", getattr(instance, "quiver_width_cs", 1.0))
+        data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
+        data.plot.plot_quiver.setdefault("velocimetry", {})["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
+        data.plot.plot_quiver.setdefault("transect", {})["scale"] = 1 / getattr(instance, "quiver_scale_cs", 1.0)
+        data.plot.plot_quiver.setdefault("velocimetry", {})["width"] = getattr(instance, "quiver_width_grid", 1.0)
+        data.plot.plot_quiver.setdefault("transect", {})["width"] = getattr(instance, "quiver_width_cs", 1.0)
         data.water_level.water_level_options = WaterLevelOptions(
             bank=getattr(instance, "bank", "far"),
             length=getattr(instance, "length", 3.0),
@@ -340,7 +337,7 @@ class RecipeUpdate(RecipeBase):
             max_h=getattr(instance, "max_h", None),
         )
         data.water_level.method = getattr(instance, "wl_get_frames_method", "grayscale")
-        data.water_level.frames_options.method = getattr(instance, "wl_preprocess", None)
+        data.water_level.frames_options = {"range": {}} if getattr(instance, "wl_preprocess", None) else {}
         instance.data = data.model_dump()
         return instance
 

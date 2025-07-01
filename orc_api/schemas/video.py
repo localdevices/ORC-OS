@@ -73,21 +73,11 @@ class VideoResponse(VideoBase, RemoteModel):
         if self.time_series:
             if self.time_series.h:
                 return True, "Ready"
-        # more complicated case, if there is optical, a cross section must be present!
-        with get_session() as db:
-            water_level_settings = crud.water_level.get(db)
-        if water_level_settings is None:
-            optical = False
-        else:
-            optical = water_level_settings.optical
-        if not optical:
-            # we are not allowed to try optical water levels, so return False
-            return False, "Not allowed to run optical water levels and no water level available."
-        # we are allowed optical, so check if there is a cross section
         if self.video_config.cross_section_wl is None:
             return (
                 False,
-                "No cross section available, required for optical water levels. Please add one using the UI or API.",
+                "No time series set, and no water level cross section available, required for optical water levels. "
+                "Please add one using the UI or API.",
             )
         else:
             return True, "Ready"
@@ -104,12 +94,21 @@ class VideoResponse(VideoBase, RemoteModel):
         h_a = None if self.time_series is None else self.time_series.h
         # assemble all information
         output = os.path.join(self.get_path(base_path=base_path), "output")
-        cameraconfig = self.video_config.camera_config.data
+        cameraconfig = self.video_config.camera_config.data.model_dump()
         # get the rotated/translated cross-section
         cross_section_feats = self.video_config.cross_section_rt.features
+        # dump the used features in the output path of the video
         cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
         with open(cross, "w") as f:
             json.dump(cross_section_feats, f)
+        # if h_a is not available and a cross section is available, then make a cross section file for water level
+        if h_a is None and self.video_config.cross_section_wl:
+            cross_section_wl_feats = self.video_config.cross_section_wl_rt.features
+            cross_wl = os.path.join(self.get_path(base_path=base_path), "cross_section_wl.geojson")
+            with open(cross_wl, "w") as f:
+                json.dump(cross_section_wl_feats, f)
+        else:
+            cross_wl = None
         # get the recipe with any required fields filled
         recipe = self.video_config.recipe_transect_filled.data
         videofile = self.get_video_file(base_path=base_path)
@@ -129,6 +128,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 output=output,
                 h_a=h_a,
                 cross=cross,
+                cross_wl=cross_wl,
                 logger=logger,
             )
         except Exception as e:

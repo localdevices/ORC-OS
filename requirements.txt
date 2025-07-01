@@ -2,6 +2,7 @@ apscheduler
 fastapi[standard]
 pillow
 pydantic
+pyorc>=0.8.7
 pyyaml
 sqlalchemy
 zipstream
