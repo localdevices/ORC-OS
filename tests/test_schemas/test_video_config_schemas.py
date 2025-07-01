@@ -73,7 +73,9 @@ def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
     crud.cross_section.update(
         session_video_config,
         1,
-        video_config_response.cross_section.model_dump(exclude_none=True, exclude=["x", "y", "z", "s"]),
+        video_config_response.cross_section.model_dump(
+            include=["id", "created_at", "remote_id", "sync_status", "timestamp", "name", "features"]
+        ),
     )
 
     # ensure that we load the right session

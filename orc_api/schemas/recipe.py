@@ -322,10 +322,16 @@ class RecipeUpdate(RecipeBase):
         if instance.velocimetry is not None:
             pass
         data.transect.transect_1["get_q"]["v_corr"] = getattr(instance, "alpha", 0.85)
-        data.plot.plot_quiver["velocimetry"]["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
-        data.plot.plot_quiver["transect"]["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
-        data.plot.plot_quiver["velocimetry"]["width"] = getattr(instance, "quiver_width_grid", 1.0)
-        data.plot.plot_quiver["transect"]["width"] = getattr(instance, "quiver_width_cs", 1.0)
+        data.plot.plot_quiver.setdefault("velocimetry", {}).setdefault(
+            "scale", 1 / getattr(instance, "quiver_scale_grid", 1.0)
+        )
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault(
+            "scale", 1 / getattr(instance, "quiver_scale_grid", 1.0)
+        )
+        data.plot.plot_quiver.setdefault("velocimetry", {}).setdefault(
+            "width", getattr(instance, "quiver_width_grid", 1.0)
+        )
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault("width", getattr(instance, "quiver_width_cs", 1.0))
         data.water_level.water_level_options = WaterLevelOptions(
             bank=getattr(instance, "bank", "far"),
             length=getattr(instance, "length", 3.0),

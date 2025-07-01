@@ -40,6 +40,8 @@ def recipe(recipe_file):
     with open(recipe_file, "r") as f:
         body = f.read()
     recipe_body = yaml.load(body, Loader=yaml.FullLoader)
+    # remove the plot parameters as these are outdated
+    recipe_body["plot"] = {"plot_quiver": {}}
     # turn into string
     return json.dumps(recipe_body)
 
