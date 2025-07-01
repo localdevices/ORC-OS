@@ -27,8 +27,8 @@ def get_free_space(path_dir):
     # --- Get size of HDD ---
     f = os.statvfs(path_dir)
     free_space = f.f_frsize * f.f_bavail
-    free_space = free_space / 10e8
-
+    # in GB
+    free_space = free_space / 1024**3
     return free_space
 
 

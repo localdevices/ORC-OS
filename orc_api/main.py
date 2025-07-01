@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from orc_api import crud
+from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.routers import (
     callback_url,
@@ -70,6 +70,7 @@ def schedule_disk_maintenance(scheduler, logger, session):
         logger.info('Disk management settings found: setting up interval job "disk_managemement_job"')
         scheduler.add_job(
             func=dm_settings.cleanup,
+            kwargs={"home_folder": UPLOAD_DIRECTORY},
             trigger="interval",
             seconds=dm_settings.frequency,
             start_date=datetime.now() + timedelta(seconds=5),
@@ -89,26 +90,30 @@ def schedule_video_checker(scheduler, logger, session):
     settings = crud.settings.get(session)
     dm = crud.disk_management.get(session)
 
+    # settings must be provided AND active
     if settings and dm:
-        # validate the settings model instance
-        settings = SettingsResponse.model_validate(settings)
-        dm_settings = DiskManagementResponse.model_validate(dm)
-        logger.info(
-            f'Daemon settings found: setting up interval job "video_check_job" with path: {dm_settings.incoming_path} '
-            f"and file template: {settings.video_file_fmt}"
-        )
-        scheduler.add_job(
-            func=async_job_wrapper,
-            kwargs={
-                "func": settings.check_new_videos,
-                "kwargs": {"path_incoming": dm_settings.incoming_path, "app": app, "logger": logger},
-            },
-            trigger="interval",
-            seconds=5,
-            start_date=datetime.now(),
-            id="video_check_job",
-            replace_existing=True,
-        )
+        if settings.active:
+            # validate the settings model instance
+            settings = SettingsResponse.model_validate(settings)
+            logger.info(
+                f'Daemon settings found: setting up interval job "video_check_job" with path: {INCOMING_DIRECTORY} '
+                f"and file template: {settings.video_file_fmt}"
+            )
+            scheduler.add_job(
+                func=async_job_wrapper,
+                kwargs={
+                    "func": settings.check_new_videos,
+                    "kwargs": {"path_incoming": INCOMING_DIRECTORY, "app": app, "logger": logger},
+                },
+                trigger="interval",
+                seconds=5,
+                start_date=datetime.now(),
+                id="video_check_job",
+                replace_existing=True,
+            )
+        else:
+            # settings found but not yet activated
+            logger.info("Daemon settings found, but not activated. Activate the daemon for automated processing.")
     else:
         logger.info("No daemon settings available, ORC-OS will run interactively only.")
 

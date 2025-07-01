@@ -51,38 +51,32 @@ class DiskManagementBase(BaseModel):
             os.makedirs(path)
         return path
 
-    def cleanup(self):
+    def cleanup(self, home_folder: str = None):
         """Perform disk cleanup activities (should be run in scheduler)."""
         # check disk space
         free_space = dm.get_free_space(
-            self.home_folder,
+            home_folder,
         )
-        logger.debug(f"Checking if free space is sufficient (>= {self.min_free_space})")
+        logger.debug(f"Checking if free space is sufficient (>= {self.min_free_space}) GB")
         if free_space < self.min_free_space:
-            logger.warning(f"Available space is lower than {self.min_free_space}, purging failed folder.")
+            logger.warning(f"Available space is lower than {self.min_free_space}, purging media folder.")
             ret = dm.purge(
-                [self.failed_path],
+                [home_folder],
                 free_space=free_space,
                 min_free_space=self.min_free_space,
                 logger=logger,
-                home=self.home_folder,
+                home=home_folder,
             )
             if not ret:
-                logger.warning("Space after purging still not sufficient. Purging results folder.")
-                free_space = dm.get_free_space(self.home_folder)
-                ret = dm.purge(
-                    [self.results_path],
-                    free_space=free_space,
-                    min_free_space=self.min_free_space,
-                    logger=logger,
-                    home=self.home_folder,
+                free_space = dm.get_free_space(home_folder)
+                logger.warning(
+                    f"Space after purging is {free_space} and under minimum allowed space {self.min_free_space}. "
+                    f"Please contact your system administrator."
                 )
-                if not ret:
-                    free_space = dm.get_free_space(self.home_folder)
-                    logger.warning(
-                        f"Space after purging is {free_space} and under minimum allowed space {self.min_free_space}. "
-                        f"Please contact your system administrator."
-                    )
+                # finally do a scan_folders to remove empty dirs
+                _ = dm.scan_folder([home_folder])
+        else:
+            logger.info(f"Available space is sufficient ({free_space} GB).")
 
 
 class DiskManagementResponse(DiskManagementBase):
