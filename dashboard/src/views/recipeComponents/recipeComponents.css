@@ -10,6 +10,27 @@
     margin-bottom: 40px;  /* ensure the next element is not covered by the slider */
 }
 
+.slider-container {
+    position: relative;
+    width: 100%; /* Adjust according to your slider's container width */
+}
+
+.slider-min {
+    position: absolute;
+    top: -20px; /* Adjust as needed to place it above the slider */
+    left: 0;
+    font-size: 12px;
+    color: #333; /* Adjust text color */
+}
+
+.slider-max {
+    position: absolute;
+    top: -20px; /* Same as `.slider-min` for alignment */
+    right: 0;
+    font-size: 12px;
+    color: #333; /* Adjust text color */
+}
+
 .thumb {
     height: 20px;
     width: 20px;

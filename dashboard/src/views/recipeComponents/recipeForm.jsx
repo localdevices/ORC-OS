@@ -176,7 +176,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     const {name, value, type} = event.target;
     const updatedFormData = {
       ...formData,
-      [name]: value
+      [name]: value === "" ? null : value
     }
     setFormData(updatedFormData);
     console.log(submitData(updatedFormData));
@@ -338,21 +338,26 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
             <label htmlFor="start_end_slider" className="form-label">
               Start and end frame [-]
             </label>
-            <ReactSlider
-              className="horizontal-slider"
+            <div className="slider-container">
+              <div className="slider-min">{formData.start_frame || 0}</div>
+              <div className="slider-max">Slide to max. to extend {Math.floor((frameCount + formData.end_frame) / frameCount) * frameCount}</div>
+              <ReactSlider
+              className="horizontal-slider small"
               thumbClassName="thumb"
               trackClassName="track"
               value={[formData.start_frame || 0, formData.end_frame || frameCount]} // Default values if unset
               min={0}
-              max={frameCount}
+              max={Math.floor((frameCount + formData.end_frame) / frameCount) * frameCount}
+              // max={Math.max(frameCount, formData.end_frame + 2)}
               step={1}
               renderThumb={(props, state) => (
                 <div {...props}>
                   <div className="thumb-value">{state.valueNow}</div>
                 </div>
               )}
-              onChange={handleFrameChange}
+              onAfterChange={handleFrameChange}
             />
+            </div>
           </div>
           <div className='mb-3 mt-3 form-horizontal'>
             <label htmlFor='freq' className='form-label'>
@@ -377,7 +382,11 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                 <label htmlFor="water_level_min_max" className="form-label">
                   Minimum and maximum water level [m]
                 </label>
-                <ReactSlider
+                <div className="slider-container">
+                  <div className="slider-min">{Math.min(...CSWaterLevel?.z)}</div>
+                  <div className="slider-max">{Math.max(...CSWaterLevel?.z)}</div>
+
+                  <ReactSlider
                   className="horizontal-slider"
                   thumbClassName="thumb"
                   trackClassName="track"
@@ -392,6 +401,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   )}
                   onChange={handleWaterLevelMinMaxChange}
                 />
+                </div>
               </div>
               <div className="mb-3 mt-3 form-horizontal">
                 <label htmlFor="padding" className="form-label">
