@@ -33,6 +33,9 @@ class TimeSeriesBase(BaseModel):
     q_95: Optional[float] = Field(
         default=None, description="Streamflow with probability of non-exceedance of 95% [m3/s]"
     )
+    q_raw: Optional[float] = Field(default=None, description="Streamflow measured optically [m3/s]")
+    v_av: Optional[float] = Field(default=None, description="Average surface velocity [m/s]")
+    v_bulk: Optional[float] = Field(default=None, description="Bulk velocity [m/s]")
     wetted_surface: Optional[float] = Field(default=None, description="Wetted surface area with given water level [m2]")
     wetted_perimeter: Optional[float] = Field(default=None, description="Wetted perimeter with given water level [m]")
     fraction_velocimetry: Optional[float] = Field(
