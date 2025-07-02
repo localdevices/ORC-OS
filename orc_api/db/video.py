@@ -71,7 +71,7 @@ class Video(RemoteBase):
     image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     thumbnail: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     video_config_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("video_config.id"), nullable=True
+        Integer, ForeignKey("video_config.id", use_alter=True), nullable=True
     )  # relate by id
     # time_series = Column(ForeignKey("time_series.id"))
     video_config = relationship("VideoConfig", foreign_keys=[video_config_id])
