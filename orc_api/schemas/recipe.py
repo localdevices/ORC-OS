@@ -3,9 +3,9 @@
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
 
 
@@ -37,8 +37,8 @@ class WaterLevelOptions(BaseModel):
     bank: Literal["far", "near"] = Field(default="far")
     length: float = Field(default=3.0)
     padding: float = Field(default=0.5)
-    min_h: Optional[float] = Field(default=None)  # minimum water level detection
-    max_h: Optional[float] = Field(default=None)  # maximum water level detection
+    min_z: Optional[float] = Field(default=None)  # minimum water level detection
+    max_z: Optional[float] = Field(default=None)  # maximum water level detection
 
 
 class WaterLevel(BaseModel):
@@ -75,14 +75,9 @@ class PlotData(BaseModel):
     plot_quiver: dict = Field(
         default={
             "frames": {},
-            "velocimetry": {"alpha": 0.4, "cmap": "rainbow", "vmax": 2.0, "scale": 1.0, "width": 1.0},
+            "velocimetry": {"alpha": 0.4, "scale": 1.0, "width": 1.0},
             "transect": {
-                "alpha": 0.8,
-                "cmap": "rainbow",
-                "add_colorbar": True,
-                "add_text": True,
-                "scale": 1.0,
-                "width": 1.0,
+                "transect_1": {"alpha": 0.8, "add_colorbar": True, "add_text": True, "scale": 1.0, "width": 1.0},
             },
             "mode": "camera",
             "reducer": "mean",
@@ -93,7 +88,7 @@ class PlotData(BaseModel):
 
 mask_data = {
     "write": True,
-    "mask_group1": {"minmax": "s_max: 5.0"},
+    "mask_group1": {"minmax": {"s_max": 5.0}},
     "mask_group2": {"outliers": {"mode": "and"}},
     "mask_group3": {"count": {"tolerance": 0.2}},
     "mask_group4": {"window_mean": {"wdw": 2, "reduce_time": True}},
@@ -146,8 +141,8 @@ class RecipeResponse(RecipeRemote):
         default=None, description="Method for preprocessing frames for water level estimation."
     )
     alpha: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
-    min_h: Optional[float] = Field(default=None, description="Minimum water level.")
-    max_h: Optional[float] = Field(default=None, description="Maximum water level.")
+    min_z: Optional[float] = Field(default=None, description="Minimum water level.")
+    max_z: Optional[float] = Field(default=None, description="Maximum water level.")
     padding: Optional[float] = Field(
         default=0.5, description="Padding of the rectangles to measure water level optically."
     )
@@ -205,10 +200,11 @@ class RecipeResponse(RecipeRemote):
             if "width" in data.plot.plot_quiver["velocimetry"]:
                 instance.quiver_width_grid = data.plot.plot_quiver["velocimetry"]["width"]
         if "transect" in data.plot.plot_quiver:
-            if "scale" in data.plot.plot_quiver["transect"]:
-                instance.quiver_scale_cs = 1 / data.plot.plot_quiver["transect"]["scale"]
-            if "width" in data.plot.plot_quiver["transect"]:
-                instance.quiver_width_cs = data.plot.plot_quiver["transect"]["width"]
+            if "transect_1" in data.plot.plot_quiver["transect"]:
+                if "scale" in data.plot.plot_quiver["transect"]["transect_1"]:
+                    instance.quiver_scale_cs = 1 / data.plot.plot_quiver["transect"]["transect_1"]["scale"]
+                if "width" in data.plot.plot_quiver["transect"]["transect_1"]:
+                    instance.quiver_width_cs = data.plot.plot_quiver["transect"]["transect_1"]["width"]
 
         # fill the optical level estimation parameters
         if data.water_level:
@@ -229,7 +225,7 @@ class RecipeResponse(RecipeRemote):
         instance.data = data.model_dump()
         return instance
 
-    def sync_remote(self, institute: int):
+    def sync_remote(self, session: Session, institute: int):
         """Send the recipe to LiveORC API.
 
         Recipes belong to an institute, hence also the institute ID is required.
@@ -241,12 +237,12 @@ class RecipeResponse(RecipeRemote):
             "institute": institute,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, json=data)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, json=data)
         if response_data is not None:
             # patch the record in the database, where necessary
             # update schema instance
             update_recipe = RecipeRemote.model_validate(response_data)
-            r = crud.recipe.update(get_session(), id=self.id, recipe=update_recipe.model_dump(exclude_unset=True))
+            r = crud.recipe.update(session, id=self.id, recipe=update_recipe.model_dump(exclude_unset=True))
             return RecipeResponse.model_validate(r)
         return None
 
@@ -272,8 +268,8 @@ class RecipeUpdate(RecipeBase):
         default=None, description="Method for preprocessing frames for water level estimation."
     )
     alpha: Optional[float] = Field(default=0.85, ge=0.5, le=0.95, description="Alpha coefficient.")
-    min_h: Optional[float] = Field(default=None, description="Minimum water level.")
-    max_h: Optional[float] = Field(default=None, description="Maximum water level.")
+    min_z: Optional[float] = Field(default=None, description="Minimum water level.")
+    max_z: Optional[float] = Field(default=None, description="Maximum water level.")
     padding: Optional[float] = Field(
         default=0.5, description="Padding of the rectangles to measure water level optically."
     )
@@ -326,15 +322,19 @@ class RecipeUpdate(RecipeBase):
             pass
         data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
         data.plot.plot_quiver.setdefault("velocimetry", {})["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
-        data.plot.plot_quiver.setdefault("transect", {})["scale"] = 1 / getattr(instance, "quiver_scale_cs", 1.0)
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["scale"] = 1 / getattr(
+            instance, "quiver_scale_cs", 1.0
+        )
         data.plot.plot_quiver.setdefault("velocimetry", {})["width"] = getattr(instance, "quiver_width_grid", 1.0)
-        data.plot.plot_quiver.setdefault("transect", {})["width"] = getattr(instance, "quiver_width_cs", 1.0)
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["width"] = getattr(
+            instance, "quiver_width_cs", 1.0
+        )
         data.water_level.water_level_options = WaterLevelOptions(
             bank=getattr(instance, "bank", "far"),
             length=getattr(instance, "length", 3.0),
             padding=getattr(instance, "padding", 0.5),
-            min_h=getattr(instance, "min_h", None),
-            max_h=getattr(instance, "max_h", None),
+            min_z=getattr(instance, "min_z", None),
+            max_z=getattr(instance, "max_z", None),
         )
         data.water_level.method = getattr(instance, "wl_get_frames_method", "grayscale")
         data.water_level.frames_options = {"range": {}} if getattr(instance, "wl_preprocess", None) else {}

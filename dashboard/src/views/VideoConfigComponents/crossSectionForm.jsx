@@ -75,11 +75,29 @@ const CrossSectionForm = (
 
   const handleWaterLevelChange = async (event) => {
     const {name, value} = event.target;
+    let z_0, h_ref;
+    // check if h_ref is empty and if z_0 exists
+    if (name === "z_0") {
+      z_0 = parseFloat(value);
+      if (cameraConfig.gcps.h_ref === null) {
+        h_ref = z_0;
+      } else {
+        h_ref = cameraConfig.gcps.h_ref;
+      }
+    } else {
+      if (value === "") {
+        h_ref = cameraConfig.gcps.z_0;
+      } else {
+        h_ref = parseFloat(value);
+      }
+      z_0 = cameraConfig.gcps.z_0;
+    }
     const newConfig = {
       ...cameraConfig,
       gcps: {
         ...cameraConfig.gcps,
-        [name]: parseFloat(value)
+        z_0: z_0,
+        h_ref: h_ref
 
       }
     }
@@ -207,7 +225,7 @@ const CrossSectionForm = (
 
         <div className='mb-3 mt-3'>
           <label htmlFor='h_ref' className='form-label small'>
-            Water level in local gauge reference [m]. Only set this if you plan to process several videos with different locally measured water levels.
+            Water level in local gauge reference [m]. Defaults to GCP coordinate. Only set this if you plan to process several videos with different locally measured water levels.
           </label>
           <input
             type='number' className='form-control'

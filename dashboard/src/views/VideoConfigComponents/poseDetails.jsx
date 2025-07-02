@@ -127,7 +127,6 @@ const PoseDetails = (
         }
         setCameraConfig(newConfig);
       }
-      // setDots({})
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
     }

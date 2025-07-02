@@ -41,8 +41,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         quiver_scale_cs: selectedRecipe.quiver_scale_cs,
         quiver_width_grid: selectedRecipe.quiver_width_grid,
         quiver_width_cs: selectedRecipe.quiver_width_cs,
-        min_h: selectedRecipe.min_h,
-        max_h: selectedRecipe.max_h,
+        min_z: selectedRecipe.min_z,
+        max_z: selectedRecipe.max_z,
         wl_preprocess: selectedRecipe.wl_preprocess,
         wl_get_frames_method: selectedRecipe.wl_get_frames_method,
         padding: selectedRecipe.padding,
@@ -63,8 +63,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         quiver_scale_cs: '',
         quiver_width_grid: '',
         quiver_width_cs: '',
-        min_h: '',
-        max_h: '',
+        min_z: '',
+        max_z: '',
         wl_preprocess: '',
         wl_get_frames_method: '',
         padding: '',
@@ -146,8 +146,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       quiver_scale_cs: formData.quiver_scale_cs,
       quiver_width_grid: formData.quiver_width_grid,
       quiver_width_cs: formData.quiver_width_cs,
-      min_h: formData.min_h,
-      max_h: formData.max_h,
+      min_z: formData.min_z,
+      max_z: formData.max_z,
       wl_preprocess: formData.wl_preprocess,
       wl_get_frames_method: formData.wl_get_frames_method,
       padding: formData.padding,
@@ -238,8 +238,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     }
     const updatedFormData = {
       ...formData,
-      min_h: minValue,
-      max_h: maxValue
+      min_z: minValue,
+      max_z: maxValue
     }
     setFormData(updatedFormData);
     try {
@@ -390,7 +390,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                   className="horizontal-slider"
                   thumbClassName="thumb"
                   trackClassName="track"
-                  value={[formData.min_h || Math.min(...CSWaterLevel?.z), formData.max_h || Math.max(...CSWaterLevel?.z)]} // Default values if unset
+                  value={[formData.min_z || Math.min(...CSWaterLevel?.z), formData.max_z || Math.max(...CSWaterLevel?.z)]} // Default values if unset
                   min={Math.min(...CSWaterLevel.z) || 0}
                   max={Math.max(...CSWaterLevel.z) || 1}
                   step={0.001}
@@ -509,6 +509,20 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     Color differences
                   </label>
                 </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="wl_get_frames_method"
+                    id="sat"
+                    value="sat"
+                    checked={formData.wl_get_frames_method === "sat"}
+                  />
+                  <label className="form-check-label" htmlFor="sat">
+                    Saturation level
+                  </label>
+                </div>
+
               </div>
               <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
                 <label htmlFor="wl_preprocess" className="form-label">
