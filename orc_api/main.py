@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
+from orc_api.db import VideoStatus
 from orc_api.routers import (
     callback_url,
     camera_config,
@@ -30,6 +31,8 @@ from orc_api.routers import (
 )
 from orc_api.schemas.disk_management import DiskManagementResponse
 from orc_api.schemas.settings import SettingsResponse
+from orc_api.schemas.video import VideoResponse
+from orc_api.utils import queue
 
 
 def async_job_wrapper(func, kwargs):
@@ -126,15 +129,44 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ORC-OS API")
     scheduler = BackgroundScheduler()
     scheduler.start()
+    session = get_session()
     # add scheduler to api state for use in routers
     app.state.scheduler = scheduler  # scheduler is accessible throughout the app
     app.state.process_list = []  # state with queue of videos to run
     app.state.executor = ThreadPoolExecutor(max_workers=1)
     app.state.processing = False  # state processing yes/no
-    with get_session() as session:
-        schedule_water_level(scheduler, logger, session)
-        schedule_disk_maintenance(scheduler, logger, session)
-        schedule_video_checker(scheduler, logger, session)
+    app.state.processing_message = None  # string defining last status condition
+    app.state.session = session
+    # with get_session() as session:
+    schedule_water_level(scheduler, logger, session)
+    schedule_disk_maintenance(scheduler, logger, session)
+    schedule_video_checker(scheduler, logger, session)
+    # finally check if there are any jobs left to do from an earlier occasion
+    videos_left = []
+    videos_task = crud.video.get_list(session, status=VideoStatus.TASK)
+    videos_queue = crud.video.get_list(session, status=VideoStatus.QUEUE)
+    videos_left += videos_task
+    videos_left += videos_queue
+    if len(videos_left) > 0:
+        logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
+        for video_rec in videos_left:
+            with get_session() as db:
+                # ensure state is set back to new so that processing will be accepted.
+                db.commit()
+                # session.refresh(video_rec)
+                video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
+                video = VideoResponse.model_validate(video_rec)
+            if video.ready_to_run[0]:
+                _ = await queue.process_video_submission(
+                    session=session,
+                    video=video,
+                    logger=logger,
+                    executor=app.state.executor,
+                    upload_directory=UPLOAD_DIRECTORY,
+                )
+    else:
+        logger.info("No videos left to process from earlier work.")
+
     yield
     logger.info("Shutting down FastAPI server, goodbye!")
 

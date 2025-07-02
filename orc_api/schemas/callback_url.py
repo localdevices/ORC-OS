@@ -84,7 +84,7 @@ class CallbackUrlResponse(CallbackUrlBase):
             self.get_set_refresh_tokens()
         return requests.get(url, json=data, headers=self.headers, timeout=5)
 
-    def patch(self, endpoint, data=None, files=None):
+    def patch(self, endpoint, json=None, data=None, files=None, timeout=5):
         """Perform PATCH request on end point with optional data and files."""
         data = {} if data is None else data
         files = {} if files is None else files
@@ -92,9 +92,9 @@ class CallbackUrlResponse(CallbackUrlBase):
         if self.token_expiration < datetime.now():
             # first get a new token
             self.get_set_refresh_tokens()
-        return requests.patch(url, headers=self.headers, json=data, files=files, timeout=5)
+        return requests.patch(url, headers=self.headers, data=data, json=json, files=files, timeout=timeout)
 
-    def post(self, endpoint, data=None, json=None, files=None):
+    def post(self, endpoint, data=None, json=None, files=None, timeout=5):
         """Perform POST request on end point with optional data and files."""
         # data = {} if data is None else data
         # files = {} if files is None else files
@@ -103,7 +103,7 @@ class CallbackUrlResponse(CallbackUrlBase):
         if self.token_expiration < datetime.now():
             # first get a new token
             self.get_set_refresh_tokens()
-        return requests.post(url, headers=self.headers, json=json, data=data, files=files, timeout=5)
+        return requests.post(url, headers=self.headers, json=json, data=data, files=files, timeout=timeout)
 
     def get_online_status(self):
         """Check if the callback URL is online and the token is valid, return health parameters."""

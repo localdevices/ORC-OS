@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
-import {FaSave, FaTrash} from "react-icons/fa";
+import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
@@ -173,7 +173,7 @@ const VideoConfig = () => {
     if (userConfirmed) {
       try {
         await api.delete(`/video_config/${videoConfig.id}/deps`); // remove video config including its dependencies
-        setMessageInfo({ type: "success", message: "Video configuration deleted successfully." });
+        setMessageInfo("success", "Video configuration deleted successfully.");
         setVideoConfig(null); // Reset the video configuration in the state
         createNewRecipe();  // if recipe exists it will be overwritten later
         createCameraConfig();  // if cam config exists, it will be overwritten later
@@ -184,11 +184,91 @@ const VideoConfig = () => {
 
       } catch (error) {
         console.error("Error deleting video configuration:", error);
-        setMessageInfo({ type: "error", message: "Failed to delete video configuration. Please try again later." });
+        setMessageInfo("error", "Failed to delete video configuration. Please try again later." );
       }
     }
 
   }
+
+
+  // Helper function to render the appropriate icon for the video status
+  const renderStatusIcon = (status) => {
+    let icon, title, color
+    switch (status) {
+      case 2:
+        icon = <FaHourglass size={20} />;
+        title = "Video is queued";
+        color = "purple";
+        break;
+      case 3:
+        icon = <FaSpinner size={20} />;
+        title = "Video is running";
+        color = "blue";
+        break;
+      default:
+        icon = <FaPlay size={20} />; // Default icon
+        title = "Run selected video with configuration";
+        color = '#3f9e28';
+        break;
+    }
+    return <button
+      type="button"
+      title={title}
+      style={{
+        backgroundColor: 'transparent',
+        border: 'none',
+        cursor: videoConfig?.ready_to_run ? 'pointer' : 'not-allowed',
+        color: color,
+        padding: '5px'
+      }}
+      onClick={runVideo}
+      disabled={!videoConfig?.ready_to_run}
+    >
+      {icon}
+    </button>
+
+  };
+  const renderStatusTitle = (status) => {
+    switch (status) {
+      case 2:
+        return "Video is queued";
+      case 3:
+        return "Video is running";
+      default:
+        return "Run selected video with configuration"; // Default icon
+    }
+  };
+
+
+
+  const runVideo = async () => {
+    try {
+      console.log("RUN VIDEO");
+
+      // Ensure the video ID is available
+      if (!video?.id) {
+        setMessageInfo("error", "No video ID found to run the video.");
+        return;
+      }
+
+      // Make the API call
+      const response = await api.get(`/video/${video.id}/run`);
+      // update the status of the video
+      setVideo({ ...video, status: response.data.status});
+      console.log("Run video response:", response.data);
+
+      // Display success message
+      setMessageInfo("success", "Video has been submitted for processing.");
+    } catch (error) {
+      console.error("Error running the video:", error);
+
+      // Handle error and send message to container
+      const errorMessage =
+        error.response?.data?.detail || "An unexpected error occurred while running the video.";
+      setMessageInfo("error", errorMessage);
+    }
+  };
+
   const updateWidget = (id, updatedCoordinates) => {
     setWidgets((prevWidgets) => {
       const newWidgets = prevWidgets.map((widget) =>
@@ -333,6 +413,8 @@ const VideoConfig = () => {
                     >
                       <FaSave size={20}/>
                     </button>
+                    {video && renderStatusIcon(video.status)}
+
                     <button
                       type="button"
                       title="Delete video configuration"

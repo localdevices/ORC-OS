@@ -10,6 +10,7 @@ import numpy as np
 import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field
 from pyorc.service import velocity_flow
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api import db as models
@@ -52,8 +53,8 @@ class VideoResponse(VideoBase, RemoteModel):
     def ready_to_run(self):
         """Must be called by AP scheduler to check if video is ready to run."""
         # if the video has already been run, or is already in process, also return False
-        if not self.status == models.VideoStatus.NEW:
-            return False, "Video already in process or processed."
+        if self.status in [models.VideoStatus.QUEUE, models.VideoStatus.TASK]:
+            return False, "Video already in process or queued for processing."
         # check if all run components are available
         return self.allowed_to_run
 
@@ -82,44 +83,59 @@ class VideoResponse(VideoBase, RemoteModel):
         else:
             return True, "Ready"
 
-    def run(self, base_path: str, prefix: str = ""):
+    def run(self, session: Session, base_path: str, prefix: str = ""):
         """Run video."""
-        if self.time_series:
-            # for older versions (python 3.9) check and validate
-            self.time_series = TimeSeriesResponse.model_validate(self.time_series)
-        allowed_to_run, msg = self.allowed_to_run
-        if not allowed_to_run:
-            raise Exception(msg)
-        # check for h_a
-        h_a = None if self.time_series is None else self.time_series.h
-        # assemble all information
-        output = os.path.join(self.get_path(base_path=base_path), "output")
-        cameraconfig = self.video_config.camera_config.data.model_dump()
-        # get the rotated/translated cross-section
-        cross_section_feats = self.video_config.cross_section_rt.features
-        # dump the used features in the output path of the video
-        cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
-        with open(cross, "w") as f:
-            json.dump(cross_section_feats, f)
-        # if h_a is not available and a cross section is available, then make a cross section file for water level
-        if h_a is None and self.video_config.cross_section_wl:
-            cross_section_wl_feats = self.video_config.cross_section_wl_rt.features
-            cross_wl = os.path.join(self.get_path(base_path=base_path), "cross_section_wl.geojson")
-            with open(cross_wl, "w") as f:
-                json.dump(cross_section_wl_feats, f)
-        else:
-            cross_wl = None
-        # get the recipe with any required fields filled
-        recipe = self.video_config.recipe_transect_filled.data
-        videofile = self.get_video_file(base_path=base_path)
-        # find expected image file name
-        rel_img_fn = None
-        if "plot" in recipe:
-            key = next(iter(recipe["plot"]))
-            img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
-            rel_img_fn = os.path.relpath(img_fn, base_path)
-        # run the video with pyorc
+        # update state first
         try:
+            # with get_session() as session:
+            rec = crud.video.get(session, id=self.id)
+            rec.status = models.VideoStatus.TASK
+            session.commit()
+            session.refresh(rec)
+            if self.time_series:
+                # for older versions (python 3.9) check and validate
+                self.time_series = TimeSeriesResponse.model_validate(self.time_series)
+            allowed_to_run, msg = self.allowed_to_run
+            if not allowed_to_run:
+                raise Exception(msg)
+
+            # check for h_a
+            h_a = None if self.time_series is None else self.time_series.h
+            logger.debug(f"Checked for water level in time series, found {h_a}")
+
+            # overrule with set level if the video configuration is made with the current video
+            if self.video_config.sample_video_id == self.id:
+                logger.debug("Overruling water level because video is a sample video for the video configuration.")
+                h_a = self.video_config.camera_config.gcps.h_ref
+
+            # assemble all information
+            logger.info(f"Water level set to {h_a}")
+            output = os.path.join(self.get_path(base_path=base_path), "output")
+            cameraconfig = self.video_config.camera_config.data.model_dump()
+            # get the rotated/translated cross-section
+            cross_section_feats = self.video_config.cross_section_rt.features
+            # dump the used features in the output path of the video
+            cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
+            with open(cross, "w") as f:
+                json.dump(cross_section_feats, f)
+            # if h_a is not available and a cross section is available, then make a cross section file for water level
+            if h_a is None and self.video_config.cross_section_wl:
+                cross_section_wl_feats = self.video_config.cross_section_wl_rt.features
+                cross_wl = os.path.join(self.get_path(base_path=base_path), "cross_section_wl.geojson")
+                with open(cross_wl, "w") as f:
+                    json.dump(cross_section_wl_feats, f)
+            else:
+                cross_wl = None
+            # get the recipe with any required fields filled
+            recipe = self.video_config.recipe_transect_filled.data
+            videofile = self.get_video_file(base_path=base_path)
+            # find expected image file name
+            rel_img_fn = None
+            if "plot" in recipe:
+                key = next(iter(recipe["plot"]))
+                img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
+                rel_img_fn = os.path.relpath(img_fn, base_path)
+            # run the video with pyorc
             velocity_flow(
                 recipe=recipe,
                 videofile=videofile,
@@ -131,39 +147,44 @@ class VideoResponse(VideoBase, RemoteModel):
                 cross_wl=cross_wl,
                 logger=logger,
             )
+            self.image = rel_img_fn
+            # update time series (before video, in case time series with optical water level is added in the process
+            self.update_timeseries(base_path=base_path)
+            # update status
+            self.status = models.VideoStatus.DONE
         except Exception as e:
+            # ensure status is ERROR, but continue afterwards
             self.status = models.VideoStatus.ERROR
-            raise Exception(f"Error running video, response: {e}, VideoStatus is ERROR.")
-        # afterward, set to done
-        self.image = rel_img_fn
-        self.status = models.VideoStatus.DONE
-        # update time series (before video, in case time series with optical water level is added in the process
-        self.update_timeseries(base_path=base_path)
-        # update video model
+            logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
         update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
         if self.time_series:
             update_data["time_series_id"] = self.time_series.id
-        with get_session() as session:
-            crud.video.update(session, id=self.id, video=update_data)
-            # check if remote syncing is possible.
-            # This requires a fully configured callback_url including a site to report on
-            callback_url = crud.callback_url.get(session)
-            settings = crud.settings.get(session)
-            if callback_url and settings.remote_site_id:
-                try:
-                    logger.debug("Attempting syncing to remote site ")
-                    # try the callback
-                    self.sync_remote(
-                        base_path=base_path,
-                        site=settings.remote_site_id,
-                        sync_file=settings.sync_file,
-                        sync_image=settings.sync_image,
-                    )
-                    logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
-                except Exception as e:
-                    logger.error(f"Error syncing video to remote site: {e}")
+        # with get_session() as session:
+        crud.video.update(session, id=self.id, video=update_data)
+        # check if remote syncing is possible.
+        # This requires a fully configured callback_url including a site to report on
+        callback_url = crud.callback_url.get(session)
+        settings = crud.settings.get(session)
+        # only in daemon mode attempt to sync automatically
+        if callback_url and settings.remote_site_id:
+            try:
+                logger.debug("Attempting syncing to remote site ")
+                # try the callback
+                self.sync_remote(
+                    session=session,
+                    base_path=base_path,
+                    site=settings.remote_site_id,
+                    sync_file=settings.sync_file,
+                    sync_image=settings.sync_image,
+                )
+                logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
+            except Exception as e_sync:
+                logger.error(f"Error syncing video to remote site: {e_sync}")
+        if self.status == models.VideoStatus.ERROR:
+            raise Exception("Error running video, VideoStatus set to ERROR.")
+        return
 
-    def sync_remote(self, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
+    def sync_remote(self, session: Session, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
         """Send the recipe to LiveORC API.
 
         Recipes belong to an institute, hence also the institute ID is required.
@@ -172,11 +193,11 @@ class VideoResponse(VideoBase, RemoteModel):
         if self.video_config is not None:
             if self.video_config.sync_status != models.SyncStatus.SYNCED:
                 # first sync/update recipe
-                self.video_config = self.video_config.sync_remote(site=site)
+                self.video_config = self.video_config.sync_remote(session=session, site=site)
                 self.video_config_id = self.video_config.id
         if self.time_series is not None:
             if self.time_series.sync_status != models.SyncStatus.SYNCED:
-                self.time_series = self.time_series.sync_remote(site=site)
+                self.time_series = self.time_series.sync_remote(session=session, site=site)
                 self.time_series_id = self.time_series.id
 
         # now report the entire video config (this currently reports to cameraconfig,
@@ -197,7 +218,8 @@ class VideoResponse(VideoBase, RemoteModel):
             files["file"] = (self.file, open(self.get_video_file(base_path=base_path), "rb"))
         if self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image:
             files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
-        response_data = super().sync_remote(endpoint=endpoint, data=data, files=files)
+        # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, data=data, files=files, timeout=15)
         if response_data is not None:
             response_data.pop("camera_config", None)
             response_data.pop("created_at", None)
@@ -216,7 +238,7 @@ class VideoResponse(VideoBase, RemoteModel):
             # update schema instance
             update_video = VideoResponse.model_validate(response_data)
             r = crud.video.update(
-                get_session(), id=self.id, video=update_video.model_dump(exclude_unset=True, exclude_none=True)
+                session, id=self.id, video=update_video.model_dump(exclude_unset=True, exclude_none=True)
             )
             return VideoResponse.model_validate(r)
         return None

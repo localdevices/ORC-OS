@@ -166,5 +166,5 @@ def test_video_config_sync_real_server(session_video_config, video_config_respon
     monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_video_config)
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_config)
 
-    video_config_update = video_config_response.sync_remote(institute=1, site=1)
+    video_config_update = video_config_response.sync_remote(site=1)
     print(video_config_update)

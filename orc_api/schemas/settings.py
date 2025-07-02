@@ -11,7 +11,7 @@ from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.routers.video import upload_video
 from orc_api.schemas.video_config import VideoConfigResponse
-from orc_api.utils import disk_management
+from orc_api.utils import disk_management, queue
 
 
 # Pydantic model for responses
@@ -110,17 +110,14 @@ class SettingsResponse(SettingsBase):
                     video_response = await upload_video(
                         file=file, timestamp=timestamp, video_config_id=self.video_config_id, db=session
                     )
-                if video_response:
-                    ready_to_run, msg = video_response.ready_to_run
-                    if ready_to_run:
-                        logger.info(f"Submitting video {file_path} to the executor.")
-                        # TODO: the daemon runner requires testing
-                        app.state.executor.submit(video_response.run, UPLOAD_DIRECTORY)
-                    else:
-                        logger.warning(f"Video {file_path} is not ready to run yet: {msg}.")
-                else:
-                    # remove the tmp file
-                    logger.error(f"Could not add video to database for file {file_path}.")
+                # move video to queue
+                video_response = await queue.process_video_submission(
+                    session,
+                    video_response,
+                    logger,
+                    app.state.executor,
+                    UPLOAD_DIRECTORY,
+                )
                 # whatever happens, remove the file if not successful, prevent clogging
                 os.remove(tmp_file)
 
