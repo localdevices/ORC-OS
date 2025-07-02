@@ -213,7 +213,7 @@ app.include_router(control_points.router)
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {"message": "You have reached the NodeORC API"}
+    return {"message": "You have reached the ORC-OS API"}
 
 
 if __name__ == "__main__":

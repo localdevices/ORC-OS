@@ -52,7 +52,7 @@ class CameraConfigBase(BaseModel):
     """Base model for camera configuration."""
 
     name: Optional[str] = Field(default=None, description="Name of the device.")
-    data: Optional[dict] = Field(default=None, description="Camera configuration")
+    data: Optional[CameraConfigData] = Field(default=None, description="Camera configuration")
 
     model_config = ConfigDict(from_attributes=True)
 

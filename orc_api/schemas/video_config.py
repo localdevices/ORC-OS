@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 import geopandas as gpd
 import numpy as np
-from pydantic import BaseModel, Field, conlist, model_validator
+from pydantic import BaseModel, ConfigDict, Field, conlist, model_validator
 from sqlalchemy.orm import Session
 
 from orc_api import crud
@@ -229,7 +229,7 @@ class VideoConfigResponse(VideoConfigRemote):
         default=None, description="Optional foreign key to the water level cross section.", ge=1
     )
     ready_to_run: bool = Field(default=False, description="Flag to indicate if the video config is ready to run.")
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="after")
     def check_if_ready_to_run(cls, v):
