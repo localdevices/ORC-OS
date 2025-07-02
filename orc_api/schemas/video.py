@@ -202,7 +202,12 @@ class VideoResponse(VideoBase, RemoteModel):
 
         # now report the entire video config (this currently reports to cameraconfig,
         # should be updated after LiveORC restructuring)
-        endpoint = "/api/video/"
+        if self.remote_id is None:
+            # committing a new video always occurs on a central end point (not site specific)
+            endpoint = "/api/video/"
+        else:
+            # video can only be changed under the site end point
+            endpoint = f"api/site/{site}/video/"
         data = {
             "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "camera_config": self.video_config.remote_id,
@@ -219,7 +224,7 @@ class VideoResponse(VideoBase, RemoteModel):
         if self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image:
             files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
         # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
-        response_data = super().sync_remote(session=session, endpoint=endpoint, data=data, files=files, timeout=15)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, json=data, files=files, timeout=15)
         if response_data is not None:
             response_data.pop("camera_config", None)
             response_data.pop("created_at", None)
