@@ -71,7 +71,7 @@ class Video(RemoteBase):
     image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     thumbnail: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     video_config_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("video_config.id"), nullable=True
+        Integer, ForeignKey("video_config.id", use_alter=True), nullable=True
     )  # relate by id
     # time_series = Column(ForeignKey("time_series.id"))
     video_config = relationship("VideoConfig", foreign_keys=[video_config_id])
@@ -119,14 +119,18 @@ def add_water_level(mapper, connection, target):
     db = Session(bind=connection)
     # check if a record is available
     settings = crud.settings.get(db)
-    timestamp = datetime.now() if not target.timestamp else target.timestamp
-    timeseries_record = crud.time_series.get_closest(
-        db,
-        timestamp,
-        allowed_dt=settings.allowed_dt,
-    )
-    if timeseries_record:
-        # link the time series with target
-        target.time_series_id = timeseries_record.id
+    if settings:
+        timestamp = datetime.now() if not target.timestamp else target.timestamp
+        timeseries_record = crud.time_series.get_closest(
+            db,
+            timestamp,
+            allowed_dt=settings.allowed_dt,
+        )
+        if timeseries_record:
+            # link the time series with target
+            target.time_series_id = timeseries_record.id
+        else:
+            print(f"No water level record available for timestamp {timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.")
     else:
-        print(f"No water level record available for timestamp {timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.")
+        # no daemon settings available, so we do not have to provide a water level
+        print("No settings available, skipping attaching time series to videos.")

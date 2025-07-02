@@ -21,7 +21,7 @@ def test_empty_recipe():
     # check if id is None
     assert recipe.id is None
     # check if end_frame is the default value
-    assert recipe.end_frame == 150
+    assert recipe.end_frame == 108000
 
 
 def test_recipe_schema(recipe_response):
@@ -37,7 +37,7 @@ def test_recipe_sync(session_recipe, recipe_response, monkeypatch):
     # let's assume we are posting on institute 1
     institute = 1
 
-    def mock_post(self, endpoint: str, data=None, json=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 201
 
@@ -52,9 +52,7 @@ def test_recipe_sync(session_recipe, recipe_response, monkeypatch):
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_recipe)
-    monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_recipe)
-    recipe_update = recipe_response.sync_remote(institute=institute)
+    recipe_update = recipe_response.sync_remote(session=session_recipe, institute=institute)
     assert recipe_update.remote_id == 4
     assert recipe_update.sync_status == SyncStatus.SYNCED
 
@@ -64,17 +62,15 @@ def test_recipe_sync_not_permitted(session_recipe, recipe_response, monkeypatch)
     # let's assume we are posting on site 1
     institute = 1
 
-    def mock_post(self, endpoint: str, data=None, json=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_recipe)
-    monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_recipe)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
-        _ = recipe_response.sync_remote(institute=institute)
+        _ = recipe_response.sync_remote(session=session_recipe, institute=institute)
 
 
 @pytest.mark.skipif(
@@ -107,8 +103,5 @@ def test_recipe_sync_real_server(session_recipe, recipe_response, monkeypatch):
     crud.callback_url.add(session_recipe, new_callback_url)
 
     # now we have access through the temporary database. Let's perform a post.
-    monkeypatch.setattr("orc_api.schemas.recipe.get_session", lambda: session_recipe)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_recipe)
-
-    recipe_update = recipe_response.sync_remote(institute=1)
+    recipe_update = recipe_response.sync_remote(session=session_recipe, institute=1)
     print(recipe_update)

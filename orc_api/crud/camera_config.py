@@ -47,9 +47,9 @@ def update(db: Session, id: int, camera_config: dict):
 
 def delete(db: Session, id: int):
     """Delete a single video."""
-    query = db.query(models.Recipe).filter(models.Recipe.id == id)
+    query = db.query(models.CameraConfig).filter(models.CameraConfig.id == id)
     if query.count() == 0:
-        raise ValueError(f"Recipe with id {id} does not exist.")
+        raise ValueError(f"Camera config with id {id} does not exist.")
     recipe = query.first()
     db.delete(recipe)
     db.commit()

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
-import {FaSave} from "react-icons/fa";
+import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
@@ -23,7 +23,7 @@ const VideoConfig = () => {
   const [CSDischarge, setCSDischarge] = useState({}); // Video metadata
   const [CSWaterLevel, setCSWaterLevel] = useState({}); // Video metadata
   const [activeTab, setActiveTab] = useState('configDetails');
-  const [activeView, setActiveView] = useState('sideView');
+  const [activeView, setActiveView] = useState('camView');
   const {setMessageInfo} = useMessage();
 
   // consts for image clicking
@@ -32,6 +32,7 @@ const VideoConfig = () => {
   const rotateState = useRef(cameraConfig?.rotation);
   const [imgDims, setImgDims] = useState(null);
   const [save, setSave] = useState(true);
+  const [frameCount, setFrameCount] = useState(0);
 
   const setCameraConfig = (newConfig) => {
     const cameraConfigInstance = {
@@ -51,6 +52,13 @@ const VideoConfig = () => {
           this.name !== null &&
           this.id !== null
         )
+      },
+      isReadyForProcessing: function () {
+        return (
+          this.isCalibrated() &&
+          this.isPoseReady() &&
+          this.bbox !== null
+        )
       }
     }
 
@@ -60,10 +68,10 @@ const VideoConfig = () => {
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
-
     api.get(`/video/${videoId}`)
       .then((response) => {
         setVideo(response.data);
+        console.log("VIDEO INFO:", response.data);
         if (response.data.video_config !== null) {
           setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
           if (response.data.video_config.recipe !== null) {
@@ -88,6 +96,11 @@ const VideoConfig = () => {
         setSave(false)
 
       });
+    api.get(`/video/${videoId}/frame_count/`)
+      .then((respone) => {
+        setFrameCount(respone.data)
+      })
+      .catch((err) => console.error("Error fetching frame count:", err))
 
   }, [videoId]);
 
@@ -122,27 +135,9 @@ const VideoConfig = () => {
   useEffect(() => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
       if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
-        // setCSDischarge((prevCS) => ({
-        //   ...prevCS,
-        //   camera_config: null,
-        //   bottom_surface: [],
-        //   wetted_surface: [],
-        //   distance_camera: null,
-        //   within_image: null,
-        // }));
         setCSDischarge({});
     }
       if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
-      //   setCSWaterLevel((prevCS) => ({
-      //     ...prevCS,
-      //     camera_config: null,
-      //     bottom_surface: [],
-      //     wetted_surface: [],
-      //     distance_camera: null,
-      //     within_image: null,
-      //   }));
-        console.log('here')
-        console.log(CSWaterLevel)
         setCSWaterLevel({});
       }
 
@@ -163,7 +158,7 @@ const VideoConfig = () => {
   }
 
   const createNewRecipe = () => {
-    api.post(`/recipe/empty/`) // Replace with your API endpoint
+    api.post(`/recipe/empty/`)
       .then((response) => {
         setRecipe(response.data);
       })
@@ -172,6 +167,107 @@ const VideoConfig = () => {
       });
 
   }
+
+  const deleteVideoConfig = async () => {
+    const userConfirmed = window.confirm("Are you sure you want to delete this video configuration? This action is irreversible.");
+    if (userConfirmed) {
+      try {
+        await api.delete(`/video_config/${videoConfig.id}/deps`); // remove video config including its dependencies
+        setMessageInfo("success", "Video configuration deleted successfully.");
+        setVideoConfig(null); // Reset the video configuration in the state
+        createNewRecipe();  // if recipe exists it will be overwritten later
+        createCameraConfig();  // if cam config exists, it will be overwritten later
+        setCSDischarge({});
+        setCSWaterLevel({});
+        setActiveTab('configDetails');
+        setActiveView('camView');
+
+      } catch (error) {
+        console.error("Error deleting video configuration:", error);
+        setMessageInfo("error", "Failed to delete video configuration. Please try again later." );
+      }
+    }
+
+  }
+
+
+  // Helper function to render the appropriate icon for the video status
+  const renderStatusIcon = (status) => {
+    let icon, title, color
+    switch (status) {
+      case 2:
+        icon = <FaHourglass size={20} />;
+        title = "Video is queued";
+        color = "purple";
+        break;
+      case 3:
+        icon = <FaSpinner size={20} />;
+        title = "Video is running";
+        color = "blue";
+        break;
+      default:
+        icon = <FaPlay size={20} />; // Default icon
+        title = "Run selected video with configuration";
+        color = '#3f9e28';
+        break;
+    }
+    return <button
+      type="button"
+      title={title}
+      style={{
+        backgroundColor: 'transparent',
+        border: 'none',
+        cursor: videoConfig?.ready_to_run ? 'pointer' : 'not-allowed',
+        color: color,
+        padding: '5px'
+      }}
+      onClick={runVideo}
+      disabled={!videoConfig?.ready_to_run}
+    >
+      {icon}
+    </button>
+
+  };
+  const renderStatusTitle = (status) => {
+    switch (status) {
+      case 2:
+        return "Video is queued";
+      case 3:
+        return "Video is running";
+      default:
+        return "Run selected video with configuration"; // Default icon
+    }
+  };
+
+
+
+  const runVideo = async () => {
+    try {
+      console.log("RUN VIDEO");
+
+      // Ensure the video ID is available
+      if (!video?.id) {
+        setMessageInfo("error", "No video ID found to run the video.");
+        return;
+      }
+
+      // Make the API call
+      const response = await api.get(`/video/${video.id}/run`);
+      // update the status of the video
+      setVideo({ ...video, status: response.data.status});
+      console.log("Run video response:", response.data);
+
+      // Display success message
+      setMessageInfo("success", "Video has been submitted for processing.");
+    } catch (error) {
+      console.error("Error running the video:", error);
+
+      // Handle error and send message to container
+      const errorMessage =
+        error.response?.data?.detail || "An unexpected error occurred while running the video.";
+      setMessageInfo("error", errorMessage);
+    }
+  };
 
   const updateWidget = (id, updatedCoordinates) => {
     setWidgets((prevWidgets) => {
@@ -196,6 +292,8 @@ const VideoConfig = () => {
         ...cameraConfig,
         gcps: {
           ...cameraConfig.gcps,
+          z_0: null,
+          h_ref: null,
           control_points: newWidgets.map(widget => widget.coordinates)
         },
         camera_position: null,
@@ -204,10 +302,16 @@ const VideoConfig = () => {
         k1: null,
         k2: null,
         bbox_camera: [],
-        bbox: []
+        bbox: [],
+        data: {
+          ...cameraConfig.data,
+          bbox: null
+        }
 
       }
       setCameraConfig(newConfig);
+      setCSDischarge({});
+      setCSWaterLevel({});
       // also remove selected cross sections
       return newWidgets;
     });
@@ -233,13 +337,13 @@ const VideoConfig = () => {
           </div>
           <div className="tabs-row">
             <button
-              className={activeView === 'sideView' ? 'active-tab' : ''}
+              className={activeView === 'camView' ? 'active-tab' : ''}
               onClick={(e) => {
                 e.preventDefault();
-                handleViewChange('sideView');
+                handleViewChange('camView');
               }}
             >
-              Side view
+              Camera view
             </button>
             <button
               className={activeView === 'topView' ? 'active-tab' : ''}
@@ -252,9 +356,10 @@ const VideoConfig = () => {
             </button>
           </div>
 
-          {video && activeView === 'sideView' && (
+          {video && activeView === 'camView' && (
             <VideoTab
               video={video}
+              frameNr={recipe?.start_frame}
               cameraConfig={cameraConfig}
               widgets={widgets}
               selectedWidgetId={selectedWidgetId}
@@ -292,20 +397,39 @@ const VideoConfig = () => {
               <div className="tabs-header">
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
                 <h5>Manage configuration</h5>
-                  <button
-                    type="submit"
-                    form="videoConfigForm"
-                    style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      cursor: save ? 'pointer' : 'not-allowed',
-                      color: save ? '#0d6efd' : '#6c757d',
-                      padding: '5px'
-                    }}
-                    disabled={!save}
-                  >
-                    <FaSave size={20}/>
-                  </button>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    <button
+                      type="submit"
+                      title={save ? "Save video configuration" : "No changes to save"}
+                      form="videoConfigForm"
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: save ? 'pointer' : 'not-allowed',
+                        color: save ? '#0d6efd' : '#6c757d',
+                        padding: '5px'
+                      }}
+                      disabled={!save}
+                    >
+                      <FaSave size={20}/>
+                    </button>
+                    {video && renderStatusIcon(video.status)}
+
+                    <button
+                      type="button"
+                      title="Delete video configuration"
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#dc3545',
+                        padding: '5px'
+                      }}
+                      onClick={deleteVideoConfig}
+                    >
+                      <FaTrash size={20}/>
+                    </button>
+                  </div>
                 </div>
                 {/* Tabs row */}
                 <div className="tabs-row">
@@ -415,6 +539,8 @@ const VideoConfig = () => {
                       imgDims={imgDims}
                       updateWidget={updateWidget}
                       setCameraConfig={setCameraConfig}
+                      setCSDischarge={setCSDischarge}
+                      setCSWaterLevel={setCSWaterLevel}
                       setWidgets={setWidgets}
                       setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
@@ -425,7 +551,10 @@ const VideoConfig = () => {
                       <RecipeForm
                         selectedRecipe={recipe}
                         setSelectedRecipe={setRecipe}
+                        frameCount={frameCount}
                         setMessageInfo={setMessageInfo}
+                        CSWaterLevel={CSWaterLevel}
+                        CSDischarge={CSDischarge}
                       />
                     )}
                 </div>
@@ -438,44 +567,17 @@ const VideoConfig = () => {
               "overflowY": "hidden",
               "overflowX": "hidden"
             }}>
-              {/*<div className="tabbed-form-container">*/}
-              {/*  <div className="tabs-header">*/}
                   <h5>Side view</h5>
-                  {/*<div className="tabs-row">*/}
-                  {/*  <button*/}
-                  {/*    className={activeView === 'sideView' ? 'active-tab' : ''}*/}
-                  {/*    onClick={(e) => {*/}
-                  {/*      e.preventDefault();*/}
-                  {/*      handleViewChange('sideView');*/}
-                  {/*    }}*/}
-                  {/*  >*/}
-                  {/*    Side view*/}
-                  {/*  </button>*/}
-                  {/*  <button*/}
-                  {/*    className={activeView === 'topView' ? 'active-tab' : ''}*/}
-                  {/*    onClick={(e) => {*/}
-                  {/*      e.preventDefault();*/}
-                  {/*      handleViewChange('topView');*/}
-                  {/*    }}*/}
-                  {/*  >*/}
-                  {/*    Top view*/}
-                  {/*  </button>*/}
-                  {/*</div>*/}
-                {/*</div>*/}
-                {/*<div className="tab-container">*/}
-                {/*  /!* Tab content *!/*/}
-                {/*  <div className="tab-content">*/}
                       <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
+                        recipe={recipe}
+                        cameraConfig={cameraConfig}
                       />
                   </div>
                 </div>
               </div>
             </div>
-        {/*  </div>*/}
-        {/*</div>*/}
-      {/*</div>*/}
     </div>
   );
 };

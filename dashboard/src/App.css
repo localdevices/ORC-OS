@@ -6,6 +6,8 @@
   font-family: Barlow;
   display: flex;
 }
+
+
 .app-container {
   display: flex;
   flex-direction: column; /* Stack Navbar, Main Content, and Footer */
@@ -27,6 +29,16 @@
   padding: 1rem 1rem; /* Optional: Add some padding */
   height: 100%;
 }
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  /*text-decoration: inherit;*/
+}
+a:hover {
+  color: #535bf2;
+}
+
 
 .flex-container {
   display: flex;
@@ -56,6 +68,13 @@
   background-color: transparent;
 }
 
+.help-block {
+  padding-left: 10px;
+  font-size: 0.6875rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  color: #666;
+}
 /* Grid container for two equal columns */
 .split-screen {
   display: grid;
@@ -298,18 +317,6 @@ button.btn-icon:hover .edit {
   }
 }
 
-.spinner {
-  animation: spin 5s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 
 .pulsating-icon {
@@ -324,13 +331,6 @@ button.btn-icon:hover .edit {
   color: #888;
 }
 
-a {
-  color: #FFFFFF;
-}
-a:hover {
-  color: #FFFFFF;
-  font-weight: bold;
-}
 
 .custom-file-button input[type=file] {
   margin-left: -2px !important;
@@ -349,6 +349,23 @@ a:hover {
   cursor: pointer;
 }
 
+.spinner-viewport {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 1000;
+
+}
 
 .spinner-container {
   position: absolute;
@@ -365,6 +382,7 @@ a:hover {
   width: 50px;
   height: 50px;
   animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
 @keyframes spin {

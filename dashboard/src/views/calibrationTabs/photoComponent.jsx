@@ -9,6 +9,7 @@ import {rainbowColors} from "../../utils/helpers.jsx";
 const PhotoComponent = (
   {
     video,
+    frameNr,
     imageRef,
     widgets,
     cameraConfig,
@@ -18,6 +19,7 @@ const PhotoComponent = (
     bBoxPolygon,
     CSDischarge,
     CSWaterLevel,
+    dragging,
     setCameraConfig,
     setImgDims,
     setBBoxPolygon,
@@ -31,8 +33,7 @@ const PhotoComponent = (
   const [fittedPoints, setFittedPoints] = useState([]);
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
   const [lineCoordinates, setLineCoordinates] = useState(null);
-  const [frameNr, setFrameNr] = useState(0);
-  const [imageUrl, setImageUrl] = useState('/frame_001.jpg');
+  const [imageUrl, setImageUrl] = useState('');  ///frame_001.jpg
   const debounceTimeoutRef = useRef(null);  // state for timeout checking
   const abortControllerRef = useRef(null);  // state for aborting requests to api
   const lastResponse = useRef(null);  // store last API response
@@ -40,6 +41,9 @@ const PhotoComponent = (
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
+
+  // set a mouseDown state for tracking mouse behaviour
+  const mouseDownTimeRef = useRef(0);
 
 
   const checkImageReady = () => {
@@ -80,7 +84,6 @@ const PhotoComponent = (
     }
 
   }, [cameraConfig, imgDims, transformState, photoBbox]);
-
 
   useEffect(() => {
     // set cross sections
@@ -134,21 +137,6 @@ const PhotoComponent = (
     }
   }, [CSWaterLevel?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
 
-  // useEffect(() => {
-  //   try {
-  //     console.log("WIDGETS", widgets);
-      // const imgElement = imageRef.current;
-      // setImgDims({width: imageRef.current.naturalWidth, height: imgElement.naturalHeight});
-      // setPhotoBbox(imgElement.getBoundingClientRect());
-      // updateFittedPoints();
-      // updateDots();
-      // updateFittedPoints();
-  //   } catch {
-  //     console.error("Image not yet initialized.")
-  //   }
-  // }, [widgets, transformState, window]);
-
-
   useTransformEffect(({state}) => {
     const imgElement = imageRef.current;
     if (!imgElement) return;
@@ -156,7 +144,6 @@ const PhotoComponent = (
     setTransformState(state); // Update the transformState on every transformation
     // updateFittedPoints();
   });
-
 
 
   const getFrameUrl = (frameNr, rotate) => {
@@ -169,13 +156,35 @@ const PhotoComponent = (
     }
     return frameUrl
   }
+  const isImageCached = (url) => {
+    const img = new Image();
+    img.src = url; // Set the source
+    return img.complete; // This will be true for cached images
+  };
+
+  // set / reset timer for reloading of image with requested changes
+  const debounce = (callback, delay) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => callback(...args), delay);
+    };
+  };
 
   useEffect(() => {
-    // Update the image URL whenever frameNr or rotate changes
-    const url = getFrameUrl(0, rotate);
-    setImageUrl(url); // Set the new image URL
-    setLoading(true); // Trigger loading state when the URL changes
-  }, [rotate, video]);
+    const debouncedUpdate = debounce(() => {
+      // Update the image URL whenever frameNr or rotate changes
+      const url = getFrameUrl(frameNr, rotate);
+      setImageUrl(url); // Set the new image URL
+      if (isImageCached(url)) {
+        setLoading(false);  // skil loading stage if cached (prevents race issues)
+      } else {
+        setLoading(true);   // Trigger loading state when the URL changes
+      }
+    }, 300);
+    debouncedUpdate();
+    return () => clearTimeout(debouncedUpdate);
+  }, [rotate, video, frameNr]);
 
 
   const updateFittedPoints = () => {
@@ -210,8 +219,23 @@ const PhotoComponent = (
     return { start: startPoint, end: endPoint };
   };
 
+  // Mouse behaviour functions
+  // -------------------------
+  // Handle mouse down
+  const handleMouseDown = () => {
+    mouseDownTimeRef.current = Date.now(); // Save the current time
+  };
 
-    const handleMouseMove = (event) => {
+  // Handle mouse up
+  const handleMouseUp = (event) => {
+    const clickDuration = Date.now() - mouseDownTimeRef.current;
+    // Only consider it a "click" if dragging did not occur and the click was fast enough
+    if (clickDuration < 200) {
+      handleMouseClick(event); // Call your existing click logic
+    }
+  };
+
+  const handleMouseMove = (event) => {
     if (!imageRef.current) return;
     if (!photoBbox || !imgDims || !transformState) return;
 
@@ -348,7 +372,7 @@ const PhotoComponent = (
   };
 
   const handleImageLoad = () => {
-    if (imageRef.current) {
+    if (imageRef.current && imageUrl) {
       setImgDims({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
@@ -357,16 +381,16 @@ const PhotoComponent = (
     }
   };
 
+
   const handleMouseClick = (event) => {
     // this function is called when the user clicks on the image. It starts with several general coordinate
     // properties, then calling a callback handlePhotoClick to do specific things with the coordinates.
     if (!imageRef.current) return;
-    event.stopPropagation();
+
     if (!transformState) {
       console.error("TransformContext state is null or uninitialized");
       return;
     }
-
     // Get the (x, y) position of the click relative to the visible image
     const clickX = event.clientX - photoBbox.left;
     const clickY = event.clientY - photoBbox.top;
@@ -404,7 +428,6 @@ const PhotoComponent = (
 
     imageRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
     selectedWidgetId: PropTypes.number,
-    updateWidget: PropTypes.func.isRequired,
     widgets: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.number.isRequired,
       fit: PropTypes.shape({
@@ -429,9 +452,16 @@ const PhotoComponent = (
         style={{width: '100%', height: '100%'}}
         className="img-calibration"
         ref={imageRef}
-        onClick={handleMouseClick}
+        // onClick={handleMouseClick}
         onLoad={handleImageLoad}
+        onError={() => {
+          setLoading(false); // Always unset loading on error
+          console.error('Image failed to load.');
+        }}
+
         onMouseMove={handleMouseMove} // Track mouse movement
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         src={imageUrl}
         alt="img-calibration"
@@ -662,8 +692,10 @@ const PhotoComponent = (
       )}
     </TransformComponent>
       {loading && (
-        <div className="spinner-container">
+        <div className="spinner-viewport">
           <div className="spinner" />
+          <div>Loading frame...</div>
+
         </div>
       )}
 

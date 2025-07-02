@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
 
 
@@ -33,6 +33,9 @@ class TimeSeriesBase(BaseModel):
     q_95: Optional[float] = Field(
         default=None, description="Streamflow with probability of non-exceedance of 95% [m3/s]"
     )
+    q_raw: Optional[float] = Field(default=None, description="Streamflow measured optically [m3/s]")
+    v_av: Optional[float] = Field(default=None, description="Average surface velocity [m/s]")
+    v_bulk: Optional[float] = Field(default=None, description="Bulk velocity [m/s]")
     wetted_surface: Optional[float] = Field(default=None, description="Wetted surface area with given water level [m2]")
     wetted_perimeter: Optional[float] = Field(default=None, description="Wetted perimeter with given water level [m]")
     fraction_velocimetry: Optional[float] = Field(
@@ -52,7 +55,7 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
 
     id: int = Field(description="TimeSeries ID")
 
-    def sync_remote(self, site: int):
+    def sync_remote(self, session: Session, site: int):
         """Send the time series record to LiveORC API.
 
         Recipes belong to an institute, hence also the institute ID is required.
@@ -63,12 +66,12 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
         )
 
         # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, json=data)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, json=data)
         if response_data is not None:
             # patch the record in the database, where necessary
             # update schema instance
             update_time_series = TimeSeriesResponse.model_validate(response_data)
             r = crud.time_series.update(
-                get_session(), id=self.id, time_series=update_time_series.model_dump(exclude_unset=True)
+                session, id=self.id, time_series=update_time_series.model_dump(exclude_unset=True)
             )
             return TimeSeriesResponse.model_validate(r)

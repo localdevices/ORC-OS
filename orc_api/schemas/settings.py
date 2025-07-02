@@ -5,13 +5,13 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import UploadFile
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from orc_api import TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
+from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.routers.video import upload_video
 from orc_api.schemas.video_config import VideoConfigResponse
-from orc_api.utils import disk_management
+from orc_api.utils import disk_management, queue
 
 
 # Pydantic model for responses
@@ -46,6 +46,8 @@ class SettingsBase(BaseModel):
     sync_image: Optional[bool] = Field(
         default=None, description="Flag for syncing the result image file with the remote site."
     )
+    active: Optional[bool] = Field(default=None, description="Flag for enabling/disabling the daemon.")
+    sample_file: Optional[str] = Field(default=None, description="Sample expected filename used for testing.")
 
 
 class SettingsResponse(SettingsBase):
@@ -62,6 +64,19 @@ class SettingsResponse(SettingsBase):
         with get_session() as session:
             vc = crud.video_config.get(db=session, id=self.video_config_id)
             return VideoConfigResponse.model_validate(vc) if vc else None
+
+    @model_validator(mode="after")
+    def add_sample_filename(cls, instance):
+        """Add sample filename to the response."""
+        if instance.video_file_fmt:
+            if instance.parse_dates_from_file:
+                fmt = instance.video_file_fmt.split("{")[1].split("}")[0]
+                datestr = datetime.now().strftime(fmt)
+                file_format = instance.video_file_fmt.split("{")[0] + datestr + instance.video_file_fmt.split("}")[1]
+            else:
+                file_format = instance.video_file_fmt
+            instance.sample_file = os.path.join(INCOMING_DIRECTORY, file_format)
+        return instance
 
     async def check_new_videos(self, path_incoming, app, logger):
         """Check for new videos in incoming folder, add to database and queue if ready to run."""
@@ -95,17 +110,14 @@ class SettingsResponse(SettingsBase):
                     video_response = await upload_video(
                         file=file, timestamp=timestamp, video_config_id=self.video_config_id, db=session
                     )
-                if video_response:
-                    ready_to_run, msg = video_response.ready_to_run
-                    if ready_to_run:
-                        logger.info(f"Submitting video {file_path} to the executor.")
-                        # TODO: the daemon runner requires testing
-                        app.state.executor.submit(video_response.run, UPLOAD_DIRECTORY)
-                    else:
-                        logger.warning(f"Video {file_path} is not ready to run yet: {msg}.")
-                else:
-                    # remove the tmp file
-                    logger.error(f"Could not add video to database for file {file_path}.")
+                # move video to queue
+                video_response = await queue.process_video_submission(
+                    session,
+                    video_response,
+                    logger,
+                    app.state.executor,
+                    UPLOAD_DIRECTORY,
+                )
                 # whatever happens, remove the file if not successful, prevent clogging
                 os.remove(tmp_file)
 

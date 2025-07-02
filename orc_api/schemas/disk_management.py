@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY
 from orc_api.log import logger
 from orc_api.utils import disk_management as dm
 
@@ -14,7 +15,6 @@ from orc_api.utils import disk_management as dm
 class DiskManagementBase(BaseModel):
     """Base schema for disk management."""
 
-    home_folder: Optional[str] = Field(default=None, description="Home folder of the device.")
     min_free_space: Optional[float] = Field(default=None, description="GB of minimum free space required.")
     critical_space: Optional[float] = Field(default=None, description="GB of free space critical for the device.")
     frequency: Optional[int] = Field(default=None, description="Frequency [s] for checking disk status and cleanup.")
@@ -22,7 +22,7 @@ class DiskManagementBase(BaseModel):
     @property
     def incoming_path(self):
         """Path to the incoming folder."""
-        path = os.path.join(self.home_folder, "incoming")
+        path = INCOMING_DIRECTORY
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -30,7 +30,7 @@ class DiskManagementBase(BaseModel):
     @property
     def failed_path(self):
         """Path to the failed folder."""
-        path = os.path.join(self.home_folder, "failed")
+        path = os.path.join(UPLOAD_DIRECTORY, "failed")
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -38,7 +38,7 @@ class DiskManagementBase(BaseModel):
     @property
     def results_path(self):
         """Path to the results folder."""
-        path = os.path.join(self.home_folder, "results")
+        path = os.path.join(UPLOAD_DIRECTORY, "results")
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -46,43 +46,37 @@ class DiskManagementBase(BaseModel):
     @property
     def log_path(self):
         """Path to the logs folder."""
-        path = os.path.join(self.home_folder, "logs")
+        path = os.path.join(UPLOAD_DIRECTORY, "logs")
         if not os.path.exists(path):
             os.makedirs(path)
         return path
 
-    def cleanup(self):
+    def cleanup(self, home_folder: str = None):
         """Perform disk cleanup activities (should be run in scheduler)."""
         # check disk space
         free_space = dm.get_free_space(
-            self.home_folder,
+            home_folder,
         )
-        logger.debug(f"Checking if free space is sufficient (>= {self.min_free_space})")
+        logger.debug(f"Checking if free space is sufficient (>= {self.min_free_space}) GB")
         if free_space < self.min_free_space:
-            logger.warning(f"Available space is lower than {self.min_free_space}, purging failed folder.")
+            logger.warning(f"Available space is lower than {self.min_free_space}, purging media folder.")
             ret = dm.purge(
-                [self.failed_path],
+                [home_folder],
                 free_space=free_space,
                 min_free_space=self.min_free_space,
                 logger=logger,
-                home=self.home_folder,
+                home=home_folder,
             )
             if not ret:
-                logger.warning("Space after purging still not sufficient. Purging results folder.")
-                free_space = dm.get_free_space(self.home_folder)
-                ret = dm.purge(
-                    [self.results_path],
-                    free_space=free_space,
-                    min_free_space=self.min_free_space,
-                    logger=logger,
-                    home=self.home_folder,
+                free_space = dm.get_free_space(home_folder)
+                logger.warning(
+                    f"Space after purging is {free_space} and under minimum allowed space {self.min_free_space}. "
+                    f"Please contact your system administrator."
                 )
-                if not ret:
-                    free_space = dm.get_free_space(self.home_folder)
-                    logger.warning(
-                        f"Space after purging is {free_space} and under minimum allowed space {self.min_free_space}. "
-                        f"Please contact your system administrator."
-                    )
+                # finally do a scan_folders to remove empty dirs
+                _ = dm.scan_folder([home_folder])
+        else:
+            logger.info(f"Available space is sufficient ({free_space} GB).")
 
 
 class DiskManagementResponse(DiskManagementBase):

@@ -4,20 +4,22 @@ import io
 import mimetypes
 import os
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 from zipfile import ZIP_DEFLATED
 
 import cv2
 import zipstream
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile  # Requests holds the app
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 # Directory to save uploaded files
 from orc_api import __home__, crud
 from orc_api.database import get_db
-from orc_api.db import Video
+from orc_api.db import Video, VideoStatus
+from orc_api.log import logger
 from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoPatch, VideoResponse
+from orc_api.utils import queue
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
@@ -107,10 +109,19 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
 
 @router.get("/", response_model=List[VideoResponse], status_code=200)
 async def get_list_video(
-    start: Optional[datetime] = None, stop: Optional[datetime] = None, db: Session = Depends(get_db)
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    status: Optional[Union[VideoStatus, int]] = Query(default=None),
+    db: Session = Depends(get_db),
 ):
     """Retrieve a thumbnail for a video."""
-    list_videos = crud.video.get_list(db, start=start, stop=stop)
+    if isinstance(status, int):
+        try:
+            status = VideoStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
+
+    list_videos = crud.video.get_list(db, start=start, stop=stop, status=status)
     return list_videos
 
 
@@ -123,6 +134,28 @@ async def get_video(id: int, db: Session = Depends(get_db)):
     return video
 
 
+@router.get("/{id}/frame_count/", response_model=int, status_code=200)
+async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
+    """Retrieve the end frame of a video."""
+    video_rec = crud.video.get(db=db, id=id)
+    if not video_rec:
+        raise HTTPException(status_code=404, detail="Video not found.")
+
+    # Open the video file
+    video = VideoResponse.model_validate(video_rec)
+
+    # open video
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # open video
+    cap = cv2.VideoCapture(file_path)
+
+    # check amount of frames
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    return frame_count
+
+
 @router.delete("/{id}/", status_code=204, response_model=None)
 async def delete_video(id: int, db: Session = Depends(get_db)):
     """Delete a video."""
@@ -133,7 +166,7 @@ async def delete_video(id: int, db: Session = Depends(get_db)):
 @router.patch("/{id}/", status_code=200, response_model=VideoResponse)
 async def patch_video(id: int, video: VideoPatch, db: Session = Depends(get_db)):
     """Update a video in the database."""
-    update_video = video.model_dump(exclude_none=True, exclude={"id"})
+    update_video = video.model_dump(exclude_none=True, exclude={"id", "video_config", "time_series"})
     video = crud.video.update(db=db, id=id, video=update_video)
     return video
 
@@ -178,6 +211,26 @@ async def play_video(id: int, db: Session = Depends(get_db)):
 
     # Return the video file using FileResponse
     return FileResponse(file_path, media_type=mime_type)
+
+
+@router.get("/{id}/run", response_model=VideoPatch, status_code=200)
+async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
+    """Retrieve a video file and stream it to the client."""
+    video = crud.video.get(db=db, id=id)
+    # make a Response video
+    video = VideoResponse.model_validate(video)
+    # now submit video to run process
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
+    executor = request.app.state.executor
+    video_patch = await queue.process_video_submission(
+        session=db,
+        video=video,
+        logger=logger,
+        executor=executor,
+        upload_directory=UPLOAD_DIRECTORY,
+    )
+    return video_patch
 
 
 @router.get("/{id}/image/", response_class=FileResponse, status_code=200)

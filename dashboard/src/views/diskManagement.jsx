@@ -7,7 +7,6 @@ const DiskManagement = () => {
     const [diskManagement, updateDiskManagement] = useState([]);
     const [formData, setFormData] = useState({
         created_at: '',
-        home_folder: '',
         min_free_space: '',
         critical_space: '',
         frequency: ''
@@ -29,7 +28,6 @@ const DiskManagement = () => {
                 }
             setFormData({
                 created_at: diskManagement.created_at || '',
-                home_folder: diskManagement.home_folder || '',
                 min_free_space: diskManagement.min_free_space || '',
                 critical_space: diskManagement.critical_space || '',
                 frequency: diskManagement.frequency || ''
@@ -66,7 +64,6 @@ const DiskManagement = () => {
             // set the form data to new device settings
             setFormData({
                 created_at: '',
-                home_folder: '',
                 min_free_space: '',
                 critical_space: '',
                 frequency: '',
@@ -77,8 +74,8 @@ const DiskManagement = () => {
     };
     return (
         <div className='container'>
-            Change your disk management settings.
-            <hr/>
+            <h2>Change your disk management settings.</h2>
+            <div className="flex-container column">
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='created_at' className='form-label'>
@@ -87,26 +84,16 @@ const DiskManagement = () => {
                     <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled/>
                 </div>
                 <div className='mb-3 mt-3'>
-                    <label htmlFor='home_folder' className='form-label'>
-                        Home folder
+                    <label htmlFor='min_free_space' className='form-label'>
+                        Minimum space [GB] below which cleanup will take place
                     </label>
-                    <div className='input-group custom-file-button'>
-                      <label className='input-group-text' htmlFor='home_folder'>Type folder path:</label>
-                      <input type='str' className='form-control' id='home_folder' name='home_folder' onChange={handleInputChange} value={formData.home_folder} />
-                    </div>
-{/*                     <input type='file' className='form-control custom-file-button' directory='' webkitdirectory='' id='home_folder' name='home_folder' onChange={handleInputChange} value={formData.home_folder} /> */}
+                    <input type='number' className='form-control' id='min_free_space' name='min_free_space' step="0.1" onChange={handleInputChange} value={formData.min_free_space} />
                 </div>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='critical_space' className='form-label'>
-                        Critical space [GB] below which cleanup will take place
+                        Critical space [GB] below which service will be turned off.
                     </label>
                     <input type='number' className='form-control' id='critical_space' name='critical_space' step="0.1" onChange={handleInputChange} value={formData.critical_space} />
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='min_free_space' className='form-label'>
-                        Minimum space [GB] below which service will be turned off.
-                    </label>
-                    <input type='number' className='form-control' id='min_free_space' name='min_free_space' step="0.1" onChange={handleInputChange} value={formData.min_free_space} />
                 </div>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='frequency' className='form-label'>
@@ -122,6 +109,7 @@ const DiskManagement = () => {
                 </div>
 
             </form>
+            </div>
        </div>
 
     );

@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babel/runtime": "^7.27.6",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "axios": "^1.7.9",
@@ -28,6 +29,7 @@
     "react-leaflet": "^4.2.1",
     "react-modal": "^3.16.3",
     "react-router-dom": "^7.1.5",
+    "react-slider": "^2.0.6",
     "react-xtermjs": "^1.0.9",
     "react-zoom-pan-pinch": "^3.7.0",
     "shpjs": "^6.1.0",

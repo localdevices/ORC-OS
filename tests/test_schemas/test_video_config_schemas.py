@@ -39,12 +39,12 @@ def test_video_config_recipe_cleaned(video_config_response):
     assert np.isclose(new_z - orig_z, 1)
 
 
-def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
+def test_video_config_sync(session_video_config, video_config_response, monkeypatch):
     """Test for syncing a cross-section to remote API (real response is mocked)."""
     # let's assume we are posting on site 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, json=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 201
 
@@ -73,7 +73,9 @@ def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
     crud.cross_section.update(
         session_video_config,
         1,
-        video_config_response.cross_section.model_dump(exclude_none=True, exclude=["x", "y", "z", "s"]),
+        video_config_response.cross_section.model_dump(
+            include=["id", "created_at", "remote_id", "sync_status", "timestamp", "name", "features"]
+        ),
     )
 
     # ensure that we load the right session
@@ -86,10 +88,7 @@ def test_recipe_sync(session_video_config, video_config_response, monkeypatch):
 
         return MockResponse()
 
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_config)
-    monkeypatch.setattr("orc_api.schemas.video_config.get_session", lambda: session_video_config)
-    monkeypatch.setattr("orc_api.schemas.callback_url.CallbackUrlResponse.get_site", mock_get_site)
-    video_config_update = video_config_response.sync_remote(site=site)
+    video_config_update = video_config_response.sync_remote(session=session_video_config, site=site)
 
     # check if remote ids are coming through in the response model
     assert video_config_update.recipe.remote_id == 4
@@ -103,7 +102,7 @@ def test_video_config_sync_not_permitted(session_video_config, video_config_resp
     # let's assume we are posting on site 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, json=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
 
@@ -120,13 +119,11 @@ def test_video_config_sync_not_permitted(session_video_config, video_config_resp
 
         return MockResponse()
 
+    monkeypatch.setattr(CallbackUrlResponse, "get_site", mock_get_site)
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_config)
-    monkeypatch.setattr("orc_api.schemas.video_config.get_session", lambda: session_video_config)
-    monkeypatch.setattr("orc_api.schemas.callback_url.CallbackUrlResponse.get_site", mock_get_site)
 
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
-        _ = video_config_response.sync_remote(site=site)
+        _ = video_config_response.sync_remote(session=session_video_config, site=site)
 
 
 @pytest.mark.skipif(
@@ -164,5 +161,5 @@ def test_video_config_sync_real_server(session_video_config, video_config_respon
     monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_video_config)
     monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_video_config)
 
-    video_config_update = video_config_response.sync_remote(institute=1, site=1)
+    video_config_update = video_config_response.sync_remote(site=1)
     print(video_config_update)

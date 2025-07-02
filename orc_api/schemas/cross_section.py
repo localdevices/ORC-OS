@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pyorc import CameraConfig as pyorcCameraConfig
 from pyorc import CrossSection as pyorcCrossSection
 from pyorc.cli.cli_utils import read_shape_as_gdf
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.database import get_session
@@ -74,7 +75,7 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
     # in response, name is required
     name: str = Field(description="Free recognizable description of cross section.")
 
-    def sync_remote(self, site: int, **kwargs):
+    def sync_remote(self, session: Session, site: int, **kwargs):
         """Send the cross-section to LiveORC API."""
         endpoint = f"/api/site/{site}/profile/"
         data = {
@@ -83,7 +84,7 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             "data": self.features,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, json=data)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, json=data)
         if response_data is not None:
             # patch the record in the database, where necessary
             response_data["features"] = response_data.pop("data")

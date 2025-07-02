@@ -1,5 +1,4 @@
 
-
 /* Navbar Styles */
 .navbar {
     display: flex;
@@ -45,6 +44,15 @@
 
 .navbar-right {
     position: relative;
+}
+
+
+a {
+    color: #FFFFFF;
+}
+a:hover {
+    color: #FFFFFF;
+    font-weight: bold;
 }
 
 .wifi-button {

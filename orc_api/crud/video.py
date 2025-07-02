@@ -19,6 +19,13 @@ def filter_start_stop(query: Select, start: Optional[datetime] = None, stop: Opt
     return query.order_by(models.Video.timestamp)
 
 
+def filter_status(query: Select, status: Optional[models.VideoStatus] = None):
+    """Filter query by start and stop datetime."""
+    if status:
+        query = query.where(models.Video.status == status)
+    return query
+
+
 def get_query_by_id(db: Session, id: int):
     """Get a single video in a query (e.g. for updating."""
     return db.query(models.Video).filter(models.Video.id == id)
@@ -60,10 +67,17 @@ def get_ids(db: Session, ids: List[int] = None) -> List[models.Video]:
     return query.all()
 
 
-def get_list(db: Session, start: Optional[datetime] = None, stop: Optional[datetime] = None) -> List[models.Video]:
+def get_list(
+    db: Session,
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    status: Optional[models.VideoStatus] = None,
+) -> List[models.Video]:
     """List videos within time span of start and stop."""
     query = db.query(models.Video)
     query = filter_start_stop(query, start, stop)
+    if status:
+        query = filter_status(query, status)
     return query.all()
 
 

@@ -110,7 +110,7 @@ async def create_cs(cs: CrossSectionCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/update/", response_model=CrossSectionUpdate, status_code=201)
-async def update_recipe(cs: CrossSectionUpdate):
+async def update_cs(cs: CrossSectionUpdate):
     """Update an in-memory cross-section.
 
     This only validates the input and adds default fields where necessary.

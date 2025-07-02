@@ -10,7 +10,7 @@ authors = [
 dependencies = [
     "apscheduler",
     "pillow",
-    "pyopenrivercam>=0.8.5",
+    "pyopenrivercam>=0.8.7",
     "sqlalchemy",
     "fastapi[standard]",
     "pydantic",

@@ -11,8 +11,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from orc_api import crud
+from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
+from orc_api.db import VideoStatus
 from orc_api.routers import (
     callback_url,
     camera_config,
@@ -30,6 +31,8 @@ from orc_api.routers import (
 )
 from orc_api.schemas.disk_management import DiskManagementResponse
 from orc_api.schemas.settings import SettingsResponse
+from orc_api.schemas.video import VideoResponse
+from orc_api.utils import queue
 
 
 def async_job_wrapper(func, kwargs):
@@ -70,6 +73,7 @@ def schedule_disk_maintenance(scheduler, logger, session):
         logger.info('Disk management settings found: setting up interval job "disk_managemement_job"')
         scheduler.add_job(
             func=dm_settings.cleanup,
+            kwargs={"home_folder": UPLOAD_DIRECTORY},
             trigger="interval",
             seconds=dm_settings.frequency,
             start_date=datetime.now() + timedelta(seconds=5),
@@ -89,26 +93,30 @@ def schedule_video_checker(scheduler, logger, session):
     settings = crud.settings.get(session)
     dm = crud.disk_management.get(session)
 
+    # settings must be provided AND active
     if settings and dm:
-        # validate the settings model instance
-        settings = SettingsResponse.model_validate(settings)
-        dm_settings = DiskManagementResponse.model_validate(dm)
-        logger.info(
-            f'Daemon settings found: setting up interval job "video_check_job" with path: {dm_settings.incoming_path} '
-            f"and file template: {settings.video_file_fmt}"
-        )
-        scheduler.add_job(
-            func=async_job_wrapper,
-            kwargs={
-                "func": settings.check_new_videos,
-                "kwargs": {"path_incoming": dm_settings.incoming_path, "app": app, "logger": logger},
-            },
-            trigger="interval",
-            seconds=5,
-            start_date=datetime.now(),
-            id="video_check_job",
-            replace_existing=True,
-        )
+        if settings.active:
+            # validate the settings model instance
+            settings = SettingsResponse.model_validate(settings)
+            logger.info(
+                f'Daemon settings found: setting up interval job "video_check_job" with path: {INCOMING_DIRECTORY} '
+                f"and file template: {settings.video_file_fmt}"
+            )
+            scheduler.add_job(
+                func=async_job_wrapper,
+                kwargs={
+                    "func": settings.check_new_videos,
+                    "kwargs": {"path_incoming": INCOMING_DIRECTORY, "app": app, "logger": logger},
+                },
+                trigger="interval",
+                seconds=5,
+                start_date=datetime.now(),
+                id="video_check_job",
+                replace_existing=True,
+            )
+        else:
+            # settings found but not yet activated
+            logger.info("Daemon settings found, but not activated. Activate the daemon for automated processing.")
     else:
         logger.info("No daemon settings available, ORC-OS will run interactively only.")
 
@@ -121,15 +129,44 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ORC-OS API")
     scheduler = BackgroundScheduler()
     scheduler.start()
+    session = get_session()
     # add scheduler to api state for use in routers
     app.state.scheduler = scheduler  # scheduler is accessible throughout the app
     app.state.process_list = []  # state with queue of videos to run
     app.state.executor = ThreadPoolExecutor(max_workers=1)
     app.state.processing = False  # state processing yes/no
-    with get_session() as session:
-        schedule_water_level(scheduler, logger, session)
-        schedule_disk_maintenance(scheduler, logger, session)
-        schedule_video_checker(scheduler, logger, session)
+    app.state.processing_message = None  # string defining last status condition
+    app.state.session = session
+    # with get_session() as session:
+    schedule_water_level(scheduler, logger, session)
+    schedule_disk_maintenance(scheduler, logger, session)
+    schedule_video_checker(scheduler, logger, session)
+    # finally check if there are any jobs left to do from an earlier occasion
+    videos_left = []
+    videos_task = crud.video.get_list(session, status=VideoStatus.TASK)
+    videos_queue = crud.video.get_list(session, status=VideoStatus.QUEUE)
+    videos_left += videos_task
+    videos_left += videos_queue
+    if len(videos_left) > 0:
+        logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
+        for video_rec in videos_left:
+            with get_session() as db:
+                # ensure state is set back to new so that processing will be accepted.
+                db.commit()
+                # session.refresh(video_rec)
+                video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
+                video = VideoResponse.model_validate(video_rec)
+            if video.ready_to_run[0]:
+                _ = await queue.process_video_submission(
+                    session=session,
+                    video=video,
+                    logger=logger,
+                    executor=app.state.executor,
+                    upload_directory=UPLOAD_DIRECTORY,
+                )
+    else:
+        logger.info("No videos left to process from earlier work.")
+
     yield
     logger.info("Shutting down FastAPI server, goodbye!")
 
@@ -176,7 +213,7 @@ app.include_router(control_points.router)
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {"message": "You have reached the NodeORC API"}
+    return {"message": "You have reached the ORC-OS API"}
 
 
 if __name__ == "__main__":

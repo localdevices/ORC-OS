@@ -8,6 +8,7 @@ import {useMessage} from "../../messageContext.jsx";
 const VideoTab = (
   {
     video,
+    frameNr,
     cameraConfig,
     widgets,
     selectedWidgetId,
@@ -21,13 +22,13 @@ const VideoTab = (
     setImgDims,
   }
 ) => {
+  const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(1);
   const [bboxMarkers, setBboxMarkers] = useState([]);
   const [clickCount, setClickCount] = useState(0);
   const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
   const [bBoxPolygon, setBBoxPolygon] = useState(null);
-
   const {setMessageInfo} = useMessage();
 
   const handleGCPClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
@@ -111,16 +112,15 @@ const VideoTab = (
                touchEnabled={true}
                panEnabled={true}
                preventWheel={true}
-               // ensure the scale is tracked all the time
+              // ensure the scale is tracked all the time
                onTransformed={(e) => {
                  setScale(e.state.scale)
                }}
              >
                  <PhotoComponent
                    video={video}
+                   frameNr={frameNr}
                    imageRef={imageRef}
-                   // selectedWidgetId={selectedWidgetId}
-                   // updateWidget={updateWidget}
                    widgets={widgets}
                    cameraConfig={cameraConfig}
                    scale={scale}
@@ -129,14 +129,13 @@ const VideoTab = (
                    bBoxPolygon={bBoxPolygon}
                    CSDischarge={CSDischarge}
                    CSWaterLevel={CSWaterLevel}
+                   dragging={dragging}
                    setCameraConfig={setCameraConfig}
-                   // setSelectedWidgetId={setSelectedWidgetId}
                    setImgDims={setImgDims}
                    setBBoxPolygon={setBBoxPolygon}
                    bboxMarkers={bboxMarkers}
                    handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
                    bboxClickCount={clickCount}
-                   // onImageClick={handleBoundingBox}
                  />
             </TransformWrapper>
             <div style={{position: 'sticky', textAlign: 'center', marginTop: '10px', color: '#555' }}>

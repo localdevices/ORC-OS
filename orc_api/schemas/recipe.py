@@ -3,9 +3,9 @@
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
 
 
@@ -13,7 +13,7 @@ class VideoData(BaseModel):
     """Video default data model."""
 
     start_frame: int = Field(default=0)
-    end_frame: int = Field(default=150)
+    end_frame: Optional[int] = Field(default=108000)  # assuming 30 minutes with 30 fps is the max video size
     freq: int = Field(default=1)
 
 
@@ -22,7 +22,31 @@ class FramesData(BaseModel):
 
     time_diff: dict = Field(default={"abs": False, "thres": 5})
     minmax: dict = Field(default={"min": 5})
-    project: dict = Field(default={"method": "numpy", "resolution": 0.01})
+    project: dict = Field(default={"method": "numpy", "resolution": 0.02})
+
+
+# class FramesOptions(BaseModel):
+#     """Frames options default data model."""
+#
+#     range: Optional[dict] = Field(default={})
+
+
+class WaterLevelOptions(BaseModel):
+    """Water level options default data model."""
+
+    bank: Literal["far", "near"] = Field(default="far")
+    length: float = Field(default=3.0)
+    padding: float = Field(default=0.5)
+    min_z: Optional[float] = Field(default=None)  # minimum water level detection
+    max_z: Optional[float] = Field(default=None)  # maximum water level detection
+
+
+class WaterLevel(BaseModel):
+    """Water level default data model."""
+
+    method: str = Field(default="grayscale")
+    water_level_options: WaterLevelOptions = Field(default_factory=WaterLevelOptions)
+    frames_options: dict = Field(default={})
 
 
 class VelocimetryData(BaseModel):
@@ -51,8 +75,10 @@ class PlotData(BaseModel):
     plot_quiver: dict = Field(
         default={
             "frames": {},
-            "velocimetry": {"alpha": 0.3, "cmap": "rainbow", "vmax": 2.0},
-            "transect": {"cmap": "rainbow", "add_colorbar": True, "add_text": True, "vmin": 0.0, "vmax": 2.0},
+            "velocimetry": {"alpha": 0.4, "scale": 1.0, "width": 1.0},
+            "transect": {
+                "transect_1": {"alpha": 0.8, "add_colorbar": True, "add_text": True, "scale": 1.0, "width": 1.0},
+            },
             "mode": "camera",
             "reducer": "mean",
             "write_pars": {"dpi": 300, "bbox_inches": "tight"},
@@ -62,7 +88,7 @@ class PlotData(BaseModel):
 
 mask_data = {
     "write": True,
-    "mask_group1": {"minmax": "s_max: 5.0"},
+    "mask_group1": {"minmax": {"s_max": 5.0}},
     "mask_group2": {"outliers": {"mode": "and"}},
     "mask_group3": {"count": {"tolerance": 0.2}},
     "mask_group4": {"window_mean": {"wdw": 2, "reduce_time": True}},
@@ -74,6 +100,7 @@ class RecipeData(BaseModel):
     """Recipe data model."""
 
     video: VideoData = Field(default_factory=VideoData)
+    water_level: WaterLevel = Field(default_factory=WaterLevel)
     frames: FramesData = Field(default_factory=FramesData)
     velocimetry: VelocimetryData = Field(default_factory=VelocimetryData)
     mask: dict = Field(default=mask_data)
@@ -107,19 +134,48 @@ class RecipeResponse(RecipeRemote):
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
-    v_corr: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
+    wl_get_frames_method: Optional[Literal["hue", "grayscale"]] = Field(
+        default="grayscale", description="Method for extracting frames for water level estimation."
+    )
+    wl_preprocess: Optional[Literal["range"]] = Field(
+        default=None, description="Method for preprocessing frames for water level estimation."
+    )
+    alpha: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
+    min_z: Optional[float] = Field(default=None, description="Minimum water level.")
+    max_z: Optional[float] = Field(default=None, description="Maximum water level.")
+    padding: Optional[float] = Field(
+        default=0.5, description="Padding of the rectangles to measure water level optically."
+    )
+    length: Optional[float] = Field(
+        default=3.0, description="Length of the rectangles for measuring water level optically."
+    )
+    bank: Optional[Literal["far", "near"]] = Field(default="far", description="Bank of the water level measurement.")
+
     quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
         le=2,
-        description="Scaling of the 2D quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
+        description="Scaling of the 2D quiver plot. 1.0 default",
     )
     quiver_scale_cs: Optional[float] = Field(
         default=1.0,
         ge=0.2,
         le=2,
-        description="Scaling of the cross-section quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
+        description="Scaling of the cross-section quiver plot. 1.0 default",
     )
+    quiver_width_grid: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the 2D quiver plot. 1.0 default",
+    )
+    quiver_width_cs: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the cross-section quiver plot. 1.0 default",
+    )
+
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default="medium", description="Quality of the generated images."
     )
@@ -131,35 +187,45 @@ class RecipeResponse(RecipeRemote):
             data = RecipeData()
         else:
             data = RecipeData(**instance.data)
-        # data.pop("transect", None)
-        # data.pop("plot", None)
         instance.start_frame = data.video.start_frame
         instance.end_frame = data.video.end_frame
         instance.freq = data.video.freq
         instance.resolution = data.frames.project["resolution"]
-        instance.velocimetry = "piv"  # make variable once other methods are available
-        # instance.v_corr = 0.85
-        # instance.quiver_scale_grid = 1.0
-        # instance.quiver_scale_cs = 1.0
-        # if hasattr(instance, "start_frame") and instance.start_frame is not None:
-        #     data.video.start_frame = instance.start_frame
-        # if hasattr(instance, "end_frame") and instance.end_frame is not None:
-        #     data.video.end_frame = instance.end_frame
-        # if hasattr(instance, "freq") and instance.freq is not None:
-        #     data.video.freq = instance.freq
-        # if hasattr(instance, "resolution") and instance.resolution is not None:
-        #     data.frames.project["resolution"] = instance.resolution
-        # if hasattr(instance, "velocimetry") and instance.velocimetry is not None:
-        #     # when multiple velocimetry methods are available, provide a means to alter this
-        #     pass
+        # instance.velocimetry = "piv"  # make variable once other methods are available
+        if "v_corr" in data.transect.transect_1["get_q"]:
+            instance.alpha = data.transect.transect_1["get_q"]["v_corr"]
+        if "velocimetry" in data.plot.plot_quiver:
+            if "scale" in data.plot.plot_quiver["velocimetry"]:
+                instance.quiver_scale_grid = 1 / data.plot.plot_quiver["velocimetry"]["scale"]
+            if "width" in data.plot.plot_quiver["velocimetry"]:
+                instance.quiver_width_grid = data.plot.plot_quiver["velocimetry"]["width"]
+        if "transect" in data.plot.plot_quiver:
+            if "transect_1" in data.plot.plot_quiver["transect"]:
+                if "scale" in data.plot.plot_quiver["transect"]["transect_1"]:
+                    instance.quiver_scale_cs = 1 / data.plot.plot_quiver["transect"]["transect_1"]["scale"]
+                if "width" in data.plot.plot_quiver["transect"]["transect_1"]:
+                    instance.quiver_width_cs = data.plot.plot_quiver["transect"]["transect_1"]["width"]
+
+        # fill the optical level estimation parameters
+        if data.water_level:
+            if data.water_level.method:
+                instance.wl_get_frames_method = data.water_level.method
+            if data.water_level.frames_options:
+                # set options for frame extraction and preprocessing
+                if "range" in data.water_level.frames_options.keys():
+                    instance.wl_preprocess = "range"
+                else:
+                    instance.wl_preprocess = None
+            if data.water_level.water_level_options:
+                # set options for the detection algorithm (literally the same names are used
+                for k, v in data.water_level.water_level_options.model_dump().items():
+                    if v is not None:
+                        setattr(instance, k, v)
+        # finally add the data arg itself as raw dict
         instance.data = data.model_dump()
-        # return instance
-        # instance.quiver_scale_grid = data["quiver_scale_grid"]
-        # instance.quiver_scale_cs = data["quiver_scale_cs"]
-        # instance.image_quality = data["image_quality"]
         return instance
 
-    def sync_remote(self, institute: int):
+    def sync_remote(self, session: Session, institute: int):
         """Send the recipe to LiveORC API.
 
         Recipes belong to an institute, hence also the institute ID is required.
@@ -171,12 +237,12 @@ class RecipeResponse(RecipeRemote):
             "institute": institute,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
-        response_data = super().sync_remote(endpoint=endpoint, json=data)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, json=data)
         if response_data is not None:
             # patch the record in the database, where necessary
             # update schema instance
             update_recipe = RecipeRemote.model_validate(response_data)
-            r = crud.recipe.update(get_session(), id=self.id, recipe=update_recipe.model_dump(exclude_unset=True))
+            r = crud.recipe.update(session, id=self.id, recipe=update_recipe.model_dump(exclude_unset=True))
             return RecipeResponse.model_validate(r)
         return None
 
@@ -195,7 +261,23 @@ class RecipeUpdate(RecipeBase):
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
-    v_corr: Optional[float] = Field(default=None, ge=0.5, le=1.0, description="Alpha coefficient.")
+    wl_get_frames_method: Optional[Literal["hue", "grayscale"]] = Field(
+        default="grayscale", description="Method for extracting frames for water level estimation."
+    )
+    wl_preprocess: Optional[Literal["range"]] = Field(
+        default=None, description="Method for preprocessing frames for water level estimation."
+    )
+    alpha: Optional[float] = Field(default=0.85, ge=0.5, le=0.95, description="Alpha coefficient.")
+    min_z: Optional[float] = Field(default=None, description="Minimum water level.")
+    max_z: Optional[float] = Field(default=None, description="Maximum water level.")
+    padding: Optional[float] = Field(
+        default=0.5, description="Padding of the rectangles to measure water level optically."
+    )
+    length: Optional[float] = Field(
+        default=3.0, description="Length of the rectangles for measuring water level optically."
+    )
+    bank: Optional[Literal["far", "near"]] = Field(default="far", description="Bank of the water level measurement.")
+
     quiver_scale_grid: Optional[float] = Field(
         default=1.0,
         ge=0.2,
@@ -208,6 +290,18 @@ class RecipeUpdate(RecipeBase):
         le=2,
         description="Scaling of the cross-section quiver plot. 1.0 means 1 m/s is plotted over 1 meter distance.",
     )
+    quiver_width_grid: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the 2D quiver plot. 1.0 default",
+    )
+    quiver_width_cs: Optional[float] = Field(
+        default=1.0,
+        ge=0.2,
+        le=2,
+        description="Relative width of the cross-section quiver plot. 1.0 default",
+    )
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default=None, description="Quality of the generated images."
     )
@@ -219,37 +313,32 @@ class RecipeUpdate(RecipeBase):
             data = RecipeData()
         else:
             data = RecipeData(**instance.data)
-        # data.pop("transect", None)
-        # data.pop("plot", None)
-        if instance.start_frame is not None:
-            data.video.start_frame = instance.start_frame
+        data.video.start_frame = getattr(instance, "start_frame", 0)
         if instance.end_frame is not None:
             data.video.end_frame = instance.end_frame
-        if instance.freq is not None:
-            data.video.freq = instance.freq
-        if instance.resolution is not None:
-            data.frames.project["resolution"] = instance.resolution
+        data.video.freq = getattr(instance, "freq", 1)
+        data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
         if instance.velocimetry is not None:
             pass
-        # instance.v_corr = 0.85
-        # instance.quiver_scale_grid = 1.0
-        # instance.quiver_scale_cs = 1.0
-        # if hasattr(instance, "start_frame") and instance.start_frame is not None:
-        #     data.video.start_frame = instance.start_frame
-        # if hasattr(instance, "end_frame") and instance.end_frame is not None:
-        #     data.video.end_frame = instance.end_frame
-        # if hasattr(instance, "freq") and instance.freq is not None:
-        #     data.video.freq = instance.freq
-        # if hasattr(instance, "resolution") and instance.resolution is not None:
-        #     data.frames.project["resolution"] = instance.resolution
-        # if hasattr(instance, "velocimetry") and instance.velocimetry is not None:
-        #     # when multiple velocimetry methods are available, provide a means to alter this
-        #     pass
+        data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
+        data.plot.plot_quiver.setdefault("velocimetry", {})["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["scale"] = 1 / getattr(
+            instance, "quiver_scale_cs", 1.0
+        )
+        data.plot.plot_quiver.setdefault("velocimetry", {})["width"] = getattr(instance, "quiver_width_grid", 1.0)
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["width"] = getattr(
+            instance, "quiver_width_cs", 1.0
+        )
+        data.water_level.water_level_options = WaterLevelOptions(
+            bank=getattr(instance, "bank", "far"),
+            length=getattr(instance, "length", 3.0),
+            padding=getattr(instance, "padding", 0.5),
+            min_z=getattr(instance, "min_z", None),
+            max_z=getattr(instance, "max_z", None),
+        )
+        data.water_level.method = getattr(instance, "wl_get_frames_method", "grayscale")
+        data.water_level.frames_options = {"range": {}} if getattr(instance, "wl_preprocess", None) else {}
         instance.data = data.model_dump()
-        # return instance
-        # instance.quiver_scale_grid = data["quiver_scale_grid"]
-        # instance.quiver_scale_cs = data["quiver_scale_cs"]
-        # instance.image_quality = data["image_quality"]
         return instance
 
 

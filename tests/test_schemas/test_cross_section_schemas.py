@@ -62,7 +62,7 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
     # let's assume we are posting on site 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, json=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 201
 
@@ -79,9 +79,7 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_cross_section)
-    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
-    cross_section_update = cross_section_response.sync_remote(site=site)
+    cross_section_update = cross_section_response.sync_remote(session=session_cross_section, site=site)
     assert cross_section_update.remote_id == 3
     assert cross_section_update.sync_status == SyncStatus.SYNCED
 
@@ -91,17 +89,15 @@ def test_cross_section_sync_not_permitted(session_cross_section, cross_section_r
     # let's assume we are posting on site 1
     site = 1
 
-    def mock_post(self, endpoint: str, data=None, json=None, files=None):
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_cross_section)
-    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
     with pytest.raises(ValueError, match="Remote update failed with status code 403."):
-        _ = cross_section_response.sync_remote(site=site)
+        _ = cross_section_response.sync_remote(session=session_cross_section, site=site)
 
 
 @pytest.mark.skipif(
@@ -134,8 +130,6 @@ def test_cross_section_sync_real_server(session_cross_section, cross_section_res
     crud.callback_url.add(session_cross_section, new_callback_url)
 
     # now we have access through the temporary database. Let's perform a post.
-    monkeypatch.setattr("orc_api.schemas.cross_section.get_session", lambda: session_cross_section)
-    monkeypatch.setattr("orc_api.schemas.base.get_session", lambda: session_cross_section)
 
-    cross_section_update = cross_section_response.sync_remote(site=1)
+    cross_section_update = cross_section_response.sync_remote(session=session_cross_section, site=1)
     print(cross_section_update)

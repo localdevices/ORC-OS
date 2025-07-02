@@ -40,6 +40,10 @@ def recipe(recipe_file):
     with open(recipe_file, "r") as f:
         body = f.read()
     recipe_body = yaml.load(body, Loader=yaml.FullLoader)
+    # remove the plot parameters as these are outdated
+    recipe_body["plot"]["plot_quiver"]["velocimetry"] = {}
+    recipe_body["plot"]["plot_quiver"]["transect"] = {}
+    recipe_body["plot"].pop("plot_ortho")  # field not allowed
     # turn into string
     return json.dumps(recipe_body)
 
