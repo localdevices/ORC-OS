@@ -6,6 +6,8 @@ import tempfile
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
+from orc_api.log import logger
+
 # Initialize router
 router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
 
@@ -30,7 +32,7 @@ async def has_picam():
 async def start_camera_stream(width: int = 640, height: int = 480, fps: int = 5):
     """Start the video stream with the specified width, height, and FPS."""
     global picam, camera_streaming
-
+    logger.info(f"Starting camera stream with width: {width}, height: {height}, and FPS: {fps}")
     if camera_streaming:
         return {"message": "Camera stream was already available."}
 
@@ -50,6 +52,7 @@ async def start_camera_stream(width: int = 640, height: int = 480, fps: int = 5)
             "message": f"Camera stream started successfully with width: {width}, height: {height}, and FPS: {fps}. "
         }
     except Exception as e:
+        logger.error(f"Problem with starting camera stream: {str(e)}")
         camera_streaming = False
         if picam is not None:
             picam.stop()
@@ -82,19 +85,20 @@ def generate_camera_frames():
     """Generate video frames from the camera."""
     global picam
     if picam is None:
-        print("ERROR: Camera instance is None. Start the stream first.")
+        logger.error("Camera instance is None. Start the stream first.")
         raise StopIteration
-
+    logger.info("Generating camera frames...")
     while camera_streaming:
+        logger.debug("Capturing frame...")
         stream = io.BytesIO()
         try:
             picam.capture_file(stream, format="jpeg")
             stream.seek(0)
-
+            logger.debug("Frame captured successfully. Trying to write to file")
             # Save the frame to a temporary file (for debugging purposes)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg", dir="/tmp") as temp_file:
                 temp_file.write(stream.read())
-                print(f"Saved frame to temporary file: {temp_file.name}")
+                logger.info(f"Saved frame to temporary file: {temp_file.name}")
 
             # Reset the pointer of the stream for yielding
             stream.seek(0)
@@ -102,7 +106,7 @@ def generate_camera_frames():
             print("Yielding a frame...")
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + stream.read() + b"\r\n")
         except Exception as e:
-            print(f"Error streaming frame: {str(e)}")
+            logger.error(f"Error streaming frame: {str(e)}")
             break
 
 
