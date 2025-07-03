@@ -9,7 +9,7 @@ authors = [
 ]
 dependencies = [
     "apscheduler",
-    "pillow",
+    "pillow<=9.5.0",  # for compatibility with picamera2 on Bullseye
     "pyopenrivercam>=0.8.7",
     "sqlalchemy",
     "fastapi[standard]",

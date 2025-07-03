@@ -1,7 +1,6 @@
 """Router for the PiCamera interaction."""
 
 import io
-import tempfile
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -29,7 +28,7 @@ async def has_picam():
 
 # Start video stream
 @router.post("/start")
-async def start_camera_stream(width: int = 640, height: int = 480, fps: int = 5):
+async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the video stream with the specified width, height, and FPS."""
     global picam, camera_streaming
     logger.info(f"Starting camera stream with width: {width}, height: {height}, and FPS: {fps}")
@@ -87,23 +86,12 @@ def generate_camera_frames():
     if picam is None:
         logger.error("Camera instance is None. Start the stream first.")
         raise StopIteration
-    logger.info("Generating camera frames...")
     while camera_streaming:
-        logger.debug("Capturing frame...")
         stream = io.BytesIO()
         try:
             picam.capture_file(stream, format="jpeg")
-            stream.seek(0)
-            logger.debug("Frame captured successfully. Trying to write to file")
-            # Save the frame to a temporary file (for debugging purposes)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg", dir="/tmp") as temp_file:
-                temp_file.write(stream.read())
-                logger.info(f"Saved frame to temporary file: {temp_file.name}")
-
             # Reset the pointer of the stream for yielding
             stream.seek(0)
-
-            print("Yielding a frame...")
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + stream.read() + b"\r\n")
         except Exception as e:
             logger.error(f"Error streaming frame: {str(e)}")
