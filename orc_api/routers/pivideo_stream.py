@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+"""Router for the PiCamera interaction."""
+
 import io
 
-from threading import Thread
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 # Initialize router
 router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
@@ -11,19 +12,22 @@ router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
 picam = None
 camera_streaming = False
 
+
 @router.get("/has_picam", response_model=bool)
 async def has_picam():
     """Test if the PiCamera is available."""
     try:
-        from picamera2 import Picamera2
+        from picamera2 import Picamera2  # noqa
     except ImportError:
         return False
     else:
         return True
 
+
 # Start video stream
 @router.post("/start")
-async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 30):
+async def start_camera_stream(width: int = 640, height: int = 480, fps: int = 5):
+    """Start the video stream with the specified width, height, and FPS."""
     global picam, camera_streaming
 
     if camera_streaming:
@@ -36,13 +40,14 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
     try:
         picam = Picamera2()  # Replace with PiCamera() if using older picamera
         video_config = picam.create_video_configuration(
-            main={"size": (width, height)},
-            controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
+            main={"size": (width, height)}, controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
         )
         picam.configure(video_config)
         picam.start()
         camera_streaming = True
-        return {"message": "Camera stream started successfully"}
+        return {
+            "message": f"Camera stream started successfully with width: {width}, height: {height}, and FPS: {fps}. "
+        }
     except Exception as e:
         camera_streaming = False
         if picam is not None:
@@ -55,6 +60,7 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
 # Stop video stream
 @router.post("/stop")
 async def stop_camera_stream():
+    """Stop the video stream."""
     global picam, camera_streaming
 
     if not camera_streaming:
@@ -72,6 +78,7 @@ async def stop_camera_stream():
 
 # Generator for streaming video frames (MJPEG)
 def generate_camera_frames():
+    """Generate video frames from the camera."""
     global picam
     if picam is None:
         raise StopIteration
@@ -81,23 +88,21 @@ def generate_camera_frames():
         try:
             picam.capture_file(stream, format="jpeg")
             stream.seek(0)
-            yield (
-                    b"--frame\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n" + stream.read() + b"\r\n"
-            )
+            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + stream.read() + b"\r\n")
         except Exception as e:
             print(f"Error streaming frame: {str(e)}")
             break
 
+
 # Stream endpoint
 @router.get("/stream")
 async def stream_camera_video():
+    """Stream video frames from the camera (first start the stream)."""
     global camera_streaming
     if not camera_streaming:
         raise HTTPException(status_code=400, detail="Camera stream is not running. Start the stream first.")
 
     return StreamingResponse(generate_camera_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
-
 
 
 picam = None

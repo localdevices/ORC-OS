@@ -41,6 +41,7 @@ const CameraAim = () => {
         console.log("PiCamera enabled.");
         // re-create a unique url to prevent the browser thinks it can use a cached version
         const feedUrl = `${api.defaults.baseURL}/pivideo_stream/stream?${new Date().getTime()}`;
+        console.log(`setting feed to ${feedUrl}`);
         setVideoFeedUrl(feedUrl);
         setIsToggledOn(true);
       } else {
@@ -70,6 +71,7 @@ const CameraAim = () => {
         const videoUrl = event.target.videoUrl.value;
         const feedUrl = `${api.defaults.baseURL}/video_stream/feed/?video_url=${encodeURIComponent(videoUrl)}`;
         // test the feed by doing an API call
+        console.log(`setting feed to ${feedUrl}`);
         const response = await api.head('/video_stream/feed/?video_url=' + encodeURIComponent(videoUrl));
         if (response.status === 200) {
             setVideoFeedUrl(feedUrl); // Set the dynamically generated URL
