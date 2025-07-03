@@ -1,11 +1,17 @@
 """Router for the PiCamera interaction."""
 
+import asyncio
 import io
+import time
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
+from orc_api.database import get_db
 from orc_api.log import logger
+from orc_api.routers.video import upload_video
 
 # Initialize router
 router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
@@ -13,6 +19,21 @@ router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
 # Globals for managing the camera
 picam = None
 camera_streaming = False
+
+
+def start_camera(width: int = 1920, height: int = 1080, fps: int = 30):
+    """Start the PiCamera with the specified width, height, and FPS."""
+    try:
+        from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
+    except ImportError:
+        raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
+    picam = Picamera2()
+    video_config = picam.create_video_configuration(
+        main={"size": (width, height)}, controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
+    )
+    picam.configure(video_config)
+    picam.start()
+    return picam
 
 
 @router.get("/has_picam", response_model=bool)
@@ -36,16 +57,11 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
         return {"message": "Camera stream was already available."}
 
     try:
-        from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
+        from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library  # noqa
     except ImportError:
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     try:
-        picam = Picamera2()  # Replace with PiCamera() if using older picamera
-        video_config = picam.create_video_configuration(
-            main={"size": (width, height)}, controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
-        )
-        picam.configure(video_config)
-        picam.start()
+        picam = start_camera(width, height, fps)
         camera_streaming = True
         return {
             "message": f"Camera stream started successfully with width: {width}, height: {height}, and FPS: {fps}. "
@@ -58,6 +74,59 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
             picam.close()
         picam = None
         raise HTTPException(status_code=500, detail=f"Error starting camera stream: {str(e)}")
+
+
+def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: int = 30, length: float = 5.0):
+    """Record video for specified length in seconds."""
+    # start a new camera
+    picam = start_camera(width, height, fps)
+
+    encoder = picam.create_encoder("h264", bitrate=20000000)
+    stream = io.BytesIO()
+    timestamp = datetime.now()
+    picam.start_encoder(encoder=encoder, output=stream)
+    # Record for specified duration
+    time.sleep(length)
+
+    # Stop recording
+    picam.stop_encoder()
+    picam.stop()
+    # rewind IO
+    stream.seek(0)
+    file = UploadFile(filename=f"picam_{timestamp}.mkv", file=stream)
+    # upload file into database using our existing router for uploading videos
+    asyncio.run(upload_video(file=file, timestamp=timestamp, db=db))
+
+
+@router.post("/record")
+async def record_camera_stream(
+    width: int = 1920,
+    height: int = 1080,
+    fps: int = 30,
+    length: float = 5.0,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    db: Session = Depends(get_db),
+):
+    """Record video for specified length in seconds."""
+    global picam, camera_streaming
+    if camera_streaming:
+        # make sure we start a new stream with the right settings
+        picam.stop()
+
+    try:
+        # Respond immediately to the client before executing the long-running task
+        response = {"message": "Recording video started in the background", "status": "processing"}
+
+        # Add the recording task in the background
+        background_tasks.add_task(record_async_task, db=db, width=width, height=height, fps=fps, length=length)
+
+        return response
+
+    except Exception as e:
+        if picam is not None:
+            picam.stop_encoder()
+            picam.stop()
+        raise HTTPException(status_code=500, detail=f"Error during recording: {str(e)}")
 
 
 # Stop video stream
