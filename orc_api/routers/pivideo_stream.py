@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+import os
 import time
 from datetime import datetime
 
@@ -20,12 +21,20 @@ router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
 picam = None
 camera_streaming = False
 
+try:
+    from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
+    from picamera2.encoders import H264Encoder
+    from picamera2.outputs import FfmpegOutput
+
+    picam_available = True
+except Exception:
+    picam_available = False
+
 
 def start_camera(width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the PiCamera with the specified width, height, and FPS."""
-    try:
-        from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
-    except ImportError:
+    global picam_available
+    if not picam_available:
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     picam = Picamera2()
     video_config = picam.create_video_configuration(
@@ -39,27 +48,21 @@ def start_camera(width: int = 1920, height: int = 1080, fps: int = 30):
 @router.get("/has_picam", response_model=bool)
 async def has_picam():
     """Test if the PiCamera is available."""
-    try:
-        from picamera2 import Picamera2  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
+    global picam_available
+    return picam_available
 
 
 # Start video stream
 @router.post("/start")
 async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the video stream with the specified width, height, and FPS."""
-    global picam, camera_streaming
+    global picam, camera_streaming, picam_available
+    if not picam_available:
+        raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     logger.info(f"Starting camera stream with width: {width}, height: {height}, and FPS: {fps}")
     if camera_streaming:
         return {"message": "Camera stream was already available."}
 
-    try:
-        from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library  # noqa
-    except ImportError:
-        raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     try:
         picam = start_camera(width, height, fps)
         camera_streaming = True
@@ -79,21 +82,28 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
 def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: int = 30, length: float = 5.0):
     """Record video for specified length in seconds."""
     # start a new camera
-    picam = start_camera(width, height, fps)
+    global picam, picam_available
+    if not picam_available:
+        raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
 
-    encoder = picam.create_encoder("h264", bitrate=20000000)
-    stream = io.BytesIO()
     timestamp = datetime.now()
-    picam.start_encoder(encoder=encoder, output=stream)
+    filename = f"picam_{timestamp}.mkv"
+    picam = start_camera(width, height, fps)
+    output = FfmpegOutput(filename)
+    encoder = H264Encoder(bitrate=20000000)
+    picam.start_recording(encoder=encoder, output=output)
     # Record for specified duration
     time.sleep(length)
 
     # Stop recording
     picam.stop_encoder()
     picam.stop()
-    # rewind IO
-    stream.seek(0)
-    file = UploadFile(filename=f"picam_{timestamp}.mkv", file=stream)
+    with open(filename, "rb") as f:
+        buf = io.BytesIO(f.read())
+        buf.seek(0)
+    # now we can safely remove the file
+    os.unlink(filename)
+    file = UploadFile(filename=filename, file=buf)
     # upload file into database using our existing router for uploading videos
     asyncio.run(upload_video(file=file, timestamp=timestamp, db=db))
 
@@ -171,10 +181,11 @@ def generate_camera_frames():
 @router.get("/stream")
 async def stream_camera_video():
     """Stream video frames from the camera (first start the stream)."""
-    global camera_streaming
+    global camera_streaming, picam_available
+    if not picam_available:
+        raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     if not camera_streaming:
         raise HTTPException(status_code=400, detail="Camera stream is not running. Start the stream first.")
-
     return StreamingResponse(generate_camera_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 

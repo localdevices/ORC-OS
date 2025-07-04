@@ -20,12 +20,12 @@ const CameraAim = () => {
   });
 
   const resolutionValues = [
-    {name: "4K ", value: [3840, 2160]},
-    {name: "QHD ", value: [2560, 1440]},
-    {name: "HD ", value: [1920, 1080]},
-    {name: "FHD ", value: [1280, 720]},
-    {name: "SVGA ", value: [800, 600]},
-    {name: "VGA ", value: [640, 480]},
+    {id: 1, name: "4K ", value: [3840, 2160]},
+    {id: 2, name: "QHD ", value: [2560, 1440]},
+    {id: 3, name: "HD ", value: [1920, 1080]},
+    {id: 4, name: "FHD ", value: [1280, 720]},
+    {id: 5, name: "SVGA ", value: [800, 600]},
+    {id: 6, name: "VGA ", value: [640, 480]},
   ]
 
   // define if the switch for Raspi camera should be disabled or enabled
@@ -35,8 +35,12 @@ const CameraAim = () => {
         const response = await api.get("/pivideo_stream/has_picam");
         console.log(response);
         if (response.status === 200) {
-          const {enabled} = response.data;
-          setHasPiCamera(enabled); // Disable if "enabled" is false
+          setHasPiCamera(response.data); // Disable if "enabled" is false
+          console.log("Raspi camera availability:", response.data);
+          if (!response.data) {
+            setVideoFeedUrl("");
+            setIsToggledOn(false);
+          }
         } else {
           throw new Error("Invalid API response");
         }
@@ -265,13 +269,6 @@ const CameraAim = () => {
 
                     </div>
                   <div className="mb-3 mt-3">
-                    {/*<button*/}
-                    {/*  className="btn btn-link p-0"*/}
-                    {/*  onClick={() => {*/}
-                    {/*    // TODO: Implement recording functionality*/}
-                    {/*    console.log("Record button clicked");*/}
-                    {/*  }}*/}
-                    {/*>*/}
                       <PiRecordFill
                         size={20}
                         color="#C51A4A"
@@ -281,13 +278,8 @@ const CameraAim = () => {
                             console.log("Record button clicked");
                           }}
                       />
-
                     <label className="form-label" htmlFor="picamRecord">Record video of {piFormData.length} sec.</label>
                   </div>
-
-
-
-
                   </div>
               </>
             )}

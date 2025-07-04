@@ -44,10 +44,10 @@ const Home = () => {
       .then((response) => {
         console.log(response);
         if (response.data !== null) {
-          console.log("Water level found");
+          console.log("Water level configuration found");
           setWaterLevel(true);
         } else {
-          console.log("Water level not found");
+          console.log("Water level configuration not found");
           setWaterLevel(false);
         }
       }
@@ -73,7 +73,7 @@ const Home = () => {
         }}>
           <span style={{ display: 'flex', alignItems: 'center' }}>
             <strong style={{ marginRight: '8px', fontSize: '18px' }}>!</strong>
-            <span>Welcome to NodeORC configuration!</span>
+            <span>Welcome to ORC-OS configuration!</span>
           </span>
           <FaTimes
             onClick={() => setShowMessage(false)} // Hide the message on clicking
@@ -86,11 +86,10 @@ const Home = () => {
           <img src={orcLogo} className="logo" alt="Vite logo" />
         </a>
       </div>
-      <h1>ORC-OS configuration</h1>
+      <h1>OpenRiverCam-OS configuration</h1>
       <div className="flex-container">
         <div className="card">
           <h4>Device status</h4>
-          Here you will see the status and connectivity of the device.
           <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
             <label>
               Device status:
@@ -101,13 +100,12 @@ const Home = () => {
             <label>
               Water level configuration:
             </label>
-            <div className="readonly">{waterLevel === false ? "No water level settings found, only optical detection possible" : "Water level retrieval configured"}</div>
-          </div>
-          <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-            <label>
-              Camera configurations:
-            </label>
-            <div className="readonly">{cameraConfigs.length > 0 ? cameraConfigs.length : "None found, first create a camera configuration"}</div>
+            <div className="readonly">{
+              waterLevel === false ?
+                "No water level settings found, only manual water level or optical detection possible" :
+                "Water level retrieval configured for automated processing"
+            }
+            </div>
           </div>
           <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
             <label>
@@ -132,7 +130,6 @@ const Home = () => {
         </div>
         <div className="card">
           <h4>Video status</h4>
-          Here you will see the status of all videos.
           <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
             <label>
               Processed videos:

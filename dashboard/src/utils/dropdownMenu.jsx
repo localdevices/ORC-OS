@@ -45,11 +45,11 @@ DropdownMenu.propTypes = {
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
-      value: PropTypes.number,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
     })
   ).isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+  defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
   name: PropTypes.string,
   disabled: PropTypes.bool,
 
