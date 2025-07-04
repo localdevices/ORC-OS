@@ -6,6 +6,7 @@ import {FaRaspberryPi} from "react-icons/fa6";
 import { PiRecordFill } from "react-icons/pi"
 import {DropdownMenu} from "../utils/dropdownMenu.jsx";
 import ReactSlider from "react-slider";
+import {useMessage} from "../messageContext.jsx";
 
 const CameraAim = () => {
   const [videoFeedUrl, setVideoFeedUrl] = useState("");
@@ -27,6 +28,7 @@ const CameraAim = () => {
     {id: 5, name: "SVGA ", value: [800, 600]},
     {id: 6, name: "VGA ", value: [640, 480]},
   ]
+  const {setMessageInfo} = useMessage();
 
   // define if the switch for Raspi camera should be disabled or enabled
   useEffect(() => {
@@ -61,7 +63,7 @@ const CameraAim = () => {
       if (newState) {
         // Call endpoint for "enabled" state
         let endPoint = `/pivideo_stream/start`
-        if (piFormData.resolution) {
+        if (piFormData.resolution[0] && piFormData.resolution[1]) {
           endPoint += `?width=${piFormData.resolution[0]}&height=${piFormData.resolution[1]}`
         }
         if (piFormData.fps) {
@@ -181,7 +183,7 @@ const CameraAim = () => {
                 </button>
               </form>
             </div>
-            {!hasPiCamera && (
+            {hasPiCamera && (
               <>
                 <h5>
                   <a href="https://www.raspberrypi.com" target="_blank"
@@ -263,7 +265,7 @@ const CameraAim = () => {
                         role="switch"
                         id="picamSwitch"
                         onClick={handleToggle}
-                        disabled={hasPiCamera}
+                        disabled={!hasPiCamera}
                       />
                     </div>
 
@@ -273,12 +275,27 @@ const CameraAim = () => {
                         size={20}
                         color="#C51A4A"
                         style={{cursor: "pointer", marginRight: "10px"}}
-                          onClick={() => {
-                            // TODO: Implement recording functionality
-                            console.log("Record button clicked");
+                          onClick={async () => {
+                            try {
+                              const response = await api.post("/pivideo_stream/record");
+                              if (response.status === 200 && response.data?.message) {
+                                setMessageInfo('success', response.data.message);
+                              } else {
+                                throw new Error(
+                                  `Unexpected response: ${response.status}, ${response.data}`
+                                );
+                              }
+                            } catch (error) {
+                              console.error("Error while calling the record endpoint:", error);
+                              setMessageInfo("error", "Failed to start recording. Please try again later.");
+                            }
                           }}
+
                       />
-                    <label className="form-label" htmlFor="picamRecord">Record video of {piFormData.length} sec.</label>
+                    <label className="form-label" htmlFor="picamRecord">Record sample video of {piFormData.length} sec.</label>
+                    <div className="help-block">
+                      The video will be available in your video list to use to setup a video configuration
+                    </div>
                   </div>
                   </div>
               </>

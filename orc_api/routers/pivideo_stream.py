@@ -87,7 +87,7 @@ def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: i
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
 
     timestamp = datetime.now()
-    filename = f"picam_{timestamp}.mkv"
+    filename = f"picam_{timestamp.strftime('%Y%m%dT%H%M%S')}.mkv"
     picam = start_camera(width, height, fps)
     output = FfmpegOutput(filename)
     encoder = H264Encoder(bitrate=20000000)
@@ -118,7 +118,9 @@ async def record_camera_stream(
     db: Session = Depends(get_db),
 ):
     """Record video for specified length in seconds."""
-    global picam, camera_streaming
+    global picam, camera_streaming, picam_available
+    if not picam_available:
+        raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     if camera_streaming:
         # make sure we start a new stream with the right settings
         picam.stop()
@@ -129,7 +131,6 @@ async def record_camera_stream(
 
         # Add the recording task in the background
         background_tasks.add_task(record_async_task, db=db, width=width, height=height, fps=fps, length=length)
-
         return response
 
     except Exception as e:
