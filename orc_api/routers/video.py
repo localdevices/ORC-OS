@@ -223,8 +223,9 @@ async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
     if not video:
         raise HTTPException(status_code=404, detail="Video not found.")
     executor = request.app.state.executor
+    session = request.app.state.session
     video_patch = await queue.process_video_submission(
-        session=db,
+        session=session,
         video=video,
         logger=logger,
         executor=executor,

@@ -52,7 +52,7 @@ class WaterLevel(BaseModel):
 class VelocimetryData(BaseModel):
     """Velocimetry default data model."""
 
-    get_piv: Optional[dict] = Field(default=None)
+    get_piv: Optional[dict] = Field(default={})
     write: bool = Field(default=True)
 
 
