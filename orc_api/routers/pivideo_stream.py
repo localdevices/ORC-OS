@@ -82,13 +82,13 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
 def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: int = 30, length: float = 5.0):
     """Record video for specified length in seconds."""
     # start a new camera
-    global picam, picam_available
+    global picam, picam_available, camera_streaming
     if not picam_available:
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
-
     timestamp = datetime.now()
     filename = f"picam_{timestamp.strftime('%Y%m%dT%H%M%S')}.mkv"
     picam = start_camera(width, height, fps)
+    camera_streaming = True
     output = FfmpegOutput(filename)
     encoder = H264Encoder(bitrate=20000000)
     picam.start_recording(encoder=encoder, output=output)
@@ -98,6 +98,8 @@ def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: i
     # Stop recording
     picam.stop_encoder()
     picam.stop()
+    picam.close()
+    camera_streaming = False
     with open(filename, "rb") as f:
         buf = io.BytesIO(f.read())
         buf.seek(0)
@@ -105,7 +107,7 @@ def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: i
     os.unlink(filename)
     file = UploadFile(filename=filename, file=buf)
     # upload file into database using our existing router for uploading videos
-    asyncio.run(upload_video(file=file, timestamp=timestamp, db=db))
+    asyncio.run(upload_video(file=file, timestamp=timestamp, video_config_id=None, db=db))
 
 
 @router.post("/record")
@@ -124,7 +126,9 @@ async def record_camera_stream(
     if camera_streaming:
         # make sure we start a new stream with the right settings
         picam.stop()
-
+        camera_streaming = False
+    if picam is not None:
+        picam.close()
     try:
         # Respond immediately to the client before executing the long-running task
         response = {"message": "Recording video started in the background", "status": "processing"}
