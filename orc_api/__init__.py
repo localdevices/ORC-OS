@@ -15,6 +15,9 @@ TMP_DIRECTORY = os.path.join(__home__, "tmp")
 if not UPLOAD_DIRECTORY:
     UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
-INCOMING_DIRECTORY = os.path.join(UPLOAD_DIRECTORY, "incoming")
+INCOMING_DIRECTORY = os.getenv("ORC_INCOMING_DIRECTORY")
+if not INCOMING_DIRECTORY:
+    INCOMING_DIRECTORY = os.path.join(UPLOAD_DIRECTORY, "incoming")
+
 
 from . import crud, db, routers, schemas, utils
