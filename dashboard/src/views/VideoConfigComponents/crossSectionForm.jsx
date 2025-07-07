@@ -79,10 +79,10 @@ const CrossSectionForm = (
     // check if h_ref is empty and if z_0 exists
     if (name === "z_0") {
       z_0 = parseFloat(value);
-      if (cameraConfig.gcps.h_ref === null) {
+      if (cameraConfig?.data?.gcps?.h_ref === null || cameraConfig?.data?.gcps?.h_ref === undefined) {
         h_ref = z_0;
       } else {
-        h_ref = cameraConfig.gcps.h_ref;
+        h_ref = cameraConfig?.data?.gcps?.h_ref;
       }
     } else {
       if (value === "") {
