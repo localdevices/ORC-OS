@@ -21,6 +21,8 @@ const VideoConfigForm = (
     name: '',
     id: '',
   });
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     if (selectedVideoConfig) {
       setFormData({
@@ -62,6 +64,7 @@ const VideoConfigForm = (
   }
 
   const handleFormSubmit = async (event) => {
+    setIsSaving(true);
     event.preventDefault();
     // collect data from all fields
 
@@ -131,7 +134,6 @@ const VideoConfigForm = (
       }
       setMessageInfo('success', 'Video config stored successfully');
     } catch (err) {
-      console.log("ERROR: ", err);
       setMessageInfo('error', `Error while storing video config ${err.response.data.detail}`);
     } finally {
       try {
@@ -139,16 +141,28 @@ const VideoConfigForm = (
         video.video_config_id = response.data.id;
         // and store this in the database
         await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
+        // ensure saving is set to false (only when successful
         setSave(false);
       } catch (err) {
-        console.log(`Failed to set video config id for video ${video.id}`);
+        console.log(`Failed to set video config id for video ${video.id} due to ${err}`);
+      } finally {
+        // ensure the view port is opened for edits in all cases
+        setIsSaving(false);
       }
+
     }
   };
 
 
   return (
     <div style={{"padding": "5px"}}>
+      {isSaving && (
+        <div className="spinner-viewport">
+          <div className="spinner" />
+          <div>Saving...</div>
+        </div>
+      )}
+
       <p>Get started with some simple details and getting the video rotated correctly. First save before you continue!</p>
       <form id="videoConfigForm" onSubmit={handleFormSubmit}>
       <div className='mb-3 mt-3'>
