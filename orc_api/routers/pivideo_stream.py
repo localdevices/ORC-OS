@@ -88,6 +88,8 @@ def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: i
     timestamp = datetime.now()
     filename = f"picam_{timestamp.strftime('%Y%m%dT%H%M%S')}.mkv"
     picam = start_camera(width, height, fps)
+    # wait 1 second to warm up sensor
+    time.sleep(1)
     camera_streaming = True
     output = FfmpegOutput(filename)
     encoder = H264Encoder(bitrate=20000000)
