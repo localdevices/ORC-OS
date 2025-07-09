@@ -148,8 +148,8 @@ a:hover {
   color: white;
   z-index: -1;
   padding: 10px;
-  overflow: auto; // hide when width is zero
-  max-height: 100%;  // will not exceed content height
+  overflow: auto; /*hide when width is zero*/
+  max-height: 100%;  /* will not exceed content height */
   box-shadow: -5px 0 5px rgba(0,0,0,0.5);
 }
 

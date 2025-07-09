@@ -132,9 +132,13 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                         ).exterior.coords,
                     )
                 )
-                v.wetted_surface = list(
-                    map(list, cs.get_wetted_surface(camera=True, swap_y_coords=False, h=h).exterior.coords)
-                )
+                pols = cs.get_wetted_surface(camera=True, swap_y_coords=False, h=h)
+                # find the largest one
+                area = 0.0
+                for p in pols.geoms:
+                    if p.area > area:
+                        pol = p
+                v.wetted_surface = list(map(list, pol.exterior.coords))
                 # also provide the info to determine if the cross section is within the image and not too far off
                 v.within_image = cs.within_image
                 v.distance_camera = cs.distance_camera

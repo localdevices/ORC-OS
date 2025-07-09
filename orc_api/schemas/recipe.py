@@ -13,7 +13,7 @@ class VideoData(BaseModel):
     """Video default data model."""
 
     start_frame: int = Field(default=0)
-    end_frame: Optional[int] = Field(default=108000)  # assuming 30 minutes with 30 fps is the max video size
+    end_frame: Optional[int] = Field(default=10)
     freq: int = Field(default=1)
 
 
@@ -52,7 +52,7 @@ class WaterLevel(BaseModel):
 class VelocimetryData(BaseModel):
     """Velocimetry default data model."""
 
-    get_piv: Optional[dict] = Field(default=None)
+    get_piv: Optional[dict] = Field(default={})
     write: bool = Field(default=True)
 
 

@@ -1,5 +1,5 @@
 import api from "../../api.js";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";
 import '../cameraAim.scss'

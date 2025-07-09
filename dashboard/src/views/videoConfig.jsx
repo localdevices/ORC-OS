@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
@@ -68,6 +68,11 @@ const VideoConfig = () => {
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
+    api.get(`/video/${videoId}/frame_count/`)
+      .then((response) => {
+        setFrameCount(response.data)
+      })
+      .catch((err) => console.error("Error fetching frame count:", err))
     api.get(`/video/${videoId}`)
       .then((response) => {
         setVideo(response.data);
@@ -96,11 +101,6 @@ const VideoConfig = () => {
         setSave(false)
 
       });
-    api.get(`/video/${videoId}/frame_count/`)
-      .then((respone) => {
-        setFrameCount(respone.data)
-      })
-      .catch((err) => console.error("Error fetching frame count:", err))
 
   }, [videoId]);
 
@@ -160,7 +160,10 @@ const VideoConfig = () => {
   const createNewRecipe = () => {
     api.post(`/recipe/empty/`)
       .then((response) => {
-        setRecipe(response.data);
+        setRecipe({
+          ...response.data,
+          end_frame: frameCount
+        });
       })
       .catch((error) => {
         console.error('Error occurred:', error);

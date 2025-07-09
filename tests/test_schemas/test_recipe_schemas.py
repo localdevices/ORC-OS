@@ -21,7 +21,7 @@ def test_empty_recipe():
     # check if id is None
     assert recipe.id is None
     # check if end_frame is the default value
-    assert recipe.end_frame == 108000
+    assert recipe.end_frame == 10
 
 
 def test_recipe_schema(recipe_response):

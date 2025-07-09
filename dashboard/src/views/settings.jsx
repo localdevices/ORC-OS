@@ -183,7 +183,7 @@ const Settings = () => {
               File must have a name template such as "{"{%Y%m%dT%H%M%S}.mp4"}"
             </div>
           </div>
-            {formData.video_file_fmt && (
+            {formData.video_file_fmt && settings?.sample_file && (
               <div className="mb-3 mt-3 form-horizontal">
                   <div role="alert" style={{color: "red", fontStyle: "italic"}}>
                       Expected file name for current date and time on the device is "{settings.sample_file}".

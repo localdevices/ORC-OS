@@ -1,9 +1,9 @@
 #root {
   margin: 0 auto;
-  padding: 0 auto;
+  padding: 0;
   /* text-align: center; */
   height: 100%;
-  font-family: Barlow;
+  font-family: Barlow, serif;
   display: flex;
 }
 
@@ -197,7 +197,7 @@ a:hover {
 .tab-content {
   flex: 1; /* Fills the remaining space by default */
   overflow: auto; /* to ensure side bar is not visible. */
-  transition: all 0.3 ease;
+  transition: all 0.3s ease;
   margin-top: 0;
   margin-bottom: 0;
   position: relative;
@@ -236,7 +236,7 @@ button.btn-danger {
   background-color: #dc3545 !important;
   border-color: #dc3545 !important;
   color: #fff;
-  marginBottom: 10px;
+  margin-bottom: 10px;
 }
 
 /* icon buttons should remain empty with some spacing only */

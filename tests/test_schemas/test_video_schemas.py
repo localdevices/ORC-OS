@@ -137,7 +137,8 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
     new_callback_url = models.CallbackUrl(**new_callback_dict)
     crud.callback_url.add(session_video_with_config, new_callback_url)
 
-    # now we have access through the temporary database. Let's perform a post.
+    # now we have access through the temporary database. Let's perform a post with the status set to DONE
+    video_response.status = models.VideoStatus.DONE
     video_update = video_response.sync_remote(
         session=session_video_with_config,
         base_path=sample_data.get_hommerich_pyorc_files(),
