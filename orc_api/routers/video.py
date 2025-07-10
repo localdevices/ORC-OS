@@ -112,16 +112,18 @@ async def get_list_video(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[Union[VideoStatus, int]] = Query(default=None),
+    first: Optional[int] = None,
+    count: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    """Retrieve a thumbnail for a video."""
+    """Retrieve list of videos."""
     if isinstance(status, int):
         try:
             status = VideoStatus(status)
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
-    list_videos = crud.video.get_list(db, start=start, stop=stop, status=status)
+    list_videos = crud.video.get_list(db, start=start, stop=stop, status=status, first=first, count=count)
     return list_videos
 
 

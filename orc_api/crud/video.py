@@ -72,12 +72,20 @@ def get_list(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[models.VideoStatus] = None,
+    first: Optional[int] = None,
+    count: Optional[int] = None,
 ) -> List[models.Video]:
     """List videos within time span of start and stop."""
     query = db.query(models.Video)
     query = filter_start_stop(query, start, stop)
     if status:
         query = filter_status(query, status)
+    if first is not None:
+        # only return from "first"
+        query = query.offset(first)
+    if count is not None:
+        # limit the amount of returned records to "count"
+        query = query.limit(count)
     return query.all()
 
 
