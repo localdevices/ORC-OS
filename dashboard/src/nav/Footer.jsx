@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="footer-content">
           <img src={orcLogo} alt="ORC Logo" width="20" className="footer-logo"/>
             {' '}
-          <p>© {new Date().getFullYear()} <a class="dark-link" href="https://rainbowsensing.com">https://rainbowsensing.com</a>. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} <a className="dark-link" href="https://rainbowsensing.com">https://rainbowsensing.com</a>. All rights reserved.</p>
         </div>
       </footer>
     );

@@ -134,7 +134,7 @@ class RecipeResponse(RecipeRemote):
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
-    wl_get_frames_method: Optional[Literal["hue", "grayscale"]] = Field(
+    wl_get_frames_method: Optional[Literal["hue", "grayscale", "sat"]] = Field(
         default="grayscale", description="Method for extracting frames for water level estimation."
     )
     wl_preprocess: Optional[Literal["range"]] = Field(
@@ -261,7 +261,7 @@ class RecipeUpdate(RecipeBase):
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
-    wl_get_frames_method: Optional[Literal["hue", "grayscale"]] = Field(
+    wl_get_frames_method: Optional[Literal["hue", "grayscale", "sat"]] = Field(
         default="grayscale", description="Method for extracting frames for water level estimation."
     )
     wl_preprocess: Optional[Literal["range"]] = Field(
