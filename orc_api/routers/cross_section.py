@@ -102,9 +102,7 @@ async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db
 async def create_cs(cs: CrossSectionCreate, db: Session = Depends(get_db)):
     """Create a new cross-section and store it in the database."""
     # exclude fields that are already in the dict structure of the cross-section
-    print("CROSS SECTION")
     new_cs = CrossSection(**cs.model_dump(exclude_none=True, exclude={"id", "x", "y", "z", "s"}))
-    print(new_cs)
     cs = crud.cross_section.add(db=db, cross_section=new_cs)
     return cs
 
@@ -157,7 +155,7 @@ async def upload_cs_csv(
     # look for (lower) X, Y, Z
     expected_keys = {"x", "y", "z"}
     # Check if all strings exist in the list
-    if expected_keys.issubset(df.keys()):
+    if expected_keys.issubset([k.lower() for k in df.keys()]):
         # parse to gdf
         geometry = gpd.points_from_xy(df["x"], df["y"], df["z"])
         gdf = gpd.GeoDataFrame(df, geometry=geometry)

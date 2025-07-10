@@ -243,15 +243,12 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     }
     setFormData(updatedFormData);
     try {
-      console.log(submitData(updatedFormData));
       const response = await api.post('/recipe/update/', submitData(updatedFormData));
       setSelectedRecipe(response.data);
     } catch (error) {
       console.error('Error updating recipe:', error);
     }
   }
-
-
 
   const handleSliderChange = async (name, value) => {
     // Ensure values are at least `minimumDifference` apart

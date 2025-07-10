@@ -35,7 +35,7 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
       backgroundColor: "rgba(0, 192, 192, 0.6)", // Point color
       borderColor: "rgba(0, 192, 192, 0.3)", // Optional: Line color
       showLine: true, // Show connecting lines
-      tension: 0.3, // Optional: Line smoothness
+      tension: 0, // linear connections
     },
     {
       label: "CS - Water Level", // Second scatter plot
@@ -43,7 +43,7 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
       backgroundColor: "rgba(255, 99, 0, 0.6)", // Point color
       borderColor: "rgba(255, 99, 0, 0.6)", // Optional: Line color
       showLine: true, // Show connecting lines
-      tension: 0.3, // Optional: Line smoothness
+      tension: 0, // linear connection
     },
     {
       label: "Level during survey",
@@ -62,9 +62,9 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
     {
       label: "Min. optical level",
       data: CSWaterLevel?.s ? (
-        recipe?.min_h ? [
-          {x: Math.min(...CSWaterLevel.s), y: recipe?.min_h},
-          {x: Math.max(...CSWaterLevel.s), y: recipe?.min_h}
+        recipe?.min_z ? [
+          {x: Math.min(...CSWaterLevel.s), y: recipe?.min_z},
+          {x: Math.max(...CSWaterLevel.s), y: recipe?.min_z}
         ] : [
           {x: Math.min(...CSWaterLevel.s), y: Math.min(...CSWaterLevel.z)},
           {x: Math.max(...CSWaterLevel.s), y: Math.min(...CSWaterLevel.z)}
@@ -82,9 +82,9 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
     {
       label: "Max. optical level",
       data: CSWaterLevel?.s ? (
-        recipe?.max_h ? [
-          {x: Math.min(...CSWaterLevel.s), y: recipe?.max_h},
-          {x: Math.max(...CSWaterLevel.s), y: recipe?.max_h}
+        recipe?.max_z ? [
+          {x: Math.min(...CSWaterLevel.s), y: recipe?.max_z},
+          {x: Math.max(...CSWaterLevel.s), y: recipe?.max_z}
         ] : [
           {x: Math.min(...CSWaterLevel.s), y: Math.max(...CSWaterLevel.z)},
           {x: Math.max(...CSWaterLevel.s), y: Math.max(...CSWaterLevel.z)}

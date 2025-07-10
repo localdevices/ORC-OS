@@ -1,6 +1,7 @@
 import {useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu } from "../../utils/dropdownMenu.jsx"
+import { run_video } from "../../utils/apiCalls.jsx"
 import Modal from "react-modal";
 
 import api from "../../api.js";
@@ -192,18 +193,6 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         : [...prevSelectedIds, id] // Add if not already selected
     );
   };
-  //   // Handle the "Run" button action
-  // const handleRun = (id) => {
-  //   api.post(`/video/${id}/submit`)
-  //     .then((response) => {
-  //       // TODO: submit a change in video status (QUEUE)
-  //       // TODO: create submit end point and logical processing queue
-  //       console.log(`Video ${id} submitted to queue for ORC processing`);
-  //     })
-  //     .catch((error) => {
-  //       console.error('Error triggering run action for video ID:', id, error);
-  //     });
-  // };
 
   // Handle the "Delete" button action
   const handleDelete = (id) => {
@@ -230,25 +219,30 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     setShowModal(true);
   };
 
+  const handleRun = (video) => {
+    run_video(video);
+  }
+
   const handleVideoConfig = (video) => {
     setSelectedVideo(video); // Set the selected video
     setShowConfigModal(true); // Open the modal
   }
 
   // Function to handle configuration selection and API call
-  const handleConfigSelection = async (selectedConfigId) => {
+  const handleConfigSelection = (event) => {
+    const {value} = event.target;
     try {
       // Send a POST request to update the video with the selected configuration
-      const response = await api.patch(`/video/${selectedVideo.id}`, {
-        video_config_id: selectedConfigId, // Pass the selected configuration ID
+      const response = api.patch(`/video/${selectedVideo.id}`, {
+        video_config_id: value, // Pass the selected configuration ID
       });
       // Success feedback
-      setMessageInfo('success', `Video configuration selected on ${selectedConfigId}`);
+      setMessageInfo('success', `Video configuration selected on ${value}`);
       setSelectedVideo(null)
       setShowConfigModal(false);
     } catch (error) {
       // Error handling
-      setMessageInfo('error', 'Error while selecting video configuration', err.response.data);
+      setMessageInfo('error', 'Error while selecting video configuration', error.response.data);
     }
   };
 
@@ -319,7 +313,9 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
               <td>{getStatusIcon(video.status)}</td>
               <td>
                 <button className="btn-icon"
-                        onClick={() => handleView(video)}
+                        // disabled when video config is not ready, or task is already queued (2) or running (3)
+                        disabled={!video.video_config.ready_to_run && video.status !== 2 && video.status !== 3}
+                        onClick={() => handleRun(video)}
                 >
                   <FaPlay className="run"/>
                 </button>

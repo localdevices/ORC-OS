@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
+import {run_video} from "../utils/apiCalls.jsx"
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
@@ -243,33 +244,8 @@ const VideoConfig = () => {
   };
 
 
-
   const runVideo = async () => {
-    try {
-      console.log("RUN VIDEO");
-
-      // Ensure the video ID is available
-      if (!video?.id) {
-        setMessageInfo("error", "No video ID found to run the video.");
-        return;
-      }
-
-      // Make the API call
-      const response = await api.get(`/video/${video.id}/run`);
-      // update the status of the video
-      setVideo({ ...video, status: response.data.status});
-      console.log("Run video response:", response.data);
-
-      // Display success message
-      setMessageInfo("success", "Video has been submitted for processing.");
-    } catch (error) {
-      console.error("Error running the video:", error);
-
-      // Handle error and send message to container
-      const errorMessage =
-        error.response?.data?.detail || "An unexpected error occurred while running the video.";
-      setMessageInfo("error", errorMessage);
-    }
+    run_video(video, setVideo, setMessageInfo);
   };
 
   const updateWidget = (id, updatedCoordinates) => {
