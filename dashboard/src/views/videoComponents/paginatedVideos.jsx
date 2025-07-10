@@ -45,6 +45,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   useEffect(() => {
     setData(initialData);
     setCurrentPage(1);
+    console.log(initialData)
   }, [initialData]);
 
   // update list of videos when changes in a video occur
@@ -314,7 +315,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
               <td>
                 <button className="btn-icon"
                         // disabled when video config is not ready, or task is already queued (2) or running (3)
-                        disabled={!video.video_config.ready_to_run && video.status !== 2 && video.status !== 3}
+                        disabled={!video.allowed_to_run && video.status !== 2 && video.status !== 3}
                         onClick={() => handleRun(video)}
                 >
                   <FaPlay className="run"/>

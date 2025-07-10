@@ -18,7 +18,14 @@ from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import Video, VideoStatus
 from orc_api.log import logger
-from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoPatch, VideoResponse
+from orc_api.schemas.video import (
+    DeleteVideosRequest,
+    DownloadVideosRequest,
+    VideoCreate,
+    VideoListResponse,
+    VideoPatch,
+    VideoResponse,
+)
 from orc_api.utils import queue
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
@@ -107,7 +114,7 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     return StreamingResponse(io_buf, media_type="image/jpeg")
 
 
-@router.get("/", response_model=List[VideoResponse], status_code=200)
+@router.get("/", response_model=List[VideoListResponse], status_code=200)
 async def get_list_video(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
@@ -124,7 +131,12 @@ async def get_list_video(
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
     list_videos = crud.video.get_list(db, start=start, stop=stop, status=status, first=first, count=count)
-    return list_videos
+
+    # Convert to VideoListResponse list (light-weight for front end use
+    video_list_responses = [
+        VideoListResponse.from_video_response(VideoResponse.model_validate(video)) for video in list_videos
+    ]
+    return video_list_responses
 
 
 @router.get("/{id}/", response_model=VideoResponse, status_code=200)

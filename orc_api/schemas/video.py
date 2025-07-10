@@ -30,6 +30,43 @@ class VideoBase(BaseModel):
     video_config: Optional[VideoConfigBase] = Field(description="Video configuration.", default=None)
 
 
+class VideoListResponse(BaseModel):
+    """Lightweight response schema for the video list."""
+
+    id: int
+    timestamp: datetime
+    file: Optional[str]
+    video_config: Optional[dict]  # Contains only `id` and `name`
+    time_series: Optional[TimeSeriesResponse]
+    allowed_to_run: bool
+    status: Optional[models.VideoStatus]
+
+    @classmethod
+    def from_video_response(cls, video_response: "VideoResponse") -> "VideoListResponse":
+        """Create a VideoListResponse from a VideoResponse."""
+        allowed_to_run, _ = video_response.allowed_to_run  # Extract truth value
+        video_config_data = (
+            {
+                "id": video_response.video_config.id,
+                "name": video_response.video_config.name,
+                "sample_video_id": video_response.video_config.sample_video_id,
+                "ready_to_run": video_response.video_config.ready_to_run,
+            }
+            if video_response.video_config
+            else None
+        )
+
+        return cls(
+            id=video_response.id,
+            file=video_response.file,
+            timestamp=video_response.timestamp,
+            video_config=video_config_data,
+            allowed_to_run=allowed_to_run,
+            time_series=video_response.time_series if video_response.time_series else None,
+            status=video_response.status if video_response.status else None,
+        )
+
+
 class VideoCreate(VideoBase):
     """Request body schema for creating video."""
 
