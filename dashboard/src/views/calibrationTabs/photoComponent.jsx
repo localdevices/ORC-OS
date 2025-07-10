@@ -140,9 +140,11 @@ const PhotoComponent = (
   useTransformEffect(({state}) => {
     const imgElement = imageRef.current;
     if (!imgElement) return;
-    setPhotoBbox(imgElement.getBoundingClientRect());
-    setTransformState(state); // Update the transformState on every transformation
-    // updateFittedPoints();
+    const updateTransform = () => {
+      setPhotoBbox(imgElement.getBoundingClientRect());
+      setTransformState(state); // Update the transformState on every transformation
+    }
+    updateTransform();
   });
 
 
@@ -358,9 +360,17 @@ const PhotoComponent = (
     window.addEventListener("resize", handleResize);
     handleResize();
 
-    return () => {
+    const parentContainer = imageRef.current.parentElement.parentElement.parentElement.parentElement;
+    console.log("parentContainer", parentContainer);
+    if (parentContainer) {
+      parentContainer.addEventListener("scroll", handleResize);
+    }
+
+      return () => {
       window.removeEventListener("resize", handleResize);
+      parentContainer.removeEventListener("scroll", handleResize);
     };
+
 
   }, [imageRef, updateFittedPoints]);
 
