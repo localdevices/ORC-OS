@@ -2,7 +2,7 @@
 
 import os
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 
 from orc_api import __home__
@@ -42,18 +42,21 @@ __all__ = [
 ]
 
 db_path_config = os.path.join(__home__, "orc-os.db")
-engine_config = create_engine(f"sqlite:///{db_path_config}", connect_args={"check_same_thread": False})
-
-# make the models
-Base.metadata.create_all(engine_config)
+sqlite_engine = f"sqlite:///{db_path_config}"
+engine_config = create_engine(sqlite_engine, connect_args={"check_same_thread": False})
 
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine_config)
-# Session.configure(bind=engine_config)
 session = Session()
 
-# if no device id is present, then create one
-device_query = session.query(Device)
-if len(device_query.all()) == 0:
-    device = Device()
-    session.add(device)
-    session.commit()
+# Check if Device table exists and create device if needed
+inspector = inspect(engine_config)
+if "device" in inspector.get_table_names():
+    try:
+        device_query = session.query(Device)
+        if len(device_query.all()) == 0:
+            device = Device()
+            session.add(device)
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        raise Exception(f"Error checking/creating device: {str(e)}")
