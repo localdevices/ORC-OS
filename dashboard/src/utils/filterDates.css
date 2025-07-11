@@ -1,0 +1,10 @@
+.date-picker-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start; /* Align inputs at the top */
+    gap: 20px; /* Add spacing between the inputs */
+}
+
+.date-picker-container .mb-3 {
+    flex: 1; /* Ensure the inputs adjust equally to the container's width */
+}

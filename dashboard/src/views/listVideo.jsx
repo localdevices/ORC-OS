@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
-import api from '../api';
 import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
-import VideoUploader from './videoComponents/videoUpload.jsx';
-
 const ListVideo = () => {
   const [videoData, setVideoData] = useState([]); // Stores video metadata
 
@@ -13,32 +10,34 @@ const ListVideo = () => {
   defaultStartDate.setDate(defaultStartDate.getDate() - 60); // 2 months back
 
   // Date filter states
-  const [startDate, setStartDate] = useState(defaultStartDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
-  const [endDate, setEndDate] = useState(defaultEndDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
-
-  // Fetch video metadata from API
-  useEffect(() => {
-    api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
-      .then((response) => {
-        setVideoData(response.data);
-        // Calculate the index range for records to display
-      })
-      .catch((error) => {
-        console.error('Error fetching video metadata:', error);
-      });
-  }, []);
+  // const [startDate, setStartDate] = useState(defaultStartDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
+  // const [endDate, setEndDate] = useState(defaultEndDate.toISOString().slice(0, 16)); // Format: YYYY-MM-DDTHH:mm
+  const [startDate, setStartDate] = useState(null); // Format: YYYY-MM-DDTHH:mm
+  const [endDate, setEndDate] = useState(null); // Format: YYYY-MM-DDTHH:mm
+  const [status, setStatus] = useState(null);
+  // useEffect(() => {
+  //   api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
+  //     .then((response) => {
+  //       setVideoData(response.data);
+  //       // Calculate the index range for records to display
+  //     })
+  //     .catch((error) => {
+  //       console.error('Error fetching video metadata:', error);
+  //     });
+  // }, []);
 
 
   return (
-    <div className="container mt-4">
+    <div>
       <h1>Video </h1>
       Drop new videos. Browse through your videos, delete them, view details, download, or perform single runs tasks.
       <PaginatedVideos
-        initialData={videoData}
         startDate={startDate}
         endDate={endDate}
+        status={status}
         setStartDate={setStartDate}
         setEndDate={setEndDate}
+        setStatus={setStatus}
       />
     </div>
   );

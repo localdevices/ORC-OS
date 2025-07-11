@@ -78,16 +78,8 @@ const ActionVideos = (
 
 
   return (
-    <div>
-      <FilterDates
-        startDate={startDate}
-        endDate={endDate}
-        setStartDate={setStartDate}
-        setEndDate={setEndDate}
-        handleDateFilter={handleDateFilter}
-      />
-      <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
-        <hr/>
+    <div className="split-screen">
+      <div className="ms-3">
         <h5>Selected</h5>
         {/*<hr/>*/}
         {/*<div style={{minWidth: "20%", flex: 0, padding: "20px"}}>*/}
@@ -105,9 +97,8 @@ const ActionVideos = (
         >
           Delete
         </button>
-      </div>
-      <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
-        <hr/>
+      {/*</div>*/}
+      {/*<div className="ms-3" style={{minWidth: "250px", flex: 1}}>*/}
         <h5>Bulk actions</h5>
         <button
           className="btn"
@@ -122,6 +113,13 @@ const ActionVideos = (
           Delete
         </button>
       </div>
+      <FilterDates
+        startDate={startDate}
+        endDate={endDate}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+        handleDateFilter={handleDateFilter}
+      />
       {showDownloadModal && (
         <DownloadModal
           showDownloadModal={showDownloadModal}

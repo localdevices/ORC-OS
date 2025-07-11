@@ -1,24 +1,29 @@
-import {useState, useEffect} from "react";
-import { useNavigate } from "react-router-dom";
-import { DropdownMenu } from "../../utils/dropdownMenu.jsx"
-import { run_video } from "../../utils/apiCalls.jsx"
+import React, {useState, useEffect} from "react";
+import ReactDOM from "react-dom";
+import {useNavigate} from "react-router-dom";
+import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
+import {run_video} from "../../utils/apiCalls.jsx"
 import Modal from "react-modal";
 
 import api from "../../api.js";
-import {FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass
+import {
+  FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass, FaExclamationTriangle
 } from "react-icons/fa";
 // import camera icons for video config
-import { TbCameraCancel, TbCameraCheck, TbCameraPin } from "react-icons/tb";
+import {TbCameraCancel, TbCameraCheck, TbCameraPin} from "react-icons/tb";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
 import ActionVideos from "./actionVideos.jsx";
 import {useMessage} from "../../messageContext.jsx";
 import VideoUploader from "./videoUpload.jsx";
+import {createRoot} from "react-dom/client";
 
-const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndDate}) => {
-  const [data, setData] = useState(initialData);  // initialize data with currently available
+const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, setStatus}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [data, setData] = useState([]);  // initialize data
+  const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
-  const [rowsPerPage, setRowsPerPage] = useState(25); // Rows per page (default 25)
+  const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page (default 25)
   const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
@@ -28,36 +33,57 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
-  // Calculate the index range for records to display
-  const idxLast = currentPage * rowsPerPage;
-  const idxFirst = idxLast - rowsPerPage;
-  // Protect against empty data / Async updates
-  const currentRecords = data.length
-    ? data.slice(idxFirst, idxLast)
-    : [];
   // allow for setting messages
   const {setMessageInfo} = useMessage();
   const navigate = useNavigate();
 
   // const currentRecords = data.slice(idxFirst, idxLast);  // TODO: replace by a direct API call with limited amount
 
-  // Optional: Watch for external updates to initialData and update `data` state
-  useEffect(() => {
-    setData(initialData);
-    setCurrentPage(1);
-  }, [initialData]);
+  // useEffect(() => {
+  //   setData(initialData);
+  //   setCurrentPage(1);
+  //   console.log(initialData)
+  // }, [data]);
 
-  // update list of videos when changes in a video occur
+  // Data must be updated when the page changes, when start and end date changes, or when
   useEffect(() => {
-    api.get('/video/', { params: {start: startDate, stop: endDate}}) // Retrieve list from api
+    // set loading
+    setIsLoading(true);
+    const params_page = {
+      start: startDate,
+      stop: endDate,
+      first: (currentPage - 1) * rowsPerPage,
+      count: rowsPerPage,
+    }
+    const params_total = {
+      start: startDate,
+      stop: endDate,
+    }
+    api.get('/video/', {params: params_page}) // Retrieve list from app
       .then((response) => {
+        console.log("LOADING: ", isLoading)
         setData(response.data);
         // Calculate the index range for records to display
       })
       .catch((error) => {
         console.error('Error fetching video metadata:', error);
+      })
+      .finally(() => {
+        setIsLoading(false)
       });
-  }, [selectedVideo, startDate, endDate]);
+    // also get the total count of filtered videos without retrieving all of them
+    api.get('/video/count/', {params: params_total}) // integer as response
+      .then((response) => {
+        console.log("TOTAL DATA", response.data)
+        console.log("LOADING: ", isLoading)
+
+        setTotalDataCount(response.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching video count:', error);
+      });
+
+  }, [selectedVideo, startDate, endDate, status, currentPage, rowsPerPage]);
 
 
   // Fetch the existing video configs when the modal is opened
@@ -78,29 +104,29 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   const getStatusIcon = (status) => {
     switch (status) {
       case 3:
-        return <div><FaSpinner style={{ color: "blue" }} className="spinner" /> running</div>// Spinner for processing
+        return <div><FaSpinner style={{color: "blue"}} className="spinner"/> running</div>// Spinner for processing
       case 4:
-        return <div><FaCheck style={{ color: "green" }} /> done</div>; // Success
+        return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
       case 5:
-        return <div><FaTimes style={{ color: "red" }} /> error</div>; // Error
+        return <div><FaTimes style={{color: "red"}}/> error</div>; // Error
       case 1:
-        return <div><FaStar style={{ color: "gold" }} /> new</div>; // Warning
+        return <div><FaStar style={{color: "gold"}}/> new</div>; // Warning
       case 2:
-        return <div><FaHourglass style={{ color: "purple" }} /> queue</div>; // Pending
+        return <div><FaHourglass style={{color: "purple"}}/> queue</div>; // Pending
       default:
-        return <FaSpinner style={{ color: "gray" }} className="spinner" />; // Default spinner
+        return <FaSpinner style={{color: "gray"}} className="spinner"/>; // Default spinner
     }
   };
   const getSyncStatusIcon = (status) => {
     switch (status) {
       case null:
-        return <div><FaSync style={{ color: "grey" }} /> not synced yet</div>// Spinner for processing
+        return <div><FaSync style={{color: "grey"}}/> not synced yet</div>// Spinner for processing
       case true:
-        return <div><FaCheck style={{ color: "green" }} /> done</div>; // Success
+        return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
       case false:
-        return <div><FaSync style={{ color: "cadetblue" }} className="spinner" /> out of sync</div>; // Error
+        return <div><FaSync style={{color: "cadetblue"}} className="spinner"/> out of sync</div>; // Error
       default:
-        return <FaSync style={{ color: "grey" }} />; // Default spinner
+        return <FaSync style={{color: "grey"}}/>; // Default spinner
     }
   };
   const getVideoConfigIcon = (video) => {
@@ -108,7 +134,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     if (!video.video_config) {
       return (
         <TbCameraCancel
-          style={{ color: "red" }}
+          style={{color: "red"}}
           size={20}
           className="pulsating-icon"
         />
@@ -119,7 +145,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
       return (
         <TbCameraPin
-          style={{ color: "blue" }}
+          style={{color: "blue"}}
           size={20}
           className="btn-icon"
         />
@@ -128,16 +154,16 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
     if (video.video_config.sample_video_id === video.id) {
       return (
         <TbCameraPin
-          style={{ color: "orange" }}
+          style={{color: "orange"}}
           size={20}
           className="pulsating-icon"
         />
       );
     }
-      // Catch-all case for video_config
+    // Catch-all case for video_config
     return (
       <TbCameraCheck
-        style={{ color: "green" }}
+        style={{color: "green"}}
         size={20}
         className="btn-icon"
       />
@@ -161,13 +187,12 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   }
 
 
-
   const renderVideoConfigButton = (video) => {
-      return (
-        <button
-          className="btn-icon"
-          onClick={() => handleVideoConfig(video)}
-          title={getVideoConfigTitle(video)}
+    return (
+      <button
+        className="btn-icon"
+        onClick={() => handleVideoConfig(video)}
+        title={getVideoConfigTitle(video)}
       >
         {/*First check if has a config or not,
                     then check if video id is equal to the sample video id, if so this is a control video*/}
@@ -183,7 +208,7 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
         {/*  <TbCameraCancel style={{"color": "red"}} size={20} className="pulsating-icon"/>*/}
         {/*)}*/}
       </button>
-      )
+    )
   }
 
   const toggleSelect = (id) => {
@@ -260,107 +285,137 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
   };
 
   return (
-    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
-      <div style={{width: "80%", flex: 1, overflow: "auto", padding: "20px"}}>
-        <div>
-          <VideoUploader />
+    <div className="flex-container column no-padding">
+      {isLoading && (
+        <div className="spinner-viewport">
+          <div className="spinner"/>
+          <div>Loading videos...</div>
         </div>
-        <h5>View / edit your videos</h5>
+      )}
 
+      <div className="flex-container column">
         <div>
-        {/* Table */}
-        <table className="table table-bordered table-striped">
-          <thead>
-          <tr>
-            <th>
-              <input
-                type="checkbox"
-                onChange={(e) =>
-                  e.target.checked
-                    ? setSelectedIds(currentRecords.map((record) => record.id)) // Select all visible records
-                    : setSelectedIds([]) // Deselect all
-                }
-                checked={currentRecords.every((record) => selectedIds.includes(record.id)) && currentRecords.length > 0}
-              />
-            </th>
-            <th>ID</th>
-            <th>File</th>
-            <th>Timestamp</th>
-            <th>Thumbnail</th>
-            <th>Video config</th>
-            <th>Time series</th>
-            <th>Status</th>
-            <th style={{width: "150px", whiteSpace: "nowrap"}}>Actions</th>
-          </tr>
-          </thead>
-          <tbody>
-          {currentRecords.map((video, index) => (
-
-            <tr key={idxFirst + index + 1}>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(video.id)}
-                  onChange={() => toggleSelect(video.id)}
-                />
-              </td>
-              <td>{video.id}</td>
-              <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
-              <td>{video.timestamp.slice(0, 19)}</td>
-              <td><img src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}/></td>
-              <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
-              <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
-              <td>{getStatusIcon(video.status)}</td>
-              <td>
-                <button className="btn-icon"
-                        // disabled when video config is not ready, or task is already queued (2) or running (3)
-                        disabled={!video.video_config.ready_to_run && video.status !== 2 && video.status !== 3}
-                        onClick={() => handleRun(video)}
-                >
-                  <FaPlay className="run"/>
-                </button>
-
-                <button className="btn-icon"
-                        onClick={() => handleView(video)}
-                >
-                  <RiPencilFill className="edit"/>
-                </button>
-                <button className="btn-icon"
-                        onClick={() => handleDelete(video.id)}
-                >
-                  <FaTrash className="danger"/>
-                </button>
-                {renderVideoConfigButton(video)}
-              </td>
-            </tr>
-          ))}
-          </tbody>
-        </table>
+          <VideoUploader/>
         </div>
-        <div>
-        <Paginate
-          data={data}
-          currentPage={currentPage}
-          rowsPerPage={rowsPerPage}
-          setCurrentPage={setCurrentPage}
-          setRowsPerPage={setRowsPerPage}
-        />
-        </div>
-      </div>
-      <div style={{flexDirection: "column", flex: 0}}>
         <ActionVideos
           data={data}
           selectedIds={selectedIds}
           startDate={startDate}
           endDate={endDate}
-          idxFirst={idxFirst}
+          idxFirst={currentPage * rowsPerPage}
           setData={setData}
           setSelectedIds={setSelectedIds}
           setStartDate={setStartDate}
           setEndDate={setEndDate}
           setCurrentPage={setCurrentPage}
           setMessageInfo={setMessageInfo}
+        />
+      </div>
+
+      <div className="flex-container column">
+
+        <h5>View / edit your videos</h5>
+
+        <div>
+          {/* Table */}
+          <table className="table table-bordered table-striped">
+            <thead>
+            <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  onChange={(e) =>
+                    e.target.checked
+                      ? setSelectedIds(data.map((record) => record.id)) // Select all visible records
+                      : setSelectedIds([]) // Deselect all
+                  }
+                  checked={data.every((record) => selectedIds.includes(record.id)) && data.length > 0}
+                />
+              </th>
+              <th>ID</th>
+              <th>File</th>
+              <th>Timestamp</th>
+              <th>Thumbnail</th>
+              <th>Video config</th>
+              <th>Time series</th>
+              <th>Status</th>
+              <th style={{width: "150px", whiteSpace: "nowrap"}}>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {data.map((video, index) => (
+              <tr key={currentPage * rowsPerPage + index + 1}>
+                <td>
+                  <input
+                    type="checkbox" style={{height: "initial"}}
+                    checked={selectedIds.includes(video.id)}
+                    onChange={() => toggleSelect(video.id)}
+                  />
+                </td>
+                <td>{video.id}</td>
+                <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
+                <td>{video.timestamp.slice(0, 19)}</td>
+                <td><img
+                  src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}
+                  onError={(e) => {
+                    if (e.target.parentNode.querySelector(".fallback-container")) {
+                      // Avoid creating multiple fallback containers
+                      return;
+                    }
+
+                    e.target.onerror = null;  // stop looping error behaviour
+                    e.target.style.display = "none";  // do not display default broken link icon
+                    // add a div with a nice icon in case the thumbnail fails
+                    const fallbackContainer = document.createElement("div"); // Add fallback icon dynamically
+                    fallbackContainer.style.display = "inline-block"
+                    fallbackContainer.classList.add("fallback-container");
+                    // add container
+                    e.target.parentNode.appendChild(fallbackContainer); // Append the fallback to td
+                    const root = createRoot(fallbackContainer);
+                    // render React icon into contains
+                    root.render(
+                      <FaExclamationTriangle size={16} color="red" title="Image not available"/>
+                    )
+                  }}
+                /></td>
+                <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
+                <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
+                <td>{getStatusIcon(video.status)}</td>
+                <td>
+                  <button className="btn-icon"
+                    // disabled when video config is not ready, or task is already queued (2) or running (3)
+                          disabled={!video.allowed_to_run && video.status !== 2 && video.status !== 3}
+                          onClick={() => handleRun(video)}
+                  >
+                    <FaPlay className="run"/>
+                  </button>
+
+                  <button className="btn-icon"
+                          onClick={() => handleView(video)}
+                  >
+                    <RiPencilFill className="edit"/>
+                  </button>
+                  <button className="btn-icon"
+                          onClick={() => handleDelete(video.id)}
+                  >
+                    <FaTrash className="danger"/>
+                  </button>
+                  {renderVideoConfigButton(video)}
+                </td>
+              </tr>
+            ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <Paginate
+            count={totalDataCount}
+            currentPage={currentPage}
+            rowsPerPage={rowsPerPage}
+            setCurrentPage={setCurrentPage}
+            setRowsPerPage={setRowsPerPage}
           />
+        </div>
       </div>
       {/*Modal for selecting a VideoConfig or creating a new Video Config*/}
       {/* Modal for video config */}
@@ -419,106 +474,109 @@ const PaginatedVideos = ({initialData, startDate, endDate, setStartDate, setEndD
       {/*Modal for editing / analyzing video */}
       {showModal && selectedVideo && (
         <>
-        <div className="sidebar-overlay"></div>
-        <div className="modal fade show d-block" tabIndex="-1">
-          <div className="modal-dialog" style={{maxWidth: "1200px"}}>  {/*ensure modal spans a broad screen size*/}
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Video Details</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={closeModal}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="flex-container">
-                  <div className="card" style={{width: "70%"}}>
-                    <div className="flex-container" style={{flexDirection: "column"}}>
-                      <label style={{minWidth: "100px"}}>Video:</label>
-                      <div className="readonly">
-                        {videoError ? (
-                          <div>Video file not found on system</div>
-                        ) : (
-                        <video
-                          src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play`}
-                          controls
-                          width="100%"
-                          onError={() => setVideoError(true)}
-                        />
-                        )}
-                      </div>
-                      <label style={{minWidth: "100px"}}>Analysis:</label>
-                      <div className="readonly">
-                        {imageError ? (
-                          <div>-</div>
-                        ) : (
-                        <img
-                          src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image`}
-                          width="100%"
-                          onError={() => setImageError(true)}/>
+          <div className="sidebar-overlay"></div>
+          <div className="modal fade show d-block" tabIndex="-1">
+            <div className="modal-dialog" style={{maxWidth: "1200px"}}>  {/*ensure modal spans a broad screen size*/}
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Video Details</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={closeModal}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <div className="flex-container">
+                    <div className="card" style={{width: "70%"}}>
+                      <div className="flex-container" style={{flexDirection: "column"}}>
+                        <label style={{minWidth: "100px"}}>Video:</label>
+                        <div className="readonly">
+                          {videoError ? (
+                            <div>Video file not found on system</div>
+                          ) : (
+                            <video
+                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play`}
+                              controls
+                              width="100%"
+                              onError={() => setVideoError(true)}
+                            />
                           )}
+                        </div>
+                        <label style={{minWidth: "100px"}}>Analysis:</label>
+                        <div className="readonly">
+                          {imageError ? (
+                            <div>-</div>
+                          ) : (
+                            <img
+                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image`}
+                              width="100%"
+                              onError={() => setImageError(true)}/>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="card" style={{minWidth: "30%"}}>
-                    {/*<div className="form-row">*/}
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "100px"}}>
-                        File:
-                      </label>
-                      <div className="readonly">{selectedVideo.file ? selectedVideo.file.split(`/${selectedVideo.id}/`)[1] : "-"}</div>
-                    </div>
-                    {/*</div>*/}
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "120px"}}>
-                        Status:
-                      </label>
-                      <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
-                    </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "120px"}}>
-                        Time Series:
-                      </label>
-                      <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
-                        <div className="readonly">Water level: {selectedVideo.time_series ? selectedVideo.time_series.h : "-"}</div>
-                        <div className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
+                    <div className="card" style={{minWidth: "30%"}}>
+                      {/*<div className="form-row">*/}
+                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label style={{minWidth: "100px"}}>
+                          File:
+                        </label>
+                        <div
+                          className="readonly">{selectedVideo.file ? selectedVideo.file.split(`/${selectedVideo.id}/`)[1] : "-"}</div>
                       </div>
-                    </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "120px"}}>
-                        LiveORC sync:
-                      </label>
-                      <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
-                    </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "120px"}}>
-                        LiveORC video id:
-                      </label>
-                      <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A" }</div>
-                    </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                      <label style={{minWidth: "120px"}}>
-                        LiveORC site id:
-                      </label>
-                      <div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>
+                      {/*</div>*/}
+                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label style={{minWidth: "120px"}}>
+                          Status:
+                        </label>
+                        <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
+                      </div>
+                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label style={{minWidth: "120px"}}>
+                          Time Series:
+                        </label>
+                        <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
+                          <div className="readonly">Water
+                            level: {selectedVideo.time_series ? selectedVideo.time_series.h : "-"}</div>
+                          <div
+                            className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
+                        </div>
+                      </div>
+                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label style={{minWidth: "120px"}}>
+                          LiveORC sync:
+                        </label>
+                        <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
+                      </div>
+                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label style={{minWidth: "120px"}}>
+                          LiveORC video id:
+                        </label>
+                        <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A"}</div>
+                      </div>
+                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
+                        <label style={{minWidth: "120px"}}>
+                          LiveORC site id:
+                        </label>
+                        <div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={closeModal}
-                >
-                  Close
-                </button>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeModal}
+                  >
+                    Close
+                  </button>
 
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </>
       )}
     </div>

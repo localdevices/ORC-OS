@@ -225,7 +225,7 @@ const PaginatedRecipes = ({initialData}) => {
         </div>
         <div>
           <Paginate
-            data={data}
+            count={data.length}
             currentPage={currentPage}
             rowsPerPage={rowsPerPage}
             setCurrentPage={setCurrentPage}

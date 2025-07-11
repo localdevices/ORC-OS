@@ -18,7 +18,14 @@ from orc_api import __home__, crud
 from orc_api.database import get_db
 from orc_api.db import Video, VideoStatus
 from orc_api.log import logger
-from orc_api.schemas.video import DeleteVideosRequest, DownloadVideosRequest, VideoCreate, VideoPatch, VideoResponse
+from orc_api.schemas.video import (
+    DeleteVideosRequest,
+    DownloadVideosRequest,
+    VideoCreate,
+    VideoListResponse,
+    VideoPatch,
+    VideoResponse,
+)
 from orc_api.utils import queue
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
@@ -31,14 +38,16 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 
 # helpers
-async def zip_generator(files):
+async def zip_generator(files, base_path):
     """Async generator to stream the zip file content."""
-    z = zipstream.ZipFile(mode="w", compression=ZIP_DEFLATED)  # , compression=ZIP_DEFLATED  # 64KB chunks
+    z = zipstream.ZipFile(mode="w", compression=ZIP_DEFLATED)
+    # Find common base path
     for f in files:
         if not os.path.isfile(f):
             print(f"File {f} does not exist. Skipping.")
             continue
-        z.write(f, arcname=f)
+        relative_path = os.path.relpath(f, base_path)
+        z.write(f, arcname=relative_path)
     for chunk in z:
         yield chunk
 
@@ -55,11 +64,14 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
     video = VideoResponse.model_validate(video)
     # Determine the MIME type of the file
     file_path = video.get_thumbnail(base_path=UPLOAD_DIRECTORY)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Thumbnail file not found on local data store.")
+
     mime_type, _ = mimetypes.guess_type(file_path)
     if not mime_type:
         mime_type = "application/octet-stream"  # Fallback MIME type
 
-    return FileResponse(video.get_thumbnail(base_path=UPLOAD_DIRECTORY), media_type=mime_type)
+    return FileResponse(file_path, media_type=mime_type)
 
 
 @router.get("/{id}/frame/{frame_nr}", response_class=FileResponse, status_code=200)
@@ -107,27 +119,54 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     return StreamingResponse(io_buf, media_type="image/jpeg")
 
 
-@router.get("/", response_model=List[VideoResponse], status_code=200)
+@router.get("/", response_model=List[VideoListResponse], status_code=200)
 async def get_list_video(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[Union[VideoStatus, int]] = Query(default=None),
+    first: Optional[int] = None,
+    count: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    """Retrieve a thumbnail for a video."""
+    """Retrieve list of videos."""
     if isinstance(status, int):
         try:
             status = VideoStatus(status)
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
-    list_videos = crud.video.get_list(db, start=start, stop=stop, status=status)
-    return list_videos
+    list_videos = crud.video.get_list(db, start=start, stop=stop, status=status, first=first, count=count)
+
+    # Convert to VideoListResponse list (light-weight for front end use
+    video_list_responses = [
+        VideoListResponse.from_video_response(VideoResponse.model_validate(video)) for video in list_videos
+    ]
+    return video_list_responses
+
+
+@router.get("/count/", response_model=int, status_code=200)
+async def get_list_video_count(
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    status: Optional[Union[VideoStatus, int]] = Query(default=None),
+    first: Optional[int] = None,
+    count: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retrieve only count of list of videos."""
+    if isinstance(status, int):
+        try:
+            status = VideoStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
+
+    list_videos_count = crud.video.get_list_count(db, start=start, stop=stop, status=status, first=first, count=count)
+    return list_videos_count
 
 
 @router.get("/{id}/", response_model=VideoResponse, status_code=200)
 async def get_video(id: int, db: Session = Depends(get_db)):
-    """Retrieve a thumbnail for a video."""
+    """Retrieve metadata for a video."""
     video = crud.video.get(db=db, id=id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found.")
@@ -326,7 +365,7 @@ async def download_videos(request: DownloadVideosRequest, db: Session = Depends(
             # TODO: figure out default name for .log file and also return that
             pass
     return StreamingResponse(
-        zip_generator(files_to_zip),
+        zip_generator(files_to_zip, base_path=UPLOAD_DIRECTORY),
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="files.zip"'},
     )
@@ -361,7 +400,7 @@ async def download_videos_on_ids(
     _ = [(os.path.basename(f), f) for f in files_to_zip]
 
     return StreamingResponse(
-        zip_generator(files_to_zip),
+        zip_generator(files_to_zip, base_path=UPLOAD_DIRECTORY),
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="files.zip"'},
     )
