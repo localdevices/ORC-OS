@@ -25,7 +25,7 @@ td, th {
 
 /* Styling for the cells to fit the Excel-like appearance */
 td input {
-  font-size: 14px; /* Text size matching table content */
+  /*font-size: 14px; !* Text size matching table content *!*/
   border: none; /* Remove input box border */
   width: 100%; /* Expand input to fill its cell */
   height: 100%; /* Ensure input covers the entire cell height */

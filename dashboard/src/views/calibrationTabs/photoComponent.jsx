@@ -361,7 +361,6 @@ const PhotoComponent = (
     handleResize();
 
     const parentContainer = imageRef.current.parentElement.parentElement.parentElement.parentElement;
-    console.log("parentContainer", parentContainer);
     if (parentContainer) {
       parentContainer.addEventListener("scroll", handleResize);
     }

@@ -309,12 +309,12 @@ class VideoResponse(VideoBase, RemoteModel):
 
     def get_netcdf_files(self, base_path: str):
         """Get list of netcdf files in output directory."""
-        path = os.path.join(base_path, "output", "*.nc")
+        path = os.path.join(self.get_path(base_path=base_path), "output", "*.nc")
         return glob.glob(path)
 
     def get_discharge_file(self, base_path: str):
         """Get discharge file name."""
-        fn = os.path.join(self.get_path(base_path), "output", "transect_transect_1.nc")
+        fn = os.path.join(self.get_path(base_path=base_path), "output", "transect_transect_1.nc")
         if os.path.exists(fn):
             return fn
         else:

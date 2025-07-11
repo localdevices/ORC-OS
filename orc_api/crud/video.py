@@ -4,22 +4,22 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.selectable import Select
+from sqlalchemy.orm.query import Query
 
 from orc_api import db as models
 from orc_api.crud import generic
 
 
-def filter_start_stop(query: Select, start: Optional[datetime] = None, stop: Optional[datetime] = None):
+def filter_start_stop(query: Query, start: Optional[datetime] = None, stop: Optional[datetime] = None):
     """Filter query by start and stop datetime."""
     if start:
         query = query.where(models.Video.timestamp >= start)
     if stop:
         query = query.where(models.Video.timestamp < stop)
-    return query.order_by(models.Video.timestamp)
+    return query.order_by(models.Video.timestamp.desc())
 
 
-def filter_status(query: Select, status: Optional[models.VideoStatus] = None):
+def filter_status(query: Query, status: Optional[models.VideoStatus] = None):
     """Filter query by start and stop datetime."""
     if status:
         query = query.where(models.Video.status == status)
@@ -67,15 +67,15 @@ def get_ids(db: Session, ids: List[int] = None) -> List[models.Video]:
     return query.all()
 
 
-def get_list(
+def get_query_list(
     db: Session,
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[models.VideoStatus] = None,
     first: Optional[int] = None,
     count: Optional[int] = None,
-) -> List[models.Video]:
-    """List videos within time span of start and stop."""
+):
+    """Get a query of videos (not yet extracted)."""
     query = db.query(models.Video)
     query = filter_start_stop(query, start, stop)
     if status:
@@ -86,7 +86,33 @@ def get_list(
     if count is not None:
         # limit the amount of returned records to "count"
         query = query.limit(count)
+    return query
+
+
+def get_list(
+    db: Session,
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    status: Optional[models.VideoStatus] = None,
+    first: Optional[int] = None,
+    count: Optional[int] = None,
+) -> List[models.Video]:
+    """List videos within time span of start and stop."""
+    query = get_query_list(db, start, stop, status, first, count)
     return query.all()
+
+
+def get_list_count(
+    db: Session,
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    status: Optional[models.VideoStatus] = None,
+    first: Optional[int] = None,
+    count: Optional[int] = None,
+) -> int:
+    """Count videos of query within start stop and amount."""
+    query = get_query_list(db, start, stop, status, first, count)
+    return query.count()
 
 
 def delete(db: Session, id: int):

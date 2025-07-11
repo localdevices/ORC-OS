@@ -1,8 +1,8 @@
-const Paginate = ({data, currentPage, rowsPerPage, setCurrentPage, setRowsPerPage}) => {
+const Paginate = ({count, currentPage, rowsPerPage, setCurrentPage, setRowsPerPage}) => {
 
   // Handler to go to the next page
   const handleNext = () => {
-    if (currentPage < Math.ceil(data.length / rowsPerPage)) {
+    if (currentPage < Math.ceil(count / rowsPerPage)) {
       setCurrentPage((prevPage) => prevPage + 1);
     }
   };
@@ -19,8 +19,8 @@ const Paginate = ({data, currentPage, rowsPerPage, setCurrentPage, setRowsPerPag
   };
 
   return (
-    <div className="d-flex justify-content-between align-items-center" style={{ flex: 0 }}>
-      {/* Rows Per Page Selector */}
+    <div className="d-flex justify-content-between align-items-center gap-2" style={{flex: 0}}>
+    {/* Rows Per Page Selector */}
       <div>
         <label htmlFor="rowsPerPage" className="me-2">Rows per page:</label>
         <select
@@ -46,15 +46,26 @@ const Paginate = ({data, currentPage, rowsPerPage, setCurrentPage, setRowsPerPag
         Previous
       </button>
 
-      {/* Current Page Indicator */}
-      <span>
-            Page {currentPage} of {Math.ceil(data.length / rowsPerPage)}
-      </span>
+      {/* Page Selector Dropdown */}
+      <div>
+        <select
+          className="form-select d-inline-block w-auto mx-2"
+          value={currentPage}
+          onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
+        >
+          {[...Array(Math.ceil(count / rowsPerPage))].map((_, index) => (
+            <option key={index + 1} value={index + 1}>
+              Page {index + 1} of {Math.ceil(count / rowsPerPage)}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Next Button */}
       <button
         className="btn btn-secondary"
         onClick={handleNext}
-        disabled={currentPage === Math.ceil(data.length / rowsPerPage)} // Disable if on the last page
+        disabled={currentPage === Math.ceil(count / rowsPerPage)} // Disable if on the last page
       >
         Next
       </button>
