@@ -6,8 +6,7 @@ import os
 import sys
 from datetime import datetime
 
-from orc_api import __home__, __version__, crud
-from orc_api.database import get_session
+from orc_api import LOG_DIRECTORY, __home__, __version__
 
 timestr = datetime.now().strftime("%Y%m%dT%H%M%S")
 datestr = datetime.now().strftime("%Y%m%d")
@@ -94,13 +93,9 @@ def start_logger(verbose, quiet, log_path=None):
     return logger
 
 
-# retrieve disk management
-db = get_session()
-dm = crud.disk_management.get(db)
-if dm:
-    log_path = dm.log_path
+if "ALEMBIC_RUNNING" not in os.environ:
+    logger = start_logger(True, False, log_path=LOG_DIRECTORY)
 else:
-    log_path = None
-logger = start_logger(True, False, log_path=log_path)
+    logger = None
 
 __all__ = ["logger"]

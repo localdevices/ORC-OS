@@ -8,6 +8,7 @@ authors = [
     {name = "Hessel Winsemius", email = "winsemius@rainbowsensing.com"},
 ]
 dependencies = [
+    "alembic",
     "apscheduler",
     "pillow<=9.5.0",  # for compatibility with picamera2 on Bullseye
     "pyopenrivercam>=0.8.7",
@@ -57,7 +58,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 120
 target-version = "py313"
-exclude = ["docs"]
+exclude = ["docs", "alembic"]
 
 [tool.ruff.lint]
 # enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT), bugbear (B)

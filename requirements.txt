@@ -1,8 +1,10 @@
+alembic
 apscheduler
 fastapi[standard]
-pillow
+pillow<=9.5.0
 pydantic
 pyorc>=0.8.7
 pyyaml
+rasterio<=1.3.11
 sqlalchemy
 zipstream

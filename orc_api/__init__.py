@@ -10,6 +10,7 @@ if not __home__:
 if not (os.path.isdir(__home__)):
     os.makedirs(__home__)
 
+LOG_DIRECTORY = os.path.join(__home__, "logs")
 
 TMP_DIRECTORY = os.path.join(__home__, "tmp")
 if not UPLOAD_DIRECTORY:
