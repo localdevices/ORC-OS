@@ -102,7 +102,7 @@ def session_config(session_empty, tmpdir):
         reboot_after=0,
         enable_daemon=False,
     )
-    disk_management_instance = db.DiskManagement(home_folder=str(tmpdir))
+    disk_management_instance = db.DiskManagement()
     water_level_settings_instance = db.WaterLevelSettings()
     callback_url_instance = db.CallbackUrl(
         token_refresh_end_point="/api/token/refresh/",
