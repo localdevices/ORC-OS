@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest" ] #, "macos-latest", "windows-latest"]
-        python-version: ["3.11"] # fix tests to support older versions
+        python-version: ["3.11"] # fix tests to support older versions, related to pillow<=9.5.0 for Raspberry Pi Bullseye
 
     steps:
       - uses: actions/checkout@v4
