@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - "80-ci-for-tests-and-release"
       - main
     paths:
       - tests/*
