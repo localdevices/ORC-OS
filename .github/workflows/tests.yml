@@ -1,1 +1,15 @@
-
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - tests/*
+      - orc_api/*
+      - pyproject.toml
+  pull_request:
+    branches: [ main ]
+    paths:
+      - tests/*
+      - orc_api/*
+      - pyproject.toml
