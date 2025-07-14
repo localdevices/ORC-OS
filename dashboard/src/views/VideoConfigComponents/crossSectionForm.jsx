@@ -1,15 +1,13 @@
 import api from "../../api.js";
-import React, {useEffect, useState, useRef} from "react";
+import {useEffect, useState} from "react";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
-
+import PropTypes   from "prop-types";
 const CrossSectionForm = (
   {
     cameraConfig,
-    crossSection,
     CSDischarge,
     CSWaterLevel,
     setCameraConfig,
-    setCrossSection,
     setCSDischarge,
     setCSWaterLevel,
     setMessageInfo
@@ -20,13 +18,7 @@ const CrossSectionForm = (
     name: '',
     file: null
   });
-  // form data as posted to store in back end
-  const [formSubmitData, setFormSubmitData] = useState({
-    name: '',
-    features: {}
-  })
 
-  const [showJsonData, setShowJsonData] = useState(false);
   const [availableCrossSections, setAvailableCrossSections] = useState([]);
 
   const fetchCrossSections = async () => {
@@ -264,6 +256,18 @@ const CrossSectionForm = (
 
   )
 
+};
+
+CrossSectionForm.propTypes = {
+  cameraConfig: PropTypes.object.isRequired,
+  crossSection: PropTypes.object,
+  CSDischarge: PropTypes.object.isRequired,
+  CSWaterLevel: PropTypes.object.isRequired,
+  setCameraConfig: PropTypes.func.isRequired,
+  setCrossSection: PropTypes.func.isRequired,
+  setCSDischarge: PropTypes.func.isRequired,
+  setCSWaterLevel: PropTypes.func.isRequired,
+  setMessageInfo: PropTypes.func.isRequired,
 };
 
 export default CrossSectionForm;

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import {useState, useEffect} from 'react';
 import api from '../api';
 import {DropdownMenu} from "../utils/dropdownMenu.jsx";
 import {useMessage} from '../messageContext';
@@ -7,8 +7,6 @@ import '../App.css';
 const Settings = () => {
 
   const [settings, setSettings] = useState([]);
-  const [loading, setLoading] = useState(true); // State for loading indicator
-  const [error, setError] = useState(null); // State for error handling
   const [videoConfigs, setVideoConfigs] = useState([]);
   const [formData, setFormData] = useState({
     video_file_fmt: '',
@@ -70,7 +68,7 @@ const Settings = () => {
     });
   }
   const handleInputDropdown = (event) => {
-    const {name, value, type} = event.target;
+    const {value} = event.target;
     event.target.value = value;
     setFormData({
       ...formData,
@@ -180,13 +178,13 @@ const Settings = () => {
               Parse dates from the video file name.
             </label>
             <div className="help-block">
-              File must have a name template such as "{"{%Y%m%dT%H%M%S}.mp4"}"
+              File must have a name template such as &#34;{"{%Y%m%dT%H%M%S}.mp4"}&#34;
             </div>
           </div>
             {formData.video_file_fmt && settings?.sample_file && (
               <div className="mb-3 mt-3 form-horizontal">
                   <div role="alert" style={{color: "red", fontStyle: "italic"}}>
-                      Expected file name for current date and time on the device is "{settings.sample_file}".
+                      Expected file name for current date and time on the device is &#34;{settings.sample_file}&#34;.
                       Make sure that videos of this form are generated on the device.
                   </div>
               </div>
@@ -254,7 +252,7 @@ const Settings = () => {
                    onChange={handleInputIntChange} value={formData.remote_site_id}/>
             <div className="help-block">
               Make sure you have access to a LiveORC server, and can write to a site. Note down the Site ID from the
-              site's address bar.
+              site&#39;s address bar.
             </div>
 
           </div>

@@ -95,7 +95,7 @@ const CameraAim = () => {
   };
 
   const handlePiDropdown = (event) => {
-    const {name, value, type} = event.target;
+    const {value} = event.target;
     const value_ints = value.split(",");
     setPiFormData({
       ...piFormData,

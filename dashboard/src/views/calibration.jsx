@@ -5,7 +5,6 @@ import VideoTab from './calibrationTabs/videoTab'
 import XYZWidget from './calibrationTabs/XyzWidget';
 import MapTab from './calibrationTabs/mapTab';
 import api from '../api';
-
 import '../nav/Navbar.css'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 import {createCustomMarker} from '../utils/leafletUtils';
@@ -42,12 +41,6 @@ const Calibration = () => {
       [tab]: value,
     }));
   };
-
-  // TODO implement a submit button for storing CameraConfig in database
-  // const handleSubmit = (e) => {
-  //   e.preventDefault();
-  //   console.log('Form submitted:', formData);
-  // };
 
   const addWidget = () => {
     setWidgets((prevWidgets) => {
@@ -318,14 +311,6 @@ const Calibration = () => {
           </div>
         </div>
       </div>
-
-
-      {/*/!* Submit button section *!/*/}
-      {/*<div className="form-actions">*/}
-      {/*  <button type="submit" className="btn" onClick={handleSubmit}>*/}
-      {/*    Submit*/}
-      {/*  </button>*/}
-      {/*</div>*/}
     </div>
   );
 };

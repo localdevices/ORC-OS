@@ -232,17 +232,6 @@ const VideoConfig = () => {
     </button>
 
   };
-  const renderStatusTitle = (status) => {
-    switch (status) {
-      case 2:
-        return "Video is queued";
-      case 3:
-        return "Video is running";
-      default:
-        return "Run selected video with configuration"; // Default icon
-    }
-  };
-
 
   const runVideo = async () => {
     run_video(video, setVideo, setMessageInfo);

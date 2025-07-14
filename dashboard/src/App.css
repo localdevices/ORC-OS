@@ -246,7 +246,6 @@ button.btn-danger {
 button.btn-icon {
   background: none;
   border: none;
-  padding-horizontal: 5;
   cursor: pointer;
   color: grey;
   transition: color 0.3s; /* Smooth color transition */
