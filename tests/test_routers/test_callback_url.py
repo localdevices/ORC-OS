@@ -159,13 +159,13 @@ def test_update_callback_url_real_input():
     assert response.status_code == 201
 
 
-def test_get_set_refresh_tokens_success(mocker):
+def test_get_set_refresh_tokens_success(session_config, mocker, monkeypatch):
     mock_get_tokens = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_tokens")
     mock_get_tokens.return_value.status_code = 200
     mock_get_tokens.return_value.json.return_value = {"access": "token_access_value", "refresh": "token_refresh_value"}
     mock_get_token_expiration = mocker.patch("orc_api.schemas.callback_url.CallbackUrlCreate.get_token_expiration")
     mock_get_token_expiration.return_value = datetime(2024, 1, 1, 0, 0, 0)
-    # mock_add_callback = mocker.patch("orc_api.crud.callback_url.add")
+    monkeypatch.setattr("orc_api.schemas.callback_url.get_session", lambda: session_config)
 
     request_body = {
         "url": "https://example.com/callback",

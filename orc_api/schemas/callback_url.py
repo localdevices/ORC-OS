@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 
 import requests
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api import db as models
@@ -59,23 +60,28 @@ class CallbackUrlResponse(CallbackUrlBase):
             self.token_access = response.json().get("access")
             self.token_refresh = response.json().get("refresh")
             self.token_expiration = self.get_token_expiration()
-            # store in database
-            self.set_tokens()
+            # store in database with temporary connection
+            with get_session() as db:
+                self.set_tokens(db)
         else:
             raise Exception(
                 f"Error refreshing tokens, response code: {response.status_code}, response: {response.text}"
             )
-        return crud.callback_url.get(get_session())
+        with get_session() as db:
+            return crud.callback_url.get(db)
 
-    def set_tokens(self):
+    def set_tokens(self, db: Session):
         """Store tokens in the database."""
-        db = get_session()
         new_callback_url = self.model_dump(exclude={"id", "created_at"})
         # serialize url
         new_callback_url["url"] = str(new_callback_url["url"])
         crud.callback_url.add(db, models.CallbackUrl(**new_callback_url))
 
-    def get(self, endpoint, data=None):
+    def get(
+        self,
+        endpoint,
+        data=None,
+    ):
         """Perform GET request on end point with optional data."""
         data = {} if data is None else data
         url = urljoin(str(self.url), endpoint)
