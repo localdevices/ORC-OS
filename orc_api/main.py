@@ -24,6 +24,7 @@ from orc_api.routers import (
     pivideo_stream,
     recipe,
     settings,
+    updates,
     video,
     video_config,
     video_stream,
@@ -195,19 +196,20 @@ app.add_middleware(
 #     return await call_next(request)
 #
 
-app.include_router(device.router)
-app.include_router(settings.router)
 app.include_router(callback_url.router)
-app.include_router(video.router)
-app.include_router(video_config.router)
-app.include_router(disk_management.router)
-app.include_router(water_level.router)
 app.include_router(camera_config.router)
-app.include_router(video_stream.router)
+app.include_router(control_points.router)
+app.include_router(cross_section.router)
+app.include_router(device.router)
+app.include_router(disk_management.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
-app.include_router(cross_section.router)
-app.include_router(control_points.router)
+app.include_router(settings.router)
+app.include_router(updates.router)
+app.include_router(video.router)
+app.include_router(video_config.router)
+app.include_router(video_stream.router)
+app.include_router(water_level.router)
 
 
 @app.get("/")
