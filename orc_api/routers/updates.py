@@ -36,16 +36,16 @@ async def check_github_version():
 
     Returns a dictionary with current version, latest version, update available and raw JSON release data from response.
     """
+    current_version = orc_api.__version__
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest",
-                timeout=httpx.Timeout(connect=3.0, read=5.0),
+                timeout=httpx.Timeout(connect=3.0, read=5.0, write=5.0, pool=5.0),
             )
             if response.status_code == 200:
                 release_data = response.json()
                 latest_version = release_data["tag_name"].lstrip("v")  # remove v-prefix
-                current_version = orc_api.__version__
                 return {
                     "current_version": current_version,
                     "latest_version": latest_version,
@@ -55,6 +55,14 @@ async def check_github_version():
                 }
             return {"error": "Failed to check for updates"}
     except httpx.TimeoutException:
+        return {
+            "current_version": current_version,
+            "latest_version": "N/A timeout",
+            "update_available": False,
+            "online": True,
+            "release_data": None,
+        }
+    except httpx.ConnectError:
         return {
             "current_version": current_version,
             "latest_version": None,
@@ -88,6 +96,13 @@ async def do_update(backup_distribution=False):
         # Check for latest release
         # ========================
         version_info = await check_github_version()
+        if not version_info["online"]:
+            update_state.last_status = "Not online, cannot update"
+            return {"status": "Not online, cannot update"}
+        if "timeout" in version_info["latest_version"]:
+            msg = "Timeout reached while retrieving update. Connection not stable enough for updating."
+            update_state.last_status = msg
+            return {"status": msg}
         if not version_info["update_available"]:
             update_state.last_status = "No update available"
             return {"status": "No update available"}
