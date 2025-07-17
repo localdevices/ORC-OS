@@ -197,7 +197,7 @@ async def do_update(backup_distribution=False):
                 # Backup current frontend build
                 if os.path.isdir(www_root):
                     www_root_backup = os.path.join(orc_api.__home__, "www_backup")
-                    os.makedirs(www_root_backup)
+                    os.makedirs(www_root_backup, exist_ok=True)
                     if os.path.isdir(www_root_backup):
                         shutil.rmtree(www_root_backup)
                     shutil.copytree(www_root, www_root_backup)
@@ -212,8 +212,8 @@ async def do_update(backup_distribution=False):
                         f"Failed to deploy new frontend build with error: {str(e)}. Rolled back to previous version."
                     )
         # close API for restart
-        update_state.last_status = "Exiting from API. If a service file is present, API will be restarted now."
-        exit(0)
+        update_state.last_status = "API is restarting. Refresh (Ctrl+R) several times to get reconnected."
+        os._exit(0)
 
     except Exception as e:
         update_state.last_status = f"Update failed: {str(e)}"
