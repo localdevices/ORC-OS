@@ -1,15 +1,17 @@
 """Update end points."""
 
+import asyncio
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import zipfile
+from typing import List
 
 import httpx
 import pkg_resources
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket
 
 import orc_api
 
@@ -29,6 +31,8 @@ update_state = UpdateInfo()
 repo_owner = "localdevices"
 repo_name = "ORC-OS"
 service_name = "ORC-API.service"
+
+websocket_conns: List[WebSocket] = []
 
 
 async def check_github_version():
@@ -240,3 +244,19 @@ async def start_update(background_tasks: BackgroundTasks):
 async def update_status():
     """Get the current status of the update process."""
     return {"is_updating": update_state.is_updating, "status": update_state.last_status}
+
+
+@router.websocket("/status_ws")
+async def update_status_ws(websocket: WebSocket):
+    """Get continuous status of the update process via websocket."""
+    await websocket.accept()
+    websocket_conns.append(websocket)
+    try:
+        while True:
+            status_msg = {"is_updating": update_state.is_updating, "status": update_state.last_status}
+            await websocket.send_json(status_msg)
+            await asyncio.sleep(0.5)
+    except Exception as e:
+        print(f"WebSocket disconnected: {e}")
+    finally:
+        websocket_conns.remove(websocket)
