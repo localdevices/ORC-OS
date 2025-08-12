@@ -42,7 +42,6 @@ const Home = () => {
   const fetchWaterLevel = async () => {
     const response = await api.get('/water_level/')
       .then((response) => {
-        console.log(response);
         if (response.data !== null) {
           console.log("Water level configuration found");
           setWaterLevel(true);
@@ -83,7 +82,7 @@ const Home = () => {
       )}
       <div>
         <a href="https://openrivercam.org" target="_blank">
-          <img src={orcLogo} className="logo" alt="Vite logo" />
+          <img src={orcLogo} className="logo" alt="ORC logo" />
         </a>
       </div>
       <h1>OpenRiverCam-OS configuration</h1>

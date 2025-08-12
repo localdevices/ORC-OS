@@ -1,17 +1,20 @@
 """Update end points."""
 
 import asyncio
+import hashlib
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
-from typing import List
+from typing import List, Optional
 
 import httpx
 import pkg_resources
 from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket
+from starlette.websockets import WebSocketDisconnect
 
 import orc_api
 
@@ -33,6 +36,9 @@ repo_name = "ORC-OS"
 service_name = "ORC-API.service"
 
 websocket_conns: List[WebSocket] = []
+
+# Event used to notify state changes
+state_update_queue = asyncio.Queue()
 
 
 async def check_github_version():
@@ -57,6 +63,8 @@ async def check_github_version():
                     "online": True,
                     "release_data": release_data,
                 }
+            if response.status_code == 403:
+                return {"error": response.json()["message"]}
             return {"error": "Failed to check for updates"}
     except httpx.TimeoutException:
         return {
@@ -76,7 +84,7 @@ async def check_github_version():
         }
 
 
-async def download_release_asset(asset_url: str) -> bytes:
+async def download_release_asset(asset_url: str, expected_sha256) -> bytes:
     """Download a release asset from GitHub."""
     async with httpx.AsyncClient() as client:
         response = await client.get(
@@ -86,6 +94,12 @@ async def download_release_asset(asset_url: str) -> bytes:
         )
         if response.status_code != 200:
             raise HTTPException(status_code=500, detail="Failed to download release asset")
+        if hashlib.sha256(response.content).hexdigest() != expected_sha256:
+            raise HTTPException(
+                status_code=500,
+                detail="SHA256 checksum does not match. Something is wrong with the downloaded file, "
+                "please try again later.",
+            )
         return response.content
 
 
@@ -93,22 +107,20 @@ async def do_update(backup_distribution=False):
     """Perform the update."""
     if update_state.is_updating:
         return {"status": "Update already in progress"}
-
-    update_state.is_updating = True
-    update_state.last_status = "Starting update..."
+    await modify_state_update_event(True, "Starting update...")
     try:
         # Check for latest release
         # ========================
         version_info = await check_github_version()
         if not version_info["online"]:
-            update_state.last_status = "Not online, cannot update"
+            await modify_state_update_event(True, "Not online, cannot update")
             return {"status": "Not online, cannot update"}
         if "timeout" in version_info["latest_version"]:
             msg = "Timeout reached while retrieving update. Connection not stable enough for updating."
-            update_state.last_status = msg
+            await modify_state_update_event(True, msg)
             return {"status": msg}
         if not version_info["update_available"]:
-            update_state.last_status = "No update available"
+            await modify_state_update_event(True, "No update available")
             return {"status": "No update available"}
 
         if "error" in version_info:
@@ -123,7 +135,7 @@ async def do_update(backup_distribution=False):
 
         if not frontend_asset:
             # finalize state and raise
-            update_state.last_status = "No frontend build asset found in release"
+            await modify_state_update_event(True, "No frontend build asset found in release")
             raise Exception("Frontend build asset not found in release, cannot update front end.")
 
         # checks are complete and update seems available and complete
@@ -131,7 +143,8 @@ async def do_update(backup_distribution=False):
         # Backup current packages setup for rollback purposes
         # ===================================================
         with tempfile.TemporaryDirectory() as backup_dir:
-            update_state.last_status = "Backing up package list..."
+            time.sleep(1)
+            await modify_state_update_event(True, "Backing up package list...")
             # Save current requirements
             requirements = subprocess.run(
                 [sys.executable, "-m", "pip", "freeze", "--local"], capture_output=True, text=True
@@ -142,17 +155,20 @@ async def do_update(backup_distribution=False):
                 f.write(requirements)
 
             if backup_distribution:
-                update_state.last_status = "Backing up full distribution, this will take a while..."
+                await modify_state_update_event(True, "Backing up full distribution...")
                 # this is the safest option, ensures that full rollback is possible, does not use reqs.
                 package_location = pkg_resources.get_distribution("orc_api").location
                 shutil.copytree(package_location, os.path.join(backup_dir, "orc_api_backup"), dirs_exist_ok=True)
 
             # Create temporary directory for the update
             with tempfile.TemporaryDirectory() as temp_dir:
-                update_state.last_status = "Downloading stuff..."
+                await asyncio.sleep(1)
+                await modify_state_update_event(True, "Downloading and extracting stuff...")
 
                 # Download and extract frontend build
-                frontend_content = await download_release_asset(frontend_asset["browser_download_url"])
+                frontend_content = await download_release_asset(
+                    frontend_asset["browser_download_url"], expected_sha256=frontend_asset["digest"].strip("sha256:")
+                )
                 frontend_zip = os.path.join(temp_dir, "frontend-build.zip")
 
                 with open(frontend_zip, "wb") as f:
@@ -161,9 +177,9 @@ async def do_update(backup_distribution=False):
                 # Extract frontend build to temporary directory
                 with zipfile.ZipFile(frontend_zip, "r") as zip_ref:
                     zip_ref.extractall(os.path.join(temp_dir, "frontend"))
-
-                update_state.last_status = "Updating back-end stuff..."
-
+                print("Updating back-end stuff...")
+                await asyncio.sleep(1)
+                await modify_state_update_event(True, "Updating back-end stuff...")
                 # try except for updating the package
                 try:
                     # Install the new version directly from GitHub using pip
@@ -171,7 +187,10 @@ async def do_update(backup_distribution=False):
                     subprocess.run(
                         [sys.executable, "-m", "pip", "install", "--upgrade", "--no-deps", repo_url], check=True
                     )
-                    update_state.last_status = "Updating dependencies..."
+                    await asyncio.sleep(1)
+                    print("Updating dependencies...")
+                    await modify_state_update_event(True, "Updating dependencies...")
+
                     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", repo_url], check=True)
                 except subprocess.CalledProcessError as e:
                     try:
@@ -195,7 +214,10 @@ async def do_update(backup_distribution=False):
                         )
 
                 # Deploy frontend build
-                update_state.last_status = "Deploying frontend..."
+                await asyncio.sleep(1)
+                await modify_state_update_event(True, "Deploying frontend...")
+                print("Deploying frontend...")
+                # await asyncio.sleep(1)
                 www_root = os.path.join(orc_api.__home__, "www")
 
                 # Backup current frontend build
@@ -216,15 +238,24 @@ async def do_update(backup_distribution=False):
                         f"Failed to deploy new frontend build with error: {str(e)}. Rolled back to previous version."
                     )
         # close API for restart
-        update_state.last_status = "API is restarting. Refresh (Ctrl+R) several times to get reconnected."
+        await asyncio.sleep(1)
+        for secs in range(5, -1, -1):
+            await modify_state_update_event(
+                True, f"API is restarting. You will be redirected to the home page in {secs} seconds."
+            )
+            await asyncio.sleep(1)
+        await modify_state_update_event(False, "Update completed")
+        await asyncio.sleep(1)
         os._exit(0)
 
     except Exception as e:
-        update_state.last_status = f"Update failed: {str(e)}"
+        await asyncio.sleep(1)
+        await modify_state_update_event(True, f"Update failed: {str(e)}. Refresh page (Ctrl+R)  to continue...")
         # Log the error here
         raise f"Error occurred during update: {str(e)}"
     finally:
-        update_state.is_updating = False
+        await asyncio.sleep(1)
+        await modify_state_update_event(False)
 
 
 @router.get("/check")
@@ -251,12 +282,40 @@ async def update_status_ws(websocket: WebSocket):
     """Get continuous status of the update process via websocket."""
     await websocket.accept()
     websocket_conns.append(websocket)
+    # # send the first message
+    # status_msg = {"is_updating": update_state.is_updating, "status": update_state.last_status}
+    # await websocket.send_json(status_msg)
+
     try:
         while True:
-            status_msg = {"is_updating": update_state.is_updating, "status": update_state.last_status}
+            # then just wait until the message changes
+            print("Awaiting state update message...")
+            # await asyncio.get_event_loop().run_in_executor(None, state_update_event.wait)
+            # state_update_event.clear()
+            status_msg = (
+                await state_update_queue.get()
+            )  # {"is_updating": update_state.is_updating, "status": update_state.last_status}
+            print(f"Sending to client: {status_msg}")
+
             await websocket.send_json(status_msg)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
+            # # Send heartbeat for keep alive
+            # await websocket.send_json({"heartbeat": True})
+
+    except WebSocketDisconnect:
+        print("WebSocket disconnected")
+        # websocket_conns.remove(websocket)
+
     except Exception as e:
-        print(f"WebSocket disconnected: {e}")
+        print(f"WebSocket error: {e}")
     finally:
         websocket_conns.remove(websocket)
+
+
+async def modify_state_update_event(is_updating: bool, last_status: Optional[str] = None):
+    """Change state handler and notify websocket."""
+    update_state.is_updating = is_updating
+    if last_status is not None:
+        update_state.last_status = last_status
+    # notify change after a short time, to avoid hrottling
+    await state_update_queue.put({"is_updating": update_state.is_updating, "status": update_state.last_status})

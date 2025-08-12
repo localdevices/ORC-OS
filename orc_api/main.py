@@ -186,6 +186,16 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
+
+
+@app.middleware("http")
+async def add_csp_header(request, call_next):
+    """Add Content-Security-Policy header to all responses."""
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = "connect-src 'self' ws://localhost:5000/"
+    return response
+
+
 #
 
 # @app.middleware("http")

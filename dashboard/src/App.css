@@ -371,6 +371,9 @@ button.btn-icon:hover .edit {
 
 .spinner-container {
   position: absolute;
+  align-items: center;
+  display: flex;
+  flex-direction: column; /* Stack contents vertically */
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -378,13 +381,19 @@ button.btn-icon:hover .edit {
 }
 
 .spinner {
-  border: 8px solid rgba(0, 0, 0, 0.1); /* Gray background */
+  border: 8px solid rgba(0, 0, 0, 0.2); /* Gray background */
   border-top: 8px solid #3498db; /* Blue color for the spinner */
   border-radius: 50%;
   width: 50px;
   height: 50px;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
+  /*position: relative; !* Adjust position to center *!*/
+
+  /*align-items: center; !* Center items horizontally *!*/
+  /*text-align: center; !* Center align text within the container *!*/
+
+
 }
 
 @keyframes spin {

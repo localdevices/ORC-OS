@@ -44,6 +44,8 @@
 
 .navbar-right {
     position: relative;
+    display: flex;
+    gap: 10px;
 }
 
 
@@ -90,6 +92,18 @@ a:hover {
     left: 0; /* Slide in */
 }
 
+/* Modifier for the Right Sidebar */
+.sidebar.right {
+    left: auto; /* Reset left */
+    right: -250px; /* Hidden on the right */
+    transition: right 0.3s ease; /* Animate the right property */
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5); /* Shadow flipped to the left */
+}
+
+.sidebar.right.open {
+    right: 0; /* Slide in from the right */
+}
+
 .sidebar-nav {
     list-style: none;
     padding: 0;
@@ -100,6 +114,16 @@ a:hover {
     margin-bottom: 10px;
 }
 
+.sidebar-nav.right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px;
+    margin: 10px;
+    width: 100%;
+    height: 100%;
+}
 .sidebar-link {
     text-decoration: none;
     color: white;
