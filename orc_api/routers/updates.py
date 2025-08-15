@@ -153,6 +153,7 @@ async def do_update(backup_distribution=False):
             )
 
     # collect path info
+    base_dir = os.path.split(orc_api.__file__)[0]
     package_dir = str(importlib.metadata.distribution("orc_api").locate_file(""))
     db_path = orc_api.db.db_path_config
     db_engine = orc_api.db.sqlite_engine
@@ -283,34 +284,37 @@ async def do_update(backup_distribution=False):
                     )
                     await _rollback_backend(e)
 
-                if api_update_success:
-                    try:
-                        # Deploy frontend build
-                        await asyncio.sleep(1)
-                        await modify_state_update_event(True, "Deploying frontend...")
-                        print("Deploying frontend...")
-                        # await asyncio.sleep(1)
-                        www_root = os.path.join(orc_api.__home__, "www")
+                    if api_update_success:
+                        try:
+                            # Deploy frontend build
+                            await asyncio.sleep(1)
+                            await modify_state_update_event(True, "Deploying frontend...")
+                            print("Deploying frontend...")
+                            # await asyncio.sleep(1)
+                            www_root = os.path.join(orc_api.__home__, "www")
 
-                        # Backup current frontend build
-                        if os.path.isdir(www_root):
-                            www_root_backup = os.path.join(orc_api.__home__, "www_backup")
-                            os.makedirs(www_root_backup, exist_ok=True)
-                            if os.path.isdir(www_root_backup):
-                                shutil.rmtree(www_root_backup)
-                            shutil.copytree(www_root, www_root_backup)
-                            # remove old distribution
-                            shutil.rmtree(www_root)
-                        # Copy new frontend build
-                        shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
-                    except Exception as e:
-                        await modify_state_update_event(
-                            True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
-                        )
-                        shutil.move(www_root_backup, www_root)
-                        await _rollback_backend(e)
-
-                        # when this happens, also rollback the back-end
+                            # Backup current frontend build
+                            if os.path.isdir(www_root):
+                                www_root_backup = os.path.join(orc_api.__home__, "www_backup")
+                                os.makedirs(www_root_backup, exist_ok=True)
+                                if os.path.isdir(www_root_backup):
+                                    shutil.rmtree(www_root_backup)
+                                shutil.copytree(www_root, www_root_backup)
+                                # remove old distribution
+                                shutil.rmtree(www_root)
+                            # Copy new frontend build
+                            shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
+                        except Exception as e:
+                            await modify_state_update_event(
+                                True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
+                            )
+                            shutil.move(www_root_backup, www_root)
+                            # when this happens, also rollback the back-end
+                            await _rollback_backend(e)
+                # Everything complete, we can now move the temporary ORC API install to its final destination,
+                # this is the most risky part, so MUST happen at the latest latest stage.
+                shutil.rmtree(base_dir)
+                shutil.copytree(os.path.join(temp_dir, "orc-os-update", "orc_api"), base_dir)
             # close API for restart
             await asyncio.sleep(1)
             for secs in range(5, -1, -1):
@@ -318,7 +322,6 @@ async def do_update(backup_distribution=False):
                     True, f"API is restarting. You will be redirected to the home page in {secs} seconds."
                 )
                 await asyncio.sleep(1)
-                shutil.copytree(os.path.join(temp_dir, "orc-os-update"), package_dir)
             await modify_state_update_event(False, "Update completed")
             await asyncio.sleep(1)
             # at the very final stage, move the new lib in place
@@ -369,7 +372,6 @@ async def update_status_ws(websocket: WebSocket):
     try:
         while True:
             # then just wait until the message changes
-            print("Awaiting state update message...")
             status_msg = await state_update_queue.get()
 
             await websocket.send_json(status_msg)
