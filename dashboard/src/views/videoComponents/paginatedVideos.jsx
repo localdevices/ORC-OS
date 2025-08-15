@@ -1,8 +1,9 @@
-import React, {useState, useEffect} from "react";
-import ReactDOM from "react-dom";
+import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
 import {run_video} from "../../utils/apiCalls.jsx"
+import PropTypes from "prop-types";
+
 import Modal from "react-modal";
 
 import api from "../../api.js";
@@ -194,19 +195,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
         onClick={() => handleVideoConfig(video)}
         title={getVideoConfigTitle(video)}
       >
-        {/*First check if has a config or not,
-                    then check if video id is equal to the sample video id, if so this is a control video*/}
         {getVideoConfigIcon(video)}
-        {/*{video.video_config ? (*/}
-        {/*  video.video_config.sample_video_id === video.id ? (*/}
-        {/*    <TbCameraPin style={{"color": "blue"}} size={20} className="btn-icon"/>*/}
-        {/*  ) : (*/}
-        {/*    <TbCameraCheck style={{"color": "green"}} size={20} className="btn-icon"/>*/}
-
-        {/*  )*/}
-        {/*) : (*/}
-        {/*  <TbCameraCancel style={{"color": "red"}} size={20} className="pulsating-icon"/>*/}
-        {/*)}*/}
       </button>
     )
   }
@@ -228,7 +217,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
           setData(updatedData);
 
           // adjust current page if necessary as length of records may require
-          if (updatedData.length <= idxFirst) {
+          if (updatedData.length <= (currentPage - 1) * rowsPerPage) {
             setCurrentPage((prev) => Math.max(prev - 1, 1));
           }
 
@@ -258,7 +247,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     const {value} = event.target;
     try {
       // Send a POST request to update the video with the selected configuration
-      const response = api.patch(`/video/${selectedVideo.id}`, {
+      api.patch(`/video/${selectedVideo.id}`, {
         video_config_id: value, // Pass the selected configuration ID
       });
       // Success feedback
@@ -581,6 +570,14 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
       )}
     </div>
   );
+};
+PaginatedVideos.propTypes = {
+  startDate: PropTypes.string,
+  endDate: PropTypes.string,
+  status: PropTypes.any, // Use a more specific type if the status type is known
+  setStartDate: PropTypes.func.isRequired,
+  setEndDate: PropTypes.func.isRequired,
+  setStatus: PropTypes.func.isRequired,
 };
 
 export default PaginatedVideos;

@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import PropTypes from "prop-types";
 
 const CameraParameters = ({cameraConfig, setCameraConfig}) => {
   const [camLocationAuto, setCamLocationAuto] = useState(false);
@@ -278,4 +279,9 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
     </div>
   )
 }
+CameraParameters.propTypes = {
+  cameraConfig: PropTypes.object.isRequired,
+  setCameraConfig: PropTypes.func.isRequired,
+};
+
 export default CameraParameters;

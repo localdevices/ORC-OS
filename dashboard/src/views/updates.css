@@ -1,0 +1,55 @@
+.update-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+.update-card {
+    background-color: #ffffff;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.update-info {
+    margin-bottom: 15px;
+}
+
+.release-notes {
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 14px;
+    text-align: left;
+    box-shadow: 6px 6px 6px rgba(0, 0, 0, 0.2);
+}
+
+.update-btn:hover {
+    background-color: #005bb5;
+}
+
+/*.spinner {*/
+/*    font-size: 18px;*/
+/*    color: #666;*/
+/*    margin-top: 20px;*/
+/*}*/
+
+.no-update {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #28a745;
+}
+
+.no-update.error {
+    color: #dc3545;
+}

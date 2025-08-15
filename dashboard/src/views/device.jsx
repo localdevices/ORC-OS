@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import {useState, useEffect} from 'react';
 import { Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -22,8 +22,6 @@ const Device = () => {
     const [device, updateDevice] = useState([]);
     const [deviceStatuses, setDeviceStatuses] = useState([]);
     const [deviceStatus, setDeviceStatus] = useState(''); // State for the selected status
-    const [loading, setLoading] = useState(true); // State for loading indicator
-    const [error, setError] = useState(null); // State for error handling
     const [formData, setFormData] = useState({
         name: '',
         operating_system: '',
@@ -46,10 +44,8 @@ const Device = () => {
         try {
             const response = await api.get('/device/statuses/');
             setDeviceStatuses(response.data); // Assuming API returns array of statuses
-            setLoading(false);
         } catch (err) {
-            setError('Failed to fetch device statuses.');
-            setLoading(false);
+            console.log(`Failed to fetch device statuses. ${err}`);
         }
     };
     // helper function to get status name from status value

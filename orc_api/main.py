@@ -24,6 +24,7 @@ from orc_api.routers import (
     pivideo_stream,
     recipe,
     settings,
+    updates,
     video,
     video_config,
     video_stream,
@@ -185,6 +186,16 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
+
+
+@app.middleware("http")
+async def add_csp_header(request, call_next):
+    """Add Content-Security-Policy header to all responses."""
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = "connect-src 'self' ws://localhost:5000/"
+    return response
+
+
 #
 
 # @app.middleware("http")
@@ -195,19 +206,20 @@ app.add_middleware(
 #     return await call_next(request)
 #
 
-app.include_router(device.router)
-app.include_router(settings.router)
 app.include_router(callback_url.router)
-app.include_router(video.router)
-app.include_router(video_config.router)
-app.include_router(disk_management.router)
-app.include_router(water_level.router)
 app.include_router(camera_config.router)
-app.include_router(video_stream.router)
+app.include_router(control_points.router)
+app.include_router(cross_section.router)
+app.include_router(device.router)
+app.include_router(disk_management.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
-app.include_router(cross_section.router)
-app.include_router(control_points.router)
+app.include_router(settings.router)
+app.include_router(updates.router)
+app.include_router(video.router)
+app.include_router(video_config.router)
+app.include_router(video_stream.router)
+app.include_router(water_level.router)
 
 
 @app.get("/")

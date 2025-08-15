@@ -1,4 +1,3 @@
-import React from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { useMessage } from './messageContext'; // Adjust the path
 
@@ -36,16 +35,6 @@ const MessageBox = () => {
   return (
     <div
       style={{
-        // position: 'absolute', // Position absolutely within a parent container (e.g., Navbar)
-        // top: '50%', // Center the message box vertically
-        // right: '50%', // Center the message box horizontally
-        // // left: '50px',
-        // transform: 'translate(-50%, -50%)', // Adjust for width/height shift due to centering
-        // zIndex: 1000, // Ensure it appears on top of other elements
-        // width: '800px', // Fixed width
-        // maxWidth: '800px',
-        // height: '40px', // Fixed height
-        //
 
         position: 'absolute', // Position absolutely within a parent container (e.g., Navbar)
         top: '0%', // Center the message box vertically
@@ -54,7 +43,6 @@ const MessageBox = () => {
         zIndex: 1000, // Ensure it appears on top of other elements
         width: '1400px', // Fixed maximum width
         maxWidth: 'calc(100vw - 140px)',
-        // height: '40px', // Fixed height
 
         backgroundColor: getBackgroundColor(),
         color: getTextColor(),

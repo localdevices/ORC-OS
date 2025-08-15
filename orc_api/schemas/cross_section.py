@@ -12,7 +12,6 @@ from pyorc.cli.cli_utils import read_shape_as_gdf
 from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.database import get_session
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.camera_config import CameraConfigResponse
 
@@ -91,7 +90,7 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             # update schema instance
             update_cross_section = CrossSectionResponse.model_validate(response_data)
             r = crud.cross_section.update(
-                get_session(),
+                session,
                 id=self.id,
                 cross_section=update_cross_section.model_dump(exclude_unset=True, exclude=["x", "y", "z", "s"]),
             )

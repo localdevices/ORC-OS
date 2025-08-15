@@ -1,4 +1,6 @@
 import { useRef } from 'react';
+import PropTypes from "prop-types";
+
 // Add this component to your VideoTab return statement, before the TransformWrapper
 import {
   MdRotateLeft,
@@ -109,4 +111,13 @@ const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, came
     </div>
   );
 };
+ControlPanel.propTypes = {
+  onRotateLeft: PropTypes.func.isRequired,
+  onRotateRight: PropTypes.func.isRequired,
+  onBoundingBox: PropTypes.func.isRequired,
+  onMove: PropTypes.func.isRequired,
+  cameraConfig: PropTypes.object.isRequired,
+  bboxSelected: PropTypes.bool.isRequired,
+};
+
 export default ControlPanel;

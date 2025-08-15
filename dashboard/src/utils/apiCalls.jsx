@@ -42,6 +42,21 @@ export const get_bbox = async (cameraConfig, points) => {
   }
 }
 
+export const orcVersion = async () => {
+  try {
+    const response = await api.get("/updates/check");
+    // console.log(response.data);
+    return response.data;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export const startUpdate = async () => {
+    // start the update process
+    const response = await api.post("/updates/start");
+    return response.data;
+}
 
 export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
   try {
@@ -60,11 +75,9 @@ export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
 
     // Set the download filename from the Content-Disposition (if provided) or use a fallback
     const contentDisposition = response.headers['content-disposition'];
-    console.log(response.headers);
     const filename = contentDisposition
       ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
       : 'download.zip'; // Fallback filename if header doesn't exist.
-    console.log(filename);
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();

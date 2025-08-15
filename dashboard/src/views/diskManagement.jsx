@@ -46,7 +46,7 @@ const DiskManagement = () => {
         event.preventDefault();
         // Dynamically filter only fields with non-empty values
         const filteredData = Object.fromEntries(
-            Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
+            Object.entries(formData).filter(([, value]) => value !== '' && value !== null)
         );
 
         // get rid of created_at field as this must be autocompleted
