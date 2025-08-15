@@ -15,6 +15,7 @@ on:
       - tests/*
       - orc_api/*
       - pyproject.toml
+
 jobs:
   Test-matrix:
     name: ${{ matrix.os }} - py${{ matrix.python-version }}
