@@ -1,12 +1,11 @@
-## [0.2.0] - 2025-08-XX
+## [0.2.0] - 2025-08-15
 ### Added
-**Less back-end, more front-end**. This release focusses on allowing a user to organize
+**Less back-end, more front-end**. This release focuses on allowing a user to organize
 as many actions as possible from the front end, so that no complicated console operations
 are required.
 - Over-The-Air updates. With a single click in the front end, new updates are installed.
   If updates fail, roll back of the previous version will occur automatically. Database
   migrations are also handled automatically.
-- Required back-end restart is recognised and button is displayed to restart.
 
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
