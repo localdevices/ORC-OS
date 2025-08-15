@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { createWebSocketConnection } from "./api.js";
 
 import './App.css'
 import { MessageProvider } from './messageContext';

@@ -39,11 +39,16 @@ const Updates = () => {
   useEffect(() => {
     async function fetchVersion() {
       const versionInfo = await orcVersion(api);
+      console.log(versionInfo)
       setIsLoading(false);
       if (versionInfo?.error) {
-        console.log("Error fetching version info");
+        setUpdateAvailable(false)
+        setUpdateStatusMessages("Too many API calls to GitHub, please wait for some time until trying again")
+      }
+      if (!versionInfo?.online) {
+        console.log("Error fetching version info, we seem to be offline");
         setUpdateAvailable(null);  // info not available
-        setUpdateStatusMessages(versionInfo?.error);
+        setUpdateStatusMessages(null);
       } else {
 
         setCurrentVersion(versionInfo.current_version)
@@ -87,7 +92,7 @@ const Updates = () => {
   return (
     <>
 
-    {prevIsUpdatingRef.current && (
+    {(prevIsUpdatingRef.current || messages.is_updating) && (
       // only show the update spinner when updating
       <div className="spinner-viewport">
         <div className="spinner" />
@@ -131,7 +136,7 @@ const Updates = () => {
                 Your software is already up to date.
               </div>
               )}
-              {(updateStatusMessages !== null) && (
+              {updateStatusMessages !== null && (
                 <div className="no-update error">
                   Error fetching update info: {updateStatusMessages}
                 </div>

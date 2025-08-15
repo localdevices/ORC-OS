@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import importlib.metadata
 import os
 import shutil
 import subprocess
@@ -12,11 +13,12 @@ import zipfile
 from typing import List, Optional
 
 import httpx
-import pkg_resources
 from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 import orc_api
+from alembic import command
+from alembic.config import Config
 
 router = APIRouter(prefix="/updates", tags=["updates"])
 
@@ -103,23 +105,79 @@ async def download_release_asset(asset_url: str, expected_sha256) -> bytes:
         return response.content
 
 
+def migrate_dbase(config_location, script_location, db_engine):
+    """Migrate the database."""
+    try:
+        # Run Alembic migrations
+        alembic_cfg = Config(config_location)
+        alembic_cfg.set_main_option("script_location", script_location)
+        alembic_cfg.set_main_option("sqlalchemy.url", db_engine)
+
+        # await modify_state_update_event(True, "Applying database migrations...")
+        command.upgrade(alembic_cfg, "head")
+    except Exception as migration_error:
+        raise Exception(f"Database migration failed and was rolled back. Error: {migration_error}")
+        # database restore will be done elsewhere
+
+
 async def do_update(backup_distribution=False):
     """Perform the update."""
+
+    async def _rollback_backend(e):
+        # if back-end installation fails, rollback to previous version AND ensure the database is also
+        # replaced
+        try:
+            if backup_distribution:
+                # remove the current distro
+                shutil.rmtree(package_dir, ignore_errors=True)
+                # canonical rename of the whole previous distribution to the previous
+                shutil.move(os.path.join(backup_dir, "orc_api_backup"), package_dir)
+            else:
+                # if not copying distributions, try to install previous version from requirements.txt
+                try:
+                    subprocess.run([sys.executable, "-m", "pip", "install", "-r", fn_package_backup], check=True)
+                except subprocess.CalledProcessError:
+                    # desperate try with only local-index, if this fails the system may become unusable.
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "--no-index", "-r", fn_package_backup], check=True
+                    )
+
+            # copy back the database
+            shutil.copyfile(backup_db_path, db_path)
+            raise Exception(f"Failed to update to new version with error: {str(e)}. Rolled back to previous version.")
+
+        except subprocess.CalledProcessError as rollback_error:
+            raise Exception(
+                f"Update failed, and also rollback failed. System may be inconsistent, please contact "
+                f"your supplier. Error during installation: {str(e)}. Rollback error: {str(rollback_error)}"
+            )
+
+    # collect path info
+    package_dir = str(importlib.metadata.distribution("orc_api").locate_file(""))
+    db_path = orc_api.db.db_path_config
+    db_engine = orc_api.db.sqlite_engine
+    api_update_success = False  # start with false, if successful, will be set to true
+    update_success = True  # will be made False during exception
+
     if update_state.is_updating:
         return {"status": "Update already in progress"}
+    await asyncio.sleep(1)
     await modify_state_update_event(True, "Starting update...")
     try:
         # Check for latest release
         # ========================
         version_info = await check_github_version()
         if not version_info["online"]:
+            await asyncio.sleep(1)
             await modify_state_update_event(True, "Not online, cannot update")
             return {"status": "Not online, cannot update"}
         if "timeout" in version_info["latest_version"]:
             msg = "Timeout reached while retrieving update. Connection not stable enough for updating."
+            await asyncio.sleep(1)
             await modify_state_update_event(True, msg)
             return {"status": msg}
         if not version_info["update_available"]:
+            await asyncio.sleep(1)
             await modify_state_update_event(True, "No update available")
             return {"status": "No update available"}
 
@@ -136,34 +194,43 @@ async def do_update(backup_distribution=False):
         if not frontend_asset:
             # finalize state and raise
             await modify_state_update_event(True, "No frontend build asset found in release")
-            raise Exception("Frontend build asset not found in release, cannot update front end.")
+            raise Exception("Frontend build asset not found in release, cannot update front end. Contact support.")
 
-        # checks are complete and update seems available and complete
+        # Checks are complete and update seems available and complete
 
-        # Backup current packages setup for rollback purposes
-        # ===================================================
         with tempfile.TemporaryDirectory() as backup_dir:
-            time.sleep(1)
+            # Backup current packages setup and database for rollback purposes to `backup_dir`
+            # ================================================================================
+            await asyncio.sleep(1)
             await modify_state_update_event(True, "Backing up package list...")
             # Save current requirements
             requirements = subprocess.run(
                 [sys.executable, "-m", "pip", "freeze", "--local"], capture_output=True, text=True
             ).stdout.strip()
+            # remove any local file-based libs
+            filtered_lines = [line for line in requirements.splitlines() if "file:///" not in line]
+            requirements = "\n".join(filtered_lines)
             fn_package_backup = os.path.join(backup_dir, "requirements.txt")
             # write reqs to file
             with open(fn_package_backup, "w") as f:
                 f.write(requirements)
 
             if backup_distribution:
+                await asyncio.sleep(1)
                 await modify_state_update_event(True, "Backing up full distribution...")
                 # this is the safest option, ensures that full rollback is possible, does not use reqs.
-                package_location = pkg_resources.get_distribution("orc_api").location
-                shutil.copytree(package_location, os.path.join(backup_dir, "orc_api_backup"), dirs_exist_ok=True)
+                shutil.copytree(package_dir, os.path.join(backup_dir, "orc_api_backup"), dirs_exist_ok=True)
 
-            # Create temporary directory for the update
+            # backup the database before migration
+            time.sleep(1)
+            await modify_state_update_event(True, "Backing up database...")
+            backup_db_path = os.path.join(backup_dir, "orc_api_backup.db")
+            shutil.copyfile(db_path, backup_db_path)
+
+            # Create another temporary directory for the update
             with tempfile.TemporaryDirectory() as temp_dir:
                 await asyncio.sleep(1)
-                await modify_state_update_event(True, "Downloading and extracting stuff...")
+                await modify_state_update_event(True, "Downloading and extracting ORC front end...")
 
                 # Download and extract frontend build
                 frontend_content = await download_release_asset(
@@ -177,74 +244,85 @@ async def do_update(backup_distribution=False):
                 # Extract frontend build to temporary directory
                 with zipfile.ZipFile(frontend_zip, "r") as zip_ref:
                     zip_ref.extractall(os.path.join(temp_dir, "frontend"))
-                print("Updating back-end stuff...")
                 await asyncio.sleep(1)
                 await modify_state_update_event(True, "Updating back-end stuff...")
                 # try except for updating the package
                 try:
                     # Install the new version directly from GitHub using pip
+                    await asyncio.sleep(1)
+                    await modify_state_update_event(True, f"Preparing new backend {release_data['tag_name']}...")
                     repo_url = f"git+https://github.com/{repo_owner}/{repo_name}.git@{release_data['tag_name']}"
                     subprocess.run(
-                        [sys.executable, "-m", "pip", "install", "--upgrade", "--no-deps", repo_url], check=True
+                        [
+                            sys.executable,
+                            "-m",
+                            "pip",
+                            "install",
+                            "--upgrade",
+                            "--no-deps",
+                            "--target",
+                            os.path.join(temp_dir, "orc-os-update"),
+                            repo_url,
+                        ],
+                        check=True,
                     )
                     await asyncio.sleep(1)
-                    print("Updating dependencies...")
                     await modify_state_update_event(True, "Updating dependencies...")
-
                     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", repo_url], check=True)
+                    # perform database migrations from the temporary install location of the orc api
+                    script_location = os.path.join(temp_dir, "orc-os-update", "orc_api", "alembic")
+                    config_location = os.path.join(temp_dir, "orc-os-update", "orc_api", "alembic.ini")
+                    migrate_dbase(config_location, script_location, db_engine)
+                    # only when everything is successful, set the update flag to true
+                    api_update_success = True
+
                 except subprocess.CalledProcessError as e:
-                    try:
-                        if backup_distribution:
-                            # remove the current distro
-                            shutil.rmtree(package_location, ignore_errors=True)
-                            # canonical rename of the whole previous distribution to the previous
-                            shutil.move(os.path.join(backup_dir, "orc_api_backup"), package_location)
-                        else:
-                            # if not copying distributions, try to install previous version from requirements.txt
-                            subprocess.run(
-                                [sys.executable, "-m", "pip", "install", "-r", fn_package_backup], check=True
-                            )
-                        raise Exception(
-                            f"Failed to update to new version with error: {str(e)}. Rolled back to previous version."
-                        )
-                    except subprocess.CalledProcessError as rollback_error:
-                        raise Exception(
-                            f"Update failed, and also rollback failed. System may be inconsistent, please contact "
-                            f"your supplier. Error during installation: {str(e)}. Rollback error: {str(rollback_error)}"
-                        )
-
-                # Deploy frontend build
-                await asyncio.sleep(1)
-                await modify_state_update_event(True, "Deploying frontend...")
-                print("Deploying frontend...")
-                # await asyncio.sleep(1)
-                www_root = os.path.join(orc_api.__home__, "www")
-
-                # Backup current frontend build
-                if os.path.isdir(www_root):
-                    www_root_backup = os.path.join(orc_api.__home__, "www_backup")
-                    os.makedirs(www_root_backup, exist_ok=True)
-                    if os.path.isdir(www_root_backup):
-                        shutil.rmtree(www_root_backup)
-                    shutil.copytree(www_root, www_root_backup)
-                    # remove old distribution
-                    shutil.rmtree(www_root)
-                try:
-                    # Copy new frontend build
-                    shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
-                except Exception as e:
-                    shutil.move(www_root_backup, www_root)
-                    raise Exception(
-                        f"Failed to deploy new frontend build with error: {str(e)}. Rolled back to previous version."
+                    await asyncio.sleep(1)
+                    await modify_state_update_event(
+                        True, f"Problem occurred during updating back-end: {str(e)}, rolling back..."
                     )
-        # close API for restart
-        await asyncio.sleep(1)
-        for secs in range(5, -1, -1):
-            await modify_state_update_event(
-                True, f"API is restarting. You will be redirected to the home page in {secs} seconds."
-            )
+                    await _rollback_backend(e)
+
+                if api_update_success:
+                    try:
+                        # Deploy frontend build
+                        await asyncio.sleep(1)
+                        await modify_state_update_event(True, "Deploying frontend...")
+                        print("Deploying frontend...")
+                        # await asyncio.sleep(1)
+                        www_root = os.path.join(orc_api.__home__, "www")
+
+                        # Backup current frontend build
+                        if os.path.isdir(www_root):
+                            www_root_backup = os.path.join(orc_api.__home__, "www_backup")
+                            os.makedirs(www_root_backup, exist_ok=True)
+                            if os.path.isdir(www_root_backup):
+                                shutil.rmtree(www_root_backup)
+                            shutil.copytree(www_root, www_root_backup)
+                            # remove old distribution
+                            shutil.rmtree(www_root)
+                        # Copy new frontend build
+                        shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
+                    except Exception as e:
+                        await modify_state_update_event(
+                            True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
+                        )
+                        shutil.move(www_root_backup, www_root)
+                        await _rollback_backend(e)
+
+                        # when this happens, also rollback the back-end
+            # close API for restart
             await asyncio.sleep(1)
-        await modify_state_update_event(False, "Update completed")
+            for secs in range(5, -1, -1):
+                await modify_state_update_event(
+                    True, f"API is restarting. You will be redirected to the home page in {secs} seconds."
+                )
+                await asyncio.sleep(1)
+                shutil.copytree(os.path.join(temp_dir, "orc-os-update"), package_dir)
+            await modify_state_update_event(False, "Update completed")
+            await asyncio.sleep(1)
+            # at the very final stage, move the new lib in place
+        # one more second sleep before restarting
         await asyncio.sleep(1)
         os._exit(0)
 
@@ -252,10 +330,12 @@ async def do_update(backup_distribution=False):
         await asyncio.sleep(1)
         await modify_state_update_event(True, f"Update failed: {str(e)}. Refresh page (Ctrl+R)  to continue...")
         # Log the error here
+        update_success = False
         raise f"Error occurred during update: {str(e)}"
     finally:
-        await asyncio.sleep(1)
-        await modify_state_update_event(False)
+        if update_success:
+            await asyncio.sleep(5)
+            await modify_state_update_event(False)
 
 
 @router.get("/check")
@@ -290,17 +370,10 @@ async def update_status_ws(websocket: WebSocket):
         while True:
             # then just wait until the message changes
             print("Awaiting state update message...")
-            # await asyncio.get_event_loop().run_in_executor(None, state_update_event.wait)
-            # state_update_event.clear()
-            status_msg = (
-                await state_update_queue.get()
-            )  # {"is_updating": update_state.is_updating, "status": update_state.last_status}
-            print(f"Sending to client: {status_msg}")
+            status_msg = await state_update_queue.get()
 
             await websocket.send_json(status_msg)
             await asyncio.sleep(0.1)
-            # # Send heartbeat for keep alive
-            # await websocket.send_json({"heartbeat": True})
 
     except WebSocketDisconnect:
         print("WebSocket disconnected")
