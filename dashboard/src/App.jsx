@@ -36,6 +36,7 @@ const App = () => {
             } catch {
                 setApiStatus("ORC-OS back end seems offline. Waiting for ORC-OS backend to start...");
                 setIsLoading(true);
+                setRequiresRestart(false);  // as app is starting, restart is never required at this point
             }
         };
         // Start checking every 5 seconds
