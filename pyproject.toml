@@ -42,7 +42,8 @@ test = [
     "pooch",
 	"pytest",
 	"pytest-cov",
-    "pytest-mock"
+    "pytest-mock",
+    "pytest-asyncio"
 ]
 
 [project.urls]
@@ -60,6 +61,8 @@ exclude = ["gcloud_dist", "hack", "helm", "htmlcov", "junit", "tests", ".github"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
+
 
 [tool.ruff]
 line-length = 120
