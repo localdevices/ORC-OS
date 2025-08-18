@@ -6,12 +6,14 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
+import jwt
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY, crud
+from orc_api import ALGORITHM, DEV_MODE, INCOMING_DIRECTORY, SECRET_KEY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.db import VideoStatus
 from orc_api.routers import (
@@ -23,6 +25,7 @@ from orc_api.routers import (
     disk_management,
     pivideo_stream,
     recipe,
+    security,
     settings,
     updates,
     video,
@@ -34,6 +37,37 @@ from orc_api.schemas.disk_management import DiskManagementResponse
 from orc_api.schemas.settings import SettingsResponse
 from orc_api.schemas.video import VideoResponse
 from orc_api.utils import queue
+
+
+def verify_token(token: str):
+    """Verify a JWT token."""
+    try:
+        # Decode and validate the token
+        _ = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return None
+    except jwt.ExpiredSignatureError:
+        # Token has expired
+        return JSONResponse(status_code=401, content={"detail": "Token has expired"})
+    except jwt.InvalidTokenError:
+        # Token is invalid for any reason
+        return JSONResponse(status_code=401, content={"detail": "Token is invalid"})
+
+
+def auth_token(request: Request):
+    """Check if a token is present and verified."""
+    token = request.headers.get("Authorization")
+    if not token or not token.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Token missing or not a valid token format"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    # Verify the token
+    token = token.split("Bearer ")[-1]
+    try:
+        return verify_token(token)
+    except HTTPException as e:
+        raise e
 
 
 def async_job_wrapper(func, kwargs):
@@ -196,6 +230,35 @@ async def add_csp_header(request, call_next):
     return response
 
 
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Check if end point requires token verification or not. First validate, then retrieve end point."""
+    # Skip authentication check when DEV_MODE is enabled
+    if DEV_MODE:
+        return await call_next(request)
+
+    # login by def. does not require a token as it should return a token
+    if request.url.path in ["/security/login"]:
+        return await call_next(request)
+
+    # case where no password yet exists and password store is requested also does not require auth
+    if request.url.path in ["/security/set_password"]:
+        # Check if any password exists in database
+        has_password = crud.login.get(request.app.state.session) is not None
+        if not has_password:
+            # if not, then a password may be set
+            return await call_next(request)
+
+    # No exceptions occurring, so first apply normal authentication for production and other environments
+    r = auth_token(request)
+    # r should be None if all is good and then forward to request will be performed. Otherwise a response is returned.
+    if r is not None:
+        return r
+
+    # execute the request when token is accepted (r is None)
+    return await call_next(request)
+
+
 #
 
 # @app.middleware("http")
@@ -214,6 +277,7 @@ app.include_router(device.router)
 app.include_router(disk_management.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
+app.include_router(security.router)
 app.include_router(settings.router)
 app.include_router(updates.router)
 app.include_router(video.router)
