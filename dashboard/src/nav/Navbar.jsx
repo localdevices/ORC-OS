@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import {FaUser, FaCog, FaRedo} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import {FaUser, FaCog, FaSync} from 'react-icons/fa'; // Import User, Cog and Restart icons
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
 import MessageBox from "../messageBox.jsx";
+import api from "../api.js";
 
 
-const Navbar = () => {
+const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
     const [settingsOpen, setSettingsOpen] = useState(false); // track if settings menu is open
-    const [requiresRestart, setRequiresRestart] = useState(false); // track if device needs restart
+
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
     };
@@ -27,6 +28,15 @@ const Navbar = () => {
         setSettingsOpen(!settingsOpen);
     };
 
+
+    const handleRestartClick = () => {
+      console.log("Restart button clicked");
+      setIsLoading(true);
+      setRequiresRestart(false);
+      // shutdown the API. Systemd or Docker process should restart the API
+      api.post("/updates/shutdown")
+    }
+
     return (
         <>
             <nav className='navbar navbar-dark'>
@@ -36,7 +46,18 @@ const Navbar = () => {
                     </button>
                     <div className="navbar-right">
                         <MessageBox/>
-                        {requiresRestart && <FaRedo style={{"color": "orange" }} title="Restart required"/>}
+                        <FaSync
+
+                          className={requiresRestart ? "pulsating-icon" : ""}
+                          style={{
+                            color: requiresRestart ? "orange" : "grey",
+                            strokeWidth: requiresRestart ? "30px" : "5px",
+                            cursor: 'pointer'
+                          }}
+                          title={requiresRestart ? "Restart required" : "No restart required"}
+                          disabled={!requiresRestart}
+                          onClick={handleRestartClick}
+                        />
                         <FaCog onClick={handleSettingsClick}/>
                         <FaUser onClick={handleUserButtonClick}/>
                     </div>

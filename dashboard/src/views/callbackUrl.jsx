@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react';
 import api from '../api';
 import {useMessage} from '../messageContext';
 
-const CallbackUrl = () => {
+const CallbackUrl = ({setRequiresRestart}) => {
 
   const [callbackUrl, setCallbackUrl] = useState([]);
   const [serverStatus, setServerStatus] = useState({
@@ -82,6 +82,7 @@ const CallbackUrl = () => {
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       }
       setMessageInfo('success', 'LiveORC information updated successfully');
+      setRequiresRestart(true);
 
       // read back the device after posting
       fetchCallbackUrl();

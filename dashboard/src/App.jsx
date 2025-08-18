@@ -24,6 +24,7 @@ import orcLogo from '/orc_favicon.svg'
 const App = () => {
     const [isLoading, setIsLoading] = useState(true); // Spinner state
     const [apiStatus, setApiStatus] = useState(null); // Error state
+    const [requiresRestart, setRequiresRestart] = useState(false); // track if device needs restart
 
     // check for API availability
     useEffect(() => {
@@ -32,8 +33,10 @@ const App = () => {
             try {
                 await api.get(""); // check the root page
                 setIsLoading(false); // API is available, stop showing spinner
-            } catch (error) {
-                setApiStatus("Waiting for ORC-OS backend to start...");
+            } catch {
+                setApiStatus("ORC-OS back end seems offline. Waiting for ORC-OS backend to start...");
+                setIsLoading(true);
+                setRequiresRestart(false);  // as app is starting, restart is never required at this point
             }
         };
         // Start checking every 5 seconds
@@ -63,7 +66,11 @@ const App = () => {
         <Router>
             <div className="app-container">
                 {/* Navbar appears everywhere */}
-                <Navbar />
+                <Navbar
+                  requiresRestart={requiresRestart}
+                  setRequiresRestart={setRequiresRestart}
+                  setIsLoading={setIsLoading}
+                />
                 {/* Define the route structure */}
                 <div className="main-content">
                 <Routes>
@@ -71,11 +78,19 @@ const App = () => {
                     <Route path="/" element={<Home />} />
                     <Route path="/device" element={<Device />} />
                     <Route path="/updates" element={<Updates />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/disk_management" element={<DiskManagement />} />
-                    <Route path="/water_level" element={<WaterLevel />} />
+                    <Route path="/settings" element={<Settings
+                      setRequiresRestart={setRequiresRestart}
+                    />} />
+                    <Route path="/disk_management" element={<DiskManagement
+                      setRequiresRestart={setRequiresRestart}
+                    />} />
+                    <Route path="/water_level" element={<WaterLevel
+                      setRequiresRestart={setRequiresRestart}
+                    />} />
+                    <Route path="/callback_url" element={<CallbackUrl
+                      setRequiresRestart={setRequiresRestart}
+                    />} />
                     <Route path="/camera_aim" element={<CameraAim />} />
-                    <Route path="/callback_url" element={<CallbackUrl />} />
                     <Route path="/calibration" element={<Calibration />} />
                     <Route path="/video" element={<ListVideo />} />
                     <Route path="/video_config/:videoId" element={<VideoConfig />} />

@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react';
 import api from '../api';
 import {useMessage} from '../messageContext';
 
-const DiskManagement = () => {
+const DiskManagement = ({setRequiresRestart}) => {
 
     const [diskManagement, updateDiskManagement] = useState([]);
     const [formData, setFormData] = useState({
@@ -37,9 +37,11 @@ const DiskManagement = () => {
     const handleInputChange = (event) => {
         const { name, value, type } = event.target;
         event.target.value = value;
+        // const parsedValue = type === "number" ? parseFloat(value) : value
+        const parsedValue = type === "number" ? (value === "" ? "" : parseFloat(value)) : value
         setFormData({
             ...formData,
-            [name]: type === "number" ? parseFloat(value) : value
+            [name]: parsedValue
         });
     };
     const handleFormSubmit = async (event) => {
@@ -53,12 +55,12 @@ const DiskManagement = () => {
         try {
             delete filteredData.created_at;
             const response = await api.post('/disk_management/', filteredData);
-            console.log(response);
             if (!response.status === 200) {
                 const errorData = await response.json()
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
             setMessageInfo('success', 'Disk management updated successfully');
+            setRequiresRestart(true);
             // read back the device after posting
             fetchDiskManagement();
             // set the form data to new device settings

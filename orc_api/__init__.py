@@ -2,7 +2,7 @@
 
 import os
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __home__ = os.getenv("ORC_HOME")
 UPLOAD_DIRECTORY = os.getenv("ORC_UPLOAD_DIRECTORY")
 if not __home__:

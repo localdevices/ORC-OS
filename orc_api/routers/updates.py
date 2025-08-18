@@ -105,6 +105,18 @@ async def download_release_asset(asset_url: str, expected_sha256) -> bytes:
         return response.content
 
 
+async def unzip_frontend(content: bytes, temp_dir: str):
+    """Parse bytes to zip file and unzip that to temporary dir."""
+    frontend_zip = os.path.join(temp_dir, "frontend-build.zip")
+    with open(frontend_zip, "wb") as f:
+        f.write(content)
+
+    # Extract frontend build to temporary directory
+    with zipfile.ZipFile(frontend_zip, "r") as zip_ref:
+        zip_ref.extractall(os.path.join(temp_dir, "frontend"))
+    return
+
+
 def migrate_dbase(config_location, script_location, db_engine):
     """Migrate the database."""
     try:
@@ -237,14 +249,7 @@ async def do_update(backup_distribution=False):
                 frontend_content = await download_release_asset(
                     frontend_asset["browser_download_url"], expected_sha256=frontend_asset["digest"].strip("sha256:")
                 )
-                frontend_zip = os.path.join(temp_dir, "frontend-build.zip")
-
-                with open(frontend_zip, "wb") as f:
-                    f.write(frontend_content)
-
-                # Extract frontend build to temporary directory
-                with zipfile.ZipFile(frontend_zip, "r") as zip_ref:
-                    zip_ref.extractall(os.path.join(temp_dir, "frontend"))
+                await unzip_frontend(frontend_content, temp_dir)
                 await asyncio.sleep(1)
                 await modify_state_update_event(True, "Updating back-end stuff...")
                 # try except for updating the package
@@ -358,6 +363,12 @@ async def start_update(background_tasks: BackgroundTasks):
 async def update_status():
     """Get the current status of the update process."""
     return {"is_updating": update_state.is_updating, "status": update_state.last_status}
+
+
+@router.post("/shutdown")
+async def shutdown_api():
+    """Stop or restart the API by shutting it down. The restart must be orchestrated by a systemd or Docker process."""
+    os._exit(0)
 
 
 @router.websocket("/status_ws")
