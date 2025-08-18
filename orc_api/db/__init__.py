@@ -13,6 +13,7 @@ from .camera_config import CameraConfig
 from .cross_section import CrossSection
 from .device import Device, DeviceFormStatus, DeviceStatus
 from .disk_management import DiskManagement
+from .password import Password
 from .recipe import Recipe
 from .settings import Settings
 from .time_series import TimeSeries
@@ -30,9 +31,10 @@ __all__ = [
     "DeviceFormStatus",
     "DeviceStatus",
     "DiskManagement",
+    "Password",
     "Recipe",
-    "TimeSeries",
     "Settings",
+    "TimeSeries",
     "SyncStatus",
     "Video",
     "VideoConfig",

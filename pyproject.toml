@@ -10,12 +10,14 @@ authors = [
 dependencies = [
     "alembic",
     "apscheduler",
+    "passlib",
     "pillow<=9.5.0",  # for compatibility with picamera2 on Bullseye
     "pyopenrivercam>=0.8.8",
     "rasterio<=1.3.11",
     "sqlalchemy",
     "fastapi[standard]",
     "pydantic",
+    "PyJWT",
     "pyyaml",
     "zipstream"
 ]
