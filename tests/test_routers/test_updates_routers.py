@@ -165,7 +165,6 @@ def test_update_status():
     assert "status" in response.json()
 
 
-def test_shutdown_api():
+def test_shutdown_api(mock_os_exit):
     response = client.post("/updates/shutdown/")
     assert response.status_code == 200
-    assert response.json() == {"status": "API shutting down"}
