@@ -4,7 +4,7 @@ import {DropdownMenu} from "../utils/dropdownMenu.jsx";
 import {useMessage} from '../messageContext';
 import '../App.css';
 
-const Settings = () => {
+const Settings = ({setRequiresRestart}) => {
 
   const [settings, setSettings] = useState([]);
   const [videoConfigs, setVideoConfigs] = useState([]);
@@ -105,17 +105,13 @@ const Settings = () => {
       const filteredData = Object.fromEntries(
         Object.entries(formData).map(([key, value]) => [key, value === '' ? null : value])
       );
-      //
-      // const filteredData = Object.fromEntries(
-      //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-      // );
-      console.log(filteredData);
       const response = await api.post('/settings/', filteredData);
       if (!response.status === 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       }
       setMessageInfo('success', 'Settings information updated successfully!');
+      setRequiresRestart(true);
 
       // read back the device after posting
       fetchSettings();

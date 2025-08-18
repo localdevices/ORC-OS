@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react';
 import api from '../api';
 import {useMessage} from '../messageContext';
 
-const WaterLevel = () => {
+const WaterLevel = ({setRequiresRestart}) => {
     const [scriptTypeStatus, setScriptTypeStatus] = useState([]);
     const [waterLevel, updateWaterLevel] = useState([]);
     const [formData, setFormData] = useState({
@@ -65,12 +65,6 @@ const WaterLevel = () => {
         // get rid of created_at field as this must be autocompleted
         try {
             delete formData.created_at;
-            // remove empty fields
-            // const filteredData = Object.fromEntries(
-            //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-            // );
-            // console.log(filteredData);
-
             const response = await api.post('/water_level/', formData);
             if (response.status === 500) {
                 const errorData = await response.json()
@@ -78,7 +72,9 @@ const WaterLevel = () => {
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
             }
             setMessageInfo("success", "Water level settings updated successfully!");
-            // read back the device after posting
+            setRequiresRestart(true);
+
+          // read back the device after posting
             fetchWaterLevel();
             // set the form data to new device settings
             setFormData({

@@ -360,6 +360,12 @@ async def update_status():
     return {"is_updating": update_state.is_updating, "status": update_state.last_status}
 
 
+@router.post("/shutdown")
+async def shutdown_api():
+    """Stop or restart the API by shutting it down. The restart must be orchestrated by a systemd or Docker process."""
+    os._exit(0)
+
+
 @router.websocket("/status_ws")
 async def update_status_ws(websocket: WebSocket):
     """Get continuous status of the update process via websocket."""
