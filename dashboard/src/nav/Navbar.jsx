@@ -10,6 +10,7 @@ import api from "../api.js";
 const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
     const [settingsOpen, setSettingsOpen] = useState(false); // track if settings menu is open
+
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
     };
@@ -26,6 +27,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
     const handleSettingsClick = () => {
         setSettingsOpen(!settingsOpen);
     };
+
 
     const handleRestartClick = () => {
       console.log("Restart button clicked");
