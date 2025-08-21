@@ -43,10 +43,10 @@ const Home = () => {
     const response = await api.get('/water_level/')
       .then((response) => {
         if (response.data !== null) {
-          console.log("Water level configuration found");
+          // water level config found
           setWaterLevel(true);
         } else {
-          console.log("Water level configuration not found");
+          // water level config not found
           setWaterLevel(false);
         }
       }

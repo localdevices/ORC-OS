@@ -9,13 +9,13 @@ from orc_api import ALGORITHM, ORC_COOKIE_MAX_AGE, ORC_COOKIE_NAME, SECRET_KEY, 
 from orc_api.database import get_db
 from orc_api.db import Session
 
-router: APIRouter = APIRouter(prefix="/security", tags=["security"])
+router: APIRouter = APIRouter(prefix="/auth", tags=["security"])
 
 
 def create_token():
     """Create a JWT token."""
     payload = {
-        "exp": datetime.now(UTC) + timedelta(minutes=15),  # Token expires in 1 hour
+        "exp": datetime.now(UTC) + timedelta(seconds=15),  # Token expires in 1 hour
         "sub": "user",  # Example subject claim
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -27,6 +27,15 @@ def cleanup_blacklist(blacklist):
 
     # Remove tokens that have expired
     blacklist.difference_update({(token, exp) for token, exp in blacklist if exp is not None and exp < current_time})
+
+
+@router.get("/password_available")
+def password_available(db: Session = Depends(get_db)):
+    """Check if a password is available."""
+    if crud.login.get(db):
+        return True
+    else:
+        return False
 
 
 @router.post("/login")
@@ -70,6 +79,27 @@ async def logout(request: Request, response: Response):
     # # cleanup token list if necessary
     # cleanup_blacklist(request.app.state.token_blacklist)
     return {"message": "Successfully logged out."}
+
+
+@router.get("/verify")
+def verify_token(request: Request):
+    """Verify if the cookie contains a valid token.
+
+    If the token is valid, return its claims (decoded payload).
+    """
+    token = request.cookies.get(ORC_COOKIE_NAME)  # retrieve token from client-side cookie
+    print(token)
+    if not token:
+        raise HTTPException(status_code=401, detail="Token not found in cookies")
+
+    try:
+        # Decode and verify the token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {"detail": "Token is valid", "payload": payload}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token is invalid")
 
 
 @router.post("/set_password")

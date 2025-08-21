@@ -1,11 +1,5 @@
 import axios from 'axios'
-
-// initiate without being logged in, keep token in memory
-let accessToken = null;
-
-export const setAccessToken = (token) => {
-  accessToken = token;
-};
+import { useAuth } from "../auth/useAuth.jsx";
 
 const api = axios.create({
    // baseURL: `http://${window.location.hostname}:5000`
