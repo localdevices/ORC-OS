@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth.jsx";
+import orcLogo from "/orc_favicon.svg";
 
 const Login = () => {
   const [password, setPassword] = useState("");
@@ -22,16 +23,24 @@ const Login = () => {
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <input
-        type="password"
-        placeholder="Enter password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button type="submit">Login</button>
-      {error && <p style={{ color: "red" }}>{error}</p>} {/* Display login error */}
-    </form>
+    <div className="spinner-container">
+      <div>
+        <a href="https://openrivercam.org" target="_blank">
+          <img src={orcLogo} className="logo" alt="ORC logo" style={{"height": "300px"}} />
+        </a>
+      </div>
+
+      <form onSubmit={handleLogin}>
+        <input
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button className="btn" type="submit">Login</button>
+        {error && <p style={{ color: "red" }}>{error}</p>} {/* Display login error */}
+      </form>
+    </div>
   );
 };
 export default Login;

@@ -115,7 +115,7 @@ const App = () => {
         };
         // Start checking every 5 seconds
         checkApiAvailability(); // Check immediately on mount
-        interval = setInterval(checkApiAvailability, 500000);
+        interval = setInterval(checkApiAvailability, 5000);
 
         // Cleanup to prevent memory leaks
         return () => clearInterval(interval);
@@ -123,58 +123,102 @@ const App = () => {
 
     if (isLoading) {
         return (
-          <div className="spinner-container">
-              <div>
-                  <a href="https://openrivercam.org" target="_blank">
-                      <img src={orcLogo} className="logo" alt="ORC logo" style={{"height": "300px"}} />
-                  </a>
-              </div>
-              <div className="spinner"></div>
-              <p>{apiStatus || "Application is starting up, please wait..."}</p>
+          <div className="app-container">
+            <div className="spinner-container">
+                <div>
+                    <a href="https://openrivercam.org" target="_blank">
+                        <img src={orcLogo} className="logo" alt="ORC logo" style={{"height": "300px"}} />
+                    </a>
+                </div>
+                <div className="spinner"></div>
+                <p>{apiStatus || "Application is starting up, please wait..."}</p>
+            </div>
           </div>
         );
     }
-
-
     return (
         <MessageProvider>
-        <Router>
-          <Layout>
-            <Routes>
-              <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                   <Home />
-                 </ProtectedRoute>
-              } />
-              <Route path="/device" element={
-                <ProtectedRoute>
-                  <Device />
-                </ProtectedRoute>
-              } />
-              <Route path="/updates" element={<Updates />} />
-              <Route path="/settings" element={<Settings
-                setRequiresRestart={setRequiresRestart}
-              />} />
-              <Route path="/disk_management" element={<DiskManagement
-                setRequiresRestart={setRequiresRestart}
-              />} />
-              <Route path="/water_level" element={<WaterLevel
-                setRequiresRestart={setRequiresRestart}
-              />} />
-              <Route path="/callback_url" element={<CallbackUrl
-                setRequiresRestart={setRequiresRestart}
-              />} />
-              <Route path="/camera_aim" element={<CameraAim />} />
-              <Route path="/calibration" element={<Calibration />} />
-              <Route path="/video" element={<ListVideo />} />
-              <Route path="/video_config/:videoId" element={<VideoConfig />} />
-              <Route path="/recipe" element={<ListRecipe />} />
-              <Route path="/cross_section" element={<ListCrossSection />} />
-            </Routes>
-          </Layout>
-        </Router>
+          <Router>
+            <Layout>
+              <Routes>
+                <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                     <Home />
+                   </ProtectedRoute>
+                } />
+                <Route path="/device" element={
+                  <ProtectedRoute>
+                    <Device />
+                  </ProtectedRoute>
+                } />
+                <Route path="/updates" element={
+                  <ProtectedRoute>
+                    <Updates />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Settings
+                      setRequiresRestart={setRequiresRestart}
+                    />
+                  </ProtectedRoute>
+                } />
+                <Route path="/disk_management" element={
+                  <ProtectedRoute>
+                  <DiskManagement
+                    setRequiresRestart={setRequiresRestart}
+                  />
+                  </ProtectedRoute>
+                } />
+                <Route path="/water_level" element={
+                  <ProtectedRoute>
+                    <WaterLevel
+                      setRequiresRestart={setRequiresRestart}
+                    />
+                  </ProtectedRoute>
+                } />
+                <Route path="/callback_url" element={
+                  <ProtectedRoute>
+                    <CallbackUrl
+                      setRequiresRestart={setRequiresRestart}
+                    />
+                  </ProtectedRoute>
+                } />
+                <Route path="/camera_aim" element={
+                  <ProtectedRoute>
+                    <CameraAim />
+                  </ProtectedRoute>
+                } />
+                <Route path="/calibration" element={
+                  <ProtectedRoute>
+                    <Calibration />
+                  </ProtectedRoute>
+                } />
+                <Route path="/video" element={
+                  <ProtectedRoute>
+                    <ListVideo />
+                  </ProtectedRoute>
+                } />
+                <Route path="/video_config/:videoId" element={
+                  <ProtectedRoute>
+                    <VideoConfig />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recipe" element={
+                  <ProtectedRoute>
+                    <ListRecipe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/cross_section" element={
+                  <ProtectedRoute>
+                    <ListCrossSection />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </Layout>
+          </Router>
         </MessageProvider>
     )
 }
