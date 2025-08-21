@@ -4,13 +4,16 @@ import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
 import MessageBox from "../messageBox.jsx";
-import api from "../api.js";
+import api from "../api/api.js";
+import { useAuth } from "../auth/useAuth.jsx";
+
 
 
 const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
     const [settingsOpen, setSettingsOpen] = useState(false); // track if settings menu is open
 
+    const { logout } = useAuth();
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
     };
@@ -19,9 +22,11 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
       setSettingsOpen(false);
     };
 
-    const handleUserButtonClick = () => {
-        // Add your login logic here
-        alert('User login functionality to be implemented.');
+    const handleUserButtonClick = async () => {
+        await logout();
+        // api.post("/security/logout")
+
+      // alert('User login functionality to be implemented.');
     };
 
     const handleSettingsClick = () => {

@@ -13,7 +13,16 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from orc_api import ALGORITHM, DEV_MODE, INCOMING_DIRECTORY, SECRET_KEY, UPLOAD_DIRECTORY, crud
+from orc_api import (
+    ALGORITHM,
+    DEV_MODE,
+    INCOMING_DIRECTORY,
+    ORC_COOKIE_NAME,
+    ORIGINS,
+    SECRET_KEY,
+    UPLOAD_DIRECTORY,
+    crud,
+)
 from orc_api.database import get_session
 from orc_api.db import VideoStatus
 from orc_api.routers import (
@@ -41,6 +50,9 @@ from orc_api.utils import queue
 
 def verify_token(token: str):
     """Verify a JWT token."""
+    # first check for black listing
+    if token in app.state.token_blacklist:
+        return JSONResponse(status_code=401, content={"detail": "Token has been blacklisted"})
     try:
         # Decode and validate the token
         _ = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -55,15 +67,23 @@ def verify_token(token: str):
 
 def auth_token(request: Request):
     """Check if a token is present and verified."""
-    token = request.headers.get("Authorization")
-    if not token or not token.startswith("Bearer "):
+    token = request.cookies.get(ORC_COOKIE_NAME)
+    # token = request.headers.get("Authorization")
+    if not token:  #  or not token.startswith("Bearer "):
         return JSONResponse(
             status_code=401,
             content={"detail": "Token missing or not a valid token format"},
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={
+                # "WWW-Authenticate": "Bearer",
+                # Add CORS headers
+                "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true",
+            },
         )
     # Verify the token
-    token = token.split("Bearer ")[-1]
+    # token = token.split("Bearer ")[-1]
     try:
         return verify_token(token)
     except HTTPException as e:
@@ -172,6 +192,8 @@ async def lifespan(app: FastAPI):
     app.state.processing = False  # state processing yes/no
     app.state.processing_message = None  # string defining last status condition
     app.state.session = session
+    app.state.token_blacklist = set()
+
     # with get_session() as session:
     schedule_water_level(scheduler, logger, session)
     schedule_disk_maintenance(scheduler, logger, session)
@@ -206,20 +228,32 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down FastAPI server, goodbye!")
 
 
-# origins = ["http://localhost:5173"]
-origins = ["*"]
+# class DynamicCorsMiddleware(BaseHTTPMiddleware):
+#     async def dispatch(self, request: Request, call_next):
+#         """Dynamically handle adding CORS headers based on the `Origin` header."""
+#         origin = request.headers.get("origin")
+#         response = await call_next(request)
+#         # Dynamically apply CORS for the valid origin
+#         response.headers["Access-Control-Allow-Origin"] = origin
+#         response.headers["Access-Control-Allow-Credentials"] = "true"
+#         response.headers["Access-Control-Allow-Methods"] = "*"
+#         response.headers["Access-Control-Allow-Headers"] = "*"
+#         return response
 
 # set up API with the lifespan approach, to do things before starting and after closing the API.
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ORIGINS,  # origins, dynamically set later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
+
+# # Custom dynamic CORS middleware
+# app.add_middleware(DynamicCorsMiddleware)
 
 
 @app.middleware("http")
@@ -255,7 +289,6 @@ async def auth_middleware(request: Request, call_next):
     if r is not None:
         return r
 
-    # execute the request when token is accepted (r is None)
     return await call_next(request)
 
 
@@ -268,7 +301,6 @@ async def auth_middleware(request: Request, call_next):
 #     logging.info(f"Request body: {await request.body()}")
 #     return await call_next(request)
 #
-
 app.include_router(callback_url.router)
 app.include_router(camera_config.router)
 app.include_router(control_points.router)
@@ -290,6 +322,13 @@ app.include_router(water_level.router)
 async def root():
     """Root endpoint."""
     return {"message": "You have reached the ORC-OS API"}
+
+
+@app.get("/no-access")
+async def no_access():
+    """Refuse access to user."""
+    print("GIVING NO ACCESS")
+    return HTTPException(status_code=401, detail="No access")
 
 
 if __name__ == "__main__":

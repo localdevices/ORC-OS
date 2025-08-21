@@ -3,7 +3,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 
 import './photoComponent.css';
 import PropTypes from 'prop-types';
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 
 const PhotoComponent = (

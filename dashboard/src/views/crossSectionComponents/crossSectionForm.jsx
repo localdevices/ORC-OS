@@ -1,4 +1,4 @@
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {useEffect, useState, useRef} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'

@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 
 import Modal from "react-modal";
 
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {
   FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass, FaExclamationTriangle
 } from "react-icons/fa";
@@ -62,7 +62,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     }
     api.get('/video/', {params: params_page}) // Retrieve list from app
       .then((response) => {
-        console.log("LOADING: ", isLoading)
         setData(response.data);
         // Calculate the index range for records to display
       })
@@ -75,8 +74,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     // also get the total count of filtered videos without retrieving all of them
     api.get('/video/count/', {params: params_total}) // integer as response
       .then((response) => {
-        console.log("TOTAL DATA", response.data)
-        console.log("LOADING: ", isLoading)
 
         setTotalDataCount(response.data);
       })

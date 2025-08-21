@@ -1,7 +1,7 @@
 import FilterDates from "../../utils/filterDates.jsx";
 import DownloadModal from "./downloadModal.jsx";
 import DeleteModal from "./deleteModal.jsx";
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {get_videos_ids} from "../../utils/apiCalls.jsx";
 import {useState} from "react";
 
