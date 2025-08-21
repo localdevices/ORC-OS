@@ -1,5 +1,5 @@
 import {useState, useEffect} from "react";
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {FaSync, FaTrash, FaCheck} from "react-icons/fa";
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";

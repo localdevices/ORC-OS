@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import Modal from "react-modal"; // You can use any modal library or create your custom modal
 import "../../App.css"
-import api from "../../api.js";
+import api from "../../api/api.js";
 
 const VideoUploader = () => {
   const [uploadedVideo, setUploadedVideo] = useState(null);

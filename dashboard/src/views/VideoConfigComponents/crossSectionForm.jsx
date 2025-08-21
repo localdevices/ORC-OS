@@ -1,4 +1,4 @@
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {useEffect, useState} from "react";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 import PropTypes   from "prop-types";

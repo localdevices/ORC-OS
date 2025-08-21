@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
+import api from '../api/api.js';
 import PaginatedRecipes from "./recipeComponents/paginatedRecipes.jsx";
 const ListRecipe = () => {
   const [recipeData, setRecipeData] = useState([]); // Stores video metadata

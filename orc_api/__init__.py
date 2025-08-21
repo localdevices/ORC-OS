@@ -1,6 +1,7 @@
 """Backend API for operations and configuration for NodeORC front end."""
 
 import os
+import socket
 import warnings
 
 __version__ = "0.2.2"
@@ -8,8 +9,29 @@ __version__ = "0.2.2"
 # default key in case none is set in env variables
 ORC_DEFAULT_KEY = "ORC_DEFAULT_KEY"
 
+# cookie settings
+ORC_COOKIE_NAME = "orc_token"
+ORC_COOKIE_MAX_AGE = 3600  # one hour
+
 # hash algorithm used
 ALGORITHM = "HS256"
+
+# define origins
+HOSTNAME = socket.gethostname()
+HOSTIPS = [
+    socket.gethostbyname(HOSTNAME),
+    socket.gethostbyname(HOSTNAME) + ".home",
+    socket.gethostbyname(HOSTNAME) + ".local",
+]
+ports = ["80", "5173"]
+subdomains = ["", ".home", ".local"]
+ORIGINS = []
+for port in ports:
+    ORIGINS += ["http://localhost:" + port]
+    ORIGINS += [f"http://{HOSTNAME}{subdomain}:{port}" for subdomain in subdomains]
+    for ip in HOSTIPS:
+        ORIGINS += [f"http://{ip}:{port}"]
+
 
 __home__ = os.getenv("ORC_HOME")
 UPLOAD_DIRECTORY = os.getenv("ORC_UPLOAD_DIRECTORY")

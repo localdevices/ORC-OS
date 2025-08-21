@@ -1,14 +1,36 @@
 import axios from 'axios'
 
-// Ensure API_BASE_URL is defined
-// if (!import.meta.env.VITE_API_BASE_URL) {
-//    throw new Error('VITE_API_BASE_URL environment variable is not defined!');
-// }
+// initiate without being logged in, keep token in memory
+let accessToken = null;
+
+export const setAccessToken = (token) => {
+  accessToken = token;
+};
 
 const api = axios.create({
    // baseURL: `http://${window.location.hostname}:5000`
-   baseURL: `/api`
+   baseURL: `/api`,
+   withCredentials: true
 });
+
+// intercept requests and if available, add token to header
+api.interceptors.request.use((config) => {
+  return config;
+});
+
+// behaviour when a 401 (not authorized) response is received
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+    }
+    return Promise.reject(error);
+  }
+
+)
 
 export default api;
 
