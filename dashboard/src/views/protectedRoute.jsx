@@ -4,7 +4,6 @@ import { useAuth } from "../auth/useAuth.jsx";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();  // use stored token where available
-  console.log("ProtectedRoute: user: ", user)
   return user ? children : <Navigate to="/login" />;
 };
 

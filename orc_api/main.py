@@ -26,6 +26,7 @@ from orc_api import (
 from orc_api.database import get_session
 from orc_api.db import VideoStatus
 from orc_api.routers import (
+    auth,
     callback_url,
     camera_config,
     control_points,
@@ -34,7 +35,6 @@ from orc_api.routers import (
     disk_management,
     pivideo_stream,
     recipe,
-    security,
     settings,
     updates,
     video,
@@ -51,41 +51,42 @@ from orc_api.utils import queue
 def verify_token(token: str):
     """Verify a JWT token."""
     # first check for black listing
-    if token in app.state.token_blacklist:
-        return JSONResponse(status_code=401, content={"detail": "Token has been blacklisted"})
     try:
         # Decode and validate the token
         _ = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return None
     except jwt.ExpiredSignatureError:
         # Token has expired
-        return JSONResponse(status_code=401, content={"detail": "Token has expired"})
+        return {"detail": "Token has expired"}
     except jwt.InvalidTokenError:
         # Token is invalid for any reason
-        return JSONResponse(status_code=401, content={"detail": "Token is invalid"})
+        return {"detail": "Token is invalid"}
 
 
 def auth_token(request: Request):
     """Check if a token is present and verified."""
     token = request.cookies.get(ORC_COOKIE_NAME)
-    # token = request.headers.get("Authorization")
-    if not token:  #  or not token.startswith("Bearer "):
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "Token missing or not a valid token format"},
-            headers={
-                # "WWW-Authenticate": "Bearer",
-                # Add CORS headers
-                "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
-                "Access-Control-Allow-Methods": "*",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Allow-Credentials": "true",
-            },
-        )
-    # Verify the token
-    # token = token.split("Bearer ")[-1]
     try:
-        return verify_token(token)
+        if not token:  #  or not token.startswith("Bearer "):
+            content = {"detail": "Token missing or not a valid token format"}
+        # Verify the token
+        # token = token.split("Bearer ")[-1]
+        else:
+            content = verify_token(token)
+        if content is not None:
+            return JSONResponse(
+                status_code=401,
+                content=content,
+                headers={
+                    "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
+                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true",
+                },
+            )
+        else:
+            return None
+
     except HTTPException as e:
         raise e
 
@@ -228,18 +229,6 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down FastAPI server, goodbye!")
 
 
-# class DynamicCorsMiddleware(BaseHTTPMiddleware):
-#     async def dispatch(self, request: Request, call_next):
-#         """Dynamically handle adding CORS headers based on the `Origin` header."""
-#         origin = request.headers.get("origin")
-#         response = await call_next(request)
-#         # Dynamically apply CORS for the valid origin
-#         response.headers["Access-Control-Allow-Origin"] = origin
-#         response.headers["Access-Control-Allow-Credentials"] = "true"
-#         response.headers["Access-Control-Allow-Methods"] = "*"
-#         response.headers["Access-Control-Allow-Headers"] = "*"
-#         return response
-
 # set up API with the lifespan approach, to do things before starting and after closing the API.
 app = FastAPI(lifespan=lifespan)
 
@@ -251,9 +240,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
-
-# # Custom dynamic CORS middleware
-# app.add_middleware(DynamicCorsMiddleware)
 
 
 @app.middleware("http")
@@ -272,11 +258,11 @@ async def auth_middleware(request: Request, call_next):
         return await call_next(request)
 
     # login by def. does not require a token as it should return a token
-    if request.url.path in ["/security/login"]:
+    if request.url.path in ["/auth/login", "/auth/password_available"]:
         return await call_next(request)
 
     # case where no password yet exists and password store is requested also does not require auth
-    if request.url.path in ["/security/set_password"]:
+    if request.url.path in ["/auth/set_password"]:
         # Check if any password exists in database
         has_password = crud.login.get(request.app.state.session) is not None
         if not has_password:
@@ -309,7 +295,7 @@ app.include_router(device.router)
 app.include_router(disk_management.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
-app.include_router(security.router)
+app.include_router(auth.router)
 app.include_router(settings.router)
 app.include_router(updates.router)
 app.include_router(video.router)

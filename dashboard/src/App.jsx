@@ -103,10 +103,9 @@ const App = () => {
                 }
             } catch (error) {
               if (error.response && error.response.status === 401) {
-                console.log("Navigate to login")
+                // navigate to login by setting loading to false. While user is null, the login page will always appear
                 setIsLoading(false);
               } else {
-                console.log(error)
                 setApiStatus("ORC-OS back end seems offline. Waiting for ORC-OS backend to start...");
                 setIsLoading(true);
                 setRequiresRestart(false);  // as app is starting, restart is never required at this point
@@ -115,7 +114,7 @@ const App = () => {
         };
         // Start checking every 5 seconds
         checkApiAvailability(); // Check immediately on mount
-        interval = setInterval(checkApiAvailability, 5000);
+        interval = setInterval(checkApiAvailability, 10000);
 
         // Cleanup to prevent memory leaks
         return () => clearInterval(interval);
