@@ -17,25 +17,24 @@ ORC_COOKIE_MAX_AGE = 3600  # one hour
 ALGORITHM = "HS256"
 
 # define origins
-HOSTNAME = socket.gethostname()
+HOSTNAMES = [socket.gethostname(), socket.gethostname().lower()]
 HOSTIPS = [
-    socket.gethostbyname(HOSTNAME),
-    socket.gethostbyname(HOSTNAME) + ".home",
-    socket.gethostbyname(HOSTNAME) + ".local",
-    socket.gethostbyname(HOSTNAME).lower(),
-    socket.gethostbyname(HOSTNAME).lower() + ".home",
-    socket.gethostbyname(HOSTNAME).lower() + ".local",
+    socket.gethostbyname(HOSTNAMES[0]),
+    socket.gethostbyname(HOSTNAMES[0]) + ".home",
+    socket.gethostbyname(HOSTNAMES[0]) + ".local",
 ]
 ports = ["80", "5173"]
 subdomains = ["", ".home", ".local"]
 ORIGINS = []
 ORIGINS += ["http://localhost"]
-ORIGINS += [f"http://{HOSTNAME}{subdomain}" for subdomain in subdomains]
+for HOSTNAME in HOSTNAMES:
+    ORIGINS += [f"http://{HOSTNAME}{subdomain}" for subdomain in subdomains]
 for ip in HOSTIPS:
     ORIGINS += [f"http://{ip}"]
 for port in ports:
     ORIGINS += ["http://localhost:" + port]
-    ORIGINS += [f"http://{HOSTNAME}{subdomain}:{port}" for subdomain in subdomains]
+    for HOSTNAME in HOSTNAMES:
+        ORIGINS += [f"http://{HOSTNAME}{subdomain}:{port}" for subdomain in subdomains]
     for ip in HOSTIPS:
         ORIGINS += [f"http://{ip}:{port}"]
 
