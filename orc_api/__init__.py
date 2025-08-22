@@ -26,6 +26,10 @@ HOSTIPS = [
 ports = ["80", "5173"]
 subdomains = ["", ".home", ".local"]
 ORIGINS = []
+ORIGINS += ["http://localhost"]
+ORIGINS += [f"http://{HOSTNAME}{subdomain}" for subdomain in subdomains]
+for ip in HOSTIPS:
+    ORIGINS += [f"http://{ip}"]
 for port in ports:
     ORIGINS += ["http://localhost:" + port]
     ORIGINS += [f"http://{HOSTNAME}{subdomain}:{port}" for subdomain in subdomains]
