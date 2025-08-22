@@ -15,7 +15,7 @@ router: APIRouter = APIRouter(prefix="/auth", tags=["security"])
 def create_token():
     """Create a JWT token."""
     payload = {
-        "exp": datetime.now(UTC) + timedelta(seconds=15),  # Token expires in 1 hour
+        "exp": datetime.now(UTC) + timedelta(minutes=15),  # Token expires in 1 hour
         "sub": "user",  # Example subject claim
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
