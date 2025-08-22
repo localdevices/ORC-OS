@@ -22,6 +22,9 @@ HOSTIPS = [
     socket.gethostbyname(HOSTNAME),
     socket.gethostbyname(HOSTNAME) + ".home",
     socket.gethostbyname(HOSTNAME) + ".local",
+    socket.gethostbyname(HOSTNAME).lower(),
+    socket.gethostbyname(HOSTNAME).lower() + ".home",
+    socket.gethostbyname(HOSTNAME).lower() + ".local",
 ]
 ports = ["80", "5173"]
 subdomains = ["", ".home", ".local"]
@@ -35,7 +38,6 @@ for port in ports:
     ORIGINS += [f"http://{HOSTNAME}{subdomain}:{port}" for subdomain in subdomains]
     for ip in HOSTIPS:
         ORIGINS += [f"http://{ip}:{port}"]
-
 
 __home__ = os.getenv("ORC_HOME")
 UPLOAD_DIRECTORY = os.getenv("ORC_UPLOAD_DIRECTORY")
