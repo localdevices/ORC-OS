@@ -376,6 +376,9 @@ button.btn-icon:hover .edit {
   flex-direction: column; /* Stack contents vertically */
   top: 30%;
   left: 50%;
+  font-size: 20px;
+  font-weight: bold;
+    color: #666666;
   transform: translate(-50%, 0%);
   background-color: #eeeeee;
   z-index: 1000; /* Higher than the image */

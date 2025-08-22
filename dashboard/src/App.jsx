@@ -134,7 +134,7 @@ const App = () => {
                     </a>
                 </div>
                 <div className="spinner"></div>
-                <p>{apiStatus || "Application is starting up, please wait..."}</p>
+                <div>{apiStatus || "Application is starting up, please wait..."}</div>
             </div>
           </div>
         );
