@@ -66,7 +66,7 @@ const matchRoute = (path) => {
 
 
 // Helper component to conditionally render Navbar and Footer
-const Layout = ({ children }) => {
+const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) => {
   const location = useLocation();
 
   const isInvalidRoute = !matchRoute(location.pathname);
@@ -76,7 +76,11 @@ const Layout = ({ children }) => {
 
   return (
     <div className="app-container">
-      {!hideLayout && <Navbar />}
+      {!hideLayout && <Navbar
+        requiresRestart={requiresRestart}
+        setRequiresRestart={setRequiresRestart}
+        setIsLoading={setIsLoading}
+      />}
       <div className="main-content">{children}</div>
       {!hideLayout && <Footer />}
     </div>
@@ -138,7 +142,11 @@ const App = () => {
     return (
         <MessageProvider>
           <Router>
-            <Layout>
+            <Layout
+              requiresRestart={requiresRestart}
+              setRequiresRestart={setRequiresRestart}
+              setIsLoading={setIsLoading}
+            >
               <Routes>
                 <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
                 <Route path="/login" element={<Login />} />

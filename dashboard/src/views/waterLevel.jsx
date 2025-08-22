@@ -17,7 +17,6 @@ const WaterLevel = ({setRequiresRestart}) => {
 
     const fetchWaterLevel = async () => {
         const response = await api.get('/water_level/');
-        console.log(response);
         updateWaterLevel(response.data);
     };
     useEffect(() => {
