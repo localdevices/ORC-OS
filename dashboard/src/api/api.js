@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { useAuth } from "../auth/useAuth.jsx";
 
 const api = axios.create({
    // baseURL: `http://${window.location.hostname}:5000`

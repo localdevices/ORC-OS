@@ -1,4 +1,4 @@
-"""Security endpoints."""
+"""Authentication endpoints."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -9,7 +9,7 @@ from orc_api import ALGORITHM, ORC_COOKIE_MAX_AGE, ORC_COOKIE_NAME, SECRET_KEY, 
 from orc_api.database import get_db
 from orc_api.db import Session
 
-router: APIRouter = APIRouter(prefix="/auth", tags=["security"])
+router: APIRouter = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def create_token():
@@ -19,14 +19,6 @@ def create_token():
         "sub": "user",  # Example subject claim
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def cleanup_blacklist(blacklist):
-    """Remove expired tokens from the blacklist."""
-    current_time = datetime.now(UTC).timestamp()
-
-    # Remove tokens that have expired
-    blacklist.difference_update({(token, exp) for token, exp in blacklist if exp is not None and exp < current_time})
 
 
 @router.get("/password_available")
@@ -60,24 +52,6 @@ def login(password: str, response: Response, db: Session = Depends(get_db)):
 async def logout(request: Request, response: Response):
     """Logout the user by blacklisting the JWT token."""
     response.delete_cookie(ORC_COOKIE_NAME)
-    # auth_header = request.headers.get("Authorization")
-    # if not auth_header or not auth_header.startswith("Bearer "):
-    #     raise HTTPException(status_code=401, detail="Token missing or invalid")
-    #
-    # # Extract the token from the Authorization header
-    # token = auth_header.split(" ")[1]
-    #
-    # try:
-    #     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    #     exp = payload.get("exp")
-    # except jwt.PyJWTError:
-    #     raise HTTPException(status_code=401, detail="Invalid token")
-    # print(f"BLACKLISTING: {token} with exp: {exp}")
-    # # Add the token to the state blacklist in the app
-    # request.app.state.token_blacklist.add((token, exp))
-    #
-    # # cleanup token list if necessary
-    # cleanup_blacklist(request.app.state.token_blacklist)
     return {"message": "Successfully logged out."}
 
 
@@ -88,7 +62,6 @@ def verify_token(request: Request):
     If the token is valid, return its claims (decoded payload).
     """
     token = request.cookies.get(ORC_COOKIE_NAME)  # retrieve token from client-side cookie
-    print(token)
     if not token:
         raise HTTPException(status_code=401, detail="Token not found in cookies")
 

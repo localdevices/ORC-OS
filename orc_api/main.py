@@ -236,8 +236,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGINS,  # origins, dynamically set later
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],# ["*"],
+    allow_headers=["*"],  # ["X-PINGOTHER", "Content-Type"],# ["*"],
     expose_headers=["Content-Disposition"],
 )
 
@@ -255,6 +255,10 @@ async def auth_middleware(request: Request, call_next):
     """Check if end point requires token verification or not. First validate, then retrieve end point."""
     # Skip authentication check when DEV_MODE is enabled
     if DEV_MODE:
+        return await call_next(request)
+
+    # preflight requests are always passed through and never get cookies attached
+    if request.method == "OPTIONS":
         return await call_next(request)
 
     # login by def. does not require a token as it should return a token
@@ -279,14 +283,14 @@ async def auth_middleware(request: Request, call_next):
 
 
 #
-
+#
 # @app.middleware("http")
 # async def log_requests(request, call_next):
 #     body = await request.body()
-#     logging.info(f"Request headers: {request.headers}")
-#     logging.info(f"Request body: {await request.body()}")
+#     print(f"Request headers: {request.headers}")
+#     print(f"Request body: {await request.body()}")
 #     return await call_next(request)
-#
+
 app.include_router(callback_url.router)
 app.include_router(camera_config.router)
 app.include_router(control_points.router)
@@ -313,7 +317,6 @@ async def root():
 @app.get("/no-access")
 async def no_access():
     """Refuse access to user."""
-    print("GIVING NO ACCESS")
     return HTTPException(status_code=401, detail="No access")
 
 

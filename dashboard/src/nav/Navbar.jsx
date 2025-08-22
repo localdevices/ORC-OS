@@ -35,7 +35,6 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
 
 
     const handleRestartClick = () => {
-      console.log("Restart button clicked");
       setIsLoading(true);
       setRequiresRestart(false);
       // shutdown the API. Systemd or Docker process should restart the API
