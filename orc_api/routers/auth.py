@@ -21,7 +21,12 @@ def create_token():
         "exp": datetime.now(UTC) + timedelta(minutes=15),  # Token expires in 1 hour
         "sub": "user",  # Example subject claim
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    # TODO: python3.9 Raspi versions have a bug with the return type of jwt.encode. The type is bytes but should be str
+    # TODO: therefore, the capture below can be removed once we depreciate python3.9
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+    return token
 
 
 @router.get("/password_available")
