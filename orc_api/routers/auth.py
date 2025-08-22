@@ -1,7 +1,8 @@
 """Authentication endpoints."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
+# from datetime import UTC  # TODO: uncomment when deprecating python3.9
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
@@ -10,6 +11,8 @@ from orc_api.database import get_db
 from orc_api.db import Session
 
 router: APIRouter = APIRouter(prefix="/auth", tags=["auth"])
+
+UTC = timezone.utc
 
 
 def create_token():
