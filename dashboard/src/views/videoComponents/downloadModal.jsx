@@ -1,4 +1,4 @@
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {useState} from "react";
 import {get_videos} from "../../utils/apiCalls.jsx";
 

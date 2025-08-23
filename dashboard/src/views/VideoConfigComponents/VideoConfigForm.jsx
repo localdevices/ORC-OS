@@ -1,4 +1,4 @@
-import api from "../../api.js";
+import api from "../../api/api.js";
 import React, {useEffect, useState} from "react";
 
 const VideoConfigForm = (

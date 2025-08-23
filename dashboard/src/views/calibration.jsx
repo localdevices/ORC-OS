@@ -4,7 +4,7 @@ import {useMessage} from '../messageContext';
 import VideoTab from './calibrationTabs/videoTab'
 import XYZWidget from './calibrationTabs/XyzWidget';
 import MapTab from './calibrationTabs/mapTab';
-import api from '../api';
+import api from '../api/api.js';
 import '../nav/Navbar.css'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 import {createCustomMarker} from '../utils/leafletUtils';

@@ -1,5 +1,5 @@
 import {useState, useEffect} from 'react';
-import api from '../api';
+import api from '../api/api.js';
 import {DropdownMenu} from "../utils/dropdownMenu.jsx";
 import {useMessage} from '../messageContext';
 import '../App.css';
@@ -95,7 +95,6 @@ const Settings = ({setRequiresRestart}) => {
   const handleFormSubmit = async (event) => {
     try {
       event.preventDefault();
-      console.log(formData);
       // check if activate conditions are met
       if (!validateSettings()) {
         // hard set to false. we cannot yet run autonomously.

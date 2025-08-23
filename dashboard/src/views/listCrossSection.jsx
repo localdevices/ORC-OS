@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
+import api from '../api/api.js';
 import PaginatedCrossSections from "./crossSectionComponents/paginatedCrossSections.jsx";
 
 const ListCrossSection = () => {

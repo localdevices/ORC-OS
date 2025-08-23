@@ -7,7 +7,7 @@ import {
     Legend
 } from 'chart.js';
 
-import api from '../api';
+import api from '../api/api.js';
 import {useMessage} from '../messageContext';
 
 // Register ChartJS components

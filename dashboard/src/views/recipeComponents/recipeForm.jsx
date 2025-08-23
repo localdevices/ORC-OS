@@ -1,4 +1,4 @@
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {useEffect, useState} from "react";
 import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";

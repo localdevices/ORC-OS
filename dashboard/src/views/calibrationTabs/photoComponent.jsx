@@ -3,7 +3,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 
 import './photoComponent.css';
 import PropTypes from 'prop-types';
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 
 const PhotoComponent = (
@@ -180,8 +180,6 @@ const PhotoComponent = (
       setImageUrl(url); // Set the new image URL
       if (isImageCached(url)) {
         setLoading(false);  // skil loading stage if cached (prevents race issues)
-      } else {
-        setLoading(true);   // Trigger loading state when the URL changes
       }
     }, 300);
     debouncedUpdate();
@@ -462,7 +460,10 @@ const PhotoComponent = (
         className="img-calibration"
         ref={imageRef}
         // onClick={handleMouseClick}
-        onLoad={handleImageLoad}
+        onLoad={() => {
+          setLoading(true);
+          handleImageLoad()
+        }}
         onError={() => {
           setLoading(false); // Always unset loading on error
           console.error('Image failed to load.');

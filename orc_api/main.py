@@ -6,15 +6,27 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
+import jwt
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY, crud
+from orc_api import (
+    ALGORITHM,
+    DEV_MODE,
+    INCOMING_DIRECTORY,
+    ORC_COOKIE_NAME,
+    ORIGINS,
+    SECRET_KEY,
+    UPLOAD_DIRECTORY,
+    crud,
+)
 from orc_api.database import get_session
 from orc_api.db import VideoStatus
 from orc_api.routers import (
+    auth,
     callback_url,
     camera_config,
     control_points,
@@ -34,6 +46,49 @@ from orc_api.schemas.disk_management import DiskManagementResponse
 from orc_api.schemas.settings import SettingsResponse
 from orc_api.schemas.video import VideoResponse
 from orc_api.utils import queue
+
+
+def verify_token(token: str):
+    """Verify a JWT token."""
+    # first check for black listing
+    try:
+        # Decode and validate the token
+        _ = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return None
+    except jwt.ExpiredSignatureError:
+        # Token has expired
+        return {"detail": "Token has expired"}
+    except jwt.InvalidTokenError:
+        # Token is invalid for any reason
+        return {"detail": "Token is invalid"}
+
+
+def auth_token(request: Request):
+    """Check if a token is present and verified."""
+    token = request.cookies.get(ORC_COOKIE_NAME)
+    try:
+        if not token:  #  or not token.startswith("Bearer "):
+            content = {"detail": "Token missing or not a valid token format"}
+        # Verify the token
+        # token = token.split("Bearer ")[-1]
+        else:
+            content = verify_token(token)
+        if content is not None:
+            return JSONResponse(
+                status_code=401,
+                content=content,
+                headers={
+                    "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
+                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true",
+                },
+            )
+        else:
+            return None
+
+    except HTTPException as e:
+        raise e
 
 
 def async_job_wrapper(func, kwargs):
@@ -138,6 +193,8 @@ async def lifespan(app: FastAPI):
     app.state.processing = False  # state processing yes/no
     app.state.processing_message = None  # string defining last status condition
     app.state.session = session
+    app.state.token_blacklist = set()
+
     # with get_session() as session:
     schedule_water_level(scheduler, logger, session)
     schedule_disk_maintenance(scheduler, logger, session)
@@ -172,18 +229,15 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down FastAPI server, goodbye!")
 
 
-# origins = ["http://localhost:5173"]
-origins = ["*"]
-
 # set up API with the lifespan approach, to do things before starting and after closing the API.
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ORIGINS,  # origins, dynamically set later
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],# ["*"],
+    allow_headers=["*"],  # ["X-PINGOTHER", "Content-Type"],# ["*"],
     expose_headers=["Content-Disposition"],
 )
 
@@ -196,15 +250,46 @@ async def add_csp_header(request, call_next):
     return response
 
 
-#
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Check if end point requires token verification or not. First validate, then retrieve end point."""
+    # Skip authentication check when DEV_MODE is enabled
+    if DEV_MODE:
+        return await call_next(request)
 
+    # preflight requests are always passed through and never get cookies attached
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    # login by def. does not require a token as it should return a token
+    if request.url.path in ["/auth/login", "/auth/password_available"]:
+        return await call_next(request)
+
+    # case where no password yet exists and password store is requested also does not require auth
+    if request.url.path in ["/auth/set_password"]:
+        # Check if any password exists in database
+        has_password = crud.login.get(request.app.state.session) is not None
+        if not has_password:
+            # if not, then a password may be set
+            return await call_next(request)
+
+    # No exceptions occurring, so first apply normal authentication for production and other environments
+    r = auth_token(request)
+    # r should be None if all is good and then forward to request will be performed. Otherwise a response is returned.
+    if r is not None:
+        return r
+
+    return await call_next(request)
+
+
+#
+#
 # @app.middleware("http")
 # async def log_requests(request, call_next):
 #     body = await request.body()
-#     logging.info(f"Request headers: {request.headers}")
-#     logging.info(f"Request body: {await request.body()}")
+#     print(f"Request headers: {request.headers}")
+#     print(f"Request body: {await request.body()}")
 #     return await call_next(request)
-#
 
 app.include_router(callback_url.router)
 app.include_router(camera_config.router)
@@ -214,6 +299,7 @@ app.include_router(device.router)
 app.include_router(disk_management.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
+app.include_router(auth.router)
 app.include_router(settings.router)
 app.include_router(updates.router)
 app.include_router(video.router)
@@ -226,6 +312,12 @@ app.include_router(water_level.router)
 async def root():
     """Root endpoint."""
     return {"message": "You have reached the ORC-OS API"}
+
+
+@app.get("/no-access")
+async def no_access():
+    """Refuse access to user."""
+    return HTTPException(status_code=401, detail="No access")
 
 
 if __name__ == "__main__":
