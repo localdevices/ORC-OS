@@ -63,7 +63,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Changed
 - Small modifications in the front end to allow for more intuitive user experience.
 - Moved general configuration options to top-right menu
--
+
 ### Deprecated
 ### Removed
 ### Fixed
