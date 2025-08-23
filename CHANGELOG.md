@@ -1,4 +1,4 @@
-## [0.2.0] - 2025-08-15
+## [0.3.0] - 2025-08-23
 ### Added
 **Authentication**. This release protects the OS from use by third parties.
 - Set a password at the first start of the OS. (remember this! You can only change it with the API or from the back-end)
