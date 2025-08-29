@@ -44,6 +44,8 @@ class WaterLevelOptions(BaseModel):
 class WaterLevel(BaseModel):
     """Water level default data model."""
 
+    n_start: int = Field(default=0)
+    n_end: int = Field(default=1)
     method: str = Field(default="grayscale")
     water_level_options: WaterLevelOptions = Field(default_factory=WaterLevelOptions)
     frames_options: dict = Field(default={})
@@ -314,8 +316,10 @@ class RecipeUpdate(RecipeBase):
         else:
             data = RecipeData(**instance.data)
         data.video.start_frame = getattr(instance, "start_frame", 0)
+        data.water_level.n_start = getattr(instance, "start_frame", 0)
         if instance.end_frame is not None:
             data.video.end_frame = instance.end_frame
+            data.water_level.n_end = instance.end_frame
         data.video.freq = getattr(instance, "freq", 1)
         data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
         if instance.velocimetry is not None:
