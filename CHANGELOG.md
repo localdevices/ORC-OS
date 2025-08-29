@@ -1,3 +1,25 @@
+## [0.2.1] - 2025-08-29
+
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- A bug in the frames used for water level detection. Only the first frame was used. Now all frames as selected
+  by the user are used. This is particularly important for videos that are pre-processed with time range for water
+  level detection.
+
+### Security
+
+
 ## [0.2.0] - 2025-08-15
 ### Added
 **Less back-end, more front-end**. This release focuses on allowing a user to organize
