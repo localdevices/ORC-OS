@@ -261,7 +261,7 @@ class VideoResponse(VideoBase, RemoteModel):
         if self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image:
             files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
         # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
-        response_data = super().sync_remote(session=session, endpoint=endpoint, data=data, files=files, timeout=15)
+        response_data = super().sync_remote(session=session, endpoint=endpoint, data=data, files=files, timeout=60)
         if response_data is not None:
             response_data.pop("camera_config", None)
             response_data.pop("created_at", None)
