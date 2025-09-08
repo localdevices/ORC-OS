@@ -290,33 +290,32 @@ async def do_update(backup_distribution=False):
                     )
                     await _rollback_backend(e)
 
-                    if api_update_success:
-                        try:
-                            # Deploy frontend build
-                            await asyncio.sleep(1)
-                            await modify_state_update_event(True, "Deploying frontend...")
-                            print("Deploying frontend...")
-                            # await asyncio.sleep(1)
-                            www_root = os.path.join(orc_api.__home__, "www")
+                if api_update_success:
+                    try:
+                        # Deploy frontend build
+                        await asyncio.sleep(1)
+                        await modify_state_update_event(True, "Deploying frontend...")
+                        # await asyncio.sleep(1)
+                        www_root = os.path.join(orc_api.__home__, "www")
 
-                            # Backup current frontend build
-                            if os.path.isdir(www_root):
-                                www_root_backup = os.path.join(orc_api.__home__, "www_backup")
-                                os.makedirs(www_root_backup, exist_ok=True)
-                                if os.path.isdir(www_root_backup):
-                                    shutil.rmtree(www_root_backup)
-                                shutil.copytree(www_root, www_root_backup)
-                                # remove old distribution
-                                shutil.rmtree(www_root)
-                            # Copy new frontend build
-                            shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
-                        except Exception as e:
-                            await modify_state_update_event(
-                                True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
-                            )
-                            shutil.move(www_root_backup, www_root)
-                            # when this happens, also rollback the back-end
-                            await _rollback_backend(e)
+                        # Backup current frontend build
+                        if os.path.isdir(www_root):
+                            www_root_backup = os.path.join(orc_api.__home__, "www_backup")
+                            os.makedirs(www_root_backup, exist_ok=True)
+                            if os.path.isdir(www_root_backup):
+                                shutil.rmtree(www_root_backup)
+                            shutil.copytree(www_root, www_root_backup)
+                            # remove old distribution
+                            shutil.rmtree(www_root)
+                        # Copy new frontend build
+                        shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
+                    except Exception as e:
+                        await modify_state_update_event(
+                            True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
+                        )
+                        shutil.move(www_root_backup, www_root)
+                        # when this happens, also rollback the back-end
+                        await _rollback_backend(e)
                 # Everything complete, we can now move the temporary ORC API install to its final destination,
                 # this is the most risky part, so MUST happen at the latest latest stage.
                 shutil.rmtree(base_dir)
