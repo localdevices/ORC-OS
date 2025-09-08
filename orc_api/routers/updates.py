@@ -247,7 +247,8 @@ async def do_update(backup_distribution=False):
 
                 # Download and extract frontend build
                 frontend_content = await download_release_asset(
-                    frontend_asset["browser_download_url"], expected_sha256=frontend_asset["digest"].strip("sha256:")
+                    frontend_asset["browser_download_url"],
+                    expected_sha256=frontend_asset["digest"].removeprefix("sha256:"),
                 )
                 await unzip_frontend(frontend_content, temp_dir)
                 await asyncio.sleep(1)
