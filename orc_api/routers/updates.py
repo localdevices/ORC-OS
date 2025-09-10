@@ -417,12 +417,15 @@ async def update_status_ws(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print("WebSocket disconnected")
-        # websocket_conns.remove(websocket)
+        if websocket in websocket_conns:
+            websocket_conns.remove(websocket)
 
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
-        websocket_conns.remove(websocket)
+        if websocket in websocket_conns:
+            websocket_conns.remove(websocket)
+        await websocket.close()
 
 
 async def modify_state_update_event(is_updating: bool, last_status: Optional[str] = None):

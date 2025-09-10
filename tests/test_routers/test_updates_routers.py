@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from orc_api.main import app
 from orc_api.routers.updates import clear_directory, copy_directory_content, do_update, router
 
 client = TestClient(router)
@@ -204,3 +205,39 @@ def test_copy_content(tmpdir):
     copy_directory_content(tmpdir1, tmpdir2)
     # check if the file is copied
     assert tmpdir2.join("test.txt").exists()
+
+
+# also test the websocket
+
+
+@pytest.fixture
+def websocket_client():
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.mark.asyncio
+async def test_update_status_ws_connection(websocket_client):
+    with websocket_client.websocket_connect("/updates/status_ws") as websocket:
+        data = websocket.receive_json()
+        assert "is_updating" in data
+        assert "status" in data
+
+
+@pytest.mark.asyncio
+async def test_update_status_ws_message_handling(websocket_client):
+    with websocket_client.websocket_connect("/updates/status_ws") as websocket:
+
+        def mock_status_update():
+            return {"is_updating": True, "status": "In Progress"}
+
+        # Simulate sending a message to the client
+        status_message = mock_status_update()
+        websocket.send_json(status_message)
+
+
+@pytest.mark.asyncio
+async def test_update_status_ws_disconnect_handling(websocket_client):
+    """Check if client gracefully disconnects."""
+    with websocket_client.websocket_connect("/updates/status_ws") as websocket:
+        websocket.close(code=1001)
