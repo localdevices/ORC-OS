@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,13 +48,13 @@ def mock_download_release_asset():
 
 @pytest.fixture
 def mock_migrate_dbase():
-    with patch("orc_api.routers.updates.migrate_dbase", new_callable=AsyncMock) as mock_migrate:
+    with patch("orc_api.routers.updates.migrate_dbase", new_callable=Mock) as mock_migrate:
         yield mock_migrate
 
 
 @pytest.fixture
 def mock_os_exit():
-    with patch("os._exit", new_callable=AsyncMock) as mock_exit:
+    with patch("os._exit", new_callable=Mock) as mock_exit:
         yield mock_exit
 
 
@@ -79,8 +79,10 @@ def mock_shutil_operations():
         patch("shutil.copyfile") as mock_copyfile,
         patch("shutil.copytree") as mock_copytree,
         patch("shutil.rmtree") as mock_rmtree,
+        patch("orc_api.routers.updates.clear_directory") as mock_clear_directory,
+        patch("orc_api.routers.updates.copy_directory_content") as mock_copy_directory_content,
     ):
-        yield mock_copyfile, mock_copytree, mock_rmtree
+        yield mock_copyfile, mock_copytree, mock_rmtree, mock_clear_directory, mock_copy_directory_content
 
 
 @pytest.fixture
@@ -120,7 +122,13 @@ async def test_do_update_success(
     mock_os_exit,
 ):
     # Mock success for all operations
-    mock_shutil_copyfile, mock_shutil_copytree, mock_shutil_rmtree = mock_shutil_operations
+    (
+        mock_shutil_copyfile,
+        mock_shutil_copytree,
+        mock_shutil_rmtree,
+        mock_clear_directory,
+        mock_copy_directory_content,
+    ) = mock_shutil_operations
 
     _ = await do_update()
 
@@ -131,7 +139,9 @@ async def test_do_update_success(
     mock_migrate_dbase.assert_called_once()
     mock_shutil_copyfile.assert_called()
     mock_shutil_copytree.assert_called()
-    mock_shutil_rmtree.assert_called()
+    mock_clear_directory.assert_called_once()
+    mock_copy_directory_content.assert_called_once()
+    # mock_shutil_rmtree.assert_called()
     mock_unzip_frontend.assert_awaited()
 
 
