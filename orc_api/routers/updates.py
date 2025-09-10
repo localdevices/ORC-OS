@@ -43,6 +43,31 @@ websocket_conns: List[WebSocket] = []
 state_update_queue = asyncio.Queue()
 
 
+def clear_directory(path):
+    """Clear content in path."""
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f"Failed to delete {file_path}: {e}")
+
+
+def copy_directory_content(src, dst):
+    """Copy only content within src folder to dst while preserving dst root folder item."""
+    # Copy new files into existing folder
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d)
+        else:
+            shutil.copy2(s, d)
+
+
 async def check_github_version():
     """Check the remote latest version of the API from GitHub.
 
@@ -305,10 +330,12 @@ async def do_update(backup_distribution=False):
                             if os.path.isdir(www_root_backup):
                                 shutil.rmtree(www_root_backup)
                             shutil.copytree(www_root, www_root_backup)
-                            # remove old distribution
-                            shutil.rmtree(www_root)
-                        # Copy new frontend build
-                        shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
+                            # remove files and folders inside www_root
+                            clear_directory(www_root)
+                            copy_directory_content(os.path.join(temp_dir, "frontend"), www_root)
+                        else:
+                            # this normally should not happen as directory ownership and rights are carefully managed
+                            shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
                     except Exception as e:
                         await modify_state_update_event(
                             True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
