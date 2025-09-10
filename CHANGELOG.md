@@ -1,3 +1,29 @@
+## [0.2.2] - 2025-09-10
+
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- unit test for database creation with alembic. Essential to gaurantee migration consistency.
+
+### Changed
+- OTA updates now only replacing content of www folder to preserve folder rights and ownership
+- API approached via relative url /api to prevent CORS issues
+- increased timeout for video uploads to ensure enough time for larger videos is available.
+
+### Deprecated
+### Removed
+### Fixed
+- OTA update process front end placement fixed (was not executed)
+- fixed SHA256 not recognized duirng front end download
+
+### Security
+
 ## [0.2.1] - 2025-08-29
 
 This is a **preproduction alpha release**, not yet fit for production and operational environments.

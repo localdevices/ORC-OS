@@ -81,6 +81,7 @@ def session_empty(tmpdir):
         # Close the session and drop all tables after tests run
         session.close()
         db.Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 # Example fixture

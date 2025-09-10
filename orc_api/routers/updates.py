@@ -43,6 +43,31 @@ websocket_conns: List[WebSocket] = []
 state_update_queue = asyncio.Queue()
 
 
+def clear_directory(path):
+    """Clear content in path."""
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f"Failed to delete {file_path}: {e}")
+
+
+def copy_directory_content(src, dst):
+    """Copy only content within src folder to dst while preserving dst root folder item."""
+    # Copy new files into existing folder
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d)
+        else:
+            shutil.copy2(s, d)
+
+
 async def check_github_version():
     """Check the remote latest version of the API from GitHub.
 
@@ -247,7 +272,8 @@ async def do_update(backup_distribution=False):
 
                 # Download and extract frontend build
                 frontend_content = await download_release_asset(
-                    frontend_asset["browser_download_url"], expected_sha256=frontend_asset["digest"].strip("sha256:")
+                    frontend_asset["browser_download_url"],
+                    expected_sha256=frontend_asset["digest"].removeprefix("sha256:"),
                 )
                 await unzip_frontend(frontend_content, temp_dir)
                 await asyncio.sleep(1)
@@ -272,8 +298,8 @@ async def do_update(backup_distribution=False):
                         ],
                         check=True,
                     )
-                    await asyncio.sleep(1)
                     await modify_state_update_event(True, "Updating dependencies...")
+                    await asyncio.sleep(1)
                     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", repo_url], check=True)
                     # perform database migrations from the temporary install location of the orc api
                     script_location = os.path.join(temp_dir, "orc-os-update", "orc_api", "alembic")
@@ -289,33 +315,34 @@ async def do_update(backup_distribution=False):
                     )
                     await _rollback_backend(e)
 
-                    if api_update_success:
-                        try:
-                            # Deploy frontend build
-                            await asyncio.sleep(1)
-                            await modify_state_update_event(True, "Deploying frontend...")
-                            print("Deploying frontend...")
-                            # await asyncio.sleep(1)
-                            www_root = os.path.join(orc_api.__home__, "www")
+                if api_update_success:
+                    try:
+                        # Deploy frontend build
+                        await asyncio.sleep(1)
+                        await modify_state_update_event(True, "Deploying frontend...")
+                        # await asyncio.sleep(1)
+                        www_root = os.path.join(orc_api.__home__, "www")
 
-                            # Backup current frontend build
-                            if os.path.isdir(www_root):
-                                www_root_backup = os.path.join(orc_api.__home__, "www_backup")
-                                os.makedirs(www_root_backup, exist_ok=True)
-                                if os.path.isdir(www_root_backup):
-                                    shutil.rmtree(www_root_backup)
-                                shutil.copytree(www_root, www_root_backup)
-                                # remove old distribution
-                                shutil.rmtree(www_root)
-                            # Copy new frontend build
+                        # Backup current frontend build
+                        if os.path.isdir(www_root):
+                            www_root_backup = os.path.join(orc_api.__home__, "www_backup")
+                            os.makedirs(www_root_backup, exist_ok=True)
+                            if os.path.isdir(www_root_backup):
+                                shutil.rmtree(www_root_backup)
+                            shutil.copytree(www_root, www_root_backup)
+                            # remove files and folders inside www_root
+                            clear_directory(www_root)
+                            copy_directory_content(os.path.join(temp_dir, "frontend"), www_root)
+                        else:
+                            # this normally should not happen as directory ownership and rights are carefully managed
                             shutil.copytree(os.path.join(temp_dir, "frontend"), www_root)
-                        except Exception as e:
-                            await modify_state_update_event(
-                                True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
-                            )
-                            shutil.move(www_root_backup, www_root)
-                            # when this happens, also rollback the back-end
-                            await _rollback_backend(e)
+                    except Exception as e:
+                        await modify_state_update_event(
+                            True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
+                        )
+                        shutil.move(www_root_backup, www_root)
+                        # when this happens, also rollback the back-end
+                        await _rollback_backend(e)
                 # Everything complete, we can now move the temporary ORC API install to its final destination,
                 # this is the most risky part, so MUST happen at the latest latest stage.
                 shutil.rmtree(base_dir)
@@ -390,12 +417,15 @@ async def update_status_ws(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print("WebSocket disconnected")
-        # websocket_conns.remove(websocket)
+        if websocket in websocket_conns:
+            websocket_conns.remove(websocket)
 
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
-        websocket_conns.remove(websocket)
+        if websocket in websocket_conns:
+            websocket_conns.remove(websocket)
+        await websocket.close()
 
 
 async def modify_state_update_event(is_updating: bool, last_status: Optional[str] = None):

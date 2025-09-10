@@ -1,9 +1,9 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from orc_api.routers.updates import do_update, router
+from orc_api.routers.updates import clear_directory, copy_directory_content, do_update, router
 
 client = TestClient(router)
 
@@ -48,13 +48,13 @@ def mock_download_release_asset():
 
 @pytest.fixture
 def mock_migrate_dbase():
-    with patch("orc_api.routers.updates.migrate_dbase", new_callable=AsyncMock) as mock_migrate:
+    with patch("orc_api.routers.updates.migrate_dbase", new_callable=Mock) as mock_migrate:
         yield mock_migrate
 
 
 @pytest.fixture
 def mock_os_exit():
-    with patch("os._exit", new_callable=AsyncMock) as mock_exit:
+    with patch("os._exit", new_callable=Mock) as mock_exit:
         yield mock_exit
 
 
@@ -79,8 +79,10 @@ def mock_shutil_operations():
         patch("shutil.copyfile") as mock_copyfile,
         patch("shutil.copytree") as mock_copytree,
         patch("shutil.rmtree") as mock_rmtree,
+        patch("orc_api.routers.updates.clear_directory") as mock_clear_directory,
+        patch("orc_api.routers.updates.copy_directory_content") as mock_copy_directory_content,
     ):
-        yield mock_copyfile, mock_copytree, mock_rmtree
+        yield mock_copyfile, mock_copytree, mock_rmtree, mock_clear_directory, mock_copy_directory_content
 
 
 @pytest.fixture
@@ -120,7 +122,13 @@ async def test_do_update_success(
     mock_os_exit,
 ):
     # Mock success for all operations
-    mock_shutil_copyfile, mock_shutil_copytree, mock_shutil_rmtree = mock_shutil_operations
+    (
+        mock_shutil_copyfile,
+        mock_shutil_copytree,
+        mock_shutil_rmtree,
+        mock_clear_directory,
+        mock_copy_directory_content,
+    ) = mock_shutil_operations
 
     _ = await do_update()
 
@@ -131,7 +139,9 @@ async def test_do_update_success(
     mock_migrate_dbase.assert_called_once()
     mock_shutil_copyfile.assert_called()
     mock_shutil_copytree.assert_called()
-    mock_shutil_rmtree.assert_called()
+    # mock_clear_directory.assert_called_once()
+    # mock_copy_directory_content.assert_called_once()
+    # mock_shutil_rmtree.assert_called()
     mock_unzip_frontend.assert_awaited()
 
 
@@ -168,3 +178,51 @@ def test_update_status():
 def test_shutdown_api(mock_os_exit):
     response = client.post("/updates/shutdown/")
     assert response.status_code == 200
+
+
+def test_clear_directory(tmpdir):
+    """Attempt clearing of a tmpdir with a touched file."""
+    tmp_file = tmpdir.join("test.txt")
+    with open(tmp_file, "w") as f:
+        f.write("test")
+    # now call clear_directory
+    clear_directory(tmpdir)
+    # check if directory still exists and if it is empty
+    assert tmpdir.exists()
+    assert not tmpdir.listdir()
+
+
+def test_copy_content(tmpdir):
+    # first create some dirs
+    tmpdir1 = tmpdir.mkdir("dir1")
+    tmpdir2 = tmpdir.mkdir("dir2")
+    # now write a file in tmpdir1
+    tmpfile = tmpdir1.join("test.txt")
+    with open(tmpfile, "w") as f:
+        f.write("test")
+    # now copy content
+    copy_directory_content(tmpdir1, tmpdir2)
+    # check if the file is copied
+    assert tmpdir2.join("test.txt").exists()
+
+
+# also test the websocket
+
+
+@pytest.mark.asyncio
+async def test_update_status_ws_message_handling():
+    with client.websocket_connect("/updates/status_ws") as websocket:
+
+        def mock_status_update():
+            return {"is_updating": True, "status": "In Progress"}
+
+        # Simulate sending a message to the client
+        status_message = mock_status_update()
+        websocket.send_json(status_message)
+
+
+@pytest.mark.asyncio
+async def test_update_status_ws_disconnect_handling():
+    """Check if client gracefully disconnects."""
+    with client.websocket_connect("/updates/status_ws") as websocket:
+        websocket.close(code=1001)

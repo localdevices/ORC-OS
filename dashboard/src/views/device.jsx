@@ -36,17 +36,19 @@ const Device = () => {
     const {setMessageInfo} = useMessage();
 
     const fetchDevice = async () => {
-        const response = await api.get('/device/');
+        const randomQuery = `cacheBust=${Date.now()}`
+        const response = await api.get(`/device/?${randomQuery}`);
         updateDevice(response.data)
         setDeviceStatus(response.data.status);
     };
     const fetchDeviceStatuses = async () => {
-        try {
-            const response = await api.get('/device/statuses/');
-            setDeviceStatuses(response.data); // Assuming API returns array of statuses
-        } catch (err) {
-            console.log(`Failed to fetch device statuses. ${err}`);
-        }
+      const randomQuery = `cacheBust=${Date.now()}`
+      try {
+        const response = await api.get(`/device/statuses/?${randomQuery}`);
+        setDeviceStatuses(response.data); // Assuming API returns array of statuses
+      } catch (err) {
+        console.log(`Failed to fetch device statuses. ${err}`);
+      }
     };
     // helper function to get status name from status value
     const getStatusName = (statusValue) => {
