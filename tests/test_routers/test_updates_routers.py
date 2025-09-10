@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from orc_api.routers.updates import do_update, router
+from orc_api.routers.updates import clear_directory, copy_directory_content, do_update, router
 
 client = TestClient(router)
 
@@ -178,3 +178,29 @@ def test_update_status():
 def test_shutdown_api(mock_os_exit):
     response = client.post("/updates/shutdown/")
     assert response.status_code == 200
+
+
+def test_clear_directory(tmpdir):
+    """Attempt clearing of a tmpdir with a touched file."""
+    tmp_file = tmpdir.join("test.txt")
+    with open(tmp_file, "w") as f:
+        f.write("test")
+    # now call clear_directory
+    clear_directory(tmpdir)
+    # check if directory still exists and if it is empty
+    assert tmpdir.exists()
+    assert not tmpdir.listdir()
+
+
+def test_copy_content(tmpdir):
+    # first create some dirs
+    tmpdir1 = tmpdir.mkdir("dir1")
+    tmpdir2 = tmpdir.mkdir("dir2")
+    # now write a file in tmpdir1
+    tmpfile = tmpdir1.join("test.txt")
+    with open(tmpfile, "w") as f:
+        f.write("test")
+    # now copy content
+    copy_directory_content(tmpdir1, tmpdir2)
+    # check if the file is copied
+    assert tmpdir2.join("test.txt").exists()
