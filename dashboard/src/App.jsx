@@ -118,7 +118,7 @@ const App = () => {
         };
         // Start checking every 5 seconds
         checkApiAvailability(); // Check immediately on mount
-        interval = setInterval(checkApiAvailability, 10000);
+        interval = setInterval(checkApiAvailability, 1000000);
 
         // Cleanup to prevent memory leaks
         return () => clearInterval(interval);

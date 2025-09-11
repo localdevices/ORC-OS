@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import List, Optional, Union
 from zipfile import ZIP_DEFLATED
 
+import aiofiles
 import cv2
 import zipstream
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile  # Requests holds the app
@@ -325,14 +326,29 @@ async def upload_video(
     # Save file to disk
     rel_file_path = os.path.join("videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), file.filename)
     abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
-    with open(abs_file_path, "wb") as f:
-        f.write(await file.read())
+
+    # Save the file asynchronously
+    async with aiofiles.open(abs_file_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):  # Read in 1MB chunks
+            await f.write(chunk)
+    # Save the file using chunked reading/writing
+    # with open(abs_file_path, "wb") as f:
+    #     while True:
+    #         chunk = await file.read(1024 * 1024)  # Read in 1MB chunks
+    #         if not chunk:
+    #             break  # Stop when no more data is left
+    #         f.write(chunk)
+
+    #
+    # with open(abs_file_path, "wb") as f:
+    #     f.write(await file.read())
 
     # now update the video instance
     video_instance.file = rel_file_path
     # video_instance.thumbnail = rel_thumb_path
     db.commit()
     db.refresh(video_instance)
+    print("I UPLOADED A VIDEO")
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
 
