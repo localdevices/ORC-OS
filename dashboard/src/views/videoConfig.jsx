@@ -74,7 +74,7 @@ const VideoConfig = () => {
         setFrameCount(response.data)
       })
       .catch((err) => console.error("Error fetching frame count:", err))
-    api.get(`/video/${videoId}`)
+    api.get(`/video/${videoId}/`)
       .then((response) => {
         setVideo(response.data);
         console.log("VIDEO INFO:", response.data);

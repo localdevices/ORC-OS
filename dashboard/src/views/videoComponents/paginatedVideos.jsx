@@ -342,7 +342,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                 <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
                 <td>{video.timestamp.slice(0, 19)}</td>
                 <td><img
-                  src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}
+                  src={`${api.defaults.baseURL}/video/${video.id}/thumbnail/`}
                   onError={(e) => {
                     if (e.target.parentNode.querySelector(".fallback-container")) {
                       // Avoid creating multiple fallback containers
@@ -482,7 +482,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                             <div>Video file not found on system</div>
                           ) : (
                             <video
-                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play`}
+                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play/`}
                               controls
                               width="100%"
                               onError={() => setVideoError(true)}
