@@ -33,14 +33,14 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/auth/set_password", params=credentials)
-    response = client.post("/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password", params=credentials)
+    response = client.post("/api/auth/login", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
 
 def test_get_wl_settings_empty(auth_client):
-    response = auth_client.get("/water_level/")
+    response = auth_client.get("/api/water_level/")
     assert response.status_code == 200
     assert response.json() is None
 
@@ -48,7 +48,7 @@ def test_get_wl_settings_empty(auth_client):
 def test_post_wl_settings(auth_client):
     wl_settings = WaterLevelCreate()
     wl = wl_settings.model_dump(exclude_none=True)
-    response = auth_client.post("/water_level/", json=wl)
+    response = auth_client.post("/api/water_level/", json=wl)
     assert response.status_code == 201
     # check if database is updated
     session = next(get_db_override())

@@ -33,8 +33,8 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/auth/set_password", params=credentials)
-    response = client.post("/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password", params=credentials)
+    response = client.post("/api/auth/login", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
@@ -49,7 +49,7 @@ def test_add_filled_video_config(recipe, cross_section, cam_config, auth_client)
         cross_section_wl={"name": "some_cross_section_wl", "features": cross_section},
     )
     video_config_dict = video_config.model_dump(exclude_none=True, mode="json")
-    response = auth_client.post("/video_config", json=video_config_dict)
+    response = auth_client.post("/api/video_config", json=video_config_dict)
     video_config_stored = VideoConfigResponse.model_validate(response.json())
     video_config_base = VideoConfigBase.model_validate(response.json())
     assert response.status_code == 201
@@ -63,7 +63,7 @@ def test_add_filled_video_config(recipe, cross_section, cam_config, auth_client)
     video_config_base.cross_section_wl.name = "new_name_cs_wl"
     video_config_base.camera_config.name = "new_name_cam_config"
     video_config_dict = video_config_base.model_dump(exclude_none=True, mode="json")
-    response = auth_client.post("/video_config", json=video_config_dict)
+    response = auth_client.post("/api/video_config", json=video_config_dict)
     video_config_update = VideoConfigResponse.model_validate(response.json())
     assert video_config_update.id == 1
     assert video_config_update.recipe.id == 1
@@ -79,6 +79,6 @@ def test_add_filled_video_config(recipe, cross_section, cam_config, auth_client)
 def test_add_empty_video_config(auth_client):
     video_config = VideoConfigBase(name="hello")
     video_config_dict = video_config.model_dump(exclude_none=True)
-    _ = auth_client.get("/callback_url")
-    response = auth_client.post("/video_config", json=video_config_dict)
+    _ = auth_client.get("/api/callback_url")
+    response = auth_client.post("/api/video_config", json=video_config_dict)
     assert response.status_code == 201

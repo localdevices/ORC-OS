@@ -143,8 +143,8 @@ const ActionVideos = (
 ActionVideos.propTypes = {
   data: PropTypes.array.isRequired,
   selectedIds: PropTypes.array.isRequired,
-  startDate: PropTypes.string.isRequired,
-  endDate: PropTypes.string.isRequired,
+  startDate: PropTypes.string,
+  endDate: PropTypes.string,
   setData: PropTypes.func.isRequired,
   setSelectedIds: PropTypes.func.isRequired,
   setStartDate: PropTypes.func.isRequired,

@@ -34,8 +34,8 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/auth/set_password", params=credentials)
-    response = client.post("/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password", params=credentials)
+    response = client.post("/api/auth/login", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
@@ -50,7 +50,7 @@ def test_list_videos_no_params(auth_client):
     db_session.add_all([video1, video2])
     db_session.commit()
 
-    response = auth_client.get("/video/")
+    response = auth_client.get("/api/video/")
     assert response.status_code == 200
     assert len(response.json()) == 2
     # delete videos before continuing
@@ -68,7 +68,7 @@ def test_list_videos_with_time_range(auth_client):
     db_session.commit()
 
     response = auth_client.get(
-        "/video/", params={"start": now.isoformat(), "stop": (now + timedelta(hours=1)).isoformat()}
+        "/api/video/", params={"start": now.isoformat(), "stop": (now + timedelta(hours=1)).isoformat()}
     )
     assert response.status_code == 200
     assert len(response.json()) == 1
@@ -84,7 +84,7 @@ def test_list_videos_with_status(auth_client):
     db_session.add_all([video1, video2])
     db_session.commit()
 
-    response = auth_client.get("/video/", params={"status": 1})
+    response = auth_client.get("/api/video/", params={"status": 1})
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["status"] == 1
@@ -99,7 +99,7 @@ def test_list_videos_with_pagination(auth_client):
     db_session.add_all(videos)
     db_session.commit()
 
-    response = auth_client.get("/video/", params={"first": 2, "count": 2})
+    response = auth_client.get("/api/video/", params={"first": 2, "count": 2})
     assert response.status_code == 200
     assert len(response.json()) == 2
     db_session.query(models.Video).delete()

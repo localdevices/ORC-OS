@@ -61,36 +61,47 @@ def client():
 def test_check_and_setup_password(client):
     """Inserts a test password into the in-memory database before testing."""
     # first check if there is no password yet
-    r = client.get("/auth/password_available")
+    r = client.get("/api/auth/password_available")
     assert r.status_code == 200
     assert r.json() is False
+    # try a validation without cookie
+    r = client.get("/api/auth/verify")
+    assert r.status_code == 401
+    assert "Token missing" in r.json()["detail"]
     # now set a password.
-    r = client.post("/auth/set_password", params={"password": "welcome123"})
+    r = client.post("/api/auth/set_password", params={"password": "welcome123"})
     assert r.status_code == 200
     assert r.json()["message"] == "Password set successfully."
     # now the password_available should return true
-    r = client.get("/auth/password_available")
+    r = client.get("/api/auth/password_available")
     assert r.status_code == 200
     assert r.json() is True
     # you should now not be allowed to change the password without being logged in
-    client.post("/auth/logout")
-    r = client.post("/auth/set_password", params={"password": "cannot_change_password"})
+    client.post("/api/auth/logout")
+    r = client.post("/api/auth/set_password", params={"password": "cannot_change_password"})
     assert r.status_code == 401
     # let's login with a wrong password
-    r = client.post("/auth/login", params={"password": "wrong_password"})
+    r = client.post("/api/auth/login", params={"password": "wrong_password"})
     assert r.status_code == 401
     # Now login with the right password and try to change the password
-    r = client.post("/auth/login", params={"password": "welcome123"})
+    r = client.post("/api/auth/login", params={"password": "welcome123"})
     assert r.status_code == 200
-    r = client.post("/auth/set_password", params={"password": "new_password"})
+    r = client.post("/api/auth/set_password", params={"password": "new_password"})
     # now logout and check if indeed you are no longer able to change password
-    r = client.post("/auth/logout")
+    r = client.post("/api/auth/logout")
     assert r.status_code == 200
     # now log back in with the new password
-    r = client.post("/auth/login", params={"password": "new_password"})
+    r = client.post("/api/auth/login", params={"password": "new_password"})
     assert r.status_code == 200
-    # and logout agian
-    r = client.post("/auth/logout")
+    # verify the token by supplying the cookie
+    _ = client.post("/api/auth/login", params={"password": "new_password"})
+    r = client.get("/api/auth/verify")
+    assert r.status_code == 200
+    assert r.json()["payload"] is not None
+    r = client.post("/api/auth/set_password", params={"password": "welcome123"})
+
+    # and logout again
+    r = client.post("/api/auth/logout")
     assert r.status_code == 200
 
     #
@@ -123,17 +134,3 @@ def test_create_token_is_string():
     """Test if the generated token is a string."""
     token = create_token()
     assert isinstance(token, str)
-
-
-def test_password_available_with_password(client, setup_password):
-    """Test endpoint when a password exists in the database."""
-    response = client.get("/password_available")
-    assert response.status_code == 200
-    assert response.json() is True
-
-
-def test_password_available_without_password(client):
-    """Test endpoint when no password exists in the database."""
-    response = client.get("/password_available")
-    assert response.status_code == 200
-    assert response.json() is False

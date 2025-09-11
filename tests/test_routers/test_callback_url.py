@@ -37,8 +37,8 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/auth/set_password", params=credentials)
-    response = client.post("/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password", params=credentials)
+    response = client.post("/api/auth/login", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
@@ -57,7 +57,7 @@ def mocked_db_response():
 
 
 def test_get_callback_url_empty(auth_client):
-    response = auth_client.get("/callback_url/")
+    response = auth_client.get("/api/callback_url/")
     assert response.status_code == 200
     assert response.json() is None
 
@@ -73,7 +73,7 @@ def test_get_callback_url_success(mocked_db_response, auth_client):
     # check if the data can be retrieved
     app.dependency_overrides[get_db] = get_db_override
 
-    response = auth_client.get("/callback_url/")
+    response = auth_client.get("/api/callback_url/")
     assert response.status_code == 200
     print()
     assert response.json()["token_access"] == mocked_db_response["token_access"]
@@ -92,7 +92,7 @@ def test_update_callback_url_success(mocker, auth_client):
         "user": "some_user@some_host.com",
         "password": "secure_password",
     }
-    response = auth_client.post("/callback_url/", json=request_body)
+    response = auth_client.post("/api/callback_url/", json=request_body)
 
     assert response.status_code == 201
     # mock_add_callback.assert_called_once()
@@ -111,7 +111,7 @@ def test_update_callback_url_localhost_success(mocker, auth_client):
         "user": "some_user@some_host.com",
         "password": "secure_password",
     }
-    response = auth_client.post("/callback_url/", json=request_body)
+    response = auth_client.post("/api/callback_url/", json=request_body)
 
     assert response.status_code == 201
 
@@ -126,7 +126,7 @@ def test_update_callback_url_invalid_tokens(mocker, auth_client):
         "user": "some_user@some_host.com",
         "password": "secure_password",
     }
-    response = auth_client.post("/callback_url/", json=request_body)
+    response = auth_client.post("/api/callback_url/", json=request_body)
 
     assert response.status_code == 403
     assert response.text == "Error: Invalid tokens"
@@ -137,7 +137,7 @@ def test_update_callback_url_missing_fields(auth_client):
     request_body = {
         "password": "secure_password",
     }
-    response = auth_client.post("/callback_url/", json=request_body)
+    response = auth_client.post("/api/callback_url/", json=request_body)
     assert response.status_code == 422
 
 
@@ -147,7 +147,7 @@ def test_update_callback_url_invalid_url_format(auth_client):
         "user": "some_user@some_host.com",
         "password": "secure_password",
     }
-    response = auth_client.post("/callback_url/", json=request_body)
+    response = auth_client.post("/api/callback_url/", json=request_body)
 
     assert response.status_code == 422
 
@@ -164,7 +164,7 @@ def test_update_callback_url_real_input(auth_client):
         "user": os.getenv("LIVEORC_EMAIL"),
         "password": os.getenv("LIVEORC_PASSWORD"),
     }
-    response = auth_client.post("/callback_url/", json=request_body)
+    response = auth_client.post("/api/callback_url/", json=request_body)
     print(response.json())
     assert response.status_code == 201
 
@@ -182,7 +182,7 @@ def test_get_set_refresh_tokens_success(session_config, mocker, monkeypatch, aut
         "user": "some_user@some_host.com",
         "password": "secure_password",
     }
-    _ = client.post("/callback_url/", json=request_body)
+    _ = client.post("/api/callback_url/", json=request_body)
 
     # create a mocked response, which should then be stored in the database
     mock_response = mocker.MagicMock(spec=Response)
