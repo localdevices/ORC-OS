@@ -1,5 +1,5 @@
 import {useState, useEffect} from 'react';
-import api from '../api';
+import api from '../api/api.js';
 import {useMessage} from '../messageContext';
 
 const DiskManagement = ({setRequiresRestart}) => {
@@ -54,7 +54,17 @@ const DiskManagement = ({setRequiresRestart}) => {
         // get rid of created_at field as this must be autocompleted
         try {
             delete filteredData.created_at;
-            const response = await api.post('/disk_management/', filteredData);
+            const response = await api.post(
+              '/disk_management/', {
+                min_free_space: filteredData.min_free_space,
+                critical_space: filteredData.critical_space,
+                frequency: filteredData.frequency,
+              },
+              {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true,
+              }
+            );
             if (!response.status === 200) {
                 const errorData = await response.json()
                 throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);

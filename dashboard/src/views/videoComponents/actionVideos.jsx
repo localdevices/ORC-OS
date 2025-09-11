@@ -1,7 +1,7 @@
 import FilterDates from "../../utils/filterDates.jsx";
 import DownloadModal from "./downloadModal.jsx";
 import DeleteModal from "./deleteModal.jsx";
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {get_videos_ids} from "../../utils/apiCalls.jsx";
 import {useState} from "react";
 
@@ -143,8 +143,8 @@ const ActionVideos = (
 ActionVideos.propTypes = {
   data: PropTypes.array.isRequired,
   selectedIds: PropTypes.array.isRequired,
-  startDate: PropTypes.string.isRequired,
-  endDate: PropTypes.string.isRequired,
+  startDate: PropTypes.string,
+  endDate: PropTypes.string,
   setData: PropTypes.func.isRequired,
   setSelectedIds: PropTypes.func.isRequired,
   setStartDate: PropTypes.func.isRequired,

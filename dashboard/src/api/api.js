@@ -1,14 +1,38 @@
 import axios from 'axios'
 
-// Ensure API_BASE_URL is defined
-// if (!import.meta.env.VITE_API_BASE_URL) {
-//    throw new Error('VITE_API_BASE_URL environment variable is not defined!');
-// }
+const API_BASE = import.meta.env.VITE_ORC_API_BASE ?? '/api';
+const API_DIRECT = import.meta.env.VITE_ORC_API_DIRECT ?? '/api';  // only in dev mode
 
 const api = axios.create({
-   // baseURL: `http://${window.location.hostname}:5000`
-   baseURL: `/api`
+   baseURL: API_BASE,
+   // baseURL: `http://localhost:5000`,
+   withCredentials: true
 });
+
+// intercept requests and modify end point if it concerns a file upload, only used in dev mode
+api.interceptors.request.use((config) => {
+  if (config.method === "post" && config.headers["Content-Type"] === "multipart/form-data") {
+    config.baseURL = API_DIRECT; // bypass proxy for uploads during development, this allows for larger file requests
+  }
+  if (config.method === "get" && config.url.includes("/play/")) {
+    config.baseURL = API_DIRECT;
+  }
+  return config;
+});
+
+// behaviour when a 401 (not authorized) response is received
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+    }
+    return Promise.reject(error);
+  }
+
+)
 
 export default api;
 

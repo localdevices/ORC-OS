@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import api from "../api";
+import api from "../api/api.js";
 import {run_video} from "../utils/apiCalls.jsx"
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
@@ -74,7 +74,7 @@ const VideoConfig = () => {
         setFrameCount(response.data)
       })
       .catch((err) => console.error("Error fetching frame count:", err))
-    api.get(`/video/${videoId}`)
+    api.get(`/video/${videoId}/`)
       .then((response) => {
         setVideo(response.data);
         console.log("VIDEO INFO:", response.data);

@@ -1,16 +1,34 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import Modal from "react-modal"; // You can use any modal library or create your custom modal
 import "../../App.css"
-import api from "../../api.js";
+import api from "../../api/api.js";
 
 const VideoUploader = () => {
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState(""); // State for date and time
 
+  useEffect(() => {
+    const preventDefault = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // Prevent unintentional drag-and-drop on the window
+    window.addEventListener("dragenter", preventDefault);
+    window.addEventListener("dragover", preventDefault);
+    window.addEventListener("drop", preventDefault);
+
+    return () => {
+      window.removeEventListener("dragenter", preventDefault);
+      window.removeEventListener("dragover", preventDefault);
+      window.removeEventListener("drop", preventDefault);
+    };
+  }, []);
+
+
   const onDrop = useCallback((acceptedFiles) => {
-    console.log(acceptedFiles)
     if (acceptedFiles && acceptedFiles[0]) {
       const file = acceptedFiles[0];
       if (!file.type.startsWith("video/")) {
@@ -24,7 +42,15 @@ const VideoUploader = () => {
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({
-    onDrop,
+    onDrop: (acceptedFiles) => {
+      console.log("onDrop trggered with: " , acceptedFiles)
+      onDrop(acceptedFiles);
+    },
+    onDropRejected: (rejectedFiles) => {
+      console.log("onDropRejected trggered with: " , rejectedFiles)
+
+    },
+
     accept: "video/*",
     multiple: false,
   });

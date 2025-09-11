@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 
 import Modal from "react-modal";
 
-import api from "../../api.js";
+import api from "../../api/api.js";
 import {
   FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass, FaExclamationTriangle
 } from "react-icons/fa";
@@ -62,7 +62,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     }
     api.get('/video/', {params: params_page}) // Retrieve list from app
       .then((response) => {
-        console.log("LOADING: ", isLoading)
         setData(response.data);
         // Calculate the index range for records to display
       })
@@ -75,8 +74,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     // also get the total count of filtered videos without retrieving all of them
     api.get('/video/count/', {params: params_total}) // integer as response
       .then((response) => {
-        console.log("TOTAL DATA", response.data)
-        console.log("LOADING: ", isLoading)
 
         setTotalDataCount(response.data);
       })
@@ -344,29 +341,31 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                 <td>{video.id}</td>
                 <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
                 <td>{video.timestamp.slice(0, 19)}</td>
-                <td><img
-                  src={`${api.defaults.baseURL}/video/${video.id}/thumbnail`}
-                  onError={(e) => {
-                    if (e.target.parentNode.querySelector(".fallback-container")) {
-                      // Avoid creating multiple fallback containers
-                      return;
-                    }
+                <td>
+                  <img
+                    src={`${api.defaults.baseURL}/video/${video.id}/thumbnail/`}
+                    onError={(e) => {
+                      if (e.target.parentNode.querySelector(".fallback-container")) {
+                        // Avoid creating multiple fallback containers
+                        return;
+                      }
 
-                    e.target.onerror = null;  // stop looping error behaviour
-                    e.target.style.display = "none";  // do not display default broken link icon
-                    // add a div with a nice icon in case the thumbnail fails
-                    const fallbackContainer = document.createElement("div"); // Add fallback icon dynamically
-                    fallbackContainer.style.display = "inline-block"
-                    fallbackContainer.classList.add("fallback-container");
-                    // add container
-                    e.target.parentNode.appendChild(fallbackContainer); // Append the fallback to td
-                    const root = createRoot(fallbackContainer);
-                    // render React icon into contains
-                    root.render(
-                      <FaExclamationTriangle size={16} color="red" title="Image not available"/>
-                    )
-                  }}
-                /></td>
+                      e.target.onerror = null;  // stop looping error behaviour
+                      e.target.style.display = "none";  // do not display default broken link icon
+                      // add a div with a nice icon in case the thumbnail fails
+                      const fallbackContainer = document.createElement("div"); // Add fallback icon dynamically
+                      fallbackContainer.style.display = "inline-block"
+                      fallbackContainer.classList.add("fallback-container");
+                      // add container
+                      e.target.parentNode.appendChild(fallbackContainer); // Append the fallback to td
+                      const root = createRoot(fallbackContainer);
+                      // render React icon into contains
+                      root.render(
+                        <FaExclamationTriangle size={16} color="red" title="Image not available"/>
+                      )
+                    }}
+                  />
+                </td>
                 <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
                 <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
                 <td>{getStatusIcon(video.status)}</td>
@@ -482,10 +481,10 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                         <label style={{minWidth: "100px"}}>Video:</label>
                         <div className="readonly">
                           {videoError ? (
-                            <div>Video file not found on system</div>
+                            <div>Video file not found or codec not available on your browser</div>
                           ) : (
                             <video
-                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play`}
+                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play/`}
                               controls
                               width="100%"
                               onError={() => setVideoError(true)}
@@ -498,7 +497,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                             <div>-</div>
                           ) : (
                             <img
-                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image`}
+                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image/`}
                               width="100%"
                               onError={() => setImageError(true)}/>
                           )}

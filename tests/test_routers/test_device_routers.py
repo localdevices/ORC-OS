@@ -1,3 +1,4 @@
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -5,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from orc_api.database import get_db
 from orc_api.db import Base
-from orc_api.main import app
+from orc_api.routers import device
 from orc_api.schemas.device import DeviceFormStatus
 
 # Database setup for testing
@@ -17,8 +18,12 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
+app = FastAPI()
+app.include_router(device.router)
 
-# @pytest.fixture(scope="module")
+client = TestClient(app)
+
+
 def get_db_override():
     db = TestingSessionLocal()
     try:

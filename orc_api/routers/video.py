@@ -9,7 +9,16 @@ from zipfile import ZIP_DEFLATED
 
 import cv2
 import zipstream
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile  # Requests holds the app
+from fastapi import (  # Requests holds the app
+    APIRouter,
+    Depends,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -222,8 +231,8 @@ async def delete_list_videos(request: DeleteVideosRequest, db: Session = Depends
     return None
 
 
-@router.get("/{id}/play/", response_class=FileResponse, status_code=200)
-async def play_video(id: int, db: Session = Depends(get_db)):
+@router.get("/{id}/play/", response_class=StreamingResponse, status_code=206)
+async def play_video(id: int, range: str = Header(None), db: Session = Depends(get_db)):
     """Retrieve a video file and stream it to the client."""
     video = crud.video.get(db=db, id=id)
     if not video:
@@ -244,12 +253,59 @@ async def play_video(id: int, db: Session = Depends(get_db)):
         )
 
     # Determine the MIME type of the file based on the extension
-    mime_type, _ = mimetypes.guess_type(file_path)
-    if not mime_type:
-        mime_type = "video/mp4"  # Fallback MIME type for unknown files, if that fails, probably file is downloaded
+    # mime_type, _ = mimetypes.guess_type(file_path)
+    # if not mime_type:
+    mime_type = "video/mp4"  # Fallback MIME type for unknown files, if that fails, probably file is downloaded
 
-    # Return the video file using FileResponse
-    return FileResponse(file_path, media_type=mime_type)
+    # File size
+    file_size = os.path.getsize(file_path)
+
+    # Handle range requests for partial content
+    start = 0
+    end = file_size - 1  # Default to serve the entire file
+
+    if range:
+        # Parse the Range header (e.g., "bytes=0-1023")
+        range_start, range_end = range.replace("bytes=", "").split("-")
+        start = int(range_start) if range_start else start
+        end = int(range_end) if range_end else end
+
+        # Validate range values
+        if start > end or start >= file_size or end >= file_size:
+            raise HTTPException(status_code=416, detail="Requested Range Not Satisfiable")
+
+    content_length = end - start + 1
+
+    # iterator for streaming the video file
+    def iter_file(file_path, start, content_length):
+        with open(file_path, "rb") as video_file:
+            video_file.seek(start)
+            bytes_remaining = content_length
+            while bytes_remaining > 0:
+                # while chunk := video_file.read(1024 * 1024):  # Stream in chunks (1MB)
+                chunk_size = min(1024 * 1024, bytes_remaining)  # Stream in chunks of 1 MB or less (remaining bytes)
+                chunk = video_file.read(chunk_size)
+                if not chunk:  # Ensure EOF is properly handled
+                    break
+                bytes_remaining -= len(chunk)
+                yield chunk
+            #
+            # if video_file.tell() > end:
+            #         yield chunk[: end + 1 - video_file.tell()]
+            #         break
+            #     yield chunk
+
+    # Set headers to support partial content (HTTP 206)
+    headers = {
+        "Content-Range": f"bytes {start}-{end}/{file_size}",
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(content_length),
+    }
+
+    # Return the streaming response with the appropriate headers
+    return StreamingResponse(
+        iter_file(file_path, start, content_length), media_type=mime_type, headers=headers, status_code=206
+    )
 
 
 @router.get("/{id}/run", response_model=VideoPatch, status_code=200)
@@ -325,14 +381,21 @@ async def upload_video(
     # Save file to disk
     rel_file_path = os.path.join("videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), file.filename)
     abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
+
+    # Save the file in chunks
     with open(abs_file_path, "wb") as f:
-        f.write(await file.read())
+        while True:
+            chunk = await file.read(1024 * 1024)  # Read in 1MB chunks
+            if not chunk:
+                break  # Stop when no more data is left
+            f.write(chunk)
 
     # now update the video instance
     video_instance.file = rel_file_path
     # video_instance.thumbnail = rel_thumb_path
     db.commit()
     db.refresh(video_instance)
+    print("I UPLOADED A VIDEO")
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
 

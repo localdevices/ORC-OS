@@ -1,5 +1,5 @@
 # tests/test_camera_config.py
-
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -24,24 +24,35 @@ def get_db_override():
         session.close()
 
 
-def test_get_wl_settings_empty():
+@pytest.fixture
+def auth_client():
     app.dependency_overrides[get_db] = get_db_override
+    app.state.session = next(get_db_override())
+
     client = TestClient(app)
-    response = client.get("/water_level/")
+    # credentials = HTTPBasicCredentials(password="welcome123")
+    credentials = {"password": "welcome123"}
+    # first create the password
+    _ = client.post("/api/auth/set_password", params=credentials)
+    response = client.post("/api/auth/login", params=credentials)
+    assert response.status_code == 200
+    return TestClient(app, cookies=response.cookies)
+
+
+def test_get_wl_settings_empty(auth_client):
+    response = auth_client.get("/api/water_level/")
     assert response.status_code == 200
     assert response.json() is None
 
 
-def test_post_wl_settings():
+def test_post_wl_settings(auth_client):
     wl_settings = WaterLevelCreate()
     wl = wl_settings.model_dump(exclude_none=True)
-    app.dependency_overrides[get_db] = get_db_override
-    client = TestClient(app)
-    response = client.post("/water_level/", json=wl)
+    response = auth_client.post("/api/water_level/", json=wl)
     assert response.status_code == 201
     # check if database is updated
     session = next(get_db_override())
     assert crud.water_level.get(session).id == 1
     # check if a Response model is returned from get
-    response = client.get("/water_level/")
+    response = auth_client.get("/water_level/")
     WaterLevelResponse.model_validate(response.json())

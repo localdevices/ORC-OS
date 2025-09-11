@@ -10,6 +10,7 @@ authors = [
 dependencies = [
     "alembic",
     "apscheduler",
+    "passlib",
     "pillow<=9.5.0; python_version == '3.9'",  # for compatibility with picamera2 on Bullseye
     "pillow; python_version != '3.9'",
     "rocket-fft @ git+https://github.com/styfenschaer/rocket-fft.git@main ; python_version == '3.13'",
@@ -20,6 +21,7 @@ dependencies = [
     "sqlalchemy",
     "fastapi[standard]",
     "pydantic",
+    "PyJWT",
     "pyyaml",
     "requests",
     "zipstream"
