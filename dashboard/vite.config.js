@@ -11,10 +11,7 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
-        timeout: 500000,      // 500 seconds timeout for uploads
-        proxyTimeout: 500000, // Timeout for backend responses
         rewrite: (path) => path.replace(/^\/api/, ''),
-
       },
     },
 

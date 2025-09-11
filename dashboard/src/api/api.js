@@ -1,12 +1,22 @@
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_ORC_API_BASE ?? '/api';
+const API_DIRECT = import.meta.env.VITE_ORC_API_DIRECT ?? '/api';  // only in dev mode
+
 const api = axios.create({
-   baseURL: `/api`,
+   baseURL: API_BASE,
+   // baseURL: `http://localhost:5000`,
    withCredentials: true
 });
 
-// intercept requests and if available, add token to header
+// intercept requests and modify end point if it concerns a file upload, only used in dev mode
 api.interceptors.request.use((config) => {
+  if (config.method === "post" && config.headers["Content-Type"] === "multipart/form-data") {
+    config.baseURL = API_DIRECT; // bypass proxy for uploads during development, this allows for larger file requests
+  }
+  if (config.method === "get" && config.url.includes("/play/")) {
+    config.baseURL = API_DIRECT;
+  }
   return config;
 });
 
