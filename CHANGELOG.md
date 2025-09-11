@@ -97,6 +97,32 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Security
 - CORS origins specified. A user from outside can no longer access the API.
 
+## [0.3.0] - 2025-08-23
+### Added
+**Authentication**. This release protects the OS from use by third parties.
+- Set a password at the first start of the OS. (remember this! You can only change it with the API or from the back-end)
+- After setting, you must always login with your password before using the OS.
+
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Changed
+- Small modifications in the front end to allow for more intuitive user experience.
+- Moved general configuration options to top-right menu
+
+### Deprecated
+### Removed
+### Fixed
+- Several small bugs fixed.
+- unit test for the database migrations.
+### Security
+- CORS origins specified. A user from outside can no longer access the API.
+
 ## [0.2.0] - 2025-08-15
 ### Added
 **Less back-end, more front-end**. This release focuses on allowing a user to organize
