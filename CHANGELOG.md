@@ -1,9 +1,4 @@
-## [0.3.0] - 2025-08-23
-### Added
-**Authentication**. This release protects the OS from use by third parties.
-- Set a password at the first start of the OS. (remember this! You can only change it with the API or from the back-end)
-- After setting, you must always login with your password before using the OS.
-
+## [0.3.0] - 2025-09-12
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -11,6 +6,11 @@ This release should only be used for:
 - evaluation purposes
 
 Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+**Authentication**. This release protects the OS from use by third parties.
+- Set a password at the first start of the OS. (remember this! You can only change it with the API or from the back-end)
+- After setting, you must always login with your password before using the OS.
 
 ### Changed
 - Small modifications in the front end to allow for more intuitive user experience.
