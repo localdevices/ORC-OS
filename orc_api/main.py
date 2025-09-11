@@ -1,23 +1,17 @@
 """Main ORC-OS API module."""
 
-import asyncio
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
-import jwt
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from orc_api import (
-    ALGORITHM,
     DEV_MODE,
-    ORC_COOKIE_NAME,
     ORIGINS,
-    SECRET_KEY,
     UPLOAD_DIRECTORY,
     crud,
 )
@@ -42,55 +36,7 @@ from orc_api.routers import (
 )
 from orc_api.schedulers import schedule_disk_maintenance, schedule_video_checker, schedule_water_level
 from orc_api.schemas.video import VideoResponse
-from orc_api.utils import queue
-
-
-def verify_token(token: str):
-    """Verify a JWT token."""
-    # first check for black listing
-    try:
-        # Decode and validate the token
-        _ = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return None
-    except jwt.ExpiredSignatureError:
-        # Token has expired
-        return {"detail": "Token has expired"}
-    except jwt.InvalidTokenError:
-        # Token is invalid for any reason
-        return {"detail": "Token is invalid"}
-
-
-def auth_token(request: Request):
-    """Check if a token is present and verified."""
-    token = request.cookies.get(ORC_COOKIE_NAME)
-    try:
-        if not token:  #  or not token.startswith("Bearer "):
-            content = {"detail": "Token missing or not a valid token format"}
-        # Verify the token
-        # token = token.split("Bearer ")[-1]
-        else:
-            content = verify_token(token)
-        if content is not None:
-            return JSONResponse(
-                status_code=401,
-                content=content,
-                headers={
-                    "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
-                    "Access-Control-Allow-Methods": "*",
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Credentials": "true",
-                },
-            )
-        else:
-            return None
-
-    except HTTPException as e:
-        raise e
-
-
-def async_job_wrapper(func, kwargs):
-    """Wrap call to async functions synchronously, needed for scheduler."""
-    asyncio.run(func(**kwargs))  # Run the async function in the event loop
+from orc_api.utils import auth_helpers, queue
 
 
 @asynccontextmanager
@@ -129,11 +75,11 @@ async def lifespan(app: FastAPI):
                 db.commit()
                 # session.refresh(video_rec)
                 video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
-                video = VideoResponse.model_validate(video_rec)
-            if video.ready_to_run[0]:
+                video_instance = VideoResponse.model_validate(video_rec)
+            if video_instance.ready_to_run[0]:
                 _ = await queue.process_video_submission(
                     session=session,
-                    video=video,
+                    video=video_instance,
                     logger=logger,
                     executor=app.state.executor,
                     upload_directory=UPLOAD_DIRECTORY,
@@ -190,7 +136,7 @@ async def auth_middleware(request: Request, call_next):
             return await call_next(request)
 
     # No exceptions occurring, so first apply normal authentication for production and other environments
-    r = auth_token(request)
+    r = auth_helpers.auth_token(request)
     # r should be None if all is good and then forward to request will be performed. Otherwise a response is returned.
     if r is not None:
         return r
