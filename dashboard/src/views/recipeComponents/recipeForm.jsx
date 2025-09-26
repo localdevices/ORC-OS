@@ -308,13 +308,15 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
 
 
   return (
-    <div style={{"padding": "5px"}}>
+    <div className='container tab'>
+      <h5>Video settings</h5>
       <button
         className="btn"
         onClick={loadModal}
       >
         Upload from .yml
       </button>
+
       <div style={{"padding": "5px"}}>
         <form onSubmit={handleFormSubmit}>
           <div className='mb-3 mt-3' style={{display: 'none'}}>
@@ -330,7 +332,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
             <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange}
                    value={formData.name} required/>
           </div>
-          <h5>Video settings</h5>
           <div className="mb-3 mt-3 form-horizontal">
             <label htmlFor="start_end_slider" className="form-label">
               Start and end frame [-]

@@ -418,7 +418,7 @@ const VideoConfig = () => {
                     }}
                     disabled={!cameraConfig?.isPoseReady()}
                   >
-                    Camera pose
+                    Load/Save config
                   </button>
                   <button
                     className={activeTab === 'pose' ? 'active-tab' : ''}
@@ -428,7 +428,7 @@ const VideoConfig = () => {
                     }}
                     disabled={!cameraConfig?.isPoseReady()}
                   >
-                    Camera pose 2
+                    Camera pose
                   </button>
                   <button
                     className={activeTab === 'crossSection' ? 'active-tab' : ''}
@@ -474,7 +474,6 @@ const VideoConfig = () => {
                       setMessageInfo={setMessageInfo}
                     />
                     </div>
-                  {/*)}*/}
 
                   {activeTab === 'gcps' && (
                     <CameraConfigForm

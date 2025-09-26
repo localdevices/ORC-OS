@@ -239,7 +239,7 @@ const PoseDetails = (
   };
 
   return (
-  <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+  <div className='container tab'>
     {isLoading && (
       <div className="spinner-viewport">
         <div className="spinner" />
@@ -247,7 +247,7 @@ const PoseDetails = (
       </div>
     )}
 
-    <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+    {/*<div className='container' style={{marginTop: '5px', overflow: 'auto'}}>*/}
         <h5>Control points</h5>
         <label htmlFor='addWidget' className='form-label'>
           Add and provide x, y, z control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
@@ -284,7 +284,7 @@ const PoseDetails = (
           disabled={!validateWidgets()}
         >Validate</button>
 
-      </div>
+      {/*</div>*/}
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
       </div>
 
