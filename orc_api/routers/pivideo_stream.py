@@ -52,6 +52,18 @@ async def has_picam():
     return picam_available
 
 
+@router.get("/picam_info", response_model=list[dict])
+async def picam_info():
+    """Return list of connected cameras with dict of camera info."""
+    global picam_available
+    if not picam_available:
+        return None
+    cameras = Picamera2.global_camera_info()
+    if not cameras:
+        return None
+    return cameras
+
+
 # Start video stream
 @router.post("/start")
 async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 30):
