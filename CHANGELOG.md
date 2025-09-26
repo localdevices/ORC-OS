@@ -10,10 +10,12 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Added
 - Download of camera configuration (control points, pose) to a PyOpenRiverCam compatible .JSON camera configuration
   file.
+- Additional recipe options for interrogation window size and velocity sampling distance.
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
+- Fixed erroneous setting of first default end frame to zero instead of the calibration video length.
 ### Security
 
 
