@@ -175,7 +175,7 @@ const CrossSectionForm = (
 
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
-      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+      <div className='container tab'>
         <h5>Upload new cross sections</h5>
         <form onSubmit={handleSubmit}>
         <div className='mb-3 mt-3'>

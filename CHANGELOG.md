@@ -1,3 +1,24 @@
+## [0.3.1] - 2025-09-26
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- Download of camera configuration (control points, pose) to a PyOpenRiverCam compatible .JSON camera configuration
+  file.
+- Additional recipe options for interrogation window size and velocity sampling distance.
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- Fixed erroneous setting of first default end frame to zero instead of the calibration video length.
+### Security
+
+
 ## [0.3.0] - 2025-09-12
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

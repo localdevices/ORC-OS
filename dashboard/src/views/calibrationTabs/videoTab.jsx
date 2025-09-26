@@ -87,6 +87,7 @@ const VideoTab = (
 
   return (
           <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
+            {cameraConfig && (
             <ControlPanel
               onRotateLeft={handleRotateLeft}
               onRotateRight={handleRotateRight}
@@ -105,6 +106,8 @@ const VideoTab = (
               cameraConfig={cameraConfig}
               bboxSelected={bboxSelected}
             />
+            )
+            }
 
             <TransformWrapper
                pinchEnabled={true}

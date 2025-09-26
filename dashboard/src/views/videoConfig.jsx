@@ -69,40 +69,41 @@ const VideoConfig = () => {
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
-    api.get(`/video/${videoId}/frame_count/`)
-      .then((response) => {
-        setFrameCount(response.data)
-      })
-      .catch((err) => console.error("Error fetching frame count:", err))
-    api.get(`/video/${videoId}/`)
-      .then((response) => {
-        setVideo(response.data);
-        console.log("VIDEO INFO:", response.data);
-        if (response.data.video_config !== null) {
-          setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
-          if (response.data.video_config.recipe !== null) {
-            setRecipe(response.data.video_config.recipe);
-          }
-          if (response.data.video_config.camera_config) {
-            setCameraConfig(response.data.video_config.camera_config);
-          }
-          if (response.data.video_config.cross_section) {
-            setCSDischarge(response.data.video_config.cross_section)
-          }
-          if (response.data.video_config.cross_section_wl) {
-            setCSWaterLevel(response.data.video_config.cross_section_wl)
-          }
-        } else {
-          createNewRecipe();  // if recipe exists it will be overwritten later
-          createCameraConfig();  // if cam config exists, it will be overwritten later
-        }
-      })
-      .catch((err) => console.error("Error fetching video data:", err))
-      .finally(() => {
-        setSave(false)
-
-      });
-
+    const fetchFrameCountAndVideo = async (videoId) => {
+      api.get(`/video/${videoId}/frame_count/`)
+        .then((response) => {
+          const updatedFrameCount = response.data;
+          setFrameCount(updatedFrameCount);
+          api.get(`/video/${videoId}/`)
+            .then((response) => {
+              setVideo(response.data);
+              if (response.data.video_config !== null) {
+                setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
+                if (response.data.video_config.recipe !== null) {
+                  setRecipe(response.data.video_config.recipe);
+                }
+                if (response.data.video_config.camera_config) {
+                  setCameraConfig(response.data.video_config.camera_config);
+                }
+                if (response.data.video_config.cross_section) {
+                  setCSDischarge(response.data.video_config.cross_section)
+                }
+                if (response.data.video_config.cross_section_wl) {
+                  setCSWaterLevel(response.data.video_config.cross_section_wl)
+                }
+              } else {
+                createNewRecipe(updatedFrameCount);  // if recipe exists it will be overwritten later
+                createCameraConfig();  // if cam config exists, it will be overwritten later
+              }
+            })
+            .catch(err => console.error("Error fetching video data:", err))
+            })
+        .catch((err) => console.error("Error fetching frame count:", err))
+        .finally(() => {
+          setSave(false)
+        });
+    };
+    fetchFrameCountAndVideo(videoId);
   }, [videoId]);
 
   useEffect(() => {
@@ -158,13 +159,14 @@ const VideoConfig = () => {
 
   }
 
-  const createNewRecipe = () => {
+  const createNewRecipe = (frameCount) => {
     api.post(`/recipe/empty/`)
       .then((response) => {
-        setRecipe({
+        const updatedRecipe = {
           ...response.data,
-          end_frame: frameCount
-        });
+          end_frame: frameCount,
+        }
+        setRecipe(updatedRecipe);
       })
       .catch((error) => {
         console.error('Error occurred:', error);
@@ -324,7 +326,7 @@ const VideoConfig = () => {
             </button>
           </div>
 
-          {video && activeView === 'camView' && (
+          {video && activeView === 'camView' && recipe?.start_frame !== undefined && recipe?.start_frame !== null && (
             <VideoTab
               video={video}
               frameNr={recipe?.start_frame}
@@ -418,7 +420,7 @@ const VideoConfig = () => {
                     }}
                     disabled={!cameraConfig?.isPoseReady()}
                   >
-                    Camera pose
+                    Load/Save config
                   </button>
                   <button
                     className={activeTab === 'pose' ? 'active-tab' : ''}
@@ -428,7 +430,7 @@ const VideoConfig = () => {
                     }}
                     disabled={!cameraConfig?.isPoseReady()}
                   >
-                    Camera pose 2
+                    Camera pose
                   </button>
                   <button
                     className={activeTab === 'crossSection' ? 'active-tab' : ''}
@@ -474,7 +476,6 @@ const VideoConfig = () => {
                       setMessageInfo={setMessageInfo}
                     />
                     </div>
-                  {/*)}*/}
 
                   {activeTab === 'gcps' && (
                     <CameraConfigForm

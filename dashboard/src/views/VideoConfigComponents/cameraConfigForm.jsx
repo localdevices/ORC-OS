@@ -129,15 +129,37 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
     }
   };
 
+  const handleSave = async (event) => {
+    // save camera calibration to a json file, by creating a programmatic link, download it, and remove it again.
+    event.preventDefault();
+    const content = formData.data;
+    const blob = new Blob([content], {type: 'application/json'});
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'cameraConfig.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
 
   return (
-    <div style={{"padding": "5px"}}>
-      <p>control points widgets, href/z0, 3d plot of situation</p>
+    <div className='container tab'>
+      <h5>Load from or save to JSON</h5>
+      <p>Load camera calibration from a PyORC compatible JSON or save to JSON, e.g. for reanalysis of large
+      amounts of videos
+      </p>
 
       <button className="btn btn-primary" onClick={loadModal}
       >
         Load from JSON
       </button>
+      <button className="btn btn-primary" onClick={handleSave}
+      >
+        Save to JSON
+      </button>
+
       <form onSubmit={handleFormSubmit}>
         <div className='mb-3 mt-3'>
           <label htmlFor='id' className='form-label'>

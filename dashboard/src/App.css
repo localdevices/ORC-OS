@@ -120,6 +120,7 @@ a:hover {
   /*box-sizing: border-box; !* Include padding and border in dimensions *!*/
 }
 
+/* container around a set of tabs */
 .tabbed-form-container {
   display: flex;
   position: relative;
@@ -128,6 +129,12 @@ a:hover {
   /*box-sizing: border-box;*/
   margin: 0;
   object-fit: contain;
+}
+
+/* container inside a tab */
+.container.tab {
+    margin-top: 5px;
+    overflow: auto;
 }
 
 .tabbed-layout {

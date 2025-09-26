@@ -35,7 +35,9 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         end_frame: selectedRecipe.end_frame || '',
         freq: selectedRecipe.freq || '',
         resolution: selectedRecipe.resolution || '',
+        window_size: selectedRecipe.window_size || '',
         data: JSON.stringify(selectedRecipe.data, null, 4) || '',
+        v_distance: selectedRecipe.v_distance,
         alpha: selectedRecipe.alpha,
         quiver_scale_grid: selectedRecipe.quiver_scale_grid,
         quiver_scale_cs: selectedRecipe.quiver_scale_cs,
@@ -58,6 +60,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         end_frame: '',
         freq: '',
         resolution: '',
+        window_size: '',
+        v_distance: '',
         alpha: '',
         quiver_scale_grid: '',
         quiver_scale_cs: '',
@@ -141,6 +145,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       end_frame: formData.end_frame,
       freq: formData.freq,
       resolution: formData.resolution,
+      window_size: formData.window_size,
+      v_distance: formData.v_distance,
       alpha: formData.alpha,
       quiver_scale_grid: formData.quiver_scale_grid,
       quiver_scale_cs: formData.quiver_scale_cs,
@@ -308,13 +314,15 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
 
 
   return (
-    <div style={{"padding": "5px"}}>
+    <div className='container tab'>
+      <h5>Video settings</h5>
       <button
         className="btn"
         onClick={loadModal}
       >
         Upload from .yml
       </button>
+
       <div style={{"padding": "5px"}}>
         <form onSubmit={handleFormSubmit}>
           <div className='mb-3 mt-3' style={{display: 'none'}}>
@@ -330,7 +338,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
             <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange}
                    value={formData.name} required/>
           </div>
-          <h5>Video settings</h5>
           <div className="mb-3 mt-3 form-horizontal">
             <label htmlFor="start_end_slider" className="form-label">
               Start and end frame [-]
@@ -365,11 +372,42 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
           </div>
           <div className='mb-3 mt-3 form-horizontal'>
             <label htmlFor='resolution' className='form-label'>
-              Resolution [m]
+              Pixel resampling size [m]
             </label>
             <input type='number' className='form-control' id='resolution' name='resolution' step="0.001" min='0.001'
                    max='0.05' onChange={handleInputChange} value={formData.resolution} required/>
           </div>
+          <div className="mb-3 mt-3 form-horizontal">
+            <div role="alert" style={{color: "green", fontStyle: "italic"}}>
+              Assuming you record at 30 frames-per-second, 1 px/frame would translate
+              to {30 / formData.freq * formData.resolution} m/s. This is probably the minimum bulk velocity you can
+              reliably measure. If you likely need to measure lower bulk velocities, consider a smaller pixel
+              resampling size (i.e. higher resolution) or a higher resample frame distance.
+            </div>
+          </div>
+          <div className="mb-3 mt-3 form-horizontal">
+            <label htmlFor="window_size" className="form-label">
+              Interrogation window size [px]
+            </label>
+            <ReactSlider
+              className="horizontal-slider"
+              thumbClassName="thumb"
+              trackClassName="track"
+              value={formData.window_size || 64} // Default values if unset
+              min={32}
+              max={128}
+              step={1}
+              renderThumb={(props, state) => (
+                <div {...props}>
+                  <div className="thumb-value">{state.valueNow}</div>
+                </div>
+              )}
+              onChange={(value) => {
+                handleSliderChange("window_size", value)
+              }}
+            />
+          </div>
+
           <hr></hr>
           <h5>Optical water level</h5>
 
@@ -563,35 +601,59 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
           }
           <hr></hr>
           <h5>Discharge estimation</h5>
-          <div className="mb-3 mt-3 form-horizontal">
             {CSDischarge && Object.keys(CSDischarge).length > 0 ? (
               <>
-                <label htmlFor="roughness" className="form-label">
-                  Velocity index (alpha) [-]
-                </label>
-                <ReactSlider
-                  className="horizontal-slider"
-                  thumbClassName="thumb"
-                  trackClassName="track"
-                  value={formData.alpha || 0.85} // Default values if unset
-                  min={0.5}
-                  max={0.95}
-                  step={0.01}
-                  renderThumb={(props, state) => (
-                    <div {...props}>
-                      <div className="thumb-value">{renderAlphaValue(state.valueNow)}</div>
-                    </div>
-                  )}
-                  onChange={(value) => {
-                    handleSliderChange("alpha", value)
-                  }}
-                />
+                <div className="mb-3 mt-3 form-horizontal">
+                  <label htmlFor="v_distance" className="form-label">
+                    Velocity sampling distance [m]
+                  </label>
+                  <ReactSlider
+                    className="horizontal-slider"
+                    thumbClassName="thumb"
+                    trackClassName="track"
+                    value={formData.v_distance || 0.5} // Default values if unset
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    renderThumb={(props, state) => (
+                      <div {...props}>
+                        <div className="thumb-value">{state.valueNow}</div>
+                      </div>
+                    )}
+                    onChange={(value) => {
+                      handleSliderChange("v_distance", value)
+                    }}
+                  />
+                </div>
+                <div className="mb-3 mt-3 form-horizontal">
+
+                  <label htmlFor="roughness" className="form-label">
+                    Velocity index (alpha) [-]
+                  </label>
+                  <ReactSlider
+                    className="horizontal-slider"
+                    thumbClassName="thumb"
+                    trackClassName="track"
+                    value={formData.alpha || 0.85} // Default values if unset
+                    min={0.5}
+                    max={0.95}
+                    step={0.01}
+                    renderThumb={(props, state) => (
+                      <div {...props}>
+                        <div className="thumb-value">{renderAlphaValue(state.valueNow)}</div>
+                      </div>
+                    )}
+                    onChange={(value) => {
+                      handleSliderChange("alpha", value)
+                    }}
+                  />
+                </div>
               </>
             ) : (<div role="alert" style={{color: "red", fontStyle: "italic"}}>
                 A cross section for discharge estimation must be selected before setting specific parameters.
               </div>
             )}
-          </div>
+          {/*</div>*/}
           <hr></hr>
           <h5>Plotting</h5>
           <div className="mb-3 mt-3 form-horizontal">

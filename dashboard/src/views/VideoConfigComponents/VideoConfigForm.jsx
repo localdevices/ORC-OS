@@ -155,14 +155,14 @@ const VideoConfigForm = (
 
 
   return (
-    <div style={{"padding": "5px"}}>
+    <div className='container tab'>
       {isSaving && (
         <div className="spinner-viewport">
           <div className="spinner" />
           <div>Saving...</div>
         </div>
       )}
-
+      <h5>General information</h5>
       <p>Get started with some simple details and getting the video rotated correctly. First save before you continue!</p>
       <form id="videoConfigForm" onSubmit={handleFormSubmit}>
       <div className='mb-3 mt-3'>

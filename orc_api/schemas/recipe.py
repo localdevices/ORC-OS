@@ -54,7 +54,7 @@ class WaterLevel(BaseModel):
 class VelocimetryData(BaseModel):
     """Velocimetry default data model."""
 
-    get_piv: Optional[dict] = Field(default={})
+    get_piv: Optional[dict] = Field(default={"window_size": 64})
     write: bool = Field(default=True)
 
 
@@ -64,7 +64,7 @@ class TransectData(BaseModel):
     write: bool = Field(default=True)
     transect_1: dict = Field(
         default={
-            "get_transect": {"rolling": 4, "tolerance": 0.3, "wdw_x_min": -5, "wdw_x_max": 5},
+            "get_transect": {"rolling": 4, "tolerance": 0.3, "wdw_x_min": -5, "wdw_x_max": 5, "distance": 0.5},
             "get_q": {"fill_method": "log_interp", "v_corr": 0.85},
             "get_river_flow": {},
         }
@@ -135,12 +135,16 @@ class RecipeResponse(RecipeRemote):
     resolution: float = Field(
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
+    window_size: int = Field(default=64, description="Size of interrogation window")
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
     wl_get_frames_method: Optional[Literal["hue", "grayscale", "sat"]] = Field(
         default="grayscale", description="Method for extracting frames for water level estimation."
     )
     wl_preprocess: Optional[Literal["range"]] = Field(
         default=None, description="Method for preprocessing frames for water level estimation."
+    )
+    v_distance: Optional[float] = Field(
+        default=0.5, ge=0.1, le=1.0, description="Distance between velocity sampling points in cross section."
     )
     alpha: Optional[float] = Field(default=0.85, ge=0.5, le=1.0, description="Alpha coefficient.")
     min_z: Optional[float] = Field(default=None, description="Minimum water level.")
@@ -193,7 +197,11 @@ class RecipeResponse(RecipeRemote):
         instance.end_frame = data.video.end_frame
         instance.freq = data.video.freq
         instance.resolution = data.frames.project["resolution"]
+        if "window_size" in data.velocimetry.get_piv:
+            instance.window_size = data.velocimetry.get_piv["window_size"]
         # instance.velocimetry = "piv"  # make variable once other methods are available
+        if "distance" in data.transect.transect_1["get_transect"]:
+            instance.v_distance = data.transect.transect_1["get_transect"]["distance"]
         if "v_corr" in data.transect.transect_1["get_q"]:
             instance.alpha = data.transect.transect_1["get_q"]["v_corr"]
         if "velocimetry" in data.plot.plot_quiver:
@@ -262,12 +270,16 @@ class RecipeUpdate(RecipeBase):
     resolution: Optional[float] = Field(
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
+    window_size: Optional[int] = Field(default=64, description="Size of interrogation window")
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
     wl_get_frames_method: Optional[Literal["hue", "grayscale", "sat"]] = Field(
         default="grayscale", description="Method for extracting frames for water level estimation."
     )
     wl_preprocess: Optional[Literal["range"]] = Field(
         default=None, description="Method for preprocessing frames for water level estimation."
+    )
+    v_distance: Optional[float] = Field(
+        default=0.5, ge=0.1, le=1.0, description="Distance between velocity sampling points in cross section."
     )
     alpha: Optional[float] = Field(default=0.85, ge=0.5, le=0.95, description="Alpha coefficient.")
     min_z: Optional[float] = Field(default=None, description="Minimum water level.")
@@ -322,8 +334,9 @@ class RecipeUpdate(RecipeBase):
             data.water_level.n_end = instance.end_frame
         data.video.freq = getattr(instance, "freq", 1)
         data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
-        if instance.velocimetry is not None:
-            pass
+        if instance.window_size is not None:
+            data.velocimetry.get_piv["window_size"] = getattr(instance, "window_size", 64)
+        data.transect.transect_1.setdefault("get_transect", {})["distance"] = getattr(instance, "v_distance", 0.5)
         data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
         data.plot.plot_quiver.setdefault("velocimetry", {})["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
         data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["scale"] = 1 / getattr(
