@@ -5,6 +5,7 @@ import io
 import os
 import time
 from datetime import datetime
+from typing import Dict, List, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -52,13 +53,14 @@ async def has_picam():
     return picam_available
 
 
-@router.get("/picam_info", response_model=list[dict])
+@router.get("/picam_info", response_model=Union[List[Dict], None])
 async def picam_info():
     """Return list of connected cameras with dict of camera info."""
     global picam_available
     if not picam_available:
         return None
     cameras = Picamera2.global_camera_info()
+    print(cameras)
     if not cameras:
         return None
     return cameras
