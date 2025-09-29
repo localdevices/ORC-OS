@@ -1,11 +1,9 @@
 """CRUD operations for password."""
 
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 
 from orc_api import db as models
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get(db: Session):
@@ -17,18 +15,20 @@ def get(db: Session):
 
 def create(db: Session, new_password: str):
     """Create a new hashed password from user password."""
-    hashed = pwd_context.hash(new_password)
-    password_entry = models.Password(hashed_password=hashed)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(new_password.encode("utf-8"), salt)
+    password_entry = models.Password(hashed_password=hashed.decode("utf-8"))
     db.add(password_entry)
     db.commit()
 
 
 def update(db: Session, new_password: str):
     """Update the hashed password if a password already exists."""
-    hashed = pwd_context.hash(new_password)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(new_password.encode("utf-8"), salt)
     password_entry = get(db)
     if password_entry:
-        password_entry.hashed_password = hashed
+        password_entry.hashed_password = hashed.decode("utf-8")
         db.commit()
 
 
@@ -36,5 +36,5 @@ def verify(db: Session, plain_password: str):
     """Verify the password through hashing algorithm."""
     password_entry = get(db)
     if password_entry:
-        return pwd_context.verify(plain_password, password_entry.hashed_password)
+        return bcrypt.checkpw(plain_password.encode("utf-8"), password_entry.hashed_password.encode("utf-8"))
     return False

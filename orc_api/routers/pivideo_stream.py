@@ -5,6 +5,7 @@ import io
 import os
 import time
 from datetime import datetime
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -31,12 +32,32 @@ except Exception:
     picam_available = False
 
 
-def start_camera(width: int = 1920, height: int = 1080, fps: int = 30):
+def get_cameras():
+    """Get list of connected cameras."""
+    return Picamera2.global_camera_info()
+
+
+def start_camera(camera_idx: Optional[int] = None, width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the PiCamera with the specified width, height, and FPS."""
     global picam_available
     if not picam_available:
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
-    picam = Picamera2()
+    # import again just to make sure.
+    from picamera2 import Picamera2
+
+    # Validate camera index if provided
+    if camera_idx is not None:
+        cameras = get_cameras()
+        if not cameras:
+            raise HTTPException(status_code=500, detail="No cameras detected.")
+        if camera_idx < 0 or camera_idx >= len(cameras):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid camera_index {camera_idx}. Available indexes: 0..{len(cameras) - 1}",
+            )
+        picam = Picamera2(camera_idx)
+    else:
+        picam = Picamera2()
     video_config = picam.create_video_configuration(
         main={"size": (width, height)}, controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
     )
@@ -52,9 +73,21 @@ async def has_picam():
     return picam_available
 
 
+@router.get("/picam_info", response_model=Union[List[Dict], None])
+async def picam_info():
+    """Return list of connected cameras with dict of camera info."""
+    global picam_available
+    if not picam_available:
+        return None
+    cameras = get_cameras()
+    if not cameras:
+        return None
+    return cameras
+
+
 # Start video stream
 @router.post("/start")
-async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 30):
+async def start_camera_stream(camera_idx: Optional[int] = None, width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the video stream with the specified width, height, and FPS."""
     global picam, camera_streaming, picam_available
     if not picam_available:
@@ -64,7 +97,7 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
         return {"message": "Camera stream was already available."}
 
     try:
-        picam = start_camera(width, height, fps)
+        picam = start_camera(camera_idx=camera_idx, width=width, height=height, fps=fps)
         camera_streaming = True
         return {
             "message": f"Camera stream started successfully with width: {width}, height: {height}, and FPS: {fps}. "
@@ -79,7 +112,14 @@ async def start_camera_stream(width: int = 1920, height: int = 1080, fps: int = 
         raise HTTPException(status_code=500, detail=f"Error starting camera stream: {str(e)}")
 
 
-def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: int = 30, length: float = 5.0):
+def record_async_task(
+    db: Session,
+    camera_idx: Optional[int] = None,
+    width: int = 1920,
+    height: int = 1080,
+    fps: int = 30,
+    length: float = 5.0,
+):
     """Record video for specified length in seconds."""
     # start a new camera
     global picam, picam_available, camera_streaming
@@ -87,7 +127,8 @@ def record_async_task(db: Session, width: int = 1920, height: int = 1080, fps: i
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
     timestamp = datetime.now()
     filename = f"picam_{timestamp.strftime('%Y%m%dT%H%M%S')}.mkv"
-    picam = start_camera(width, height, fps)
+    picam = start_camera(camera_idx=camera_idx, width=width, height=height, fps=fps)
+
     # wait 1 second to warm up sensor
     time.sleep(1)
     camera_streaming = True

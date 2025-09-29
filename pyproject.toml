@@ -10,19 +10,19 @@ authors = [
 dependencies = [
     "alembic",
     "apscheduler",
-    "passlib",
+    "bcrypt",
+    "fastapi[standard]",
     "pillow<=9.5.0; python_version == '3.9'",  # for compatibility with picamera2 on Bullseye
     "pillow; python_version != '3.9'",
     "rocket-fft @ git+https://github.com/styfenschaer/rocket-fft.git@main ; python_version == '3.13'",
     "rocket-fft; python_version != '3.13'",  # pypi for versions lower than 3.13
-    "pyopenrivercam>=0.8.9",
+    "pydantic",
+    "PyJWT",
+    "pyopenrivercam>=0.8.10",
+    "pyyaml",
     "rasterio<=1.3.11; python_version == '3.9'",  # for compatibility with GDAL version on Bullseye
     "rasterio; python_version != '3.9'",
     "sqlalchemy",
-    "fastapi[standard]",
-    "pydantic",
-    "PyJWT",
-    "pyyaml",
     "requests",
     "zipstream"
 ]

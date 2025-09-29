@@ -1,11 +1,14 @@
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from orc_api.routers.updates import clear_directory, copy_directory_content, do_update, router
 
-client = TestClient(router)
+app = FastAPI()
+app.include_router(router)
+client = TestClient(app)
 
 # Mock environment variables and helper data
 MOCK_VERSION_INFO = {
@@ -17,6 +20,15 @@ MOCK_VERSION_INFO = {
     },
     "latest_version": "v1.2.3",
 }
+
+
+@pytest.fixture
+def mock_asyncio_sleep():
+    async def async_noop(_):
+        pass
+
+    with patch("asyncio.sleep", async_noop):
+        yield
 
 
 @pytest.fixture
@@ -94,6 +106,7 @@ def mock_unzip_frontend():
 # Test cases for do_update
 @pytest.mark.asyncio
 async def test_do_update_error_handling(
+    mock_asyncio_sleep,
     mock_check_github_version,
     mock_modify_state_update_event,
     mock_download_release_asset,
@@ -112,6 +125,7 @@ async def test_do_update_error_handling(
 
 @pytest.mark.asyncio
 async def test_do_update_success(
+    mock_asyncio_sleep,
     mock_check_github_version,
     mock_modify_state_update_event,
     mock_shutil_operations,
@@ -146,7 +160,7 @@ async def test_do_update_success(
 
 
 @pytest.mark.asyncio
-async def test_do_update_no_version(mock_check_github_version, mock_modify_state_update_event):
+async def test_do_update_no_version(mock_asyncio_sleep, mock_check_github_version, mock_modify_state_update_event):
     # Simulate no new update available
     mock_check_github_version.return_value["update_available"] = False
     response = await do_update()
@@ -156,26 +170,30 @@ async def test_do_update_no_version(mock_check_github_version, mock_modify_state
 
 
 # Endpoint-specific tests
-def test_check_updates():
+@pytest.mark.asyncio
+async def test_check_updates():
     response = client.get("/updates/check/")
     assert response.status_code == 200
     # check if the tag name starts with "v", compulsory for successful updates procedures
     assert response.json()["release_data"]["tag_name"][0] == "v"
 
 
-def test_start_update(mock_modify_state_update_event, mock_do_update):
+@pytest.mark.asyncio
+async def test_start_update(mock_modify_state_update_event, mock_do_update):
     response = client.post("/updates/start/")
     assert response.status_code == 200
     assert response.json() == {"status": "Update process started"}
 
 
-def test_update_status():
+@pytest.mark.asyncio
+async def test_update_status():
     response = client.get("/updates/status/")
     assert response.status_code == 200
     assert "status" in response.json()
 
 
-def test_shutdown_api(mock_os_exit):
+@pytest.mark.asyncio
+async def test_shutdown_api(mock_os_exit):
     response = client.post("/updates/shutdown/")
     assert response.status_code == 200
 

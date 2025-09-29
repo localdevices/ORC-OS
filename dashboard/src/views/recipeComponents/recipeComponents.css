@@ -43,6 +43,10 @@
     transform: translateY(-25%); /* Align the thumb visually to the center */
 
 }
+.thumb-disabled {
+    background-color: #bbb;
+    cursor: not-allowed;
+}
 
 .track {
     height: 10px;

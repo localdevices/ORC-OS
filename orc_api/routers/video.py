@@ -395,7 +395,6 @@ async def upload_video(
     # video_instance.thumbnail = rel_thumb_path
     db.commit()
     db.refresh(video_instance)
-    print("I UPLOADED A VIDEO")
     # return a VideoResponse instance
     return VideoResponse.model_validate(video_instance)
 

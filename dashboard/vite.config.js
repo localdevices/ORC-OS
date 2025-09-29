@@ -11,11 +11,9 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
 
-//    allowedHosts: ['framework', 'hades.local', 'hades', 'hades.home']
     allowedHosts: ['.local', '.home']
   }
 })
