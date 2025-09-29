@@ -14,10 +14,13 @@ const CameraAim = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isToggledOn, setIsToggledOn] = useState(false); // Toggle state
   const [hasPiCamera, setHasPiCamera] = useState(true); // State
+  const [cameraModels, setCameraModels] = useState([]); // list of camera models
   const [piFormData, setPiFormData] = useState({
-    resolution: [null, null],
+    camera_idx: 0,
+    resolution: [1920, 1080],  // default resolution
     fps: 30,  // default fps
-    length: 5
+    length: 5,
+
   });
 
   const resolutionValues = [
@@ -35,13 +38,23 @@ const CameraAim = () => {
     const fetchSwitchState = async () => {
       try {
         const response = await api.get("/pivideo_stream/has_picam");
-        console.log(response);
         if (response.status === 200) {
           setHasPiCamera(response.data); // Disable if "enabled" is false
-          console.log("Raspi camera availability:", response.data);
           if (!response.data) {
             setVideoFeedUrl("");
             setIsToggledOn(false);
+          } else {
+            // also request the camera models and set those
+            const responseCameraModels = await api.get("/pivideo_stream/picam_info");
+            if (responseCameraModels.data === null) {
+              // empty list
+              setCameraModels([]);
+            } else {
+              setCameraModels(
+                  responseCameraModels.data.map((item, idx) => ({id: idx, name: item.Model}))
+                );
+            }
+
           }
         } else {
           throw new Error("Invalid API response");
@@ -56,22 +69,24 @@ const CameraAim = () => {
   }, []);
 
   // Function to handle the toggle state change
-  const handleToggle = async () => {
+  const handleTogglePreview = async () => {
     setIsLoading(true);
     const newState = !isToggledOn; // Determine new state
     try {
       if (newState) {
         // Call endpoint for "enabled" state
         let endPoint = `/pivideo_stream/start`
+        if (piFormData.camera_idx !== null) {
+          endPoint += `?camera_idx=${piFormData.camera_idx}`;
+        }
         if (piFormData.resolution[0] && piFormData.resolution[1]) {
-          endPoint += `?width=${piFormData.resolution[0]}&height=${piFormData.resolution[1]}`
+          endPoint += `&width=${piFormData.resolution[0]}&height=${piFormData.resolution[1]}`
         }
         if (piFormData.fps) {
           endPoint += `&fps=${piFormData.fps}`
         }
+
         await api.post(endPoint);
-        console.log(endPoint);
-        console.log("PiCamera enabled.");
         // re-create a unique url to prevent the browser thinks it can use a cached version
         const feedUrl = `${api.defaults.baseURL}/pivideo_stream/stream?${new Date().getTime()}`;
         console.log(`setting feed to ${feedUrl}`);
@@ -82,7 +97,6 @@ const CameraAim = () => {
         await api.post('/pivideo_stream/stop');
         setVideoFeedUrl("");
         setIsToggledOn(false);
-        console.log("PiCamera disabled.");
       }
     } catch (error) {
       console.error("Error or disabling PiCamera:", error);
@@ -93,13 +107,48 @@ const CameraAim = () => {
       setIsLoading(false);
     }
   };
+  const handleVideoRecord = async () => {
+    try {
+      let endPoint = `/pivideo_stream/record`
+      if (piFormData.camera_idx !== null) {
+        endPoint += `?camera_idx=${piFormData.camera_idx}`;
+      }
+      if (piFormData.resolution[0] && piFormData.resolution[1]) {
+        endPoint += `&width=${piFormData.resolution[0]}&height=${piFormData.resolution[1]}`
+      }
+      if (piFormData.fps) {
+        endPoint += `&fps=${piFormData.fps}`
+      }
+      const response = await api.post(endPoint);
+      // const response = await api.post("/pivideo_stream/record");
+
+      if (response.status === 200 && response.data?.message) {
+        setMessageInfo('success', response.data.message);
+      } else {
+        throw new Error(
+          `Unexpected response: ${response.status}, ${response.data}`
+        );
+      }
+    } catch (error) {
+      console.error("Error while calling the record endpoint:", error);
+      setMessageInfo("error", "Failed to start recording. Please try again later.");
+    }
+  }
 
   const handlePiDropdown = (event) => {
     const {value} = event.target;
     const value_ints = value.split(",");
     setPiFormData({
       ...piFormData,
-      "resolution": [parseInt(value_ints[0]), parseInt(value_ints[1])],
+      resolution: [parseInt(value_ints[0]), parseInt(value_ints[1])],
+    });
+  }
+
+  const handleCameraDropdown = (event) => {
+    const {value} = event.target;
+    setPiFormData({
+      ...piFormData,
+      camera_idx: parseInt(value),
     });
   }
 
@@ -202,10 +251,23 @@ const CameraAim = () => {
                 <div className='flex-container column'>
                   <div className='mb-3 mt-3'>
                     <DropdownMenu
+                      dropdownLabel={"Connected cameras"}
+                      callbackFunc={handleCameraDropdown}
+                      data={cameraModels}
+                      value={piFormData.camera_idx}
+                      disabled={cameraModels.length < 2}  // if only one model or zero is available, no reason to select
+                    />
+                    <div className="help-block">
+                      Select the Raspberry Pi camera model you want to use
+                    </div>
+                  </div>
+                  <div className='mb-3 mt-3'>
+                    <DropdownMenu
                       dropdownLabel={"Resolution"}
                       callbackFunc={handlePiDropdown}
                       data={resolutionValues}
                       value={piFormData.resolution}
+                      defaultValue={[1920, 1080]}
                     />
                     <div className="help-block">
                       Select the resolution with which you want to stream or record
@@ -264,7 +326,7 @@ const CameraAim = () => {
                         type="checkbox"
                         role="switch"
                         id="picamSwitch"
-                        onClick={handleToggle}
+                        onClick={handleTogglePreview}
                         disabled={!hasPiCamera}
                       />
                     </div>
@@ -275,22 +337,7 @@ const CameraAim = () => {
                         size={20}
                         color="#C51A4A"
                         style={{cursor: "pointer", marginRight: "10px"}}
-                          onClick={async () => {
-                            try {
-                              const response = await api.post("/pivideo_stream/record");
-                              if (response.status === 200 && response.data?.message) {
-                                setMessageInfo('success', response.data.message);
-                              } else {
-                                throw new Error(
-                                  `Unexpected response: ${response.status}, ${response.data}`
-                                );
-                              }
-                            } catch (error) {
-                              console.error("Error while calling the record endpoint:", error);
-                              setMessageInfo("error", "Failed to start recording. Please try again later.");
-                            }
-                          }}
-
+                          onClick={handleVideoRecord}
                       />
                     <label className="form-label" htmlFor="picamRecord">Record sample video of {piFormData.length} sec.</label>
                     <div className="help-block">
