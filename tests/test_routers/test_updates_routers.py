@@ -1,11 +1,14 @@
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from orc_api.routers.updates import clear_directory, copy_directory_content, do_update, router
 
-client = TestClient(router)
+app = FastAPI()
+app.include_router(router)
+client = TestClient(app)
 
 # Mock environment variables and helper data
 MOCK_VERSION_INFO = {
@@ -176,21 +179,21 @@ async def test_check_updates():
 
 
 @pytest.mark.asyncio
-def test_start_update(mock_modify_state_update_event, mock_do_update):
+async def test_start_update(mock_modify_state_update_event, mock_do_update):
     response = client.post("/updates/start/")
     assert response.status_code == 200
     assert response.json() == {"status": "Update process started"}
 
 
 @pytest.mark.asyncio
-def test_update_status():
+async def test_update_status():
     response = client.get("/updates/status/")
     assert response.status_code == 200
     assert "status" in response.json()
 
 
 @pytest.mark.asyncio
-def test_shutdown_api(mock_os_exit):
+async def test_shutdown_api(mock_os_exit):
     response = client.post("/updates/shutdown/")
     assert response.status_code == 200
 
