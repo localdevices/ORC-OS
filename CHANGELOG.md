@@ -1,4 +1,4 @@
-## [0.3.1] - 2025-09-26
+## [0.3.1] - 2025-09-29
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -11,7 +11,11 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - Download of camera configuration (control points, pose) to a PyOpenRiverCam compatible .JSON camera configuration
   file.
 - Additional recipe options for interrogation window size and velocity sampling distance.
+- Selection of second camera on raspberry pi in case 2 camera modules are installed. This may be the case, e.g. when
+  a separate camera module is used during night time.
 ### Changed
+- password hashing is now done with module `bcrypt`. Deprecated `passlib` module is no longer used. As a user this
+  should not change any operations and your password remains valid as the same underlying hashing algorithm is used.
 ### Deprecated
 ### Removed
 ### Fixed

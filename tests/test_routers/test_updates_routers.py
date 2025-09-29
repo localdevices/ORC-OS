@@ -20,6 +20,15 @@ MOCK_VERSION_INFO = {
 
 
 @pytest.fixture
+def mock_asyncio_sleep():
+    async def async_noop(_):
+        pass
+
+    with patch("asyncio.sleep", async_noop):
+        yield
+
+
+@pytest.fixture
 def mock_modify_state_update_event():
     with patch("orc_api.routers.updates.modify_state_update_event", new_callable=AsyncMock) as mock_event:
         yield mock_event
@@ -94,6 +103,7 @@ def mock_unzip_frontend():
 # Test cases for do_update
 @pytest.mark.asyncio
 async def test_do_update_error_handling(
+    mock_asyncio_sleep,
     mock_check_github_version,
     mock_modify_state_update_event,
     mock_download_release_asset,
@@ -112,6 +122,7 @@ async def test_do_update_error_handling(
 
 @pytest.mark.asyncio
 async def test_do_update_success(
+    mock_asyncio_sleep,
     mock_check_github_version,
     mock_modify_state_update_event,
     mock_shutil_operations,
@@ -146,7 +157,7 @@ async def test_do_update_success(
 
 
 @pytest.mark.asyncio
-async def test_do_update_no_version(mock_check_github_version, mock_modify_state_update_event):
+async def test_do_update_no_version(mock_asyncio_sleep, mock_check_github_version, mock_modify_state_update_event):
     # Simulate no new update available
     mock_check_github_version.return_value["update_available"] = False
     response = await do_update()
