@@ -202,7 +202,7 @@ const CameraAim = () => {
             <h5>Live View</h5>
             {isLoading && <p>Loading video feed...</p>}
             {error ? (
-              <p className="text-danger">{error}</p>
+              <p className="text-danger"><i>{error}</i></p>
             ) : (
               videoFeedUrl ? (
                 <img
@@ -244,14 +244,15 @@ const CameraAim = () => {
                        textDecoration: 'none'
                      }}>
                     You're on a
-                    Raspberry Pi with PiCamera
+                    Raspberry Pi with PiCamera module
                     <FaRaspberryPi size={20} color="#C51A4A"/>
                   </a>
                 </h5>
                 <div className='flex-container column'>
+                  {cameraModels.length > 0 ? (
                   <div className='mb-3 mt-3'>
                     <DropdownMenu
-                      dropdownLabel={"Connected cameras"}
+                      dropdownLabel={"Connected camera models"}
                       callbackFunc={handleCameraDropdown}
                       data={cameraModels}
                       value={piFormData.camera_idx}
@@ -261,6 +262,9 @@ const CameraAim = () => {
                       Select the Raspberry Pi camera model you want to use
                     </div>
                   </div>
+                  ) : (<p className="text-danger"><i>
+                    No cameras found. Please check the ribbon cable connections if a camera is expected.
+                  </i></p>)}
                   <div className='mb-3 mt-3'>
                     <DropdownMenu
                       dropdownLabel={"Resolution"}
@@ -268,6 +272,7 @@ const CameraAim = () => {
                       data={resolutionValues}
                       value={piFormData.resolution}
                       defaultValue={[1920, 1080]}
+                      disabled={cameraModels.length < 1}
                     />
                     <div className="help-block">
                       Select the resolution with which you want to stream or record
@@ -279,8 +284,7 @@ const CameraAim = () => {
                     </label>
                     <ReactSlider
                       className="horizontal-slider"
-                      thumbClassName="thumb"
-                      trackClassName="track"
+                      thumbClassName={cameraModels.length < 1 ? "thumb thumb-disabled" : "thumb"}
                       value={piFormData.fps || 30} // Default values if unset
                       min={5}
                       max={60}
@@ -293,6 +297,7 @@ const CameraAim = () => {
                       onChange={(value) => {
                         setPiFormData({...piFormData, fps: value})
                       }}
+                      disabled={cameraModels.length < 1}
                     />
                   </div>
                   <div className="mb-3 mt-3 form-horizontal">
@@ -301,7 +306,7 @@ const CameraAim = () => {
                     </label>
                     <ReactSlider
                       className="horizontal-slider"
-                      thumbClassName="thumb"
+                      thumbClassName={cameraModels.length < 1 ? "thumb thumb-disabled" : "thumb"}
                       trackClassName="track"
                       value={piFormData.length || 5} // Default values if unset
                       min={1}
@@ -315,6 +320,7 @@ const CameraAim = () => {
                       onChange={(value) => {
                         setPiFormData({...piFormData, length: value})
                       }}
+                      disabled={cameraModels.length < 1}
                     />
                   </div>
                   <div className='mb-3 mt-3'>
@@ -327,7 +333,7 @@ const CameraAim = () => {
                         role="switch"
                         id="picamSwitch"
                         onClick={handleTogglePreview}
-                        disabled={!hasPiCamera}
+                        disabled={cameraModels.length < 1}
                       />
                     </div>
 
@@ -335,7 +341,7 @@ const CameraAim = () => {
                   <div className="mb-3 mt-3">
                       <PiRecordFill
                         size={20}
-                        color="#C51A4A"
+                        color={cameraModels < 1 ? "#bbb" : "#C51A4A"}
                         style={{cursor: "pointer", marginRight: "10px"}}
                           onClick={handleVideoRecord}
                       />
