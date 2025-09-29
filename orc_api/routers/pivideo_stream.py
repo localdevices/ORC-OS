@@ -32,14 +32,22 @@ except Exception:
     picam_available = False
 
 
+def get_cameras():
+    """Get list of connected cameras."""
+    return Picamera2.global_camera_info()
+
+
 def start_camera(camera_idx: Optional[int] = None, width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the PiCamera with the specified width, height, and FPS."""
     global picam_available
     if not picam_available:
         raise HTTPException(status_code=500, detail="picamera2 library is not installed.")
+    # import again just to make sure.
+    from picamera2 import Picamera2
+
     # Validate camera index if provided
     if camera_idx is not None:
-        cameras = Picamera2.global_camera_info()
+        cameras = get_cameras()
         if not cameras:
             raise HTTPException(status_code=500, detail="No cameras detected.")
         if camera_idx < 0 or camera_idx >= len(cameras):
@@ -71,7 +79,7 @@ async def picam_info():
     global picam_available
     if not picam_available:
         return None
-    cameras = Picamera2.global_camera_info()
+    cameras = get_cameras()
     if not cameras:
         return None
     return cameras
