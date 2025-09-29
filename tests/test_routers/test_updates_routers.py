@@ -167,25 +167,29 @@ async def test_do_update_no_version(mock_asyncio_sleep, mock_check_github_versio
 
 
 # Endpoint-specific tests
-def test_check_updates():
+@pytest.mark.asyncio
+async def test_check_updates():
     response = client.get("/updates/check/")
     assert response.status_code == 200
     # check if the tag name starts with "v", compulsory for successful updates procedures
     assert response.json()["release_data"]["tag_name"][0] == "v"
 
 
+@pytest.mark.asyncio
 def test_start_update(mock_modify_state_update_event, mock_do_update):
     response = client.post("/updates/start/")
     assert response.status_code == 200
     assert response.json() == {"status": "Update process started"}
 
 
+@pytest.mark.asyncio
 def test_update_status():
     response = client.get("/updates/status/")
     assert response.status_code == 200
     assert "status" in response.json()
 
 
+@pytest.mark.asyncio
 def test_shutdown_api(mock_os_exit):
     response = client.post("/updates/shutdown/")
     assert response.status_code == 200
