@@ -74,7 +74,7 @@ const VideoUploader = () => {
 
     try {
       // Submit the POST request to the /video API
-      const response = await api.post("/video", formData, {
+      const response = await api.post("/video/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
