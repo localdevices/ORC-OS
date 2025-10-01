@@ -158,7 +158,7 @@ export const delete_videos = async (api, deleteStartDate, deleteEndDate, setMess
   }
 }
 
-export const run_video = async(video, setVideo, setMessageInfo) => {
+export const run_video = async(video, setMessageInfo) => {
   try {
     // Ensure the video ID is available
     if (!video?.id) {
@@ -169,7 +169,8 @@ export const run_video = async(video, setVideo, setMessageInfo) => {
     // Make the API call
     const response = await api.get(`/video/${video.id}/run`);
     // update the status of the video
-    setVideo({ ...video, status: response.data.status});
+    video.status = response.data.status;
+    // setVideo({ ...video, status: response.data.status});
     console.log("Run video response:", response.data);
 
     // Display success message

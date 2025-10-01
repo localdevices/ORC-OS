@@ -38,14 +38,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   const {setMessageInfo} = useMessage();
   const navigate = useNavigate();
 
-  // const currentRecords = data.slice(idxFirst, idxLast);  // TODO: replace by a direct API call with limited amount
-
-  // useEffect(() => {
-  //   setData(initialData);
-  //   setCurrentPage(1);
-  //   console.log(initialData)
-  // }, [data]);
-
   // Data must be updated when the page changes, when start and end date changes, or when
   useEffect(() => {
     // set loading
@@ -102,7 +94,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   const getStatusIcon = (status) => {
     switch (status) {
       case 3:
-        return <div><FaSpinner style={{color: "blue"}} className="spinner"/> running</div>// Spinner for processing
+        return <div><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> running</div>// Spinner for processing
       case 4:
         return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
       case 5:
@@ -112,19 +104,19 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
       case 2:
         return <div><FaHourglass style={{color: "purple"}}/> queue</div>; // Pending
       default:
-        return <FaSpinner style={{color: "gray"}} className="spinner"/>; // Default spinner
+        return <FaSpinner style={{color: "gray", animation: "spin 1s linear infinite"}}/>; // Default spinner
     }
   };
   const getSyncStatusIcon = (status) => {
     switch (status) {
-      case null:
-        return <div><FaSync style={{color: "grey"}}/> not synced yet</div>// Spinner for processing
-      case true:
+      case 1:
+        return <div><FaSync style={{color: "grey"}}/> not synced</div>
+      case 2:
         return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
-      case false:
-        return <div><FaSync style={{color: "cadetblue"}} className="spinner"/> out of sync</div>; // Error
+      case 3:
+        return <div><FaSync style={{color: "cadetblue", animation: "spin 1s linear infinite"}}/> out of sync</div>; // Error
       default:
-        return <FaSync style={{color: "grey"}}/>; // Default spinner
+        return <FaSync style={{color: "grey"}}/>;
     }
   };
   const getVideoConfigIcon = (video) => {
@@ -231,7 +223,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   };
 
   const handleRun = (video) => {
-    run_video(video);
+    run_video(video, setMessageInfo);
   }
 
   const handleVideoConfig = (video) => {
@@ -301,6 +293,10 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
       <div className="flex-container column">
 
         <h5>View / edit your videos</h5>
+        <div role="alert" style={{color: "green", fontStyle: "italic"}}>
+          Press Ctrl + R to refresh the status of your videos
+        </div>
+
 
         <div>
           {/* Table */}
@@ -325,6 +321,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
               <th>Video config</th>
               <th>Time series</th>
               <th>Status</th>
+              <th>Sync status</th>
               <th style={{width: "150px", whiteSpace: "nowrap"}}>Actions</th>
             </tr>
             </thead>
@@ -367,8 +364,14 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                   />
                 </td>
                 <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
-                <td>h: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m" : "N/A"} Q: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s" : "N/A"}</td>
+                <td>
+                  <strong><i>h</i></strong>: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m " : "N/A "}
+                  | <strong><i>Q</i></strong>: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s " : "N/A "}
+                  | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series ? Math.round(video.time_series.v_av * 100) / 100 + " m/s " : "N/A "}
+                  | <strong><i>v<sub>bulk</sub></i></strong>: {video.time_series ? Math.round(video.time_series.v_bulk * 100) / 100 + " m/s " : "N/A "}
+                </td>
                 <td>{getStatusIcon(video.status)}</td>
+                <td>{getSyncStatusIcon(video.sync_status)}</td>
                 <td>
                   <button className="btn-icon"
                     // disabled when video config is not ready, or task is already queued (2) or running (3)

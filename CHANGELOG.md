@@ -1,3 +1,25 @@
+## [0.3.2] - 2025-10-01
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- Time series now include wetted surface area, wetted perimeter, bulk velocity and average surface velocity.
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- Setting of water levels starting with trailing 0 in form field for z0 and href were deleted. Now the trailing zero
+  remains.
+- Dropdown menus for cross sections did no longer provide a --no value-- option. This is corrected.
+- Sync status of videos and time series is now displayed in the front end.
+### Security
+
+
 ## [0.3.1] - 2025-09-29
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
