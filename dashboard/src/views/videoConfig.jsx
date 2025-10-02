@@ -236,7 +236,7 @@ const VideoConfig = () => {
   };
 
   const runVideo = async () => {
-    run_video(video, setVideo, setMessageInfo);
+    run_video(video, setMessageInfo);
   };
 
   const updateWidget = (id, updatedCoordinates) => {

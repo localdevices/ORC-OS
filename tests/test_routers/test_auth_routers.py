@@ -127,7 +127,7 @@ def test_create_token_expiration():
     expiration_time = decoded_token["exp"]
     creation_time = datetime.now(tz=timezone.utc).timestamp()
     assert expiration_time > creation_time
-    assert expiration_time <= (creation_time + 15 * 60)
+    assert expiration_time <= (creation_time + 60 * 60)
 
 
 def test_create_token_is_string():

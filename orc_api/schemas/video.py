@@ -40,6 +40,8 @@ class VideoListResponse(BaseModel):
     time_series: Optional[TimeSeriesResponse]
     allowed_to_run: bool
     status: Optional[models.VideoStatus]
+    sync_status: Optional[models.SyncStatus]
+    remote_id: Optional[int] = Field(default=None)
 
     @classmethod
     def from_video_response(cls, video_response: "VideoResponse") -> "VideoListResponse":
@@ -64,6 +66,8 @@ class VideoListResponse(BaseModel):
             allowed_to_run=allowed_to_run,
             time_series=video_response.time_series if video_response.time_series else None,
             status=video_response.status if video_response.status else None,
+            sync_status=video_response.sync_status if video_response.sync_status else None,
+            remote_id=video_response.remote_id if video_response.remote_id else None,
         )
 
 
@@ -186,6 +190,7 @@ class VideoResponse(VideoBase, RemoteModel):
             )
             self.image = rel_img_fn
             # update time series (before video, in case time series with optical water level is added in the process
+            logger.info("Updating time series belonging to video.")
             self.update_timeseries(base_path=base_path)
             # update status
             self.status = models.VideoStatus.DONE
@@ -330,6 +335,17 @@ class VideoResponse(VideoBase, RemoteModel):
         ds = xr.open_dataset(fn)
         h = float(ds.h_a)
         Q = np.abs(ds.river_flow.values)
+        if "v_eff" in ds:
+            if len(ds["quantile"]) == 5:
+                # only report middle quantile
+                q = 2
+            else:
+                q = 0
+            v_av = np.abs(ds.isel(quantile=q).transect.get_v_surf().values)
+            v_bulk = np.abs(ds.isel(quantile=q).transect.get_v_bulk().values)
+        else:
+            v_av = np.nan
+            v_bulk = np.nan
         if "q_nofill" in ds:
             ds.transect.get_river_flow(q_name="q_nofill")
             Q_nofill = np.abs(ds.river_flow.values)
@@ -343,7 +359,12 @@ class VideoResponse(VideoBase, RemoteModel):
             "q_50": Q[2] if np.isfinite(Q[2]) else None,
             "q_75": Q[3] if np.isfinite(Q[3]) else None,
             "q_95": Q[4] if np.isfinite(Q[4]) else None,
+            "v_av": v_av,
+            "v_bulk": v_bulk,
+            "wetted_surface": ds.transect.wetted_surface,
+            "wetted_perimeter": ds.transect.wetted_perimeter,
             "fraction_velocimetry": perc_measured[2] if np.isfinite(perc_measured[2]) else None,
+            "sync_status": models.SyncStatus.UPDATED,  # set sync status to updated, so that syncing can be reperformed
         }
         with get_session() as session:
             if id:

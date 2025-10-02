@@ -257,6 +257,7 @@ const CameraAim = () => {
                       data={cameraModels}
                       value={piFormData.camera_idx}
                       disabled={cameraModels.length < 2}  // if only one model or zero is available, no reason to select
+                      allowNoSelection={false}
                     />
                     <div className="help-block">
                       Select the Raspberry Pi camera model you want to use
@@ -273,6 +274,7 @@ const CameraAim = () => {
                       value={piFormData.resolution}
                       defaultValue={[1920, 1080]}
                       disabled={cameraModels.length < 1}
+                      allowNoSelection={false}
                     />
                     <div className="help-block">
                       Select the resolution with which you want to stream or record

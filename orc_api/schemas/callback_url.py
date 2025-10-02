@@ -98,7 +98,9 @@ class CallbackUrlResponse(CallbackUrlBase):
         if self.token_expiration < datetime.now():
             # first get a new token
             self.get_set_refresh_tokens()
-        return requests.patch(url, headers=self.headers, data=data, json=json, files=files, timeout=timeout)
+        return requests.patch(
+            url, headers=self.headers, data=data, json=json, files=files, timeout=timeout, allow_redirects=True
+        )
 
     def post(self, endpoint, data=None, json=None, files=None, timeout=5):
         """Perform POST request on end point with optional data and files."""

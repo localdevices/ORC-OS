@@ -68,21 +68,18 @@ const CrossSectionForm = (
   const handleWaterLevelChange = async (event) => {
     const {name, value} = event.target;
     let z_0, h_ref;
+    let inputValue = value === '' ? '' : value; // Accept empty string or value directly
     // check if h_ref is empty and if z_0 exists
     if (name === "z_0") {
-      z_0 = parseFloat(value);
+      z_0 = inputValue === '' ? null : parseFloat(value);
       if (cameraConfig?.data?.gcps?.h_ref === null || cameraConfig?.data?.gcps?.h_ref === undefined) {
         h_ref = z_0;
       } else {
         h_ref = cameraConfig?.data?.gcps?.h_ref;
       }
     } else {
-      if (value === "") {
-        h_ref = cameraConfig.gcps.z_0;
-      } else {
-        h_ref = parseFloat(value);
-      }
-      z_0 = cameraConfig.gcps.z_0;
+      h_ref = inputValue === '' ? cameraConfig.gcps.z_0 : parseFloat(value);
+      z_0 = cameraConfig.gcps.z_0 ?? null;
     }
     const newConfig = {
       ...cameraConfig,
@@ -210,7 +207,7 @@ const CrossSectionForm = (
             id='z_0' name='z_0'
             step={0.01}
             onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.z_0 ? cameraConfig.gcps.z_0 : ''}
+            value={cameraConfig?.gcps?.z_0 !== null ? cameraConfig.gcps.z_0 : ''}
             // disabled={!validatePose()}
           />
         </div>
@@ -224,7 +221,7 @@ const CrossSectionForm = (
             id='h_ref' name='h_ref'
             step={0.01}
             onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.h_ref ? cameraConfig.gcps.h_ref : ''}
+            value={cameraConfig?.gcps?.h_ref !== null ? cameraConfig.gcps.h_ref : ''}
             disabled={!validatez0()}
           />
         </div>

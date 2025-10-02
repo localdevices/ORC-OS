@@ -1,7 +1,10 @@
 import PropTypes from 'prop-types';
 
-export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultValue, name, disabled}) => {
-  const allowNoSelection = false
+export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultValue, name, disabled, allowNoSelection}) => {
+  if (!allowNoSelection) {
+    // default allow no selection to true
+    allowNoSelection = true;
+  }
   const resolveDefaultValue = () => {
     // get the default from the data if available
     if (defaultValue && data.some(item => (item.value || item.id) === defaultValue)) {
@@ -55,5 +58,6 @@ DropdownMenu.propTypes = {
   defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
   name: PropTypes.string,
   disabled: PropTypes.bool,
+  allowNoSelection: PropTypes.bool,
 
 };
