@@ -112,11 +112,12 @@ class SettingsResponse(SettingsBase):
                     )
                 # move video to queue
                 video_response = await queue.process_video_submission(
-                    session,
-                    video_response,
-                    logger,
-                    app.state.executor,
-                    UPLOAD_DIRECTORY,
+                    session=session,
+                    video=video_response,
+                    logger=logger,
+                    executor=app.state.executor,
+                    upload_directory=UPLOAD_DIRECTORY,
+                    shutdown_after_task=self.shutdown_after_task if self.shutdown_after_task else False,
                 )
                 # whatever happens, remove the file if not successful, prevent clogging
                 os.remove(tmp_file)

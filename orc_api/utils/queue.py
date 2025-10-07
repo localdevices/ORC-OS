@@ -12,7 +12,12 @@ from orc_api.schemas.video import VideoPatch, VideoResponse
 
 
 async def process_video_submission(
-    session: Session, video: VideoResponse, logger: Logger, executor: Executor, upload_directory: str
+    session: Session,
+    video: VideoResponse,
+    logger: Logger,
+    executor: Executor,
+    upload_directory: str,
+    shutdown_after_task: bool = False,
 ):
     """Process and submit a video for execution.
 
@@ -31,6 +36,8 @@ async def process_video_submission(
         An executor instance for running asynchronous tasks related to video execution.
     upload_directory : str
         Absolute path of the directory where video files are uploaded.
+    shutdown_after_task : bool, optional
+        if set True, hard-shutdown the device after the task is processed. Requires sudo rights without password.
 
     Raises
     ------
@@ -57,7 +64,8 @@ async def process_video_submission(
             # Submit the video for execution
             try:
                 # video.run(upload_directory)
-                executor.submit(video.run, session, upload_directory)
+                executor.submit(video.run, session, upload_directory, "", shutdown_after_task)
+                logger.info(f"Video {video.file} submitted to the executor.")
             except Exception as e:
                 logger.error(f"Failed to submit video {video.file}: {str(e)}")
                 raise HTTPException(status_code=500, detail="Failed to process the video submission.")

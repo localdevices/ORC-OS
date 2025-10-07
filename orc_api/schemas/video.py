@@ -3,6 +3,7 @@
 import glob
 import json
 import os
+import subprocess
 from datetime import datetime
 from typing import Optional
 
@@ -124,7 +125,7 @@ class VideoResponse(VideoBase, RemoteModel):
         else:
             return True, "Ready"
 
-    def run(self, session: Session, base_path: str, prefix: str = ""):
+    def run(self, session: Session, base_path: str, prefix: str = "", shutdown_after_task: bool = False):
         """Run video."""
         # update state first
         try:
@@ -224,6 +225,10 @@ class VideoResponse(VideoBase, RemoteModel):
                 logger.error(f"Error syncing video to remote site: {e_sync}")
         if self.status == models.VideoStatus.ERROR:
             raise Exception("Error running video, VideoStatus set to ERROR.")
+        # shutdown if this is set
+        if shutdown_after_task:
+            logger.info("Shutting down after daemon task...Bye bye :-)")
+            subprocess.call("sudo shutdown -h now", shell=True)
         return
 
     def sync_remote(self, session: Session, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):

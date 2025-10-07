@@ -66,9 +66,13 @@ def schedule_video_checker(scheduler, logger, session, app):
     settings = crud.settings.get(session)
     dm = crud.disk_management.get(session)
 
+    process_queue_videos = True
     # settings must be provided AND active
     if settings and dm:
         if settings.active:
+            if settings.shutdown_after_task:
+                # prevent that older videos are being processed
+                process_queue_videos = False
             # validate the settings model instance
             settings = SettingsResponse.model_validate(settings)
             logger.info(
@@ -92,3 +96,4 @@ def schedule_video_checker(scheduler, logger, session, app):
             logger.info("Daemon settings found, but not activated. Activate the daemon for automated processing.")
     else:
         logger.info("No daemon settings available, ORC-OS will run interactively only.")
+    return process_queue_videos
