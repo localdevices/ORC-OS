@@ -60,32 +60,35 @@ async def lifespan(app: FastAPI):
     # with get_session() as session:
     schedule_water_level(scheduler, logger, session)
     schedule_disk_maintenance(scheduler, logger, session)
-    schedule_video_checker(scheduler, logger, session, app)
-    # finally check if there are any jobs left to do from an earlier occasion
-    videos_left = []
-    videos_task = crud.video.get_list(session, status=VideoStatus.TASK)
-    videos_queue = crud.video.get_list(session, status=VideoStatus.QUEUE)
-    videos_left += videos_task
-    videos_left += videos_queue
-    if len(videos_left) > 0:
-        logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
-        for video_rec in videos_left:
-            with get_session() as db:
-                # ensure state is set back to new so that processing will be accepted.
-                db.commit()
-                # session.refresh(video_rec)
-                video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
-                video_instance = VideoResponse.model_validate(video_rec)
-            if video_instance.ready_to_run[0]:
-                _ = await queue.process_video_submission(
-                    session=session,
-                    video=video_instance,
-                    logger=logger,
-                    executor=app.state.executor,
-                    upload_directory=UPLOAD_DIRECTORY,
-                )
+    process_queue_videos = schedule_video_checker(scheduler, logger, session, app)
+    if process_queue_videos:
+        # finally check if there are any jobs left to do from an earlier occasion
+        videos_left = []
+        videos_task = crud.video.get_list(session, status=VideoStatus.TASK)
+        videos_queue = crud.video.get_list(session, status=VideoStatus.QUEUE)
+        videos_left += videos_task
+        videos_left += videos_queue
+        if len(videos_left) > 0:
+            logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
+            for video_rec in videos_left:
+                with get_session() as db:
+                    # ensure state is set back to new so that processing will be accepted.
+                    db.commit()
+                    # session.refresh(video_rec)
+                    video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
+                    video_instance = VideoResponse.model_validate(video_rec)
+                if video_instance.ready_to_run[0]:
+                    _ = await queue.process_video_submission(
+                        session=session,
+                        video=video_instance,
+                        logger=logger,
+                        executor=app.state.executor,
+                        upload_directory=UPLOAD_DIRECTORY,
+                    )
+        else:
+            logger.info("No videos left to process from earlier work.")
     else:
-        logger.info("No videos left to process from earlier work.")
+        logger.info("Daemon active and set to shutdown after task. Earlier videos will NOT be processed.")
 
     yield
     logger.info("Shutting down FastAPI server, goodbye!")
