@@ -1,3 +1,22 @@
+## [0.3.3] - 2025-10-07
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- Daemon setting for shutdown after task now works as expected. When checked and daemon is activated, the OS will
+  shutdown after a single task is completed. Older tasks that were not finished will NOT be reprocessed in this case.
+### Security
+
+
 ## [0.3.2] - 2025-10-01
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
