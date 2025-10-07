@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from unittest import mock
 
 import pytest
 from pyorc import sample_data
@@ -34,11 +35,39 @@ def test_video_run(
 def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, monkeypatch):
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
     assert video_response_no_ts.time_series is None
-    video_response_no_ts.run(base_path=sample_data.get_hommerich_pyorc_files())
+    video_response_no_ts.run(session=session_video_config, base_path=sample_data.get_hommerich_pyorc_files())
     assert video_response_no_ts.time_series is not None
     assert video_response_no_ts.status == models.VideoStatus.DONE
     assert len(video_response_no_ts.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
     assert video_response_no_ts.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None
+
+
+def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_config, monkeypatch):
+    """Mock running of video in order to test if shutdown is handled correctly."""
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
+
+    def mock_velocity_flow(**kwargs):
+        return None
+
+    def mock_update_timeseries(self, *args, **kwargs):
+        return None
+
+    def mock_sync_remote(self, *args, **kwargs):
+        return None
+
+    def mock_subprocess_call(*args, **kwargs):
+        print("Shutdown called!")
+        return None
+
+    mock_shutdown = mock.Mock(side_effect=mock_subprocess_call)
+    monkeypatch.setattr("subprocess.call", mock_shutdown)
+    monkeypatch.setattr("orc_api.schemas.video.velocity_flow", mock_velocity_flow)
+    monkeypatch.setattr("orc_api.schemas.video.VideoResponse.update_timeseries", mock_update_timeseries)
+    monkeypatch.setattr("orc_api.schemas.video.VideoResponse.sync_remote", mock_update_timeseries)
+
+    video_response_no_ts.run(session=session_video_config, base_path=tmpdir, shutdown_after_task=True)
+    # test if mock shutdown is called once
+    assert mock_shutdown.call_count == 1
 
 
 def test_video_sync(session_video_with_config, video_response, monkeypatch):

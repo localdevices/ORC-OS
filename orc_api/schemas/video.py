@@ -227,6 +227,7 @@ class VideoResponse(VideoBase, RemoteModel):
             raise Exception("Error running video, VideoStatus set to ERROR.")
         # shutdown if this is set
         if shutdown_after_task:
+            logger.info("Shutting down after daemon task...Bye bye :-)")
             subprocess.call("sudo shutdown -h now", shell=True)
         return
 
