@@ -17,6 +17,9 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Fixed
 - Daemon setting for shutdown after task now works as expected. When checked and daemon is activated, the OS will
   shutdown after a single task is completed. Older tasks that were not finished will NOT be reprocessed in this case.
+- Small interface improvements:
+  - Update button is now immediately disabled when a user clicks to prevent repetitive calls
+  - Dropdown menu for camera selection was incorrectly displaying a no value selection.
 ### Security
 
 

@@ -13,6 +13,7 @@ const Updates = () => {
   const [releaseNotes, setReleaseNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [updateStatusMessages, setUpdateStatusMessages] = useState(null);
+  const [buttonDisabled, setButtonDisabled] = useState(false);
   const [messages, setMessages] = useState({
     is_updating: false,
     status: "Checking for updates..."}
@@ -81,6 +82,7 @@ const Updates = () => {
 
 
   async function handleUpdate() {
+    setButtonDisabled(true);
     try {
       await startUpdate(api)
     } catch (error) {
@@ -126,7 +128,7 @@ const Updates = () => {
               </div>
               <button
                 className="btn"
-                disabled={!updateAvailable || messages.is_updating}
+                disabled={!updateAvailable || messages.is_updating || buttonDisabled}
                 onClick={handleUpdate}
               >
                 Update Now
