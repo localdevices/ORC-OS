@@ -152,6 +152,7 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
         url=os.getenv("LIVEORC_URL"),
         user=os.getenv("LIVEORC_EMAIL"),
         password=os.getenv("LIVEORC_PASSWORD"),
+        retry_timeout=10,
     )
     tokens = callback_create.get_tokens().json()
     new_callback_dict = callback_create.model_dump(exclude_none=True, mode="json", exclude={"id", "password", "user"})
@@ -161,6 +162,7 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
             "token_access": tokens["access"],
             "token_refresh": tokens["refresh"],
             "token_expiration": callback_create.get_token_expiration(),
+            "retry_timeout": 10.0,
         }
     )
     new_callback_url = models.CallbackUrl(**new_callback_dict)

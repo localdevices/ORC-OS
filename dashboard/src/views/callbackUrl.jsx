@@ -14,6 +14,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
     url: '',
     user: '',
     password: '',
+    retry_timeout: 0.0,
     createdAt: '',
     tokenRefresh: '',
     tokenAccess: '',
@@ -28,6 +29,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         "url": response.data.url,
         "user": '',
         "password": '',
+        "retry_timeout": response.data.retry_timeout,
         "createdAt": response.data.created_at,
         "tokenRefresh": response.data.token_refresh,
         "tokenAccess": response.data.token_access,
@@ -55,6 +57,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         url: callbackUrl.url || '',
         user: callbackUrl.user || '',
         password: '',
+        retry_timeout: callbackUrl.retry_timeout || 0.0,
         createdAt: callbackUrl.createdAt,
         tokenRefresh: callbackUrl.tokenRefresh || '',
         tokenAccess: callbackUrl.tokenAccess || '',
@@ -64,23 +67,25 @@ const CallbackUrl = ({setRequiresRestart}) => {
   }, [callbackUrl]);
 
   const handleInputChange = (event) => {
-    const value = event.target.value;
+    const {name, value, type } = event.target;
+    const parsedValue = type === "number" ? (value === "" ? "" : parseFloat(value)) : value
     setFormData({
       ...formData,
-      [event.target.name]: value,
+      [name]: parsedValue,
     });
   }
   const handleFormSubmit = async (event) => {
     try {
       event.preventDefault();
-      console.log(formData);
       // get only the url, user and password
-      const submitData = {url: formData.url, user: formData.user, password: formData.password}
+      const submitData = {url: formData.url, user: formData.user, password: formData.password, retry_timeout: parseFloat(formData.retry_timeout)}
+      console.log(submitData);
       const response = await api.post('/callback_url/', submitData);
       if (!response.status === 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       }
+      console.log(response);
       setMessageInfo('success', 'LiveORC information updated successfully');
       setRequiresRestart(true);
 
@@ -91,6 +96,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
       setFormData({
         url: '',
         user: '',
+        retry_timeout: 0.0,
         password: '',
         tokenRefresh: '',
         tokenAccess: '',
@@ -112,6 +118,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
           url: '',
           user: '',
           password: '',
+          retry_timeout: 0.0,
           tokenRefresh: '',
           tokenAccess: '',
           tokenExpiration: ''
@@ -156,6 +163,13 @@ const CallbackUrl = ({setRequiresRestart}) => {
           </label>
           <input type='password' className='form-control' id='password' name='password' onChange={handleInputChange}
                  value={formData.password}/>
+        </div>
+        <div className='mb-3 mt-3'>
+          <label htmlFor='password' className='form-label'>
+            Time [s] to retry requests in case the device seems offline. 0 means that only one try is performed.
+          </label>
+          <input type='number' step='1' min='0' max='600' className='form-control' id='retry_timeout' name='retry_timeout' onChange={handleInputChange}
+                 value={formData.retry_timeout}/>
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='tokenRefresh' className='form-label'>

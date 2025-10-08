@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import DateTime, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from orc_api.db import Base
@@ -20,6 +20,12 @@ class CallbackUrl(Base):
         default="https://127.0.0.1:8000/api",
         nullable=False,
         comment="url to api main end point of server to report to",
+    )
+    retry_timeout: Mapped[float] = mapped_column(
+        Float,
+        default=0.0,
+        nullable=False,
+        comment="Maximum time to repeatedly try requests to api. If set to zero, only one try will be attempted.",
     )
     token_refresh_end_point: Mapped[str] = mapped_column(
         String, comment="Refresh end point for JWT tokens of the server", default="/api/token/refresh/"
