@@ -9,6 +9,9 @@ Feedback and bug reports are highly appreciated to improve future versions.
 
 ### Added
 ### Changed
+- User can set a retry timeout for retrying syncing of records to LiveORC. This is useful if the connection to the
+  LiveORC instance is interrupted or only slowly becoming available in power cycling, such as e.g. with Starlink
+  connections. The default is 0 seconds, meaning no retry will be attempted.
 ### Deprecated
 ### Removed
 ### Fixed

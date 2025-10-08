@@ -1,5 +1,6 @@
 """Video routers."""
 
+import asyncio
 import io
 import mimetypes
 import os
@@ -18,9 +19,11 @@ from fastapi import (  # Requests holds the app
     Query,
     Request,
     UploadFile,
+    WebSocket,
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
+from starlette.websockets import WebSocketDisconnect
 
 # Directory to save uploaded files
 from orc_api import __home__, crud
@@ -44,6 +47,12 @@ UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
+
+# start an empty list of websocket connections
+websocket_video_conns = []
+
+# Event used to notify state changes
+video_update_queue = asyncio.Queue()
 
 
 # helpers
@@ -466,3 +475,28 @@ async def download_videos_on_ids(
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="files.zip"'},
     )
+
+
+@router.websocket("/status_video")
+async def update_video_ws(websocket: WebSocket):
+    """Get continuous status of the update process via websocket."""
+    await websocket.accept()
+    websocket_video_conns.append(websocket)
+    try:
+        while True:
+            # then just wait until the message changes
+            status_msg = await video_update_queue.get()
+            await websocket.send_json(status_msg)
+            await asyncio.sleep(0.1)
+
+    except WebSocketDisconnect:
+        print("WebSocket disconnected")
+        if websocket in websocket_video_conns:
+            websocket_video_conns.remove(websocket)
+
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        if websocket in websocket_video_conns:
+            websocket_video_conns.remove(websocket)
+        await websocket.close()

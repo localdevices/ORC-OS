@@ -16,7 +16,7 @@ dependencies = [
     "pillow; python_version != '3.9'",
     "rocket-fft @ git+https://github.com/styfenschaer/rocket-fft.git@main ; python_version == '3.13'",
     "rocket-fft; python_version != '3.13'",  # pypi for versions lower than 3.13
-    "pydantic",
+    "pydantic<2.12.0",  # 2025-10-08, there seem to be regression errors in @model_validator. related to https://github.com/pydantic/pydantic/issues/12353
     "PyJWT",
     "pyopenrivercam>=0.8.11",
     "pyyaml",

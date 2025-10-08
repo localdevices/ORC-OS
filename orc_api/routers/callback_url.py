@@ -67,6 +67,15 @@ async def delete_callback_url(db: Session = Depends(get_db)):
 async def update_callback_url(callback_url: CallbackUrlCreate, db: Session = Depends(get_db)):
     """Route for posting or updating LiveORC callback URL information."""
     # check if url has the /api suffix
+    if callback_url.user == "" or callback_url.password == "" or callback_url.url == "":
+        # check if there is already a record and add the time to it
+        callback_stored = crud.callback_url.get(db)
+        if callback_stored:
+            # only update timeout if needed.
+            crud.callback_url.update(db, {"retry_timeout": callback_url.retry_timeout})
+            return Response("No user, and/or no password set, so only updated retry timeout.", status_code=200)
+        else:
+            return Response("No url and/or user and/or password set, cannot create callback url.", status_code=400)
     # check if the LiveORC server can be reached and returns a valid response
     r = callback_url.get_tokens()
     if not r.status_code == 200:
