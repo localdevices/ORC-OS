@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
+from orc_api.log import logger
 
 
 def dynamic_retry(timeout, retry_delay=5.0):
@@ -29,6 +30,11 @@ def dynamic_retry(timeout, retry_delay=5.0):
                     # Check if retry timeout has passed
                     if time.time() - start_time > timeout:
                         raise TimeoutError(f"Retry timeout exceeded ({timeout} seconds): {e}") from e
+                    logger.info(f"Connection error with sync, retrying in {retry_delay} seconds...")
+                    # ensure any files are rewinded to zero! index 0 is the file name, 1 is the file handler
+                    if "files" in kwargs:
+                        for k in kwargs["files"]:
+                            kwargs["files"][k][1].seek(0)
                     time.sleep(retry_delay)
 
         return wrapper

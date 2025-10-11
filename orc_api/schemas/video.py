@@ -252,7 +252,9 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.video_config_id = self.video_config.id
         if self.time_series is not None:
             if self.time_series.sync_status != models.SyncStatus.SYNCED:
-                logger.debug(f"Syncing time series {self.time_series} to remote site.")
+                logger.debug(
+                    f"Syncing time series {self.time_series.id} - {self.time_series.timestamp} to remote site."
+                )
                 self.time_series = self.time_series.sync_remote(session=session, site=site)
                 self.time_series_id = self.time_series.id
 
