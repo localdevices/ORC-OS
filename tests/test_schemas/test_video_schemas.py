@@ -18,7 +18,7 @@ def test_video_run(
 ):
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
     assert video_response.status == models.VideoStatus.NEW
-    video_response.run(base_path=sample_data.get_hommerich_pyorc_files())
+    video_response.run(session=session_video_config, base_path=sample_data.get_hommerich_pyorc_files())
     assert video_response.status == models.VideoStatus.DONE
     assert len(video_response.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
     assert video_response.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None

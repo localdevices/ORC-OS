@@ -20,6 +20,7 @@ from orc_api.log import logger
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
+from orc_api.utils.states import VideoRunStatus, video_run_state
 
 
 # Pydantic model for responses
@@ -129,11 +130,15 @@ class VideoResponse(VideoBase, RemoteModel):
         """Run video."""
         # update state first
         try:
-            # with get_session() as session:
             rec = crud.video.get(session, id=self.id)
             rec.status = models.VideoStatus.TASK
             session.commit()
             session.refresh(rec)
+            # now also show the state PROCESSING in web socket
+            filename = os.path.split(self.file)[1]
+            video_run_state.update(
+                video_file=filename, status=VideoRunStatus.PROCESSING, message=f"Processing video: {filename}"
+            )
             if self.time_series:
                 # for older versions (python 3.9) check and validate
                 self.time_series = TimeSeriesResponse.model_validate(self.time_series)
@@ -195,9 +200,12 @@ class VideoResponse(VideoBase, RemoteModel):
             self.update_timeseries(base_path=base_path)
             # update status
             self.status = models.VideoStatus.DONE
+            video_run_state.update(status=VideoRunStatus.SUCCESS, message=f"Video: {filename} successfully processed.")
         except Exception as e:
             # ensure status is ERROR, but continue afterwards
             self.status = models.VideoStatus.ERROR
+            # also show this state in the web socket
+            video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
             logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
         update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
         if self.time_series:
@@ -244,6 +252,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.video_config_id = self.video_config.id
         if self.time_series is not None:
             if self.time_series.sync_status != models.SyncStatus.SYNCED:
+                logger.debug(f"Syncing time series {self.time_series} to remote site.")
                 self.time_series = self.time_series.sync_remote(session=session, site=site)
                 self.time_series_id = self.time_series.id
 
