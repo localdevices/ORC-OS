@@ -33,8 +33,9 @@ def dynamic_retry(timeout, retry_delay=5.0):
                     logger.info(f"Connection error with sync, retrying in {retry_delay} seconds...")
                     # ensure any files are rewinded to zero! index 0 is the file name, 1 is the file handler
                     if "files" in kwargs:
-                        for k in kwargs["files"]:
-                            kwargs["files"][k][1].seek(0)
+                        if kwargs["files"] is not None:
+                            for k in kwargs["files"]:
+                                kwargs["files"][k][1].seek(0)
                     time.sleep(retry_delay)
 
         return wrapper
