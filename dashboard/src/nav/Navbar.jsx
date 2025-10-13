@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import {FaUser, FaCog, FaSync} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import {FaUser, FaCog, FaSync, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass} from 'react-icons/fa'; // Import User, Cog and Restart icons
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
@@ -9,10 +9,9 @@ import { useAuth } from "../auth/useAuth.jsx";
 
 
 
-const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
+const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunState}) => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
     const [settingsOpen, setSettingsOpen] = useState(false); // track if settings menu is open
-
     const { logout } = useAuth();
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
@@ -24,15 +23,11 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
 
     const handleUserButtonClick = async () => {
         await logout();
-        // api.post("/security/logout")
-
-      // alert('User login functionality to be implemented.');
     };
 
     const handleSettingsClick = () => {
         setSettingsOpen(!settingsOpen);
     };
-
 
     const handleRestartClick = () => {
       setIsLoading(true);
@@ -41,13 +36,57 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading}) => {
       api.post("/updates/shutdown")
     }
 
-    return (
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 1:
+        return
+      case 2:
+        return <span><FaSpinner style={{color: "white", animation: "spin 1s linear infinite"}}/> </span>// Spinner for processing
+      case 3:
+        return <span><FaCheck style={{
+          color: "green",
+          filter: "drop-shadow(0px 0px 1px white)",
+        }}/> </span>; // Success
+      case 9:
+        return <span><FaTimes style={{
+          color: "red",
+          filter: "drop-shadow(0px 0px 1px white)",
+        }}/> error</span>; // Error
+      default:
+        return
+    }
+  };
+  const getSyncStatusIcon = (status) => {
+    switch (status) {
+      case 1:
+        return
+      case 2:
+        return <span><FaSpinner style={{color: "white", animation: "spin 1s linear infinite"}}/> </span>// Spinner for syncing
+      case 3:
+        return <span><FaCheck style={{color: "cadetblue"}}/> </span>; // Error
+      case 9:
+        return <span><FaTimes style={{
+          color: "red",
+          filter: "drop-shadow(0px 0px 1px white)",
+        }}/> </span>; // Error
+      default:
+        return
+    }
+  };
+
+
+  return (
         <>
             <nav className='navbar navbar-dark'>
                 <div className='container-fluid'>
                     <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" onClick={() => handleToggle(isOpen, setIsOpen)}>
                         <span className="navbar-toggler-icon"></span>
                     </button>
+                  <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px' }}>
+                    {videoRunState && (
+                      <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>{getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}</span>
+                    )}
+                  </div>
                     <div className="navbar-right">
                         <MessageBox/>
                         <FaSync

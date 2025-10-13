@@ -66,8 +66,7 @@ const Updates = () => {
 
     fetchVersion();
     const timeout = setTimeout(() => {
-      const ws = createWebSocketConnection(`ws://${window.location.hostname}:5000/updates/status_ws`, setMessages);
-      // });
+      const ws = createWebSocketConnection("updates",`ws://${window.location.hostname}:5000/updates/status_ws`, setMessages);
       // Cleanup when component unmounts
       return () => {
         if (ws) {

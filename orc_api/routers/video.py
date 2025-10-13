@@ -39,6 +39,7 @@ from orc_api.schemas.video import (
     VideoResponse,
 )
 from orc_api.utils import queue, websockets
+from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
@@ -51,8 +52,9 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 # start an empty list of websocket connections
 websocket_video_conns = []
 
-# Event used to notify state changes
-video_update_queue = asyncio.Queue()
+# # Event used to notify state changes
+# video_update_queue = asyncio.Queue()
+#
 
 # start a websockets connection manager
 conn_manager = websockets.ConnectionManager()
@@ -475,14 +477,18 @@ async def download_videos_on_ids(
     )
 
 
-@router.websocket("/status_video")
+@router.websocket("/status/")
 async def update_video_ws(websocket: WebSocket):
     """Get continuous status of the update process via websocket."""
     await conn_manager.connect(websocket)
+    print(f"Connected websocket: {websocket}")
+    await conn_manager.send_json(websocket=websocket, json=video_run_state.json)
+
     try:
         while True:
             # then just wait until the message changes
-            status_msg = await video_update_queue.get()
+            status_msg = await video_run_state.queue.get()
+            print("Sending update to connected websockets")
             await conn_manager.send_json(websocket=websocket, json=status_msg)
             await asyncio.sleep(0.1)
 

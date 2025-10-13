@@ -36,42 +36,41 @@ api.interceptors.response.use(
 
 export default api;
 
-let webSocketInstance = null;
+let webSocketInstances = {};
 
-export const createWebSocketConnection = (url, onMessageCallback) => {
+export const createWebSocketConnection = (connectionId, url, onMessageCallback) => {
    // Create WebSocket connection
-   if (webSocketInstance) {
-      console.log("WebSocket connection already exists");
-      return webSocketInstance;
+   if (webSocketInstances[connectionId]) {
+      console.log(`WebSocket connection with ID "${connectionId}" already exists`);
+      return webSocketInstances[connectionId];
    }
-
-
-   webSocketInstance = new WebSocket(url);
+   const webSocket = new WebSocket(url);
 
    // Event: WebSocket successfully opened
-   webSocketInstance.onopen = () => {
+   webSocket.onopen = () => {
       console.log("WebSocket connection established");
    };
 
    // Event: When a message is received
-   webSocketInstance.onmessage = (event) => {
-      console.log(JSON.parse(event.data));
+   webSocket.onmessage = (event) => {
+      console.log(`Message on connection Id "${connectionId}":`, JSON.parse(event.data));
       if (onMessageCallback) {
          onMessageCallback(JSON.parse(event.data)); // Execute the callback with the new message
       }
    };
 
    // Event: When the WebSocket connection is closed
-   webSocketInstance.onclose = () => {
-      console.log("WebSocket connection closed");
-      webSocketInstance = null;
+   webSocket.onclose = () => {
+      console.log(`WebSocket connection with ID ${connectionId} closed`);
+      delete webSocketInstances[connectionId];
    };
 
    // Event: When an error occurs
-   webSocketInstance.onerror = (error) => {
-      console.error("WebSocket error:", error);
+   webSocket.onerror = (error) => {
+      console.error(`WebSocket error on connection ID "${connectionId}":`, error);
    };
 
-   // Return the WebSocket instance
-   return webSocketInstance;
+   // store and return webSocket instance
+  webSocketInstances[connectionId] = webSocket;
+   return webSocket;
 };

@@ -20,7 +20,7 @@ import ListVideo from "./views/listVideo.jsx";
 import VideoConfig from "./views/videoConfig.jsx";
 import ListRecipe from "./views/listRecipe.jsx";
 import ListCrossSection from "./views/listCrossSection.jsx";
-import api from './api/api.js';
+import api, {createWebSocketConnection} from './api/api.js';
 import orcLogo from '/orc_favicon.svg'
 
 // list of valid routes, used to hide Navbar and Footer when not available
@@ -68,18 +68,42 @@ const matchRoute = (path) => {
 // Helper component to conditionally render Navbar and Footer
 const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) => {
   const location = useLocation();
-
   const isInvalidRoute = !matchRoute(location.pathname);
-
+  const [videoRunState, setVideoRunState] = useState({
+    video_file: "",
+    status: 0,
+    message: ""
+  });
   // Hide Navbar and Footer on login or 404 routes
   const hideLayout = location.pathname === "/login" || isInvalidRoute;
 
-  return (
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log("Connecting to video run status websocket")
+      const ws = createWebSocketConnection("videoRunStatus",`ws://${window.location.hostname}:5000/api/video/status/`, setVideoRunState);
+      // Cleanup when component unmounts
+      return () => {
+        if (ws) {
+          ws.close();
+          console.log("WebSocket connection closed")
+        }
+      };
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, []);
+
+   useEffect(() => {
+    console.log("MESSAGES", videoRunState)
+  }, [videoRunState])
+
+
+    return (
     <div className="app-container">
       {!hideLayout && <Navbar
         requiresRestart={requiresRestart}
         setRequiresRestart={setRequiresRestart}
         setIsLoading={setIsLoading}
+        videoRunState={videoRunState}
       />}
       <div className="main-content">{children}</div>
       {!hideLayout && <Footer />}

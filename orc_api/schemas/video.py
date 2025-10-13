@@ -20,7 +20,7 @@ from orc_api.log import logger
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
-from orc_api.utils.states import VideoRunStatus, video_run_state
+from orc_api.utils.states import SyncRunStatus, VideoRunStatus, video_run_state
 
 
 # Pydantic model for responses
@@ -137,7 +137,9 @@ class VideoResponse(VideoBase, RemoteModel):
             # now also show the state PROCESSING in web socket
             filename = os.path.split(self.file)[1]
             video_run_state.update(
-                video_file=filename, status=VideoRunStatus.PROCESSING, message=f"Processing video: {filename}"
+                video_file=filename,
+                status=VideoRunStatus.PROCESSING,
+                message=f"Starting processing of video: {filename}",
             )
             if self.time_series:
                 # for older versions (python 3.9) check and validate
@@ -182,6 +184,10 @@ class VideoResponse(VideoBase, RemoteModel):
                 key = next(iter(recipe["plot"]))
                 img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
                 rel_img_fn = os.path.relpath(img_fn, base_path)
+            video_run_state.update(
+                message=f"Processing with h: {np.round(h_a, 3)} m. to "
+                f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
+            )
             # run the video with pyorc
             velocity_flow(
                 recipe=recipe,
@@ -200,7 +206,7 @@ class VideoResponse(VideoBase, RemoteModel):
             self.update_timeseries(base_path=base_path)
             # update status
             self.status = models.VideoStatus.DONE
-            video_run_state.update(status=VideoRunStatus.SUCCESS, message=f"Video: {filename} successfully processed.")
+            video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
         except Exception as e:
             # ensure status is ERROR, but continue afterwards
             self.status = models.VideoStatus.ERROR
@@ -218,6 +224,9 @@ class VideoResponse(VideoBase, RemoteModel):
         settings = crud.settings.get(session)
         # only in daemon mode attempt to sync automatically
         if callback_url and settings.remote_site_id:
+            video_run_state.update(
+                sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {settings.remote_site_id}"
+            )
             try:
                 logger.debug("Attempting syncing to remote site ")
                 # try the callback
@@ -229,12 +238,19 @@ class VideoResponse(VideoBase, RemoteModel):
                     sync_image=settings.sync_image,
                 )
                 logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
+                video_run_state.update(message=f"Syncing to remote site {settings.remote_site_id} successful.")
             except Exception as e_sync:
                 logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
+                video_run_state.update(
+                    sync_status=SyncRunStatus.FAILED,
+                    message=f"Error syncing to remote site {settings.remote_site_id}: {e_sync}",
+                )
                 logger.exception("Traceback:")
 
         if self.status == models.VideoStatus.ERROR:
+            video_run_state.update(status=VideoRunStatus.ERROR)
             raise Exception("Error running video, VideoStatus set to ERROR.")
+
         # shutdown if this is set
         if shutdown_after_task:
             logger.info("Shutting down after daemon task...Bye bye :-)")
@@ -311,6 +327,10 @@ class VideoResponse(VideoBase, RemoteModel):
     def get_path(self, base_path: str):
         """Get media path to video."""
         return os.path.split(self.get_video_file(base_path))[0]
+
+    def get_output_path(self, base_path: str):
+        """Get output path to video."""
+        return os.path.join(self.get_path(base_path=base_path), "output")
 
     def get_thumbnail(self, base_path: str):
         """Get thumbnail file name."""
