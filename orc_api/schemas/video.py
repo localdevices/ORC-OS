@@ -230,7 +230,9 @@ class VideoResponse(VideoBase, RemoteModel):
                 )
                 logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
             except Exception as e_sync:
-                logger.error(f"Error syncing video to remote site: {e_sync}")
+                logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
+                logger.exception("Traceback:")
+
         if self.status == models.VideoStatus.ERROR:
             raise Exception("Error running video, VideoStatus set to ERROR.")
         # shutdown if this is set
