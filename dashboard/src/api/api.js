@@ -38,8 +38,11 @@ export default api;
 
 let webSocketInstances = {};
 
-export const createWebSocketConnection = (connectionId, url, onMessageCallback) => {
+export const createWebSocketConnection = (connectionId, url, onMessageCallback, json) => {
    // Create WebSocket connection
+  if (json === undefined) {
+    json = true;
+  }
    if (webSocketInstances[connectionId]) {
       console.log(`WebSocket connection with ID "${connectionId}" already exists`);
       return webSocketInstances[connectionId];
@@ -53,9 +56,15 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback) 
 
    // Event: When a message is received
    webSocket.onmessage = (event) => {
-      console.log(`Message on connection Id "${connectionId}":`, JSON.parse(event.data));
+     let msg;
+     if (json === true) {
+       msg = JSON.parse(event.data)
+     } else {
+       msg = event.data
+     }
+      console.log(`Message on connection Id "${connectionId}":`, msg);
       if (onMessageCallback) {
-         onMessageCallback(JSON.parse(event.data)); // Execute the callback with the new message
+         onMessageCallback(msg); // Execute the callback with the new message
       }
    };
 

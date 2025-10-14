@@ -20,6 +20,7 @@ import ListVideo from "./views/listVideo.jsx";
 import VideoConfig from "./views/videoConfig.jsx";
 import ListRecipe from "./views/listRecipe.jsx";
 import ListCrossSection from "./views/listCrossSection.jsx";
+import Log from "./views/log.jsx";
 import api, {createWebSocketConnection} from './api/api.js';
 import orcLogo from '/orc_favicon.svg'
 
@@ -39,6 +40,7 @@ const routeTemplates = [
   "/video_config/<videoId>",
   "/recipe",
   "/cross_section",
+  "/log"
 ];
 // Match current path against route templates
 const matchRoute = (path) => {
@@ -79,13 +81,11 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) 
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      console.log("Connecting to video run status websocket")
       const ws = createWebSocketConnection("videoRunStatus",`ws://${window.location.hostname}:5000/api/video/status/`, setVideoRunState);
       // Cleanup when component unmounts
       return () => {
         if (ws) {
           ws.close();
-          console.log("WebSocket connection closed")
         }
       };
     }, 100);
@@ -245,6 +245,11 @@ const App = () => {
                 <Route path="/cross_section" element={
                   <ProtectedRoute>
                     <ListCrossSection />
+                  </ProtectedRoute>
+                } />
+                <Route path="/log" element={
+                  <ProtectedRoute>
+                    <Log />
                   </ProtectedRoute>
                 } />
               </Routes>

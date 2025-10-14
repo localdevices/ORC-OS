@@ -25,6 +25,7 @@ from orc_api.routers import (
     cross_section,
     device,
     disk_management,
+    log,
     pivideo_stream,
     recipe,
     settings,
@@ -163,6 +164,7 @@ app.include_router(control_points.router)
 app.include_router(cross_section.router)
 app.include_router(device.router)
 app.include_router(disk_management.router)
+app.include_router(log.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
 app.include_router(auth.router)

@@ -49,13 +49,6 @@ UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-# start an empty list of websocket connections
-websocket_video_conns = []
-
-# # Event used to notify state changes
-# video_update_queue = asyncio.Queue()
-#
-
 # start a websockets connection manager
 conn_manager = websockets.ConnectionManager()
 
@@ -494,7 +487,6 @@ async def update_video_ws(websocket: WebSocket):
 
     except WebSocketDisconnect:
         conn_manager.disconnect(websocket)
-
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:

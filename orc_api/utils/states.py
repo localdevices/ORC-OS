@@ -52,8 +52,6 @@ class VideoRunState:
             "message": self.message,
         }
         self.queue.put_nowait(state_update)
-        print(f"STATE initialized {self.status}")
-        # self.state.put({"video_file": video_file, "status": status, "message": message})
 
     def update(
         self,
@@ -81,7 +79,6 @@ class VideoRunState:
             "message": self.message,
         }
         self.queue.put_nowait(state_update)
-        print(f"STATE updated {self.status}")
 
 
 video_run_state = VideoRunState(video_file="", status=VideoRunStatus.IDLE, sync_status=SyncRunStatus.IDLE, message="")

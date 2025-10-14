@@ -1,10 +1,13 @@
 """Logging utilities."""
 
+import asyncio
 import logging
 import logging.handlers
 import os
 import sys
 from datetime import datetime
+
+from fastapi import WebSocket
 
 from orc_api import LOG_DIRECTORY, __home__, __version__
 
@@ -93,9 +96,44 @@ def start_logger(verbose, quiet, log_path=None):
     return logger
 
 
+def get_last_lines(fn: str, count: int = 10):
+    """Get the last `count` lines from a file."""
+    if not os.path.exists(fn):
+        raise FileNotFoundError(f"Log file not found: {fn}")
+
+    with open(fn, "rb") as f:
+        f.seek(0, os.SEEK_END)  # Move to the end of the file
+        buffer = bytearray()
+        lines_found = 0
+        # Start reading backward
+        while f.tell() > 0 and lines_found <= count:
+            f.seek(-1, os.SEEK_CUR)  # Step back one character
+            byte = f.read(1)  # Read one character
+            if byte == b"\n":  # Check for new line
+                lines_found += 1
+                if lines_found > count:
+                    break
+            buffer.extend(byte)
+            f.seek(-1, os.SEEK_CUR)  # Step back again to continue
+    return buffer[::-1].decode("utf-8")  # Reverse the buffer to get the correct order
+
+
+async def stream_new_lines(websocket: WebSocket, fn: str):
+    """Stream new lines from a file as they are written."""
+    with open(fn, "r") as f:
+        # Move to the end of the file
+        f.seek(0, 2)
+        while True:
+            line = f.readline()
+            if line:
+                await websocket.send_text(line)  # Send the new line to the WebSocket
+            else:
+                await asyncio.sleep(0.1)  # Wait before trying to read more lines
+
+
 if "ALEMBIC_RUNNING" not in os.environ:
     logger = start_logger(True, False, log_path=LOG_DIRECTORY)
 else:
     logger = None
 
-__all__ = ["logger"]
+__all__ = ["logger", "get_last_lines", "stream_new_lines"]

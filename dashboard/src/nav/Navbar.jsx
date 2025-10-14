@@ -129,6 +129,13 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         </NavLink>
                     </li>
                     <li>
+                      <NavLink
+                        className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                        to="/log" onClick={handleClose}>
+                        Log file
+                      </NavLink>
+                    </li>
+                    <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/camera_aim" onClick={handleClose}>
