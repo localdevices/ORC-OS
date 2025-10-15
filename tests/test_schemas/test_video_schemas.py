@@ -46,6 +46,9 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
     """Mock running of video in order to test if shutdown is handled correctly."""
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
 
+    class ShutdownException(Exception):
+        pass
+
     def mock_velocity_flow(**kwargs):
         return None
 
@@ -57,6 +60,8 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
 
     def mock_subprocess_call(*args, **kwargs):
         print("Shutdown called!")
+        raise ShutdownException("Simulating a shutdown")
+
         return None
 
     mock_shutdown = mock.Mock(side_effect=mock_subprocess_call)
@@ -64,8 +69,8 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
     monkeypatch.setattr("orc_api.schemas.video.velocity_flow", mock_velocity_flow)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.update_timeseries", mock_update_timeseries)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.sync_remote", mock_update_timeseries)
-
-    video_response_no_ts.run(session=session_video_config, base_path=tmpdir, shutdown_after_task=True)
+    with pytest.raises(ShutdownException):
+        video_response_no_ts.run(session=session_video_config, base_path=tmpdir, shutdown_after_task=True)
     # test if mock shutdown is called once
     assert mock_shutdown.call_count == 1
 

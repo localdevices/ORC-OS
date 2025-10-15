@@ -255,14 +255,15 @@ class VideoResponse(VideoBase, RemoteModel):
                 )
                 logger.exception("Traceback:")
 
-        if self.status == models.VideoStatus.ERROR:
-            video_run_state.update(status=VideoRunStatus.ERROR)
-            raise Exception("Error running video, VideoStatus set to ERROR.")
-
         # shutdown if this is set
         if shutdown_after_task:
             logger.info("Shutting down after daemon task...Bye bye :-)")
             subprocess.call("sudo shutdown -h now", shell=True)
+        # only do a raise after the shutdown has been done, to avoid not shutting down at all.
+        if self.status == models.VideoStatus.ERROR:
+            video_run_state.update(status=VideoRunStatus.ERROR)
+            raise Exception("Error running video, VideoStatus set to ERROR.")
+
         return
 
     def sync_remote(self, session: Session, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
