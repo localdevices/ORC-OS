@@ -1,6 +1,6 @@
 """Log routers."""
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from orc_api.log import get_last_lines, logger, stream_new_lines
 from orc_api.utils import websockets
@@ -15,7 +15,11 @@ conn_manager = websockets.ConnectionManager()
 async def get_log(count=1000):
     """Retrieve the last amount of lines from the log."""
     fn = logger.handlers[1].baseFilename
-    return get_last_lines(fn=fn, count=count)
+    try:
+        string = get_last_lines(fn=fn, count=count)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Log file not found!")
+    return string
 
 
 @router.websocket("/stream/")
@@ -33,10 +37,3 @@ async def stream_log(websocket: WebSocket):
     except WebSocketDisconnect:
         print(f"Websocket {websocket} disconnected.")
         conn_manager.disconnect(websocket)
-    # finally:
-    #     try:
-    #         conn_manager.disconnect(websocket)
-    #         if not websocket.client_state == WebSocketState.DISCONNECTED:
-    #             await websocket.close()
-    #     except RuntimeError as close_error:
-    #         print(f"Attempted closing websocket, but it seems to be closed already. {close_error}")

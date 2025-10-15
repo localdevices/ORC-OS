@@ -502,9 +502,3 @@ async def update_video_ws(websocket: WebSocket):
     except WebSocketDisconnect:
         f"Websocket {websocket} disconnected."
         conn_manager.disconnect(websocket)
-    # finally:
-    #     try:
-    #         if not websocket.client_state == WebSocketState.DISCONNECTED:
-    #             await websocket.close()
-    #     except RuntimeError as close_error:
-    #         print(f"Attempted closing websocket, but it seems already closed {close_error}")
