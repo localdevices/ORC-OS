@@ -43,6 +43,27 @@ def dynamic_retry(timeout, retry_delay=5.0):
     return decorator
 
 
+def dynamic_retry(timeout, retry_delay=5.0):
+    """Decorate a function to retry with a specified timeout dynamically."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except requests.exceptions.ConnectionError as e:
+                    # Check if retry timeout has passed
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError(f"Retry timeout exceeded ({timeout} seconds): {e}") from e
+                    time.sleep(retry_delay)
+
+        return wrapper
+
+    return decorator
+
+
 # Pydantic model for responses
 class CallbackUrlBase(BaseModel):
     """Base model for callback URL."""
