@@ -19,7 +19,6 @@ class ConnectionManager:
         """Disconnect a websocket."""
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-            print("WebSocket disconnected")
 
     async def send_json(self, websocket: WebSocket, json: dict):
         """Send a JSON message to a single websocket."""

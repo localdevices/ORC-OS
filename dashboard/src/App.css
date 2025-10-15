@@ -71,6 +71,17 @@ a:hover {
   box-shadow: none;
 }
 
+.log-container {
+  width: 100%;
+  flex: 1;
+  overflow-y: scroll;
+  border-radius: 5px;
+  padding: 10px;
+  white-space: pre-wrap;
+  font-family: monospace;
+
+
+}
 .help-block {
   padding-left: 10px;
   font-size: 0.6875rem;
@@ -270,6 +281,11 @@ button.btn-icon:hover .run {
 button.btn-icon:hover .edit {
   transition: color 0.3s; /* Smooth color transition */
   color: green; /* Change to your desired color */
+}
+
+button.btn-icon:hover .document {
+    transition: color 0.3s; /* Smooth color transition */
+    color: #00a6ff; /* Change to your desired color */
 }
 
 /* Close Button for menus and widgets */

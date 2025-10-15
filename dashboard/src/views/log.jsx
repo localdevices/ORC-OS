@@ -1,23 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import api, {createWebSocketConnection} from '../api/api.js';
+import {getLogLineStyle} from "../utils/helpers.jsx";
 
 const Log = () => {
   const [logData, setLogData] = useState(""); // Stores video metadata
   const logContainerRef = useRef(null); // Ref for the log container div
-
-  // Function to style log lines based on severity
-  const getLineStyle = (line) => {
-    if (line.includes("ERROR")) {
-      return { color: "red", fontWeight: "bold" };
-    } else if (line.includes("WARNING")) {
-      return { color: "orange", fontWeight: "bold" };
-    } else if (line.includes("INFO")) {
-      return { color: "black" };
-    } else if (line.includes("DEBUG")) {
-      return { color: "gray" };
-    }
-    return {}; // Default style
-  };
 
   // WebSocket message callback to append new log lines
   const handleWebSocketMessage = (newLine) => {
@@ -63,24 +50,20 @@ const Log = () => {
     <div>
       <h1>ORC Log file </h1>
       Investigate the log file to see and debug any issues.
-      <div className="flex-container column" style={{margin: "0px", marginTop: "20px", marginBottom: "20px", height: '70vh'}}>
+      <div className="flex-container column" style={{
+        margin: "0px",
+        marginTop: "20px",
+        marginBottom: "20px",
+        height: "calc(100vh - 250px)",
+        minHeight: "500px"
+      }}>
         <div
           className="log-container"
           ref={logContainerRef} // Attach the ref to the container
-          style={{
-            width: "100%",
-            flex: 1,
-            // minHeight: "600px",
-            overflowY: "scroll",
-            borderRadius: "5px",
-            padding: "10px",
-            whiteSpace: "pre-wrap",
-            fontFamily: "monospace"
-          }}
         >
           {logData.length > 0 ? (
             logData.map((line, index) => (
-              <div key={index} style={getLineStyle(line)}>
+              <div key={index} style={getLogLineStyle(line)}>
                 {line}
               </div>
             ))

@@ -2,16 +2,29 @@ import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
 import {run_video} from "../../utils/apiCalls.jsx"
+import {getLogLineStyle} from "../../utils/helpers.jsx";
+
 import PropTypes from "prop-types";
 
 import Modal from "react-modal";
 
 import api from "../../api/api.js";
 import {
-  FaSync, FaPlay, FaTrash, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass, FaExclamationTriangle
+  FaSync,
+  FaPlay,
+  FaTrash,
+  FaSpinner,
+  FaCheck,
+  FaTimes,
+  FaStar,
+  FaHourglass,
+  FaExclamationTriangle,
+  FaDochub
 } from "react-icons/fa";
 // import camera icons for video config
 import {TbCameraCancel, TbCameraCheck, TbCameraPin} from "react-icons/tb";
+import { HiDocumentMagnifyingGlass } from "react-icons/hi2";
+
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
 import ActionVideos from "./actionVideos.jsx";
@@ -29,7 +42,8 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
   const [availableVideoConfigs, setAvailableVideoConfigs] = useState([]);
-
+  const [videoLogData, setVideoLogData] = useState("");
+  const [showLog, setShowLog] = useState(false);
   const [showModal, setShowModal] = useState(false); // State for modal visibility
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
@@ -200,7 +214,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   // Handle the "Delete" button action
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this video and all media files associated with it?')) {
-      api.delete(`/video/${id}`) // Replace with your API endpoint
+      api.delete(`/video/${id}`)
         .then(() => {
           const updatedData = data.filter((video) => video.id !== id); // Remove from state
           setData(updatedData);
@@ -216,6 +230,24 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
         });
     }
   };
+  // Handle the "Delete" button action
+  const handleShowLog = (video) => {
+    setSelectedVideo(video);
+    api.get(`/video/${video.id}/log/`)
+        .then((response) => {
+          const lines = response.data.split("\n");
+          setVideoLogData(lines);
+          setShowLog(true);
+
+        })
+        .catch((error) => {
+          setVideoLogData(`No log available for video with ID: ${video.id}`)
+          console.error('Error fetching log for video with ID:', video.id, error);
+        });
+    }
+
+
+
   // TODO: modal for "View" button action
   const handleView = (video) => {
     setSelectedVideo(video);
@@ -391,7 +423,12 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                   >
                     <FaTrash className="danger"/>
                   </button>
-                  {renderVideoConfigButton(video)}
+                  <button
+                    className="btn-icon"
+                    onClick={() => handleShowLog(video)}
+                    title={`Show the log of ${video.file}`}>
+                    <HiDocumentMagnifyingGlass className="document"/>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -461,7 +498,56 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
         </div>
       </Modal>
 
+      {/* modal for video log file display */}
+      <Modal
+        isOpen={showLog}
+        onRequestClose={() => setShowLog(false)}
+        contentLabel="Video Log"
+        style={{
+          overlay: {
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+          },
+          content: {
+            maxWidth: "500px",
+            maxHeight: "400px",
+            margin: "auto",
+            padding: "20px",
+          },
+        }}
+        >
+        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+          {selectedVideo && <h2>Log for video: {selectedVideo.id}</h2>}
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "1.5rem",
+              cursor: "pointer",
+              lineHeight: "1",
+            }}
+            onClick={() => setShowLog(false)}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+          <div
+            className="log-container"
+          >
+            {videoLogData.length > 0 ? (
+              videoLogData.map((line, index) => (
+                <div key={index} style={getLogLineStyle(line)}>
+                  {line}
+                </div>
+              ))
+            ) : (
+              <div>Loading logs...</div>
+            )}
+          </div>
 
+        </div>
+
+
+      </Modal>
       {/*Modal for editing / analyzing video */}
       {showModal && selectedVideo && (
         <>

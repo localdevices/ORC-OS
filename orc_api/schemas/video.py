@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
-from orc_api.log import logger
+from orc_api.log import add_filehandler, logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
@@ -130,6 +130,8 @@ class VideoResponse(VideoBase, RemoteModel):
         """Run video."""
         # update state first
         try:
+            # set up a temporary additional log file handler
+            print(f"Adding log file handler for video {self.id} {self.get_log_file(base_path=base_path)}")
             rec = crud.video.get(session, id=self.id)
             rec.status = models.VideoStatus.TASK
             session.commit()
@@ -188,7 +190,8 @@ class VideoResponse(VideoBase, RemoteModel):
                 message=f"Processing with h: {np.round(h_a, 3)} m. to "
                 f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
             )
-            # run the video with pyorc
+            # run the video with pyorc with an additional logger handler
+            add_filehandler(logger, self.get_log_file(base_path=base_path))
             velocity_flow(
                 recipe=recipe,
                 videofile=videofile,
@@ -200,6 +203,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 cross_wl=cross_wl,
                 logger=logger,
             )
+            remove_file_handler(logger, name_contains="pyorc.log")
             self.image = rel_img_fn
             # update time series (before video, in case time series with optical water level is added in the process
             logger.info("Updating time series belonging to video.")
@@ -213,6 +217,10 @@ class VideoResponse(VideoBase, RemoteModel):
             # also show this state in the web socket
             video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
             logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
+        finally:
+            # the last handler should be our file handler.
+            remove_file_handler(logger, name_contains="pyorc.log")
+
         update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
         if self.time_series:
             update_data["time_series_id"] = self.time_series.id
@@ -331,6 +339,11 @@ class VideoResponse(VideoBase, RemoteModel):
     def get_output_path(self, base_path: str):
         """Get output path to video."""
         return os.path.join(self.get_path(base_path=base_path), "output")
+
+    def get_log_file(self, base_path: str):
+        """Get log file name."""
+        fn = os.path.join(self.get_path(base_path=base_path), "pyorc.log")
+        return fn
 
     def get_thumbnail(self, base_path: str):
         """Get thumbnail file name."""

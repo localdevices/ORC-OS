@@ -74,6 +74,7 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) 
   const [videoRunState, setVideoRunState] = useState({
     video_file: "",
     status: 0,
+    sync_status: 0,
     message: ""
   });
   // Hide Navbar and Footer on login or 404 routes

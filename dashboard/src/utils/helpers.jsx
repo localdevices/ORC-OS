@@ -5,6 +5,21 @@ export const rainbowColors = Array.from({length: 10}, (_, i) => {
   return `hsl(${hue}, 100%, 50%)`;
 });
 
+// Function to style log lines based on severity
+export const getLogLineStyle = (line) => {
+  if (line.includes("ERROR")) {
+    return { color: "red", fontWeight: "bold" };
+  } else if (line.includes("WARNING")) {
+    return { color: "orange", fontWeight: "bold" };
+  } else if (line.includes("INFO")) {
+    return { color: "black" };
+  } else if (line.includes("DEBUG")) {
+    return { color: "gray" };
+  }
+  return {}; // Default style
+};
+
+
 export const areArraysEqual = (arr1, arr2) => {
   if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
   if (arr1.length !== arr2.length) return false;

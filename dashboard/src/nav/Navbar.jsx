@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import {FaUser, FaCog, FaSync, FaSpinner, FaCheck, FaTimes, FaStar, FaHourglass} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import {FaUser, FaCog, FaSync, FaSpinner, FaCheck, FaTimes} from 'react-icons/fa'; // Import User, Cog and Restart icons
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
 import MessageBox from "../messageBox.jsx";
 import api from "../api/api.js";
 import { useAuth } from "../auth/useAuth.jsx";
-
-
 
 const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunState}) => {
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
@@ -74,7 +72,6 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
     }
   };
 
-
   return (
         <>
             <nav className='navbar navbar-dark'>
@@ -83,7 +80,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         <span className="navbar-toggler-icon"></span>
                     </button>
                   <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px' }}>
-                    {videoRunState && (
+                    {videoRunState?.video_file !== "" && (
                       <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>{getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}</span>
                     )}
                   </div>
@@ -110,7 +107,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                 <div className="sidebar-header">
                     <a className='navbar-brand' href="#">
                         <img src={orcLogo} alt="ORC Logo" width="30" height="30" className="d-inline-block align-text-top"/>
-                    {' '} NodeORC
+                    {' '} ORC-OS
                     </a>
                     <button className="close-button" onClick={() => {handleToggle(isOpen, setIsOpen);}}>
                         &times;
@@ -170,10 +167,6 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                             Videos
                         </NavLink>
                     </li>
-                    <hr/>
-                    <li className="sidebar-brand" style={{fontSize: "25px"}}>Settings</li>
-                    <hr/>
-
                 </ul>
             </div>
             {isOpen && <div className="sidebar-overlay" onClick={() => handleToggle(isOpen, setIsOpen)}></div>}
