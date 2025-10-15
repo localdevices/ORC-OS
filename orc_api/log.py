@@ -110,17 +110,19 @@ def get_last_lines(fn: str, count: int = 10):
     if not os.path.exists(fn):
         raise FileNotFoundError(f"Log file not found: {fn}")
 
+    # ensure count is limited
+    restricted_count = min(count, 500)
     with open(fn, "rb") as f:
         f.seek(0, os.SEEK_END)  # Move to the end of the file
         buffer = bytearray()
         lines_found = 0
         # Start reading backward
-        while f.tell() > 0 and lines_found <= count:
+        while f.tell() > 0 and lines_found <= restricted_count:
             f.seek(-1, os.SEEK_CUR)  # Step back one character
             byte = f.read(1)  # Read one character
             if byte == b"\n":  # Check for new line
                 lines_found += 1
-                if lines_found > count:
+                if lines_found > restricted_count:
                     break
             buffer.extend(byte)
             f.seek(-1, os.SEEK_CUR)  # Step back again to continue

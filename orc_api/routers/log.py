@@ -12,7 +12,7 @@ conn_manager = websockets.ConnectionManager()
 
 
 @router.get("/", response_model=str, status_code=200)
-async def get_log(count=1000):
+async def get_log(count=500):
     """Retrieve the last amount of lines from the log."""
     fn = logger.handlers[1].baseFilename
     try:
