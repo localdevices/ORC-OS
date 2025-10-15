@@ -191,7 +191,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
             )
             # run the video with pyorc with an additional logger handler
-            add_filehandler(logger, self.get_log_file(base_path=base_path))
+            add_filehandler(logger=logger, path=self.get_log_file(base_path=base_path), log_level=10)
             velocity_flow(
                 recipe=recipe,
                 videofile=videofile,

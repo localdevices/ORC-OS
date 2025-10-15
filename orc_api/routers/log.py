@@ -31,7 +31,12 @@ async def stream_log(websocket: WebSocket):
     try:
         await stream_new_lines(websocket, fn)  # Stream changes from the file
     except WebSocketDisconnect:
+        print(f"Websocket {websocket} disconnected.")
         conn_manager.disconnect(websocket)
-    finally:
-        conn_manager.disconnect(websocket)
-        await websocket.close()
+    # finally:
+    #     try:
+    #         conn_manager.disconnect(websocket)
+    #         if not websocket.client_state == WebSocketState.DISCONNECTED:
+    #             await websocket.close()
+    #     except RuntimeError as close_error:
+    #         print(f"Attempted closing websocket, but it seems to be closed already. {close_error}")

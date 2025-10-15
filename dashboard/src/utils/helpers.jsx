@@ -14,7 +14,7 @@ export const getLogLineStyle = (line) => {
   } else if (line.includes("INFO")) {
     return { color: "black" };
   } else if (line.includes("DEBUG")) {
-    return { color: "gray" };
+    return { color: "steelblue" };
   }
   return {}; // Default style
 };

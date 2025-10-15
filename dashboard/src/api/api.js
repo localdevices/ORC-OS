@@ -44,14 +44,16 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
     json = true;
   }
    if (webSocketInstances[connectionId]) {
-      console.log(`WebSocket connection with ID "${connectionId}" already exists`);
+     // uncomment below to debug
+     //  console.log(`WebSocket connection with ID "${connectionId}" already exists`);
       return webSocketInstances[connectionId];
    }
    const webSocket = new WebSocket(url);
 
    // Event: WebSocket successfully opened
    webSocket.onopen = () => {
-      console.log("WebSocket connection established");
+     // uncomment below to debug
+     // console.log("WebSocket connection established");
    };
 
    // Event: When a message is received
@@ -62,7 +64,8 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
      } else {
        msg = event.data
      }
-      console.log(`Message on connection Id "${connectionId}":`, msg);
+     // uncomment below to debug
+      // console.log(`Message on connection Id "${connectionId}":`, msg);
       if (onMessageCallback) {
          onMessageCallback(msg); // Execute the callback with the new message
       }
@@ -70,7 +73,8 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
 
    // Event: When the WebSocket connection is closed
    webSocket.onclose = () => {
-      console.log(`WebSocket connection with ID ${connectionId} closed`);
+      // uncomment below to debug
+      // console.log(`WebSocket connection with ID ${connectionId} closed`);
       delete webSocketInstances[connectionId];
    };
 

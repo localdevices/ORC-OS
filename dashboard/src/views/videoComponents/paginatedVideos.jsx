@@ -3,26 +3,18 @@ import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
 import {run_video} from "../../utils/apiCalls.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
+import {VideoDetailsModal} from "./videoDetailsModal.jsx";
+import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
 
 import PropTypes from "prop-types";
 
 import Modal from "react-modal";
-
 import api from "../../api/api.js";
 import {
-  FaSync,
   FaPlay,
   FaTrash,
-  FaSpinner,
-  FaCheck,
-  FaTimes,
-  FaStar,
-  FaHourglass,
   FaExclamationTriangle,
-  FaDochub
 } from "react-icons/fa";
-// import camera icons for video config
-import {TbCameraCancel, TbCameraCheck, TbCameraPin} from "react-icons/tb";
 import { HiDocumentMagnifyingGlass } from "react-icons/hi2";
 
 import {RiPencilFill} from "react-icons/ri";
@@ -38,8 +30,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
   const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page (default 25)
-  const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
-  const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
   const [availableVideoConfigs, setAvailableVideoConfigs] = useState([]);
   const [videoLogData, setVideoLogData] = useState("");
@@ -96,99 +86,12 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
       api.get("/video_config/") // Replace with your endpoint for fetching video configs
         .then((response) => {
           setAvailableVideoConfigs(response.data);
-          console.log(response.data)
         })
         .catch((error) => {
           console.error("Error fetching video configs:", error);
         });
     }
   }, [showConfigModal]);
-
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 3:
-        return <div><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> running</div>// Spinner for processing
-      case 4:
-        return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
-      case 5:
-        return <div><FaTimes style={{color: "red"}}/> error</div>; // Error
-      case 1:
-        return <div><FaStar style={{color: "gold"}}/> new</div>; // Warning
-      case 2:
-        return <div><FaHourglass style={{color: "purple"}}/> queue</div>; // Pending
-      default:
-        return <FaSpinner style={{color: "gray", animation: "spin 1s linear infinite"}}/>; // Default spinner
-    }
-  };
-  const getSyncStatusIcon = (status) => {
-    switch (status) {
-      case 1:
-        return <div><FaSync style={{color: "grey"}}/> not synced</div>
-      case 2:
-        return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
-      case 3:
-        return <div><FaSync style={{color: "cadetblue", animation: "spin 1s linear infinite"}}/> out of sync</div>; // Error
-      default:
-        return <FaSync style={{color: "grey"}}/>;
-    }
-  };
-  const getVideoConfigIcon = (video) => {
-    // If video_config is not present
-    if (!video.video_config) {
-      return (
-        <TbCameraCancel
-          style={{color: "red"}}
-          size={20}
-          className="pulsating-icon"
-        />
-      );
-    }
-
-    // If video_config.sample_video_id matches video.id
-    if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
-      return (
-        <TbCameraPin
-          style={{color: "blue"}}
-          size={20}
-          className="btn-icon"
-        />
-      );
-    }
-    if (video.video_config.sample_video_id === video.id) {
-      return (
-        <TbCameraPin
-          style={{color: "orange"}}
-          size={20}
-          className="pulsating-icon"
-        />
-      );
-    }
-    // Catch-all case for video_config
-    return (
-      <TbCameraCheck
-        style={{color: "green"}}
-        size={20}
-        className="btn-icon"
-      />
-    );
-  };
-
-  const getVideoConfigTitle = (video) => {
-    // If video_config is not present
-    if (!video.video_config) {
-      return "No video configuration is set. Click to select an existing video configuration or create a new one based on this video, if it contains control point information."
-
-    }
-    // If video_config.sample_video_id matches video.id
-    if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
-      return "This video acts as a reference video for a video configuration and is ready to use. Click to change video configuration."
-    }
-    if (video.video_config.sample_video_id === video.id) {
-      return "This video acts as a reference video for a video configuration and is not ready to use. Click to finish video configuration."
-    }
-    return "This video has another video as a reference video. Click to change that video configuration."
-  }
 
 
   const renderVideoConfigButton = (video) => {
@@ -234,17 +137,17 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
   const handleShowLog = (video) => {
     setSelectedVideo(video);
     api.get(`/video/${video.id}/log/`)
-        .then((response) => {
-          const lines = response.data.split("\n");
-          setVideoLogData(lines);
-          setShowLog(true);
+      .then((response) => {
+        const lines = response.data.split("\n");
+        setVideoLogData(lines);
+        setShowLog(true);
 
-        })
-        .catch((error) => {
-          setVideoLogData(`No log available for video with ID: ${video.id}`)
-          console.error('Error fetching log for video with ID:', video.id, error);
-        });
-    }
+      })
+      .catch((error) => {
+        setVideoLogData(`No log available for video with ID: ${video.id}`)
+        console.error('Error fetching log for video with ID:', video.id, error);
+      });
+  }
 
 
 
@@ -285,14 +188,6 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     // redirect to editing or creating page for video config
     navigate(`/video_config/${video_id}`);
   }
-
-  // Close modal
-  const closeModal = () => {
-    setSelectedVideo(null);
-    setShowModal(false);
-    setImageError(false);
-    setVideoError(false);
-  };
 
   return (
     <div className="flex-container column no-padding">
@@ -354,7 +249,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
               <th>Time series</th>
               <th>Status</th>
               <th>Sync status</th>
-              <th style={{width: "150px", whiteSpace: "nowrap"}}>Actions</th>
+              <th style={{width: "170px", whiteSpace: "nowrap"}}>Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -429,6 +324,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
                     title={`Show the log of ${video.file}`}>
                     <HiDocumentMagnifyingGlass className="document"/>
                   </button>
+                  {renderVideoConfigButton(video)}
                 </td>
               </tr>
             ))}
@@ -508,40 +404,53 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
             backgroundColor: "rgba(0, 0, 0, 0.6)",
           },
           content: {
-            maxWidth: "500px",
-            maxHeight: "400px",
+            // maxWidth: "500px",
             margin: "auto",
             padding: "20px",
+            height: "calc(100vh - 150px",
+            minHeight: "500px",
+
           },
         }}
-        >
-        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-          {selectedVideo && <h2>Log for video: {selectedVideo.id}</h2>}
-          <button
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "1.5rem",
-              cursor: "pointer",
-              lineHeight: "1",
-            }}
-            onClick={() => setShowLog(false)}
-            aria-label="Close"
-          >
-            &times;
-          </button>
-          <div
-            className="log-container"
-          >
-            {videoLogData.length > 0 ? (
-              videoLogData.map((line, index) => (
-                <div key={index} style={getLogLineStyle(line)}>
-                  {line}
-                </div>
-              ))
-            ) : (
-              <div>Loading logs...</div>
-            )}
+      >
+        <div>
+          {/*<div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>*/}
+          <div className="modal-header">
+            {selectedVideo && <h2 className="modal-title">Log for video: {selectedVideo.id}</h2>}
+            <button
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "1.5rem",
+                cursor: "pointer",
+                lineHeight: "1",
+              }}
+              onClick={() => setShowLog(false)}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </div>
+          <div className="flex-container column" style={{
+            margin: "0px",
+            marginTop: "20px",
+            marginBottom: "20px",
+            height: "calc(100vh - 320px)",
+            minHeight: "500px"
+          }}>
+            <div
+              className="log-container"
+            >
+              {videoLogData.length > 0 ? (
+                videoLogData.map((line, index) => (
+                  <div key={index} style={getLogLineStyle(line)}>
+                    {line}
+                  </div>
+                ))
+              ) : (
+                <div>Loading logs...</div>
+              )}
+            </div>
           </div>
 
         </div>
@@ -550,111 +459,11 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
       </Modal>
       {/*Modal for editing / analyzing video */}
       {showModal && selectedVideo && (
-        <>
-          <div className="sidebar-overlay"></div>
-          <div className="modal fade show d-block" tabIndex="-1">
-            <div className="modal-dialog" style={{maxWidth: "1200px"}}>  {/*ensure modal spans a broad screen size*/}
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Video Details</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={closeModal}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <div className="flex-container">
-                    <div className="card" style={{width: "70%"}}>
-                      <div className="flex-container" style={{flexDirection: "column"}}>
-                        <label style={{minWidth: "100px"}}>Video:</label>
-                        <div className="readonly">
-                          {videoError ? (
-                            <div>Video file not found or codec not available on your browser</div>
-                          ) : (
-                            <video
-                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play/`}
-                              controls
-                              width="100%"
-                              onError={() => setVideoError(true)}
-                            />
-                          )}
-                        </div>
-                        <label style={{minWidth: "100px"}}>Analysis:</label>
-                        <div className="readonly">
-                          {imageError ? (
-                            <div>-</div>
-                          ) : (
-                            <img
-                              src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image/`}
-                              width="100%"
-                              onError={() => setImageError(true)}/>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="card" style={{minWidth: "30%"}}>
-                      {/*<div className="form-row">*/}
-                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label style={{minWidth: "100px"}}>
-                          File:
-                        </label>
-                        <div
-                          className="readonly">{selectedVideo.file ? selectedVideo.file.split(`/${selectedVideo.id}/`)[1] : "-"}</div>
-                      </div>
-                      {/*</div>*/}
-                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label style={{minWidth: "120px"}}>
-                          Status:
-                        </label>
-                        <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
-                      </div>
-                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label style={{minWidth: "120px"}}>
-                          Time Series:
-                        </label>
-                        <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
-                          <div className="readonly">Water
-                            level: {selectedVideo.time_series ? selectedVideo.time_series.h : "-"}</div>
-                          <div
-                            className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
-                        </div>
-                      </div>
-                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label style={{minWidth: "120px"}}>
-                          LiveORC sync:
-                        </label>
-                        <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
-                      </div>
-                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label style={{minWidth: "120px"}}>
-                          LiveORC video id:
-                        </label>
-                        <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A"}</div>
-                      </div>
-                      <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label style={{minWidth: "120px"}}>
-                          LiveORC site id:
-                        </label>
-                        <div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={closeModal}
-                  >
-                    Close
-                  </button>
-
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
+        <VideoDetailsModal
+          selectedVideo={selectedVideo}
+          setSelectedVideo={setSelectedVideo}
+          setShowModal={setShowModal}
+        />
       )}
     </div>
   );

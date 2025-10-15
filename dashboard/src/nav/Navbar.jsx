@@ -114,9 +114,15 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                     </button>
                 </div>
                 <ul className="sidebar-nav">
-                    <hr/>
                     <li className="sidebar-brand" style={{fontSize: "25px"}}>Menu</li>
                     <hr/>
+                    <li>
+                      <NavLink
+                        className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                        to="/" onClick={handleClose}>
+                        Home
+                      </NavLink>
+                    </li>
 
                     <li>
                         <NavLink
@@ -137,13 +143,6 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/camera_aim" onClick={handleClose}>
                             Aim your camera in the field
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
-                            to="/" onClick={handleClose}>
-                        Home
                         </NavLink>
                     </li>
                     <li>

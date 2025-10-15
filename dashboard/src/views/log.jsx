@@ -12,6 +12,7 @@ const Log = () => {
   };
   // Fetch video metadata from API
   useEffect(() => {
+    let ws;
     api.get('/log/') // Retrieve list from api
       .then((response) => {
         const lines = response.data.split("\n");
@@ -22,21 +23,20 @@ const Log = () => {
         console.error('Error fetching log data:', error);
       });
     const timeout = setTimeout(() => {
-      const ws = createWebSocketConnection(
+      ws = createWebSocketConnection(
         "log",
         `ws://${window.location.hostname}:5000/api/log/stream/`,
         handleWebSocketMessage,
         false
       );
-      // Cleanup when component unmounts
-      return () => {
-        if (ws) {
-          ws.close();
-        }
-      };
     }, 100);
-    return () => clearTimeout(timeout);
-
+    // Cleanup when component unmounts
+    return () => {
+      clearTimeout(timeout);
+      if (ws) {
+        ws.close();
+      }
+    };
   }, []);
 
   // Automatically scroll to the bottom of the log container when new lines are added
@@ -48,7 +48,7 @@ const Log = () => {
 
   return (
     <div>
-      <h1>ORC Log file </h1>
+      <h1>ORC-OS Log file </h1>
       Investigate the log file to see and debug any issues.
       <div className="flex-container column" style={{
         margin: "0px",

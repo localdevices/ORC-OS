@@ -94,7 +94,6 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) 
   }, []);
 
    useEffect(() => {
-    console.log("MESSAGES", videoRunState)
   }, [videoRunState])
 
 

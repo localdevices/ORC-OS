@@ -69,6 +69,8 @@ def add_filehandler(logger, path, log_level=20, fmt=FMT, backupCount=0):
         ch.doRollover()
 
     else:
+        if os.path.isfile(path):
+            os.unlink(path)
         ch = logging.FileHandler(path, encoding="utf-8")
     ch.setFormatter(logging.Formatter(fmt))
     ch.setLevel(log_level)
