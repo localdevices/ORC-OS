@@ -33,7 +33,7 @@ const Log = () => {
     const timeout = setTimeout(() => {
       ws = createWebSocketConnection(
         "log",
-        `ws://${window.location.hostname}:5000/api/log/stream/`,
+        `/log/stream/`,
         handleWebSocketMessage,
         false
       );

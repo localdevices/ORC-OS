@@ -76,7 +76,7 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, v
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const ws = createWebSocketConnection("videoRunStatus",`ws://${window.location.hostname}:5000/api/video/status/`, setVideoRunState);
+      const ws = createWebSocketConnection("videoRunStatus",`/video/status/`, setVideoRunState);
       // Cleanup when component unmounts
       return () => {
         if (ws) {
