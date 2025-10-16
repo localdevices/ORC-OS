@@ -4,7 +4,7 @@ import os
 import socket
 import warnings
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 # default key in case none is set in env variables
 ORC_DEFAULT_KEY = "ORC_DEFAULT_KEY"
