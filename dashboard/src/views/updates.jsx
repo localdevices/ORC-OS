@@ -13,6 +13,7 @@ const Updates = () => {
   const [releaseNotes, setReleaseNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [updateStatusMessages, setUpdateStatusMessages] = useState(null);
+  const [buttonDisabled, setButtonDisabled] = useState(false);
   const [messages, setMessages] = useState({
     is_updating: false,
     status: "Checking for updates..."}
@@ -65,8 +66,7 @@ const Updates = () => {
 
     fetchVersion();
     const timeout = setTimeout(() => {
-      const ws = createWebSocketConnection(`ws://${window.location.hostname}:5000/updates/status_ws`, setMessages);
-      // });
+      const ws = createWebSocketConnection("updates",`ws://${window.location.hostname}:5000/updates/status_ws`, setMessages);
       // Cleanup when component unmounts
       return () => {
         if (ws) {
@@ -81,6 +81,7 @@ const Updates = () => {
 
 
   async function handleUpdate() {
+    setButtonDisabled(true);
     try {
       await startUpdate(api)
     } catch (error) {
@@ -126,7 +127,7 @@ const Updates = () => {
               </div>
               <button
                 className="btn"
-                disabled={!updateAvailable || messages.is_updating}
+                disabled={!updateAvailable || messages.is_updating || buttonDisabled}
                 onClick={handleUpdate}
               >
                 Update Now

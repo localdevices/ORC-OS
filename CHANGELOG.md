@@ -1,4 +1,4 @@
-## [0.3.3] - 2025-10-07
+## [0.3.3] - 2025-10-15
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -8,6 +8,8 @@ This release should only be used for:
 Feedback and bug reports are highly appreciated to improve future versions.
 
 ### Added
+- ORC-OS Log files are 10x rotated and visible in the front end.
+- Individual log files per video are available in the front end.
 ### Changed
 - User can set a retry timeout for retrying syncing of records to LiveORC. This is useful if the connection to the
   LiveORC instance is interrupted or only slowly becoming available in power cycling, such as e.g. with Starlink
@@ -17,6 +19,9 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Fixed
 - Daemon setting for shutdown after task now works as expected. When checked and daemon is activated, the OS will
   shutdown after a single task is completed. Older tasks that were not finished will NOT be reprocessed in this case.
+- Small interface improvements:
+  - Update button is now immediately disabled when a user clicks to prevent repetitive calls
+  - Dropdown menu for camera selection was incorrectly displaying a no value selection.
 ### Security
 
 

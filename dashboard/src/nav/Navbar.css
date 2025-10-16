@@ -35,6 +35,11 @@
     z-index: -1; /* Ensures the circle is behind the icon */
 }
 
+.navbar-message {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+}
 
 .navbar-brand {
     display: flex;
@@ -46,6 +51,7 @@
     position: relative;
     display: flex;
     gap: 15px;
+    z-index: 1;
 }
 
 

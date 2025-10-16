@@ -1,12 +1,11 @@
 import { useState } from 'react';
 
 import PaginatedVideos from "./videoComponents/paginatedVideos.jsx";
-const ListVideo = () => {
+const ListVideo = ({videoRunState}) => {
 
   // Date filter states
   const [startDate, setStartDate] = useState(null); // Format: YYYY-MM-DDTHH:mm
   const [endDate, setEndDate] = useState(null); // Format: YYYY-MM-DDTHH:mm
-  const [status, setStatus] = useState(null);
   return (
     <div>
       <h1>Video </h1>
@@ -14,10 +13,9 @@ const ListVideo = () => {
       <PaginatedVideos
         startDate={startDate}
         endDate={endDate}
-        status={status}
         setStartDate={setStartDate}
         setEndDate={setEndDate}
-        setStatus={setStatus}
+        videoRunState={videoRunState}
       />
     </div>
   );

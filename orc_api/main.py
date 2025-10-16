@@ -25,6 +25,7 @@ from orc_api.routers import (
     cross_section,
     device,
     disk_management,
+    log,
     pivideo_stream,
     recipe,
     settings,
@@ -37,6 +38,7 @@ from orc_api.routers import (
 from orc_api.schedulers import schedule_disk_maintenance, schedule_video_checker, schedule_water_level
 from orc_api.schemas.video import VideoResponse
 from orc_api.utils import auth_helpers, queue
+from orc_api.utils.states import video_run_state
 
 
 @asynccontextmanager
@@ -52,10 +54,10 @@ async def lifespan(app: FastAPI):
     app.state.scheduler = scheduler  # scheduler is accessible throughout the app
     app.state.process_list = []  # state with queue of videos to run
     app.state.executor = ThreadPoolExecutor(max_workers=1)
-    app.state.processing = False  # state processing yes/no
-    app.state.processing_message = None  # string defining last status condition
+    # app.state.processing = False  # state processing yes/no
+    app.state.video_run_state = video_run_state  # initialize video run status queue
+    # app.state.processing_message = None  # string defining last status condition
     app.state.session = session
-    app.state.token_blacklist = set()
 
     # with get_session() as session:
     schedule_water_level(scheduler, logger, session)
@@ -162,6 +164,7 @@ app.include_router(control_points.router)
 app.include_router(cross_section.router)
 app.include_router(device.router)
 app.include_router(disk_management.router)
+app.include_router(log.router)
 app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
 app.include_router(auth.router)

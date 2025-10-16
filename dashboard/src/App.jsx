@@ -20,7 +20,8 @@ import ListVideo from "./views/listVideo.jsx";
 import VideoConfig from "./views/videoConfig.jsx";
 import ListRecipe from "./views/listRecipe.jsx";
 import ListCrossSection from "./views/listCrossSection.jsx";
-import api from './api/api.js';
+import Log from "./views/log.jsx";
+import api, {createWebSocketConnection} from './api/api.js';
 import orcLogo from '/orc_favicon.svg'
 
 // list of valid routes, used to hide Navbar and Footer when not available
@@ -39,6 +40,7 @@ const routeTemplates = [
   "/video_config/<videoId>",
   "/recipe",
   "/cross_section",
+  "/log"
 ];
 // Match current path against route templates
 const matchRoute = (path) => {
@@ -66,20 +68,33 @@ const matchRoute = (path) => {
 
 
 // Helper component to conditionally render Navbar and Footer
-const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) => {
+const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, videoRunState, setVideoRunState}) => {
   const location = useLocation();
-
   const isInvalidRoute = !matchRoute(location.pathname);
-
   // Hide Navbar and Footer on login or 404 routes
   const hideLayout = location.pathname === "/login" || isInvalidRoute;
 
-  return (
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const ws = createWebSocketConnection("videoRunStatus",`ws://${window.location.hostname}:5000/api/video/status/`, setVideoRunState);
+      // Cleanup when component unmounts
+      return () => {
+        if (ws) {
+          ws.close();
+        }
+      };
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, []);
+
+
+    return (
     <div className="app-container">
       {!hideLayout && <Navbar
         requiresRestart={requiresRestart}
         setRequiresRestart={setRequiresRestart}
         setIsLoading={setIsLoading}
+        videoRunState={videoRunState}
       />}
       <div className="main-content">{children}</div>
       {!hideLayout && <Footer />}
@@ -91,6 +106,13 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true); // Spinner state
     const [apiStatus, setApiStatus] = useState(null); // Error state
     const [requiresRestart, setRequiresRestart] = useState(false); // track if device needs restart
+    const [videoRunState, setVideoRunState] = useState({
+      video_id: 0,
+      video_file: "",
+      status: 0,
+      sync_status: 0,
+      message: ""
+    });
 
   // check for API availability
     useEffect(() => {
@@ -146,6 +168,8 @@ const App = () => {
               requiresRestart={requiresRestart}
               setRequiresRestart={setRequiresRestart}
               setIsLoading={setIsLoading}
+              videoRunState={videoRunState}
+              setVideoRunState={setVideoRunState}
             >
               <Routes>
                 <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
@@ -205,7 +229,9 @@ const App = () => {
                 } />
                 <Route path="/video" element={
                   <ProtectedRoute>
-                    <ListVideo />
+                    <ListVideo
+                      videoRunState={videoRunState}
+                    />
                   </ProtectedRoute>
                 } />
                 <Route path="/video_config/:videoId" element={
@@ -221,6 +247,11 @@ const App = () => {
                 <Route path="/cross_section" element={
                   <ProtectedRoute>
                     <ListCrossSection />
+                  </ProtectedRoute>
+                } />
+                <Route path="/log" element={
+                  <ProtectedRoute>
+                    <Log />
                   </ProtectedRoute>
                 } />
               </Routes>

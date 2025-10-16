@@ -38,7 +38,8 @@ from orc_api.schemas.video import (
     VideoPatch,
     VideoResponse,
 )
-from orc_api.utils import queue
+from orc_api.utils import queue, websockets
+from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
@@ -48,11 +49,8 @@ UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-# start an empty list of websocket connections
-websocket_video_conns = []
-
-# Event used to notify state changes
-video_update_queue = asyncio.Queue()
+# start a websockets connection manager
+conn_manager = websockets.ConnectionManager()
 
 
 # helpers
@@ -90,6 +88,21 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
         mime_type = "application/octet-stream"  # Fallback MIME type
 
     return FileResponse(file_path, media_type=mime_type)
+
+
+@router.get("/{id}/log/", response_model=str, status_code=200)
+async def get_video_log(id: int, db: Session = Depends(get_db)):
+    """Retrieve a log for a video and return as string."""
+    video = crud.video.get(db=db, id=id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
+    video = VideoResponse.model_validate(video)
+    log_file = video.get_log_file(base_path=UPLOAD_DIRECTORY)
+    if not os.path.exists(log_file):
+        raise HTTPException(status_code=404, detail="Video record is found, but log is not found.")
+    with open(log_file, "r") as f:
+        log_str = f.read()
+    return log_str
 
 
 @router.get("/{id}/frame/{frame_nr}", response_class=FileResponse, status_code=200)
@@ -298,11 +311,6 @@ async def play_video(id: int, range: str = Header(None), db: Session = Depends(g
                     break
                 bytes_remaining -= len(chunk)
                 yield chunk
-            #
-            # if video_file.tell() > end:
-            #         yield chunk[: end + 1 - video_file.tell()]
-            #         break
-            #     yield chunk
 
     # Set headers to support partial content (HTTP 206)
     headers = {
@@ -477,26 +485,20 @@ async def download_videos_on_ids(
     )
 
 
-@router.websocket("/status_video")
+@router.websocket("/status/")
 async def update_video_ws(websocket: WebSocket):
     """Get continuous status of the update process via websocket."""
-    await websocket.accept()
-    websocket_video_conns.append(websocket)
+    await conn_manager.connect(websocket)
+    print(f"Connected websocket: {websocket}")
+    await conn_manager.send_json(websocket=websocket, json=video_run_state.json)
+
     try:
         while True:
             # then just wait until the message changes
-            status_msg = await video_update_queue.get()
-            await websocket.send_json(status_msg)
+            status_msg = await video_run_state.queue.get()
+            await conn_manager.send_json(websocket=websocket, json=status_msg)
             await asyncio.sleep(0.1)
 
     except WebSocketDisconnect:
-        print("WebSocket disconnected")
-        if websocket in websocket_video_conns:
-            websocket_video_conns.remove(websocket)
-
-    except Exception as e:
-        print(f"WebSocket error: {e}")
-    finally:
-        if websocket in websocket_video_conns:
-            websocket_video_conns.remove(websocket)
-        await websocket.close()
+        f"Websocket {websocket} disconnected."
+        conn_manager.disconnect(websocket)

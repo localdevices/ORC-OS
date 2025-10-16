@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 
 export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultValue, name, disabled, allowNoSelection}) => {
-  if (!allowNoSelection) {
+  if (allowNoSelection === undefined || allowNoSelection === null) {
     // default allow no selection to true
     allowNoSelection = true;
   }

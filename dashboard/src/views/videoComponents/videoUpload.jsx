@@ -3,9 +3,9 @@ import { useDropzone } from "react-dropzone";
 import Modal from "react-modal"; // You can use any modal library or create your custom modal
 import "../../App.css"
 import api from "../../api/api.js";
+import PropTypes from "prop-types";
 
-const VideoUploader = () => {
-  const [uploadedVideo, setUploadedVideo] = useState(null);
+const VideoUploader = ({uploadedVideo, setUploadedVideo}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState(""); // State for date and time
 
@@ -183,4 +183,8 @@ const VideoUploader = () => {
   );
 };
 
+VideoUploader.propTypes = {
+  uploadedVideo: PropTypes.string,
+  setUploadedVideo: PropTypes.func.isRequired,
+};
 export default VideoUploader;

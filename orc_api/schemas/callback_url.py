@@ -13,6 +13,34 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
+from orc_api.log import logger
+
+
+def dynamic_retry(timeout, retry_delay=5.0):
+    """Decorate a function to retry with a specified timeout dynamically."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except requests.exceptions.ConnectionError as e:
+                    # Check if retry timeout has passed
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError(f"Retry timeout exceeded ({timeout} seconds): {e}") from e
+                    logger.info(f"Connection error with sync, retrying in {retry_delay} seconds...")
+                    # ensure any files are rewinded to zero! index 0 is the file name, 1 is the file handler
+                    if "files" in kwargs:
+                        if kwargs["files"] is not None:
+                            for k in kwargs["files"]:
+                                kwargs["files"][k][1].seek(0)
+                    time.sleep(retry_delay)
+
+        return wrapper
+
+    return decorator
 
 
 def dynamic_retry(timeout, retry_delay=5.0):

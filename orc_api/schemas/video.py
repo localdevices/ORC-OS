@@ -16,10 +16,11 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api import db as models
 from orc_api.database import get_session
-from orc_api.log import logger
+from orc_api.log import add_filehandler, logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
+from orc_api.utils.states import SyncRunStatus, VideoRunStatus, video_run_state
 
 
 # Pydantic model for responses
@@ -129,11 +130,20 @@ class VideoResponse(VideoBase, RemoteModel):
         """Run video."""
         # update state first
         try:
-            # with get_session() as session:
+            # set up a temporary additional log file handler
+            print(f"Adding log file handler for video {self.id} {self.get_log_file(base_path=base_path)}")
             rec = crud.video.get(session, id=self.id)
             rec.status = models.VideoStatus.TASK
             session.commit()
             session.refresh(rec)
+            # now also show the state PROCESSING in web socket
+            filename = os.path.split(self.file)[1]
+            video_run_state.update(
+                video_id=self.id,
+                video_file=filename,
+                status=VideoRunStatus.PROCESSING,
+                message=f"Starting processing of video: {filename}",
+            )
             if self.time_series:
                 # for older versions (python 3.9) check and validate
                 self.time_series = TimeSeriesResponse.model_validate(self.time_series)
@@ -177,7 +187,16 @@ class VideoResponse(VideoBase, RemoteModel):
                 key = next(iter(recipe["plot"]))
                 img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
                 rel_img_fn = os.path.relpath(img_fn, base_path)
-            # run the video with pyorc
+                if h_a is not None:
+                    h_a_str = f"{np.round(h_a, 3)} m."
+                else:
+                    h_a_str = "None"
+                video_run_state.update(
+                    message=f"Processing with h: {h_a_str} to "
+                    f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
+                )
+            # run the video with pyorc with an additional logger handler
+            add_filehandler(logger=logger, path=self.get_log_file(base_path=base_path), log_level=10)
             velocity_flow(
                 recipe=recipe,
                 videofile=videofile,
@@ -189,16 +208,24 @@ class VideoResponse(VideoBase, RemoteModel):
                 cross_wl=cross_wl,
                 logger=logger,
             )
+            remove_file_handler(logger, name_contains="pyorc.log")
             self.image = rel_img_fn
             # update time series (before video, in case time series with optical water level is added in the process
             logger.info("Updating time series belonging to video.")
             self.update_timeseries(base_path=base_path)
             # update status
             self.status = models.VideoStatus.DONE
+            video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
         except Exception as e:
             # ensure status is ERROR, but continue afterwards
             self.status = models.VideoStatus.ERROR
+            # also show this state in the web socket
+            video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
             logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
+        finally:
+            # the last handler should be our file handler.
+            remove_file_handler(logger, name_contains="pyorc.log")
+
         update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
         if self.time_series:
             update_data["time_series_id"] = self.time_series.id
@@ -210,6 +237,9 @@ class VideoResponse(VideoBase, RemoteModel):
         settings = crud.settings.get(session)
         # only in daemon mode attempt to sync automatically
         if callback_url and settings.remote_site_id:
+            video_run_state.update(
+                sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {settings.remote_site_id}"
+            )
             try:
                 logger.debug("Attempting syncing to remote site ")
                 # try the callback
@@ -221,14 +251,27 @@ class VideoResponse(VideoBase, RemoteModel):
                     sync_image=settings.sync_image,
                 )
                 logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
+                video_run_state.update(
+                    sync_status=SyncRunStatus.SUCCESS,
+                    message=f"Syncing to remote site {settings.remote_site_id} successful.",
+                )
             except Exception as e_sync:
-                logger.error(f"Error syncing video to remote site: {e_sync}")
-        if self.status == models.VideoStatus.ERROR:
-            raise Exception("Error running video, VideoStatus set to ERROR.")
+                logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
+                video_run_state.update(
+                    sync_status=SyncRunStatus.FAILED,
+                    message=f"Error syncing to remote site {settings.remote_site_id}: {e_sync}",
+                )
+                logger.exception("Traceback:")
+
         # shutdown if this is set
         if shutdown_after_task:
             logger.info("Shutting down after daemon task...Bye bye :-)")
             subprocess.call("sudo shutdown -h now", shell=True)
+        # only do a raise after the shutdown has been done, to avoid not shutting down at all.
+        if self.status == models.VideoStatus.ERROR:
+            video_run_state.update(status=VideoRunStatus.ERROR)
+            raise Exception("Error running video, VideoStatus set to ERROR.")
+
         return
 
     def sync_remote(self, session: Session, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
@@ -244,6 +287,9 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.video_config_id = self.video_config.id
         if self.time_series is not None:
             if self.time_series.sync_status != models.SyncStatus.SYNCED:
+                logger.debug(
+                    f"Syncing time series {self.time_series.id} - {self.time_series.timestamp} to remote site."
+                )
                 self.time_series = self.time_series.sync_remote(session=session, site=site)
                 self.time_series_id = self.time_series.id
 
@@ -298,6 +344,15 @@ class VideoResponse(VideoBase, RemoteModel):
     def get_path(self, base_path: str):
         """Get media path to video."""
         return os.path.split(self.get_video_file(base_path))[0]
+
+    def get_output_path(self, base_path: str):
+        """Get output path to video."""
+        return os.path.join(self.get_path(base_path=base_path), "output")
+
+    def get_log_file(self, base_path: str):
+        """Get log file name."""
+        fn = os.path.join(self.get_path(base_path=base_path), "pyorc.log")
+        return fn
 
     def get_thumbnail(self, base_path: str):
         """Get thumbnail file name."""

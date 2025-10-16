@@ -36,42 +36,54 @@ api.interceptors.response.use(
 
 export default api;
 
-let webSocketInstance = null;
+let webSocketInstances = {};
 
-export const createWebSocketConnection = (url, onMessageCallback) => {
+export const createWebSocketConnection = (connectionId, url, onMessageCallback, json) => {
    // Create WebSocket connection
-   if (webSocketInstance) {
-      console.log("WebSocket connection already exists");
-      return webSocketInstance;
+  if (json === undefined) {
+    json = true;
+  }
+   if (webSocketInstances[connectionId]) {
+     // uncomment below to debug
+     //  console.log(`WebSocket connection with ID "${connectionId}" already exists`);
+      return webSocketInstances[connectionId];
    }
-
-
-   webSocketInstance = new WebSocket(url);
+   const webSocket = new WebSocket(url);
 
    // Event: WebSocket successfully opened
-   webSocketInstance.onopen = () => {
-      console.log("WebSocket connection established");
+   webSocket.onopen = () => {
+     // uncomment below to debug
+     // console.log("WebSocket connection established");
    };
 
    // Event: When a message is received
-   webSocketInstance.onmessage = (event) => {
-      console.log(JSON.parse(event.data));
+   webSocket.onmessage = (event) => {
+     let msg;
+     if (json === true) {
+       msg = JSON.parse(event.data)
+     } else {
+       msg = event.data
+     }
+     // uncomment below to debug
+      // console.log(`Message on connection Id "${connectionId}":`, msg);
       if (onMessageCallback) {
-         onMessageCallback(JSON.parse(event.data)); // Execute the callback with the new message
+         onMessageCallback(msg); // Execute the callback with the new message
       }
    };
 
    // Event: When the WebSocket connection is closed
-   webSocketInstance.onclose = () => {
-      console.log("WebSocket connection closed");
-      webSocketInstance = null;
+   webSocket.onclose = () => {
+      // uncomment below to debug
+      // console.log(`WebSocket connection with ID ${connectionId} closed`);
+      delete webSocketInstances[connectionId];
    };
 
    // Event: When an error occurs
-   webSocketInstance.onerror = (error) => {
-      console.error("WebSocket error:", error);
+   webSocket.onerror = (error) => {
+      console.error(`WebSocket error on connection ID "${connectionId}":`, error);
    };
 
-   // Return the WebSocket instance
-   return webSocketInstance;
+   // store and return webSocket instance
+  webSocketInstances[connectionId] = webSocket;
+   return webSocket;
 };
