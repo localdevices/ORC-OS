@@ -1,4 +1,4 @@
-## [0.3.3] - 2025-10-15
+## [0.4.0] - 2025-10-16
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
