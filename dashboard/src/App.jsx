@@ -68,15 +68,9 @@ const matchRoute = (path) => {
 
 
 // Helper component to conditionally render Navbar and Footer
-const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) => {
+const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, videoRunState, setVideoRunState}) => {
   const location = useLocation();
   const isInvalidRoute = !matchRoute(location.pathname);
-  const [videoRunState, setVideoRunState] = useState({
-    video_file: "",
-    status: 0,
-    sync_status: 0,
-    message: ""
-  });
   // Hide Navbar and Footer on login or 404 routes
   const hideLayout = location.pathname === "/login" || isInvalidRoute;
 
@@ -92,9 +86,6 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading}) 
     }, 100);
     return () => clearTimeout(timeout);
   }, []);
-
-   useEffect(() => {
-  }, [videoRunState])
 
 
     return (
@@ -115,6 +106,13 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true); // Spinner state
     const [apiStatus, setApiStatus] = useState(null); // Error state
     const [requiresRestart, setRequiresRestart] = useState(false); // track if device needs restart
+    const [videoRunState, setVideoRunState] = useState({
+      video_id: 0,
+      video_file: "",
+      status: 0,
+      sync_status: 0,
+      message: ""
+    });
 
   // check for API availability
     useEffect(() => {
@@ -170,6 +168,8 @@ const App = () => {
               requiresRestart={requiresRestart}
               setRequiresRestart={setRequiresRestart}
               setIsLoading={setIsLoading}
+              videoRunState={videoRunState}
+              setVideoRunState={setVideoRunState}
             >
               <Routes>
                 <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
@@ -229,7 +229,9 @@ const App = () => {
                 } />
                 <Route path="/video" element={
                   <ProtectedRoute>
-                    <ListVideo />
+                    <ListVideo
+                      videoRunState={videoRunState}
+                    />
                   </ProtectedRoute>
                 } />
                 <Route path="/video_config/:videoId" element={

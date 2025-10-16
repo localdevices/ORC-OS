@@ -9,18 +9,19 @@ class VideoRunStatus(enum.Enum):
     """Status of video as Enum."""
 
     IDLE = 1
-    PROCESSING = 2
-    SUCCESS = 3
-    ERROR = 9
+    PROCESSING = 3
+    SUCCESS = 4
+    ERROR = 5
 
 
 class SyncRunStatus(enum.Enum):
     """Status of video sync process as Enum."""
 
     IDLE = 1
-    SYNCING = 2
-    SUCCESS = 3
-    FAILED = 9
+    SUCCESS = 2
+    UPDATED = 3
+    FAILED = 4
+    SYNCING = 5
 
 
 class VideoRunState:
@@ -36,9 +37,12 @@ class VideoRunState:
             "message": self.message,
         }
 
-    def __init__(self, video_file: str, status: VideoRunStatus, sync_status: SyncRunStatus, message: str):
+    def __init__(
+        self, video_id: int, video_file: str, status: VideoRunStatus, sync_status: SyncRunStatus, message: str
+    ):
         """Initialize the video run state."""
         # self.state = asyncio.Queue()
+        self.video_id = video_id
         self.video_file = video_file
         self.status = status
         self.sync_status = SyncRunStatus.IDLE
@@ -46,6 +50,7 @@ class VideoRunState:
         self.queue = asyncio.Queue()
         # initialize the async state
         state_update = {
+            "video_id": self.video_id,
             "video_file": self.video_file,
             "status": self.status.value,
             "sync_status": self.sync_status.value,
@@ -55,6 +60,7 @@ class VideoRunState:
 
     def update(
         self,
+        video_id: Optional[int] = None,
         video_file: Optional[str] = None,
         status: Optional[VideoRunStatus] = None,
         sync_status: Optional[SyncRunStatus] = None,
@@ -62,6 +68,8 @@ class VideoRunState:
     ):
         """Update state."""
         """Change state handler and notify websocket."""
+        if video_id:
+            self.video_id = video_id
         if video_file:
             self.video_file = video_file
             # state_update["video_file"] = video_file
@@ -73,6 +81,7 @@ class VideoRunState:
             self.message = message
         # update the async state
         state_update = {
+            "video_id": self.video_id,
             "video_file": self.video_file,
             "status": self.status.value,
             "sync_status": self.sync_status.value,
@@ -81,4 +90,6 @@ class VideoRunState:
         self.queue.put_nowait(state_update)
 
 
-video_run_state = VideoRunState(video_file="", status=VideoRunStatus.IDLE, sync_status=SyncRunStatus.IDLE, message="")
+video_run_state = VideoRunState(
+    video_id=0, video_file="", status=VideoRunStatus.IDLE, sync_status=SyncRunStatus.IDLE, message=""
+)

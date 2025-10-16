@@ -6,6 +6,7 @@ import logging.handlers
 import os
 import sys
 
+import anyio
 from fastapi import WebSocket
 
 from orc_api import LOG_DIRECTORY, __home__, __version__
@@ -131,11 +132,15 @@ def get_last_lines(fn: str, count: int = 10):
 
 async def stream_new_lines(websocket: WebSocket, fn: str):
     """Stream new lines from a file as they are written."""
-    with open(fn, "r") as f:
+    if not os.path.exists(fn):
+        raise FileNotFoundError(f"File {fn} does not exist.")
+
+    async with await anyio.open_file(fn, "r") as f:
+        # with open(fn, "r") as f:
         # Move to the end of the file
         f.seek(0, 2)
         while True:
-            line = f.readline()
+            line = await f.readline()
             if line:
                 await websocket.send_text(line)  # Send the new line to the WebSocket
             else:

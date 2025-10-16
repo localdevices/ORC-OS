@@ -24,13 +24,14 @@ import {useMessage} from "../../messageContext.jsx";
 import VideoUploader from "./videoUpload.jsx";
 import {createRoot} from "react-dom/client";
 
-const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, setStatus}) => {
+const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRunState}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState([]);  // initialize data
   const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
   const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page (default 25)
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
+  const [uploadedVideo, setUploadedVideo] = useState(null);
   const [availableVideoConfigs, setAvailableVideoConfigs] = useState([]);
   const [videoLogData, setVideoLogData] = useState("");
   const [showLog, setShowLog] = useState(false);
@@ -77,7 +78,7 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
         console.error('Error fetching video count:', error);
       });
 
-  }, [selectedVideo, startDate, endDate, status, currentPage, rowsPerPage]);
+  }, [selectedVideo, uploadedVideo, startDate, endDate, currentPage, rowsPerPage]);
 
 
   // Fetch the existing video configs when the modal is opened
@@ -93,6 +94,32 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
     }
   }, [showConfigModal]);
 
+  useEffect(() => {
+    console.log("videoRunState was updated", videoRunState)
+    if (!videoRunState) return;
+    setData(prevData => {
+      return prevData.map(video => {
+        if (video.id === videoRunState.video_id) {
+          // handle the video status
+          let status;
+          if (videoRunState.status === 3 || videoRunState.status === 4 || videoRunState.status === 5) {
+            status = videoRunState.status
+          } else {
+            status = video.status;
+          }
+          // handle the sync status
+          let sync_status;
+          if (videoRunState.sync_status === 2 || videoRunState.sync_status === 3 || videoRunState.sync_status === 4) {
+            sync_status = videoRunState.sync_status
+          } else {
+            sync_status = video.sync_status;
+          }
+          return {...video, status: status, sync_status: sync_status};
+        }
+        return video;
+      });
+    });
+  }, [videoRunState])
 
   const renderVideoConfigButton = (video) => {
     return (
@@ -200,7 +227,10 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
 
       <div className="flex-container column">
         <div>
-          <VideoUploader/>
+          <VideoUploader
+            uploadedVideo={uploadedVideo}
+            setUploadedVideo={setUploadedVideo}
+          />
         </div>
         <ActionVideos
           data={data}
@@ -471,10 +501,8 @@ const PaginatedVideos = ({startDate, endDate, status, setStartDate, setEndDate, 
 PaginatedVideos.propTypes = {
   startDate: PropTypes.string,
   endDate: PropTypes.string,
-  status: PropTypes.any, // Use a more specific type if the status type is known
   setStartDate: PropTypes.func.isRequired,
   setEndDate: PropTypes.func.isRequired,
-  setStatus: PropTypes.func.isRequired,
 };
 
 export default PaginatedVideos;

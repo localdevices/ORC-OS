@@ -38,14 +38,14 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
     switch (status) {
       case 1:
         return
-      case 2:
-        return <span><FaSpinner style={{color: "white", animation: "spin 1s linear infinite"}}/> </span>// Spinner for processing
       case 3:
+        return <span><FaSpinner style={{color: "white", animation: "spin 1s linear infinite"}}/> </span>// Spinner for processing
+      case 4:
         return <span><FaCheck style={{
           color: "green",
           filter: "drop-shadow(0px 0px 1px white)",
         }}/> </span>; // Success
-      case 9:
+      case 5:
         return <span><FaTimes style={{
           color: "red",
           filter: "drop-shadow(0px 0px 1px white)",
@@ -58,11 +58,15 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
     switch (status) {
       case 1:
         return
-      case 2:
+      case 5:
         return <span><FaSpinner style={{color: "white", animation: "spin 1s linear infinite"}}/> </span>// Spinner for syncing
-      case 3:
-        return <span><FaCheck style={{color: "cadetblue"}}/> </span>; // Error
-      case 9:
+      case 2:
+        return <span><FaCheck style={{
+          color: "cadetblue",
+          filter: "drop-shadow(0px 0px 1px white)",
+        }}/> </span>; // Error
+
+      case 4:
         return <span><FaTimes style={{
           color: "red",
           filter: "drop-shadow(0px 0px 1px white)",
@@ -81,7 +85,9 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                     </button>
                   <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px' }}>
                     {videoRunState?.video_file !== "" && (
-                      <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>{getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}</span>
+                      <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>
+                        {getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}
+                      </span>
                     )}
                   </div>
                     <div className="navbar-right">

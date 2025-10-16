@@ -139,6 +139,7 @@ class VideoResponse(VideoBase, RemoteModel):
             # now also show the state PROCESSING in web socket
             filename = os.path.split(self.file)[1]
             video_run_state.update(
+                video_id=self.id,
                 video_file=filename,
                 status=VideoRunStatus.PROCESSING,
                 message=f"Starting processing of video: {filename}",
@@ -246,7 +247,10 @@ class VideoResponse(VideoBase, RemoteModel):
                     sync_image=settings.sync_image,
                 )
                 logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
-                video_run_state.update(message=f"Syncing to remote site {settings.remote_site_id} successful.")
+                video_run_state.update(
+                    sync_status=SyncRunStatus.SUCCESS,
+                    message=f"Syncing to remote site {settings.remote_site_id} successful.",
+                )
             except Exception as e_sync:
                 logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
                 video_run_state.update(
