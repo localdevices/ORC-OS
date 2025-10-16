@@ -5,10 +5,18 @@ import {getLogLineStyle} from "../utils/helpers.jsx";
 const Log = () => {
   const [logData, setLogData] = useState(""); // Stores video metadata
   const logContainerRef = useRef(null); // Ref for the log container div
-
+  const receivedLines = useRef(new Set());  // track unique log lines
   // WebSocket message callback to append new log lines
   const handleWebSocketMessage = (newLine) => {
-    setLogData((prevLogData) => [...prevLogData, newLine]); // Append the new message to the existing log data
+    setLogData((prevLogData) => {
+      // to prevent race conditions duplication of lines, check if the line does not exist yet
+      if (!receivedLines.current.has(newLine)) {
+        receivedLines.current.add(newLine);
+        return [...prevLogData, newLine]
+      }
+      // if already available just return as is
+      return prevLogData;
+    }); // Append the new message to the existing log data
   };
   // Fetch video metadata from API
   useEffect(() => {

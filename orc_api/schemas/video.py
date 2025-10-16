@@ -187,10 +187,14 @@ class VideoResponse(VideoBase, RemoteModel):
                 key = next(iter(recipe["plot"]))
                 img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
                 rel_img_fn = os.path.relpath(img_fn, base_path)
-            video_run_state.update(
-                message=f"Processing with h: {np.round(h_a, 3)} m. to "
-                f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
-            )
+                if h_a is not None:
+                    h_a_str = f"{np.round(h_a, 3)} m."
+                else:
+                    h_a_str = "None"
+                video_run_state.update(
+                    message=f"Processing with h: {h_a_str} to "
+                    f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
+                )
             # run the video with pyorc with an additional logger handler
             add_filehandler(logger=logger, path=self.get_log_file(base_path=base_path), log_level=10)
             velocity_flow(
