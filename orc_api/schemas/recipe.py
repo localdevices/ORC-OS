@@ -15,6 +15,7 @@ class VideoData(BaseModel):
     start_frame: int = Field(default=0)
     end_frame: Optional[int] = Field(default=10)
     freq: int = Field(default=1)
+    lazy: bool = Field(default=False)
 
 
 class FramesData(BaseModel):
@@ -131,6 +132,7 @@ class RecipeResponse(RecipeRemote):
     id: Optional[int] = Field(default=None, description="Recipe ID")
     start_frame: int = Field(default=0, description="Frame number of the first frame of the recipe.")
     end_frame: int = Field(default=150, description="Frame number of the last frame to process.")
+    lazy: bool = Field(default=False, description="Lazy loading of videos.")
     freq: int = Field(default=1, description="Frame frequency.")
     resolution: float = Field(
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
@@ -195,6 +197,7 @@ class RecipeResponse(RecipeRemote):
             data = RecipeData(**instance.data)
         instance.start_frame = data.video.start_frame
         instance.end_frame = data.video.end_frame
+        instance.lazy = data.video.lazy
         instance.freq = data.video.freq
         instance.resolution = data.frames.project["resolution"]
         if "window_size" in data.velocimetry.get_piv:
@@ -266,6 +269,7 @@ class RecipeUpdate(RecipeBase):
     id: Optional[int] = Field(default=None, description="Recipe ID")
     start_frame: Optional[int] = Field(default=None, description="Frame number of the first frame of the recipe.")
     end_frame: Optional[int] = Field(default=None, description="Frame number of the last frame to process.")
+    lazy: Optional[bool] = Field(default=None, description="Lazy loading of videos.")
     freq: Optional[int] = Field(default=None, description="Frame frequency.")
     resolution: Optional[float] = Field(
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
@@ -332,6 +336,8 @@ class RecipeUpdate(RecipeBase):
         if instance.end_frame is not None:
             data.video.end_frame = instance.end_frame
             data.water_level.n_end = instance.end_frame
+        if instance.lazy is not None:
+            data.video.lazy = instance.lazy
         data.video.freq = getattr(instance, "freq", 1)
         data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
         if instance.window_size is not None:

@@ -49,7 +49,6 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
       return webSocketInstances[connectionId];
    }
    const socketUrl = 'ws://' + window.location.host + API_BASE + url;
-  console.log("SocketUrl", socketUrl)
    const webSocket = new WebSocket(socketUrl);  // prepend the ws prefix
 
    // Event: WebSocket successfully opened

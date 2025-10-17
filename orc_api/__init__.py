@@ -4,7 +4,7 @@ import os
 import socket
 import warnings
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 # default key in case none is set in env variables
 ORC_DEFAULT_KEY = "ORC_DEFAULT_KEY"
@@ -40,6 +40,8 @@ for port in ports:
 
 __home__ = os.getenv("ORC_HOME")
 UPLOAD_DIRECTORY = os.getenv("ORC_UPLOAD_DIRECTORY")
+timeout_before_shutdown = os.getenv("ORC_TIMEOUT_BEFORE_SHUTDOWN", 15)
+
 if not __home__:
     __home__ = os.path.join(os.path.expanduser("~"), ".ORC-OS")
 if not (os.path.isdir(__home__)):

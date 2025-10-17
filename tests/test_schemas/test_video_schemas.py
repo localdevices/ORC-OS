@@ -58,6 +58,9 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
     def mock_sync_remote(self, *args, **kwargs):
         return None
 
+    def mock_timeout(self, *args, **kwargs):
+        pass
+
     def mock_subprocess_call(*args, **kwargs):
         print("Shutdown called!")
         raise ShutdownException("Simulating a shutdown")
@@ -66,6 +69,7 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
 
     mock_shutdown = mock.Mock(side_effect=mock_subprocess_call)
     monkeypatch.setattr("subprocess.call", mock_shutdown)
+    monkeypatch.setattr("time.sleep", mock_timeout)
     monkeypatch.setattr("orc_api.schemas.video.velocity_flow", mock_velocity_flow)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.update_timeseries", mock_update_timeseries)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.sync_remote", mock_update_timeseries)
