@@ -1,3 +1,26 @@
+## [0.4.1] - 2025-10-17
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- Selection option for processing for reading videos in one go or in chunks. The first is faster and more reliable
+  and will work under most circumstances. The second can be used if very little memory is available.
+### Changed
+- With "shutdown after task" set to true in the daemon settings, the device will give you a 15 second time delay
+  before shutting down. This is to allow for a user to enter the device in case it only appears online late in the
+  process. This happens for instance with Starlink modems, that are started up at the same time as the device.
+  These modems take a significant while to start up.
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
 ## [0.4.0] - 2025-10-16
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

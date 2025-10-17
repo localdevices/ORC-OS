@@ -95,7 +95,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   }, [showConfigModal]);
 
   useEffect(() => {
-    console.log("videoRunState was updated", videoRunState)
     if (!videoRunState) return;
     setData(prevData => {
       return prevData.map(video => {
@@ -503,6 +502,7 @@ PaginatedVideos.propTypes = {
   endDate: PropTypes.string,
   setStartDate: PropTypes.func.isRequired,
   setEndDate: PropTypes.func.isRequired,
+  videoRunState: PropTypes.object,
 };
 
 export default PaginatedVideos;

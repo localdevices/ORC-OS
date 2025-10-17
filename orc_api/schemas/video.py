@@ -4,6 +4,7 @@ import glob
 import json
 import os
 import subprocess
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -13,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pyorc.service import velocity_flow
 from sqlalchemy.orm import Session
 
-from orc_api import crud
+from orc_api import crud, timeout_before_shutdown
 from orc_api import db as models
 from orc_api.database import get_session
 from orc_api.log import add_filehandler, logger, remove_file_handler
@@ -265,6 +266,8 @@ class VideoResponse(VideoBase, RemoteModel):
 
         # shutdown if this is set
         if shutdown_after_task:
+            logger.info(f"Shutdown triggered by daemon. Shutting down in {timeout_before_shutdown} seconds.")
+            time.sleep(timeout_before_shutdown)
             logger.info("Shutting down after daemon task...Bye bye :-)")
             subprocess.call("sudo shutdown -h now", shell=True)
         # only do a raise after the shutdown has been done, to avoid not shutting down at all.

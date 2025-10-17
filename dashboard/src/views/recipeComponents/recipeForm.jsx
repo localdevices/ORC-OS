@@ -33,6 +33,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         id: selectedRecipe.id || '',
         start_frame: selectedRecipe.start_frame,
         end_frame: selectedRecipe.end_frame || '',
+        lazy: selectedRecipe.lazy || false,
         freq: selectedRecipe.freq || '',
         resolution: selectedRecipe.resolution || '',
         window_size: selectedRecipe.window_size || '',
@@ -143,6 +144,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       data: safelyParseJSON(formData.data),
       start_frame: formData.start_frame,
       end_frame: formData.end_frame,
+      lazy: formData.lazy,
       freq: formData.freq,
       resolution: formData.resolution,
       window_size: formData.window_size,
@@ -193,6 +195,25 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       console.error('Error updating recipe:', error);
     }
   }
+
+  const handleInputBooleanChange = async (event) => {
+
+    const {name, value, type} = event.target;
+    const booleanValue = value === "true" ? true : value === "false" ? false : null;
+    const updatedFormData = {
+      ...formData,
+      [name]: booleanValue,
+    }
+    setFormData(updatedFormData);
+    console.log(updatedFormData);
+    try {
+      const response = await api.post('/recipe/update/', submitData(updatedFormData));
+      setSelectedRecipe(response.data);
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+    }
+  }
+
 
   const handleFrameChange = async (values) => {
     const minimumDifference = 10;
@@ -302,6 +323,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         id: '',
         start_frame: '',
         end_frame: '',
+        // lazy: '',
         freq: '',
         resolution: '',
         data: ''
@@ -363,6 +385,38 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
             />
             </div>
           </div>
+          <div className="mb-3 mt-3 form-horizontal" onChange={handleInputBooleanChange}>
+            <label htmlFor="lazy" className="form-label">
+              Read frames in one go or in smaller chunks?
+            </label>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="lazy"
+                id="false"
+                value="false"
+                checked={!formData.lazy}
+              />
+              <label className="form-check-label" htmlFor="grayscale">
+                In one go
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="lazy"
+                id="true"
+                value="true"
+                checked={formData.lazy}
+              />
+              <label className="form-check-label" htmlFor="hue">
+                In chunks (less reliable with some video formats)
+              </label>
+            </div>
+          </div>
+
           <div className='mb-3 mt-3 form-horizontal'>
             <label htmlFor='freq' className='form-label'>
               Resample frame distance [-]
