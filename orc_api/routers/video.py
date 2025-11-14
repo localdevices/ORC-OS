@@ -43,7 +43,6 @@ from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
-
 UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
@@ -51,6 +50,15 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 # start a websockets connection manager
 conn_manager = websockets.ConnectionManager()
+
+
+async def get_video_record(db: Session, id: int) -> VideoResponse:
+    """Retrieve a video record from the database."""
+    video_rec = crud.video.get(db=db, id=id)
+    if not video_rec:
+        raise HTTPException(status_code=404, detail="Video not found.")
+    # Open the video file
+    return VideoResponse.model_validate(video_rec)
 
 
 # helpers
@@ -71,13 +79,9 @@ async def zip_generator(files, base_path):
 @router.get("/{id}/thumbnail/", response_class=FileResponse, status_code=200)
 async def get_thumbnail(id: int, db: Session = Depends(get_db)):
     """Retrieve a thumbnail for a video."""
-    video = crud.video.get(db=db, id=id)
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
+    video = get_video_record(db, id)
     if not video.thumbnail:
         raise HTTPException(status_code=404, detail="Video record is found, but thumbnail is not found.")
-    # convert into schema and return data
-    video = VideoResponse.model_validate(video)
     # Determine the MIME type of the file
     file_path = video.get_thumbnail(base_path=UPLOAD_DIRECTORY)
     if not os.path.exists(file_path):
@@ -93,10 +97,7 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
 @router.get("/{id}/log/", response_model=str, status_code=200)
 async def get_video_log(id: int, db: Session = Depends(get_db)):
     """Retrieve a log for a video and return as string."""
-    video = crud.video.get(db=db, id=id)
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
-    video = VideoResponse.model_validate(video)
+    video = get_video_record(db, id)
     log_file = video.get_log_file(base_path=UPLOAD_DIRECTORY)
     if not os.path.exists(log_file):
         raise HTTPException(status_code=404, detail="Video record is found, but log is not found.")
@@ -108,22 +109,15 @@ async def get_video_log(id: int, db: Session = Depends(get_db)):
 @router.get("/{id}/frame/{frame_nr}", response_class=FileResponse, status_code=200)
 async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Session = Depends(get_db)):
     """Retrieve single frame from video."""
-    video_rec = crud.video.get(db=db, id=id)
-    if not video_rec:
-        raise HTTPException(status_code=404, detail="Video not found.")
-
-    # Open the video file
-    video = VideoResponse.model_validate(video_rec)
+    # convert into schema and return data
+    video = get_video_record(db, id)
     if not video.file:
         raise HTTPException(status_code=404, detail="Video record is found, but video file is not found.")
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
-
     # open video
     cap = cv2.VideoCapture(file_path)
-
     # set to frame
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
-
     # Read the frame
     success, frame = cap.read()
     if not success:
@@ -198,31 +192,19 @@ async def get_list_video_count(
 @router.get("/{id}/", response_model=VideoResponse, status_code=200)
 async def get_video(id: int, db: Session = Depends(get_db)):
     """Retrieve metadata for a video."""
-    video = crud.video.get(db=db, id=id)
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
-    return video
+    return get_video_record(db, id)
 
 
 @router.get("/{id}/frame_count/", response_model=int, status_code=200)
 async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
     """Retrieve the end frame of a video."""
-    video_rec = crud.video.get(db=db, id=id)
-    if not video_rec:
-        raise HTTPException(status_code=404, detail="Video not found.")
-
-    # Open the video file
-    video = VideoResponse.model_validate(video_rec)
-
+    video = get_video_record(db, id)
     # open video
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
-
     # open video
     cap = cv2.VideoCapture(file_path)
-
     # check amount of frames
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
     return frame_count
 
 
@@ -256,14 +238,11 @@ async def delete_list_videos(request: DeleteVideosRequest, db: Session = Depends
 @router.get("/{id}/play/", response_class=StreamingResponse, status_code=206)
 async def play_video(id: int, range: str = Header(None), db: Session = Depends(get_db)):
     """Retrieve a video file and stream it to the client."""
-    video = crud.video.get(db=db, id=id)
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
-
+    video = get_video_record(db, id)
+    video = VideoResponse.model_validate(video)
     if not video.file:  # Assuming `file_path` is the attribute storing the video's path
         raise HTTPException(status_code=404, detail="Video file field not available.")
     # convert into schema and return data
-    video = VideoResponse.model_validate(video)
 
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
     # Ensure the file exists
@@ -325,15 +304,10 @@ async def play_video(id: int, range: str = Header(None), db: Session = Depends(g
     )
 
 
-@router.get("/{id}/run", response_model=VideoPatch, status_code=200)
+@router.get("/{id}/run/", response_model=VideoPatch, status_code=200)
 async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
     """Retrieve a video file and stream it to the client."""
-    video = crud.video.get(db=db, id=id)
-    # make a Response video
-    video = VideoResponse.model_validate(video)
-    # now submit video to run process
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
+    video = get_video_record(db, id)
     executor = request.app.state.executor
     session = request.app.state.session
     video_patch = await queue.process_video_submission(
@@ -347,16 +321,11 @@ async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/{id}/image/", response_class=FileResponse, status_code=200)
-async def get_image(id: int, db: Session = Depends(get_db)):
+async def get_image(db: Session = Depends(get_db)):
     """Retrieve an image result from video record."""
-    video = crud.video.get(db=db, id=id)
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
-
+    video = get_video_record(db, id)
     if not video.image:  # Assuming `file_path` is the attribute storing the video's path
         raise HTTPException(status_code=404, detail="Image file field not available.")
-    # convert into schema and return data
-    video = VideoResponse.model_validate(video)
 
     file_path = video.get_image_file(base_path=UPLOAD_DIRECTORY)
     # Ensure the file exists
@@ -483,6 +452,43 @@ async def download_videos_on_ids(
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="files.zip"'},
     )
+
+
+@router.post("/{id}/sync/", status_code=200, response_model=None)
+async def sync_video(id: int, db: Session = Depends(get_db)):
+    """Sync a selected video."""
+    # if no settings found assume everything should be synced
+    sync_file = True
+    sync_image = True
+
+    video = get_video_record(db, id)
+    # check if a valid callback url with site id is available.
+    callback_url = crud.callback_url.get(db)
+    if callback_url is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No callback url available. Please configure a valid LiveORC callback url with user email/password "
+            "to report on.",
+        )
+    if callback_url.remote_site_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No remote site id available. Please configure a LiveORC site to report on.",
+        )
+    # also retrieve settings to find out what should be synced
+    settings = crud.settings.get(db)
+    # if no settings found assume everything should be synced
+    if settings is not None:
+        sync_file = settings.sync_file
+        sync_image = settings.sync_image
+    video.sync_remote(
+        session=db,
+        base_path=UPLOAD_DIRECTORY,
+        site=callback_url.remote_site_id,
+        sync_file=sync_file,
+        sync_image=sync_image,
+    )
+    return None
 
 
 @router.websocket("/status/")

@@ -167,7 +167,7 @@ export const run_video = async(video, setMessageInfo) => {
     }
 
     // Make the API call
-    const response = await api.get(`/video/${video.id}/run`);
+    const response = await api.get(`/video/${video.id}/run/`);
     // update the status of the video
     video.status = response.data.status;
     // setVideo({ ...video, status: response.data.status});
