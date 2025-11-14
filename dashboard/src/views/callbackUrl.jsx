@@ -74,11 +74,27 @@ const CallbackUrl = ({setRequiresRestart}) => {
       [name]: parsedValue,
     });
   }
+
+  const handleInputIntChange = (event) => {
+    const {name, value, type} = event.target;
+    event.target.value = value;
+    setFormData({
+      ...formData,
+      [name]: type === "number" ? parseInt(value) : value
+    });
+  };
+
   const handleFormSubmit = async (event) => {
     try {
       event.preventDefault();
       // get only the url, user and password
-      const submitData = {url: formData.url, user: formData.user, password: formData.password, retry_timeout: parseFloat(formData.retry_timeout)}
+      const submitData = {
+        url: formData.url,
+        user: formData.user,
+        password: formData.password,
+        retry_timeout: parseFloat(formData.retry_timeout),
+        remote_site_id: formData.remote_site_id ? parseInt(formData.remote_site_id) : null
+      }
       console.log(submitData);
       const response = await api.post('/callback_url/', submitData);
       if (!response.status === 200) {
@@ -98,6 +114,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         user: '',
         retry_timeout: 0.0,
         password: '',
+        remote_site_id: '',
         tokenRefresh: '',
         tokenAccess: '',
         tokenExpiration: ''
@@ -118,6 +135,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
           url: '',
           user: '',
           password: '',
+          remote_site_id: '',
           retry_timeout: 0.0,
           tokenRefresh: '',
           tokenAccess: '',
@@ -163,6 +181,18 @@ const CallbackUrl = ({setRequiresRestart}) => {
           </label>
           <input type='password' className='form-control' id='password' name='password' onChange={handleInputChange}
                  value={formData.password}/>
+        </div>
+        <div className='mb-3 mt-3'>
+          <label htmlFor='remote_site_id' className='form-label'>
+            Site ID (number) of the site, as known on configured LiveORC server.
+          </label>
+          <input type='number' className='form-control' id='remote_site_id' name='remote_site_id' step="1"
+                 onChange={handleInputIntChange} value={formData.remote_site_id}/>
+          <div className="help-block">
+            Make sure you have access to a LiveORC server, and can write to a site. Note down the Site ID from the
+            site&#39;s address bar.
+          </div>
+
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='password' className='form-label'>

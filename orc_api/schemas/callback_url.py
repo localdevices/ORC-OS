@@ -43,27 +43,6 @@ def dynamic_retry(timeout, retry_delay=5.0):
     return decorator
 
 
-def dynamic_retry(timeout, retry_delay=5.0):
-    """Decorate a function to retry with a specified timeout dynamically."""
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            start_time = time.time()
-            while True:
-                try:
-                    return func(*args, **kwargs)
-                except requests.exceptions.ConnectionError as e:
-                    # Check if retry timeout has passed
-                    if time.time() - start_time > timeout:
-                        raise TimeoutError(f"Retry timeout exceeded ({timeout} seconds): {e}") from e
-                    time.sleep(retry_delay)
-
-        return wrapper
-
-    return decorator
-
-
 # Pydantic model for responses
 class CallbackUrlBase(BaseModel):
     """Base model for callback URL."""
@@ -83,6 +62,9 @@ class CallbackUrlResponse(CallbackUrlBase):
     id: int = Field(description="Callback URL ID")
     created_at: datetime = Field(description="Creation date")
     retry_timeout: float = Field(description="Timeout for requests", default=0.0)
+    remote_site_id: Optional[int] = Field(
+        default=None, description="Remote site ID used to upload videos and time series"
+    )
     token_refresh_end_point: str = Field(description="Endpoint for refreshing the access token")
     token_access: str = Field(description="Access token for the callback URL")
     token_refresh: str = Field(description="Refresh token for the callback URL")
@@ -223,6 +205,9 @@ class CallbackUrlCreate(CallbackUrlBase):
     user: str = Field(description="User name for the callback URL")
     password: str = Field(description="Password for the callback URL")
     retry_timeout: float = Field(description="Retry timeout in seconds", default=0.0)
+    remote_site_id: Optional[int] = Field(
+        default=None, description="Remote site ID used to upload videos and time series"
+    )
 
     def __getattribute__(self, name):
         """Override attribute access in case a get, patch, post method is called.
