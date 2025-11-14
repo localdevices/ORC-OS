@@ -25,11 +25,13 @@ const CallbackUrl = ({setRequiresRestart}) => {
   const fetchCallbackUrl = async () => {
     const response = await api.get('/callback_url/');
     if (response.data != null) {
+      console.log("RESPONSE:", response.data);
       const received_data = {
         "url": response.data.url,
         "user": '',
         "password": '',
         "retry_timeout": response.data.retry_timeout,
+        "remote_site_id": response.data.remote_site_id,
         "createdAt": response.data.created_at,
         "tokenRefresh": response.data.token_refresh,
         "tokenAccess": response.data.token_access,
@@ -53,11 +55,13 @@ const CallbackUrl = ({setRequiresRestart}) => {
   }, []);
   useEffect(() => {
     if (callbackUrl) {
+      console.log(callbackUrl)
       setFormData({
         url: callbackUrl.url || '',
         user: callbackUrl.user || '',
         password: '',
         retry_timeout: callbackUrl.retry_timeout || 0.0,
+        remote_site_id: callbackUrl.remote_site_id || null,
         createdAt: callbackUrl.createdAt,
         tokenRefresh: callbackUrl.tokenRefresh || '',
         tokenAccess: callbackUrl.tokenAccess || '',
@@ -102,7 +106,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       }
       console.log(response);
-      setMessageInfo('success', 'LiveORC information updated successfully');
+      setMessageInfo('success', response.data);
       setRequiresRestart(true);
 
       // read back the device after posting
@@ -121,7 +125,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
       });
     } catch (err) {
       console.log("ERROR: ", err);
-      setMessageInfo('error', `problem updating LiveORC information. ${err.message}`);
+      setMessageInfo('error', `problem updating LiveORC information. ${err.response.data}`);
     }
   };
 

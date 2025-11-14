@@ -237,9 +237,9 @@ class VideoResponse(VideoBase, RemoteModel):
         callback_url = crud.callback_url.get(session)
         settings = crud.settings.get(session)
         # only in daemon mode attempt to sync automatically
-        if callback_url and settings.remote_site_id:
+        if callback_url and callback_url.remote_site_id:
             video_run_state.update(
-                sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {settings.remote_site_id}"
+                sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {callback_url.remote_site_id}"
             )
             try:
                 logger.debug("Attempting syncing to remote site ")
@@ -247,20 +247,20 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.sync_remote(
                     session=session,
                     base_path=base_path,
-                    site=settings.remote_site_id,
+                    site=callback_url.remote_site_id,
                     sync_file=settings.sync_file,
                     sync_image=settings.sync_image,
                 )
-                logger.info(f"Syncing to remote site {settings.remote_site_id} successful.")
+                logger.info(f"Syncing to remote site {callback_url.remote_site_id} successful.")
                 video_run_state.update(
                     sync_status=SyncRunStatus.SUCCESS,
-                    message=f"Syncing to remote site {settings.remote_site_id} successful.",
+                    message=f"Syncing to remote site {callback_url.remote_site_id} successful.",
                 )
             except Exception as e_sync:
                 logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
                 video_run_state.update(
                     sync_status=SyncRunStatus.FAILED,
-                    message=f"Error syncing to remote site {settings.remote_site_id}: {e_sync}",
+                    message=f"Error syncing to remote site {callback_url.remote_site_id}: {e_sync}",
                 )
                 logger.exception("Traceback:")
 

@@ -84,7 +84,9 @@ async def update_callback_url(callback_url: CallbackUrlCreate, db: Session = Dep
             crud.callback_url.update(
                 db, {"retry_timeout": callback_url.retry_timeout, "remote_site_id": callback_url.remote_site_id}
             )
-            return Response("No user, and/or no password set, so only updated retry timeout.", status_code=200)
+            return Response(
+                "No user, and/or no password set, so only updated retry timeout and site id.", status_code=200
+            )
         else:
             return Response("No url and/or user and/or password set, cannot create callback url.", status_code=400)
     # check if the LiveORC server can be reached and returns a valid response
@@ -110,14 +112,21 @@ async def update_callback_url(callback_url: CallbackUrlCreate, db: Session = Dep
 
     new_callback_url = CallbackUrl(**new_callback_dict)
     # if site id provided, also check if user has access to site id.
+    new_callback_url = crud.callback_url.add(db, new_callback_url)
     if new_callback_url.remote_site_id is not None:
         callback_response = CallbackUrlResponse.model_validate(new_callback_url)
         r = callback_response.get(f"/api/site/{callback_url.remote_site_id}/")
         if not r.status_code == 200:
+            # remove the site id from the record
+            # crud.callback_url.delete(db)
+            new_callback_url.remote_site_id = None
+            db.commit()
+            db.refresh(new_callback_url)
+            # crud.callback_url.add(db, new_callback_url)
+
             return Response(
-                f"Error: site {callback_url.remote_site_id} does not exists or is not accessible for user",
-                status_code=r.status_code,
+                f"Stored url, but site {callback_url.remote_site_id} does not exists or is not accessible for user",
+                status_code=201,
             )
 
-    new_callback_url = crud.callback_url.add(db, new_callback_url)
-    return new_callback_url
+    return Response("Callback url created.", status_code=201)

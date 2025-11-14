@@ -51,6 +51,7 @@ def mocked_db_response():
         "token_refresh_end_point": "/api/token/refresh",
         "token_access": "token_access_value",
         "token_refresh": "token_refresh_value",
+        "remote_site_id": 1,
         "token_expiration": datetime(2024, 1, 1, 5, 0, 0),
         "created_at": datetime(2024, 1, 1, 0, 0, 0),
     }
