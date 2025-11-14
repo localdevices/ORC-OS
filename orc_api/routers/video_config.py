@@ -148,6 +148,7 @@ async def post_video_config(video_config: VideoConfigUpdate, db: Session = Depen
             "recipe_id": video_config.recipe_id,
             "camera_config_id": video_config.camera_config_id,
             "sample_video_id": video_config.sample_video_id,
+            "sync_status": video_config.sync_status,
         }
         if video_config.id:
             # convert into dict

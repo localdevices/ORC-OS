@@ -1,3 +1,23 @@
+## [0.4.2] -
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- User can interactively sync a single video from the front end with a new action button.
+### Changed
+- The site id for LiveORC callback is now configurable under the LiveORC settings (instead of daemon settings)
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
+
 ## [0.4.1] - 2025-10-17
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

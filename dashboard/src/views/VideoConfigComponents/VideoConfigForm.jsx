@@ -28,11 +28,13 @@ const VideoConfigForm = (
       setFormData({
         name: selectedVideoConfig.name || '',
         id: selectedVideoConfig.id || '',
+        sync_status: selectedVideoConfig.sync_status || 1,
       });
     } else {
       setFormData({
         name: '',
         id: '',
+        sync_status: 1,
       })
     }
 
@@ -48,7 +50,6 @@ const VideoConfigForm = (
     setFormData(updatedFormData);
     setSave(true);
   }
-
 
   const handleRotateChange = async (event) => {
     const value = event.target.value === "0" ? null : parseInt(event.target.value);
@@ -75,6 +76,11 @@ const VideoConfigForm = (
     if (formData.sample_video_id === undefined) {
       filteredData.sample_video_id = video.id;
     }
+    if (formData.sync_status !== 1) {
+      filteredData.sync_status = 3;  // update sync status
+    } else {
+      filteredData.sync_status = 1;  // if video config is new, don't update
+    }
     // the entire video config is stored in one go
     if (Object.keys(CSDischarge).length > 0 && CSDischarge?.name === undefined) {
       CSDischarge.name = filteredData.name;
@@ -99,13 +105,16 @@ const VideoConfigForm = (
       filteredData.cross_section_wl = null;
     }
     if (recipe.data) {
-      filteredData.recipe = recipe
+      filteredData.recipe = {
+        ...recipe,
+        sync_status: recipe.sync_status === 1 ? 1 : 3  // replace sync status
+      }
     } else {
       filteredData.recipe = null;
     }
     if (cameraConfig.data) {
       const {isCalibrated, isPoseReady, ...cameraConfigWithoutCalibrated} = cameraConfig;
-      filteredData.camera_config = cameraConfigWithoutCalibrated;
+      filteredData.camera_config = cameraConfigWithoutCalibrated
     } else {
       filteredData.camera_config = null;
     }
@@ -113,11 +122,13 @@ const VideoConfigForm = (
     let response;
     try {
       console.log(filteredData);
+      console.log("INPUT DATA: ", formData)
       response = await api.post('/video_config/', filteredData);
       if (response.status !== 201 && response.status !== 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       } else {
+        console.log("RESPONSE: ", response.data)
         // set the updated camera config, recipe and cross-section details
         setSelectedVideoConfig(response.data);
         // also set the camera config id and recipe id
@@ -129,7 +140,8 @@ const VideoConfigForm = (
         setRecipe({
             ...recipe,
             id: response.data.recipe.id,
-            name: response.data.recipe.name
+            name: response.data.recipe.name,
+            sync_status: response.data.recipe.sync_status
         });
       }
       setMessageInfo('success', 'Video config stored successfully');
@@ -276,7 +288,6 @@ const VideoConfigForm = (
             <label htmlFor="180deg" style={{ marginLeft: '8px' }}>180 degrees</label>
           </div>
         </div>
-
         <button type='submit' className='btn'>
           Save
         </button>

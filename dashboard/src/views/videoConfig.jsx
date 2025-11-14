@@ -78,7 +78,11 @@ const VideoConfig = () => {
             .then((response) => {
               setVideo(response.data);
               if (response.data.video_config !== null) {
-                setVideoConfig({id: response.data.video_config.id, name: response.data.video_config.name})
+                setVideoConfig({
+                    id: response.data.video_config.id,
+                    name: response.data.video_config.name,
+                    sync_status: response.data.video_config.sync_status
+                })
                 if (response.data.video_config.recipe !== null) {
                   setRecipe(response.data.video_config.recipe);
                 }

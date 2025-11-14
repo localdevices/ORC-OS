@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {run_video} from "../../utils/apiCalls.jsx"
+import {run_video, sync_video} from "../../utils/apiCalls.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -13,7 +13,7 @@ import api from "../../api/api.js";
 import {
   FaPlay,
   FaTrash,
-  FaExclamationTriangle,
+  FaExclamationTriangle, FaSync,
 } from "react-icons/fa";
 import { HiDocumentMagnifyingGlass } from "react-icons/hi2";
 
@@ -170,8 +170,9 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
 
       })
       .catch((error) => {
-        setVideoLogData(`No log available for video with ID: ${video.id}`)
+        setVideoLogData([`No log available for video with ID: ${video.id}`])
         console.error('Error fetching log for video with ID:', video.id, error);
+        setShowLog(true);
       });
   }
 
@@ -187,6 +188,9 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
     run_video(video, setMessageInfo);
   }
 
+  const handleSync = (video) => {
+    sync_video(video, setMessageInfo);
+  }
   const handleVideoConfig = (video) => {
     setSelectedVideo(video); // Set the selected video
     setShowConfigModal(true); // Open the modal
@@ -278,7 +282,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
               <th>Time series</th>
               <th>Status</th>
               <th>Sync status</th>
-              <th style={{width: "170px", whiteSpace: "nowrap"}}>Actions</th>
+              <th style={{width: "189px", whiteSpace: "nowrap"}}>Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -336,6 +340,14 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                   >
                     <FaPlay className="run"/>
                   </button>
+                  <button className="btn-icon"
+                    // disabled when video config is not ready, or task is already queued (2) or running (3)
+                          disabled={!video.allowed_to_run && video.status !== 2 && video.status !== 3}
+                          onClick={() => handleSync(video)}
+                  >
+                    <FaSync className="run"/>
+                  </button>
+
 
                   <button className="btn-icon"
                           onClick={() => handleView(video)}

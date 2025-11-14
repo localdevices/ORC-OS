@@ -183,7 +183,31 @@ export const run_video = async(video, setMessageInfo) => {
       error.response?.data?.detail || "An unexpected error occurred while running the video.";
     setMessageInfo("error", errorMessage);
   }
+}
 
+export const sync_video = async(video, setMessageInfo) => {
+  try {
+    // Ensure the video ID is available
+    if (!video?.id) {
+      setMessageInfo("error", "No video ID found to run the video.");
+      return;
+    }
 
+    // Make the API call
+    const response = await api.get(`/video/${video.id}/sync/`);
+    // update the status of the video
+    video.status = response.data.status;
+    // setVideo({ ...video, status: response.data.status});
+    console.log("Sync video response:", response.data);
 
+    // Display success message
+    setMessageInfo("success", "Video has been submitted for syncing.");
+  } catch (error) {
+    console.error("Error syncing the video:", error);
+
+    // Handle error and send message to container
+    const errorMessage =
+      error.response?.data?.detail || "An unexpected error occurred while syncing the video.";
+    setMessageInfo("error", errorMessage);
+  }
 }

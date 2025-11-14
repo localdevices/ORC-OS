@@ -52,7 +52,7 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 conn_manager = websockets.ConnectionManager()
 
 
-async def get_video_record(db: Session, id: int) -> VideoResponse:
+def get_video_record(db: Session, id: int) -> VideoResponse:
     """Retrieve a video record from the database."""
     video_rec = crud.video.get(db=db, id=id)
     if not video_rec:
@@ -454,7 +454,7 @@ async def download_videos_on_ids(
     )
 
 
-@router.post("/{id}/sync/", status_code=200, response_model=None)
+@router.get("/{id}/sync/", status_code=200, response_model=None)
 async def sync_video(id: int, db: Session = Depends(get_db)):
     """Sync a selected video."""
     # if no settings found assume everything should be synced
@@ -488,7 +488,7 @@ async def sync_video(id: int, db: Session = Depends(get_db)):
         sync_file=sync_file,
         sync_image=sync_image,
     )
-    return None
+    return video
 
 
 @router.websocket("/status/")

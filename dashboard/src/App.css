@@ -265,8 +265,14 @@ button.btn-icon {
   background: none;
   border: none;
   cursor: pointer;
-  color: grey;
+  color: dimgrey;
   transition: color 0.3s; /* Smooth color transition */
+}
+
+/* Disabled state for icon buttons */
+button.btn-icon:disabled,
+button.btn-icon:disabled:hover {
+    cursor: not-allowed;
 }
 
 /* Change colors of icon within button on hover */
@@ -286,6 +292,14 @@ button.btn-icon:hover .edit {
 button.btn-icon:hover .document {
     transition: color 0.3s; /* Smooth color transition */
     color: #00a6ff; /* Change to your desired color */
+}
+
+/* Prevent hover colors when icon button is disabled */
+button.btn-icon:disabled .danger,
+button.btn-icon:disabled .run,
+button.btn-icon:disabled .edit,
+button.btn-icon:disabled .document {
+    color: #b0b0b0;
 }
 
 /* Close Button for menus and widgets */
