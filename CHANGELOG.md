@@ -9,6 +9,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 
 ### Added
 - User can interactively sync a single video from the front end with a new action button.
+- User can do bulk syncing using a button.
 ### Changed
 - The site id for LiveORC callback is now configurable under the LiveORC settings (instead of daemon settings)
 ### Deprecated
