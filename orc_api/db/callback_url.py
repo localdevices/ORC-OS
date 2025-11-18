@@ -21,6 +21,11 @@ class CallbackUrl(Base):
         nullable=False,
         comment="url to api main end point of server to report to",
     )
+    remote_site_id: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Remote site id to sent data to. Needed in order to send data belonging to site to end point.",
+    )
     retry_timeout: Mapped[float] = mapped_column(
         Float,
         default=0.0,

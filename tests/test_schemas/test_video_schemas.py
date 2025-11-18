@@ -118,7 +118,7 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
 
 
 def test_video_sync_not_permitted(session_video_with_config, video_response, monkeypatch):
-    """Test for syncing a cross-section to remote API (real response is mocked)."""
+    """Test for syncing a video to remote API (real response is mocked)."""
     # let's assume we are posting on site 1
     site = 1
 
@@ -140,10 +140,11 @@ def test_video_sync_not_permitted(session_video_with_config, video_response, mon
     monkeypatch.setattr(CallbackUrlResponse, "get_site", mock_get_site)
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
 
-    with pytest.raises(ValueError, match="Remote update failed with status code 403."):
-        _ = video_response.sync_remote(
-            session=session_video_with_config, base_path=sample_data.get_hommerich_pyorc_files(), site=site
-        )
+    response = video_response.sync_remote(
+        session=session_video_with_config, base_path=sample_data.get_hommerich_pyorc_files(), site=site
+    )
+    # response should be None if no syncing occurred. syncing does not raise anything.
+    assert response is None
 
 
 @pytest.mark.skipif(
@@ -162,6 +163,7 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
         user=os.getenv("LIVEORC_EMAIL"),
         password=os.getenv("LIVEORC_PASSWORD"),
         retry_timeout=60,
+        remote_site_id=1,
     )
     tokens = callback_create.get_tokens().json()
     new_callback_dict = callback_create.model_dump(exclude_none=True, mode="json", exclude={"id", "password", "user"})
@@ -172,6 +174,7 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
             "token_refresh": tokens["refresh"],
             "token_expiration": callback_create.get_token_expiration(),
             "retry_timeout": 60.0,
+            "remote_site_id": 1,
         }
     )
     new_callback_url = models.CallbackUrl(**new_callback_dict)

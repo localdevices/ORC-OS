@@ -37,17 +37,19 @@ const MessageBox = () => {
       style={{
 
         position: 'absolute', // Position absolutely within a parent container (e.g., Navbar)
-        top: '0%', // Center the message box vertically
-        left: 'max(30px, 50%)',
-        transform: 'translate(-110%, 0%)', // Adjust for width/height shift due to centering
+        top: '40px', // Center the message box vertically
+        right: '10px',
+        // left: 'max(30px, 50%)',
+        // transform: 'translate(-110%, 0%)', // Adjust for width/height shift due to centering
         zIndex: 1000, // Ensure it appears on top of other elements
         width: '1400px', // Fixed maximum width
         maxWidth: 'calc(100vw - 140px)',
-
         backgroundColor: getBackgroundColor(),
         color: getTextColor(),
         padding: '7px',
         borderRadius: '5px',
+        borderWidth: '1px',
+        borderColor: 'black',
         textAlign: 'center',
 
       }}

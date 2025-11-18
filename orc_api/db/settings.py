@@ -60,11 +60,11 @@ class Settings(Base):
     )
     video_config = relationship("VideoConfig")
 
-    remote_site_id: Mapped[int] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Remote site id to sent data to. Needed in order to automatically send data to end points",
-    )
+    # remote_site_id: Mapped[int] = mapped_column(
+    #     Integer,
+    #     nullable=True,
+    #     comment="Remote site id to sent data to. Needed in order to automatically send data to end points",
+    # )
     sync_file: Mapped[bool] = mapped_column(
         Boolean, default=False, comment="Flag for syncing video files to remote server"
     )

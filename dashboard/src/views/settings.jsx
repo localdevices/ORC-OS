@@ -15,7 +15,6 @@ const Settings = ({setRequiresRestart}) => {
     parse_dates_from_file: true,
     reboot_after: '',
     video_config_id: '',
-    remote_site_id: '',
     sync_file: false,
     sync_image: false,
     active: false
@@ -49,7 +48,6 @@ const Settings = ({setRequiresRestart}) => {
         parse_dates_from_file: settings.parse_dates_from_file || false,
         reboot_after: settings.reboot_after || '',
         video_config_id: settings.video_config_id || '',
-        remote_site_id: settings.remote_site_id || '',
         sync_file: settings.sync_file || false,
         sync_image: settings.sync_image || false,
         active: settings.active || false
@@ -122,7 +120,6 @@ const Settings = ({setRequiresRestart}) => {
         parse_dates_from_file: false,
         reboot_after: '',
         video_config_id: '',
-        remote_site_id: '',
         sync_file: false,
         sync_image: false,
         active: false
@@ -238,19 +235,6 @@ const Settings = ({setRequiresRestart}) => {
           </div>
 
           <h5>LiveORC settings</h5>
-
-          <div className='mb-3 mt-3'>
-            <label htmlFor='remote_site_id' className='form-label'>
-              Site ID (number) of the site, as known on configured LiveORC server.
-            </label>
-            <input type='number' className='form-control' id='remote_site_id' name='remote_site_id' step="1"
-                   onChange={handleInputIntChange} value={formData.remote_site_id}/>
-            <div className="help-block">
-              Make sure you have access to a LiveORC server, and can write to a site. Note down the Site ID from the
-              site&#39;s address bar.
-            </div>
-
-          </div>
           <div className='mb-3 mt-3'>
             <input
               type='checkbox'

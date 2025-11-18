@@ -137,6 +137,27 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
   }
 }
 
+export const sync_videos = async (api, syncStartDate, syncEndDate, syncSettings, setMessageInfo) => {
+  try {
+    const response = await api.post(
+      "/video/sync/", {
+        start: syncStartDate,
+        stop: syncEndDate,
+        sync_file: syncSettings.syncFile,
+        sync_image: syncSettings.syncImage
+      }
+    )
+    if ( response.status === 200 ) {
+      setMessageInfo("success", "Video sync job sent and received");
+    } else {
+      new Error("Error syncing videos");
+    }
+  } catch (error) {
+    setMessageInfo("error", error);
+  }
+}
+
+
 export const delete_videos = async (api, deleteStartDate, deleteEndDate, setMessageInfo) => {
   try {
     const response = await api.post(
@@ -167,7 +188,7 @@ export const run_video = async(video, setMessageInfo) => {
     }
 
     // Make the API call
-    const response = await api.get(`/video/${video.id}/run`);
+    const response = await api.get(`/video/${video.id}/run/`);
     // update the status of the video
     video.status = response.data.status;
     // setVideo({ ...video, status: response.data.status});
@@ -183,7 +204,31 @@ export const run_video = async(video, setMessageInfo) => {
       error.response?.data?.detail || "An unexpected error occurred while running the video.";
     setMessageInfo("error", errorMessage);
   }
+}
 
+export const sync_video = async(video, setMessageInfo) => {
+  try {
+    // Ensure the video ID is available
+    if (!video?.id) {
+      setMessageInfo("error", "No video ID found to sync the video.");
+      return;
+    }
 
+    // Make the API call
+    const response = await api.post(`/video/${video.id}/sync/`);
+    // update the status of the video
+    video.status = response.data.status;
+    // setVideo({ ...video, status: response.data.status});
+    console.log("Sync video response:", response.data);
 
+    // Display success message
+    setMessageInfo("success", "Video has been submitted for syncing.");
+  } catch (error) {
+    console.error("Error syncing the video:", error);
+
+    // Handle error and send message to container
+    const errorMessage =
+      error.response?.data?.detail || "An unexpected error occurred while syncing the video.";
+    setMessageInfo("error", errorMessage);
+  }
 }

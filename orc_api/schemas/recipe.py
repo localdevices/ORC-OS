@@ -260,7 +260,7 @@ class RecipeResponse(RecipeRemote):
         return None
 
 
-class RecipeUpdate(RecipeBase):
+class RecipeUpdate(RecipeRemote):
     """Update model with several input fields from user.
 
     This is vice versa from getting fields from the raw yaml / json recipe data

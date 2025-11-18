@@ -16,6 +16,7 @@ def filter_start_stop(query: Query, start: Optional[datetime] = None, stop: Opti
         query = query.where(models.Video.timestamp >= start)
     if stop:
         query = query.where(models.Video.timestamp < stop)
+    # order from last to first
     return query.order_by(models.Video.timestamp.desc())
 
 
@@ -23,6 +24,13 @@ def filter_status(query: Query, status: Optional[models.VideoStatus] = None):
     """Filter query by start and stop datetime."""
     if status:
         query = query.where(models.Video.status == status)
+    return query
+
+
+def filter_sync_status(query: Query, sync_status: Optional[models.VideoStatus] = None):
+    """Filter query by start and stop datetime."""
+    if sync_status:
+        query = query.where(models.Video.sync_status == sync_status)
     return query
 
 
@@ -72,6 +80,7 @@ def get_query_list(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[models.VideoStatus] = None,
+    sync_status: Optional[models.SyncStatus] = None,
     first: Optional[int] = None,
     count: Optional[int] = None,
 ):
@@ -80,6 +89,8 @@ def get_query_list(
     query = filter_start_stop(query, start, stop)
     if status:
         query = filter_status(query, status)
+    if sync_status:
+        query = filter_sync_status(query, sync_status)
     if first is not None:
         # only return from "first"
         query = query.offset(first)
@@ -94,11 +105,12 @@ def get_list(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[models.VideoStatus] = None,
+    sync_status: Optional[models.SyncStatus] = None,
     first: Optional[int] = None,
     count: Optional[int] = None,
 ) -> List[models.Video]:
     """List videos within time span of start and stop."""
-    query = get_query_list(db, start, stop, status, first, count)
+    query = get_query_list(db, start, stop, status, sync_status, first, count)
     return query.all()
 
 
@@ -107,11 +119,12 @@ def get_list_count(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[models.VideoStatus] = None,
+    sync_status: Optional[models.SyncStatus] = None,
     first: Optional[int] = None,
     count: Optional[int] = None,
 ) -> int:
     """Count videos of query within start stop and amount."""
-    query = get_query_list(db, start, stop, status, first, count)
+    query = get_query_list(db, start, stop, status, sync_status, first, count)
     return query.count()
 
 
