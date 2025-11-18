@@ -12,7 +12,7 @@ from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import Base, CallbackUrl
 from orc_api.main import app
-from orc_api.schemas.callback_url import CallbackUrlResponse
+from orc_api.schemas.callback_url import CallbackUrlHealth, CallbackUrlResponse
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -63,7 +63,13 @@ def test_get_callback_url_empty(auth_client):
     assert response.json() is None
 
 
-def test_get_callback_url_success(mocked_db_response, auth_client):
+def test_get_callback_url_success(mocked_db_response, auth_client, monkeypatch):
+    # mock online status
+    def mock_online_status(self):
+        return CallbackUrlHealth(serverOnline=True, tokenValid=True, error=None)
+
+    monkeypatch.setattr(CallbackUrlResponse, "get_online_status", mock_online_status)
+
     # create one record
     callback_url_response = CallbackUrlResponse(**mocked_db_response)
     callback_url_dict = callback_url_response.model_dump(exclude_none=True, exclude={"id", "created_at"})
@@ -76,8 +82,11 @@ def test_get_callback_url_success(mocked_db_response, auth_client):
 
     response = auth_client.get("/api/callback_url/")
     assert response.status_code == 200
-    print()
     assert response.json()["token_access"] == mocked_db_response["token_access"]
+    # also test health
+    response = auth_client.get("/api/callback_url/health/")
+    assert response.status_code == 200
+    assert response.json()["serverOnline"] == True
 
 
 def test_update_callback_url_success(mocker, auth_client):
