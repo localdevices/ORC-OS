@@ -137,6 +137,27 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
   }
 }
 
+export const sync_videos = async (api, syncStartDate, syncEndDate, syncSettings, setMessageInfo) => {
+  try {
+    const response = await api.get(
+      "/video/sync/", {
+        start: syncStartDate,
+        stop: syncEndDate,
+        sync_file: syncSettings.syncFile,
+        sync_image: syncSettings.syncImage
+      }
+    )
+    if ( response.status === 200 ) {
+      setMessageInfo("success", "Video sync job sent and received");
+    } else {
+      new Error("Error syncing videos");
+    }
+  } catch (error) {
+    setMessageInfo("error", error);
+  }
+}
+
+
 export const delete_videos = async (api, deleteStartDate, deleteEndDate, setMessageInfo) => {
   try {
     const response = await api.post(
@@ -189,7 +210,7 @@ export const sync_video = async(video, setMessageInfo) => {
   try {
     // Ensure the video ID is available
     if (!video?.id) {
-      setMessageInfo("error", "No video ID found to run the video.");
+      setMessageInfo("error", "No video ID found to sync the video.");
       return;
     }
 

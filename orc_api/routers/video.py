@@ -28,11 +28,12 @@ from starlette.websockets import WebSocketDisconnect
 # Directory to save uploaded files
 from orc_api import __home__, crud
 from orc_api.database import get_db
-from orc_api.db import Video, VideoStatus
+from orc_api.db import SyncStatus, Video, VideoStatus
 from orc_api.log import logger
 from orc_api.schemas.video import (
     DeleteVideosRequest,
     DownloadVideosRequest,
+    SyncVideosRequest,
     VideoCreate,
     VideoListResponse,
     VideoPatch,
@@ -489,6 +490,47 @@ async def sync_video(id: int, db: Session = Depends(get_db)):
         sync_image=sync_image,
     )
     return video
+
+
+@router.get("/sync/", status_code=200, response_model=None)
+async def sync_list_videos(request: SyncVideosRequest, db: Session = Depends(get_db)):
+    """Sync a list of videos."""
+    sync_image = request.sync_image
+    sync_file = request.sync_file
+    start = request.start
+    stop = request.stop
+    site = request.site
+    if site is None:
+        # get the site from the callback url settings
+        url = crud.callback_url.get(db)
+        if url is None:
+            raise HTTPException(
+                status_code=400,
+                detail="No callback url with site available. Please configure a LiveORC callback url with user "
+                "email/password and a site ID to report on.",
+            )
+        site = url.remote_site_id
+    videos = [
+        crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.LOCAL),
+        crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.UPDATED),
+        crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.FAILED),
+    ]
+    # start with LOCAl, then UPDATED, then FAILED
+    for list_v in videos:
+        # sync one by one
+        for v in list_v:
+            v = VideoResponse.model_validate(v)
+            file_path = v.get_video_file(base_path=UPLOAD_DIRECTORY)
+            image_path = v.get_image_file(base_path=UPLOAD_DIRECTORY)
+            s_f = sync_file and bool(file_path and os.path.isfile(file_path))
+            s_i = sync_image and bool(image_path and os.path.isfile(image_path))
+            v.sync_remote(
+                session=db,
+                base_path=UPLOAD_DIRECTORY,
+                site=site,
+                sync_file=s_f,
+                sync_image=s_i,
+            )
 
 
 @router.websocket("/status/")

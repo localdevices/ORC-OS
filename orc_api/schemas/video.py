@@ -482,6 +482,16 @@ class DeleteVideosRequest(BaseModel):
     stop: datetime = None
 
 
+class SyncVideosRequest(BaseModel):
+    """Request body schema for syncing videos."""
+
+    start: datetime = None
+    stop: datetime = None
+    sync_file: Optional[bool] = True
+    sync_image: Optional[bool] = True
+    site: Optional[int] = None
+
+
 class VideoPatch(VideoResponse):
     """Patch schema for video.
 

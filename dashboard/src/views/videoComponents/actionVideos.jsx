@@ -1,9 +1,10 @@
 import FilterDates from "../../utils/filterDates.jsx";
 import DownloadModal from "./downloadModal.jsx";
 import DeleteModal from "./deleteModal.jsx";
+import SyncModal from "./syncModal.jsx";
 import api from "../../api/api.js";
 import {get_videos_ids} from "../../utils/apiCalls.jsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 import PropTypes from 'prop-types';
 
@@ -23,8 +24,9 @@ const ActionVideos = (
   }
 ) => {
   const [showDownloadModal, setShowDownloadModal] = useState(false); // State for modal visibility
+  const [showSyncModal, setShowSyncModal] = useState(false); // State for modal visibility
   const [showDeleteModal, setShowDeleteModal] = useState(false); // State for modal visibility
-
+  const [urlSite, setUrlSite] = useState(null);
 
   const handleDeleteSelected = () => {
     if (selectedIds.length === 0) {
@@ -59,8 +61,23 @@ const ActionVideos = (
     }
     get_videos_ids(api, selectedIds, setMessageInfo);
   };
+
+  const urlSiteConfigured = async () => {
+    const response = await api.get('/callback_url/')
+    return response?.data
+    //   .then((response) => {
+    //     return response?.data?.remote_site_id
+    //   })
+    // .catch((error) => {
+    //   console.error('Could not fetch callback url', error);
+    // })
+
+  }
   const handleDownloadBulk = async () => {
     setShowDownloadModal(true);
+  }
+  const handleSyncBulk = async () => {
+    setShowSyncModal(true);
   }
   const handleDeleteBulk = async () => {
     setShowDeleteModal(true);
@@ -76,6 +93,20 @@ const ActionVideos = (
       });
   }
 
+  useEffect(() => {
+    // set the url site
+    const fetchUrl = async () => {
+      try {
+        const url = await urlSiteConfigured();
+        console.log(`URL`, url)
+        setUrlSite(url);
+      } catch (error) {
+        console.error('Failed to load site, set to null', error)
+        setUrlSite(null);
+      }
+    }
+    fetchUrl()
+  }, [])
 
   return (
     <div className="split-screen">
@@ -106,6 +137,22 @@ const ActionVideos = (
         >
           Download
         </button>
+        <span
+          title={
+            urlSite?.remote_site_id
+              ? "Synchronize videos with the configured LiveORC remote site id"
+              : "No LiveORC remote site ID configured. Synchronization disabled."
+          }
+        >
+          <button
+            className="btn"
+            onClick={handleSyncBulk}
+            disabled={!urlSite?.remote_site_id}
+
+          >
+            Synchronize
+          </button>
+        </span>
         <button
           className="btn btn-danger"
           onClick={handleDeleteBulk}
@@ -124,6 +171,14 @@ const ActionVideos = (
         <DownloadModal
           showDownloadModal={showDownloadModal}
           setShowDownloadModal={setShowDownloadModal}
+          setMessageInfo={setMessageInfo}
+        />
+      )}
+      {showSyncModal && (
+        <SyncModal
+          showSyncModal={showSyncModal}
+          setShowSyncModal={setShowSyncModal}
+          urlSite={urlSite}
           setMessageInfo={setMessageInfo}
         />
       )}

@@ -20,7 +20,6 @@ const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}
       ...prev,
       [setting]: !prev[setting],
     }));
-    console.log(downloadSettings);
   };
 
   const handleDownloadConfirm = () => {
