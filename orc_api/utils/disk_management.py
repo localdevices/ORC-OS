@@ -70,7 +70,10 @@ def get_timestamp(
         if len(suffix) > 0:
             timestr = timestr.split(suffix)[0]
         try:
-            timestamp = datetime.strptime(timestr, datetime_fmt)
+            if datetime_fmt.lower() == "unix":
+                timestamp = datetime.fromtimestamp(float(timestr))
+            else:
+                timestamp = datetime.strptime(timestr, datetime_fmt)
         except ValueError:
             raise ValueError(
                 f"datetime string {timestr} does not follow the datetime format {datetime_fmt}. "

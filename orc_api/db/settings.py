@@ -107,6 +107,9 @@ def check_datetime_fmt(fn_fmt, parse_dates_from_file=False):
         fmt = fn_fmt.split("{")[1].split("}")[0]
     except Exception:
         raise ValueError('{:s} does not contain a datetime format between "" signs'.format(fn_fmt))
+    if fmt == "unix":
+        # parsing with epoch seconds
+        return True
     datestr = datetime(2000, 1, 1, 1, 1, 1).strftime(fmt)
     dt = datetime.strptime(datestr, fmt)
     if dt.year != 2000 or dt.month != 1 or dt.day != 1:

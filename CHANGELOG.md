@@ -10,6 +10,8 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Added
 - User can interactively sync a single video from the front end with a new action button.
 - User can do bulk syncing using a button.
+- The expected video file format string can now accept unix epoch timestamps (seconds since 1970-01-01 00:00:00 UTC)
+  For instance `video_{unix}.mp4`. This will interpret the part `{unix}` as a unix epoch timestamp.
 ### Changed
 - The site id for LiveORC callback is now configurable under the LiveORC settings (instead of daemon settings)
 ### Deprecated
