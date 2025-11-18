@@ -1,12 +1,17 @@
 """Pydantic models for recipes."""
 
-from typing import Literal, Optional
+from typing import List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.schemas.base import RemoteModel
+
+frames_options = {
+    "manmade": [{"method": "grayscale", "range": {}, "s2n_thres": 3}, {"method": "grayscale", "s2n_thres": 3}],
+    "natural": [{"method": "grayscale", "range": {}, "s2n_thres": 2.5}, {"method": "sat", "s2n_thres": 2.5}],
+}
 
 
 class VideoData(BaseModel):
@@ -49,7 +54,9 @@ class WaterLevel(BaseModel):
     n_end: int = Field(default=1)
     method: str = Field(default="grayscale")
     water_level_options: WaterLevelOptions = Field(default_factory=WaterLevelOptions)
-    frames_options: dict = Field(default={})
+    # frames_options can be a list of dicts for several consecutive treatments, default is for man-made
+    # channels
+    frames_options: Union[List, dict] = Field(default=frames_options["manmade"])
 
 
 class VelocimetryData(BaseModel):
@@ -139,11 +146,8 @@ class RecipeResponse(RecipeRemote):
     )
     window_size: int = Field(default=64, description="Size of interrogation window")
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
-    wl_get_frames_method: Optional[Literal["hue", "grayscale", "sat"]] = Field(
-        default="grayscale", description="Method for extracting frames for water level estimation."
-    )
-    wl_preprocess: Optional[Literal["range"]] = Field(
-        default=None, description="Method for preprocessing frames for water level estimation."
+    wl_get_frames_method: Optional[Literal["natural", "manmade"]] = Field(
+        default="manmade", description="Method for treating frames for water level estimation."
     )
     v_distance: Optional[float] = Field(
         default=0.5, ge=0.1, le=1.0, description="Distance between velocity sampling points in cross section."
@@ -221,14 +225,12 @@ class RecipeResponse(RecipeRemote):
 
         # fill the optical level estimation parameters
         if data.water_level:
-            if data.water_level.method:
-                instance.wl_get_frames_method = data.water_level.method
+            instance.wl_get_frames_method = "manmade"
             if data.water_level.frames_options:
-                # set options for frame extraction and preprocessing
-                if "range" in data.water_level.frames_options.keys():
-                    instance.wl_preprocess = "range"
-                else:
-                    instance.wl_preprocess = None
+                # frames are treated as natural if the second treatment is in saturation
+                if isinstance(data.water_level.frames_options, list):
+                    if "sat" in data.water_level.frames_options[1].keys():
+                        instance.wl_get_frames_method = "natural"
             if data.water_level.water_level_options:
                 # set options for the detection algorithm (literally the same names are used
                 for k, v in data.water_level.water_level_options.model_dump().items():
@@ -276,11 +278,8 @@ class RecipeUpdate(RecipeRemote):
     )
     window_size: Optional[int] = Field(default=64, description="Size of interrogation window")
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
-    wl_get_frames_method: Optional[Literal["hue", "grayscale", "sat"]] = Field(
-        default="grayscale", description="Method for extracting frames for water level estimation."
-    )
-    wl_preprocess: Optional[Literal["range"]] = Field(
-        default=None, description="Method for preprocessing frames for water level estimation."
+    wl_get_frames_method: Optional[Literal["natural", "manmade"]] = Field(
+        default="manmade", description="Method for processing video for water level estimation."
     )
     v_distance: Optional[float] = Field(
         default=0.5, ge=0.1, le=1.0, description="Distance between velocity sampling points in cross section."
@@ -359,8 +358,8 @@ class RecipeUpdate(RecipeRemote):
             min_z=getattr(instance, "min_z", None),
             max_z=getattr(instance, "max_z", None),
         )
-        data.water_level.method = getattr(instance, "wl_get_frames_method", "grayscale")
-        data.water_level.frames_options = {"range": {}} if getattr(instance, "wl_preprocess", None) else {}
+        data.water_level.method = getattr(instance, "wl_get_frames_method", "manmade")
+        data.water_level.frames_options = frames_options[data.water_level.method]
         instance.data = data.model_dump()
         return instance
 

@@ -20,7 +20,6 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Security
 
 
-
 ## [0.4.1] - 2025-10-17
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
