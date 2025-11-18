@@ -118,7 +118,7 @@ def test_video_sync(session_video_with_config, video_response, monkeypatch):
 
 
 def test_video_sync_not_permitted(session_video_with_config, video_response, monkeypatch):
-    """Test for syncing a cross-section to remote API (real response is mocked)."""
+    """Test for syncing a video to remote API (real response is mocked)."""
     # let's assume we are posting on site 1
     site = 1
 
@@ -140,10 +140,11 @@ def test_video_sync_not_permitted(session_video_with_config, video_response, mon
     monkeypatch.setattr(CallbackUrlResponse, "get_site", mock_get_site)
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
 
-    with pytest.raises(ValueError, match="Remote update failed with status code 403."):
-        _ = video_response.sync_remote(
-            session=session_video_with_config, base_path=sample_data.get_hommerich_pyorc_files(), site=site
-        )
+    response = video_response.sync_remote(
+        session=session_video_with_config, base_path=sample_data.get_hommerich_pyorc_files(), site=site
+    )
+    # response should be None if no syncing occurred. syncing does not raise anything.
+    assert response is None
 
 
 @pytest.mark.skipif(

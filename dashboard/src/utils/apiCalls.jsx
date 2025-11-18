@@ -139,7 +139,7 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
 
 export const sync_videos = async (api, syncStartDate, syncEndDate, syncSettings, setMessageInfo) => {
   try {
-    const response = await api.get(
+    const response = await api.post(
       "/video/sync/", {
         start: syncStartDate,
         stop: syncEndDate,
@@ -215,7 +215,7 @@ export const sync_video = async(video, setMessageInfo) => {
     }
 
     // Make the API call
-    const response = await api.get(`/video/${video.id}/sync/`);
+    const response = await api.post(`/video/${video.id}/sync/`);
     // update the status of the video
     video.status = response.data.status;
     // setVideo({ ...video, status: response.data.status});

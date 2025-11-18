@@ -297,12 +297,14 @@ class VideoResponse(VideoBase, RemoteModel):
             if self.video_config is not None:
                 if self.video_config.sync_status != models.SyncStatus.SYNCED:
                     # first sync/update recipe
+                    logger.debug(f"Syncing video configuration {self.video_config.id} to remote site {site}.")
                     self.video_config = self.video_config.sync_remote(session=session, site=site)
                     self.video_config_id = self.video_config.id
             if self.time_series is not None:
                 if self.time_series.sync_status != models.SyncStatus.SYNCED:
                     logger.debug(
-                        f"Syncing time series {self.time_series.id} - {self.time_series.timestamp} to remote site."
+                        f"Syncing time series {self.time_series.id} - {self.time_series.timestamp} "
+                        f"to remote site {site}."
                     )
                     self.time_series = self.time_series.sync_remote(session=session, site=site)
                     self.time_series_id = self.time_series.id
@@ -331,6 +333,7 @@ class VideoResponse(VideoBase, RemoteModel):
             if self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image:
                 files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
             # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
+            logger.debug(f"Syncing video {self.id} - {self.file} to remote site {site}.")
             response_data = super().sync_remote(session=session, endpoint=endpoint, data=data, files=files, timeout=60)
             if response_data is not None:
                 response_data.pop("camera_config", None)

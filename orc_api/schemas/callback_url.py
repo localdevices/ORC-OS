@@ -159,7 +159,7 @@ class CallbackUrlResponse(CallbackUrlBase):
             url, headers=self.headers, data=data, json=json, files=files, timeout=timeout, allow_redirects=True
         )
 
-    def post(self, endpoint, data=None, json=None, files=None, timeout=5, delay_retry=5):
+    def post(self, endpoint, data=None, json=None, files=None, timeout=5):
         """Perform POST request on end point with optional data and files."""
         # data = {} if data is None else data
         # files = {} if files is None else files

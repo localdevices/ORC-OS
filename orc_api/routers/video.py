@@ -455,7 +455,7 @@ async def download_videos_on_ids(
     )
 
 
-@router.get("/{id}/sync/", status_code=200, response_model=None)
+@router.post("/{id}/sync/", status_code=200, response_model=None)
 async def sync_video(id: int, db: Session = Depends(get_db)):
     """Sync a selected video."""
     # if no settings found assume everything should be synced
@@ -492,7 +492,7 @@ async def sync_video(id: int, db: Session = Depends(get_db)):
     return video
 
 
-@router.get("/sync/", status_code=200, response_model=None)
+@router.post("/sync/", status_code=200, response_model=None)
 async def sync_list_videos(request: SyncVideosRequest, db: Session = Depends(get_db)):
     """Sync a list of videos."""
     sync_image = request.sync_image

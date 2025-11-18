@@ -120,7 +120,7 @@ def test_sync_video(auth_client, mocker):
     db_session.add(callback_url)
     db_session.commit()
 
-    response = auth_client.get("/api/video/1/sync/")
+    response = auth_client.post("/api/video/1/sync/")
     assert response.status_code == 200
     # call should only return status
     assert response.json()["id"] == 1
@@ -149,7 +149,7 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
         "sync_image": True,
     }
 
-    response = auth_client.get("/api/video/sync/", json=params)
+    response = auth_client.post("/api/video/sync/", json=params)
     assert response.status_code == 200
     # call should only return status
     assert response.json() is None
