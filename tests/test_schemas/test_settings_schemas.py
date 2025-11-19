@@ -17,7 +17,6 @@ def test_add_sample_filename_with_date_format(mock_incoming_directory):
         video_file_fmt="video_{%Y%m%d_%H%M%S}.mp4",
         parse_dates_from_file=True,
     )
-
     result = SettingsResponse.add_sample_filename(settings)
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
     expected_sample_file = f"/mock/incoming/video_{current_date}.mp4"
