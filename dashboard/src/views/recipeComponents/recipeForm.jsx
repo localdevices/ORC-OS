@@ -570,19 +570,19 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
               </div>
               <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
                 <label htmlFor="wl_get_frames_method" className="form-label">
-                  Frame extraction method for water level
+                  Type of bank (determines land/water segmentation strategy)
                 </label>
                 <div className="form-check">
                   <input
                     className="form-check-input"
                     type="radio"
                     name="wl_get_frames_method"
-                    id="grayscale"
-                    value="grayscale"
-                    checked={formData.wl_get_frames_method === "grayscale"}
+                    id="manmade"
+                    value="manmade"
+                    checked={formData.wl_get_frames_method === "manmade"}
                   />
-                  <label className="form-check-label" htmlFor="grayscale">
-                    Grayscale
+                  <label className="form-check-label" htmlFor="manmade">
+                    Man-made (e.g. storm drain, culvert, bridge piers)
                   </label>
                 </div>
                 <div className="form-check">
@@ -590,57 +590,12 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                     className="form-check-input"
                     type="radio"
                     name="wl_get_frames_method"
-                    id="hue"
-                    value="hue"
-                    checked={formData.wl_get_frames_method === "hue"}
+                    id="natural"
+                    value="natural"
+                    checked={formData.wl_get_frames_method === "natural"}
                   />
-                  <label className="form-check-label" htmlFor="hue">
-                    Color differences
-                  </label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="wl_get_frames_method"
-                    id="sat"
-                    value="sat"
-                    checked={formData.wl_get_frames_method === "sat"}
-                  />
-                  <label className="form-check-label" htmlFor="sat">
-                    Saturation level
-                  </label>
-                </div>
-
-              </div>
-              <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
-                <label htmlFor="wl_preprocess" className="form-label">
-                  Preprocess frames
-                </label>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="wl_preprocess"
-                    id="none"
-                    value=""
-                    checked={formData.wl_preprocess === null}
-                  />
-                  <label className="form-check-label" htmlFor="none">
-                    None
-                  </label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="wl_preprocess"
-                    id="range"
-                    value="range"
-                    checked={formData.wl_preprocess === "range"}
-                  />
-                  <label className="form-check-label" htmlFor="range">
-                    time-range intensity
+                  <label className="form-check-label" htmlFor="natural">
+                    Natural
                   </label>
                 </div>
               </div>

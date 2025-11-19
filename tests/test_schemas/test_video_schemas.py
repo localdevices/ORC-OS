@@ -74,9 +74,21 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.update_timeseries", mock_update_timeseries)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.sync_remote", mock_update_timeseries)
     with pytest.raises(ShutdownException):
-        video_response_no_ts.run(session=session_video_config, base_path=tmpdir, shutdown_after_task=True)
+        video_response_no_ts.run(session=session_video_config, base_path=str(tmpdir), shutdown_after_task=True)
     # test if mock shutdown is called once
     assert mock_shutdown.call_count == 1
+
+
+def test_video_properties(tmpdir, video_response_no_ts, monkeypatch):
+    # first with os.path.exists then with mock
+    def mock_os_path_exists(self, **kwargs):
+        return True
+
+    video_response_no_ts.get_thumbnail(base_path=tmpdir)
+    video_response_no_ts.get_netcdf_files(base_path=tmpdir)
+    assert video_response_no_ts.get_discharge_file(base_path=tmpdir) is None
+    monkeypatch.setattr("os.path.exists", mock_os_path_exists)
+    assert isinstance(video_response_no_ts.get_discharge_file(base_path=tmpdir), str)
 
 
 def test_video_sync(session_video_with_config, video_response, monkeypatch):

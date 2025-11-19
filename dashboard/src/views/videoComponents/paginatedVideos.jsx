@@ -418,7 +418,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
             &times;
           </button>
         </div>
-
         {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
         <h5>Select an Existing Config:</h5>
         <div className="container">

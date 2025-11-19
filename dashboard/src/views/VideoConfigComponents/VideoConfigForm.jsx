@@ -29,12 +29,15 @@ const VideoConfigForm = (
         name: selectedVideoConfig.name || '',
         id: selectedVideoConfig.id || '',
         sync_status: selectedVideoConfig.sync_status || 1,
+        sample_video_id: selectedVideoConfig.sample_video_id || video.id,
       });
+      console.log("SELECTED VIDEO CONFIG: ", selectedVideoConfig);
     } else {
       setFormData({
         name: '',
         id: '',
         sync_status: 1,
+        sample_video_id: null,
       })
     }
 
@@ -73,7 +76,9 @@ const VideoConfigForm = (
     const filteredData = Object.fromEntries(
       Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
     );
+    console.log("FORMDATA VID-CONFIG: ", formData);
     if (formData.sample_video_id === undefined) {
+      console.log("SAMPLE VIDEO UNDEFINED")
       filteredData.sample_video_id = video.id;
     }
     if (formData.sync_status !== 1) {
@@ -121,14 +126,11 @@ const VideoConfigForm = (
     // predefine response object
     let response;
     try {
-      console.log(filteredData);
-      console.log("INPUT DATA: ", formData)
       response = await api.post('/video_config/', filteredData);
       if (response.status !== 201 && response.status !== 200) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       } else {
-        console.log("RESPONSE: ", response.data)
         // set the updated camera config, recipe and cross-section details
         setSelectedVideoConfig(response.data);
         // also set the camera config id and recipe id

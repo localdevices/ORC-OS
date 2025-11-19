@@ -70,7 +70,10 @@ class SettingsResponse(SettingsBase):
         if instance.video_file_fmt:
             if instance.parse_dates_from_file:
                 fmt = instance.video_file_fmt.split("{")[1].split("}")[0]
-                datestr = datetime.now().strftime(fmt)
+                if fmt == "unix":
+                    datestr = str(int(datetime.now().timestamp()))
+                else:
+                    datestr = datetime.now().strftime(fmt)
                 file_format = instance.video_file_fmt.split("{")[0] + datestr + instance.video_file_fmt.split("}")[1]
             else:
                 file_format = instance.video_file_fmt

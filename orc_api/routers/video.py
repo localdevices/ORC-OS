@@ -322,7 +322,7 @@ async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/{id}/image/", response_class=FileResponse, status_code=200)
-async def get_image(db: Session = Depends(get_db)):
+async def get_image(id: int, db: Session = Depends(get_db)):
     """Retrieve an image result from video record."""
     video = get_video_record(db, id)
     if not video.image:  # Assuming `file_path` is the attribute storing the video's path

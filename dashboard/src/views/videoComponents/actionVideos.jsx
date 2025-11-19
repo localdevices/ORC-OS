@@ -98,7 +98,6 @@ const ActionVideos = (
     const fetchUrl = async () => {
       try {
         const url = await urlSiteConfigured();
-        console.log(`URL`, url)
         setUrlSite(url);
       } catch (error) {
         console.error('Failed to load site, set to null', error)
