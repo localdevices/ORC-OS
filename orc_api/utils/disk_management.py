@@ -71,6 +71,7 @@ def get_timestamp(
             timestr = timestr.split(suffix)[0]
         try:
             if datetime_fmt.lower() == "unix":
+                print(float(timestr))
                 timestamp = datetime.fromtimestamp(float(timestr))
             else:
                 timestamp = datetime.strptime(timestr, datetime_fmt)

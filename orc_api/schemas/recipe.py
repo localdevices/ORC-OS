@@ -52,7 +52,6 @@ class WaterLevel(BaseModel):
 
     n_start: int = Field(default=0)
     n_end: int = Field(default=1)
-    method: str = Field(default="grayscale")
     water_level_options: WaterLevelOptions = Field(default_factory=WaterLevelOptions)
     # frames_options can be a list of dicts for several consecutive treatments, default is for man-made
     # channels
@@ -358,8 +357,8 @@ class RecipeUpdate(RecipeRemote):
             min_z=getattr(instance, "min_z", None),
             max_z=getattr(instance, "max_z", None),
         )
-        data.water_level.method = getattr(instance, "wl_get_frames_method", "manmade")
-        data.water_level.frames_options = frames_options[data.water_level.method]
+        channel_type = getattr(instance, "wl_get_frames_method", "manmade")
+        data.water_level.frames_options = frames_options[channel_type]
         instance.data = data.model_dump()
         return instance
 

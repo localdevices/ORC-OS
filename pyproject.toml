@@ -72,6 +72,9 @@ exclude = ["gcloud_dist", "hack", "helm", "htmlcov", "junit", "tests", ".github"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
+filterwarnings = [
+    "ignore:.*Using default ORC_SECRET_KEY.*:UserWarning"
+]
 
 [tool.ruff]
 line-length = 120

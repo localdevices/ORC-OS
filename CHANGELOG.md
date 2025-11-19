@@ -1,4 +1,4 @@
-## [0.4.2] -
+## [0.4.2] - 2025-11-19
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -11,12 +11,23 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - User can interactively sync a single video from the front end with a new action button.
 - User can do bulk syncing using a button.
 - The expected video file format string can now accept unix epoch timestamps (seconds since 1970-01-01 00:00:00 UTC)
-  For instance `video_{unix}.mp4`. This will interpret the part `{unix}` as a unix epoch timestamp.
+  For instance `video_{unix}.mp4`. This will interpret the part `{unix}` as Unix epoch timestamp.
 ### Changed
 - The site id for LiveORC callback is now configurable under the LiveORC settings (instead of daemon settings)
+- Treatment of videos for water level detection can now be configured with only a radio button for natural versus
+  man-made channels. This then automatically chooses pre-processing options that work best for resp. natural and
+  man-made channels. To modify your recipe to use this, simply click on `natural` and save. If you have a man-made
+  channel, click on `man-made` afterward and then save.
+- Water level detection now will be attempted first with a range filter (detecting movements) and if signal to noise
+  ratio is below a threshold, a second attempt is made without the filter using either the saturation channel (for
+  natural channels) or the greyscale channel (for man-made channels). If no satisfactory signal-to-noise is found at
+  all, then no water level will be returned and processing will stop with a logged error. This is to prevent false
+  processing of river flows. E.g. night-time data without illumination will now correctly give no water level.
 ### Deprecated
 ### Removed
 ### Fixed
+- changing a video configuration using a different video than the originally used video led to modifying of the
+  sample video to the current video. This is now prevented.
 ### Security
 
 
@@ -35,7 +46,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Changed
 - With "shutdown after task" set to true in the daemon settings, the device will give you a 15 second time delay
   before shutting down. This is to allow for a user to enter the device in case it only appears online late in the
-  process. This happens for instance with Starlink modems, that are started up at the same time as the device.
+  process. This happens, for instance, with Starlink modems that are started up at the same time as the device.
   These modems take a significant while to start up.
 ### Deprecated
 ### Removed
@@ -106,7 +117,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
   file.
 - Additional recipe options for interrogation window size and velocity sampling distance.
 - Selection of second camera on raspberry pi in case 2 camera modules are installed. This may be the case, e.g. when
-  a separate camera module is used during night time.
+  a separate camera module is used during night-time.
 ### Changed
 - password hashing is now done with module `bcrypt`. Deprecated `passlib` module is no longer used. As a user this
   should not change any operations and your password remains valid as the same underlying hashing algorithm is used.

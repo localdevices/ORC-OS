@@ -52,7 +52,7 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
                       <div>-</div>
                     ) : (
                       <img
-                        src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image/`}
+                        src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image/?datetime=${Date.now()}`}
                         width="100%"
                         onError={() => setImageError(true)}/>
                     )}
