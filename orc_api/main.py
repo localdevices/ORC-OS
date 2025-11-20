@@ -73,12 +73,12 @@ async def lifespan(app: FastAPI):
         if len(videos_left) > 0:
             logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
             for video_rec in videos_left:
-                with get_session() as db:
-                    # ensure state is set back to new so that processing will be accepted.
-                    db.commit()
-                    # session.refresh(video_rec)
-                    video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
-                    video_instance = VideoResponse.model_validate(video_rec)
+                # with get_session() as db:
+                # ensure state is set back to new so that processing will be accepted.
+                # db.commit()
+                # session.refresh(video_rec)
+                video_rec = crud.video.update(session, video_rec.id, {"status": VideoStatus.NEW})
+                video_instance = VideoResponse.model_validate(video_rec)
                 if video_instance.ready_to_run[0]:
                     _ = await queue.process_video_submission(
                         session=session,

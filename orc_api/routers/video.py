@@ -310,9 +310,9 @@ async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
     """Retrieve a video file and stream it to the client."""
     video = get_video_record(db, id)
     executor = request.app.state.executor
-    session = request.app.state.session
+    # session = request.app.state.session
     video_patch = await queue.process_video_submission(
-        session=session,
+        session=db,
         video=video,
         logger=logger,
         executor=executor,

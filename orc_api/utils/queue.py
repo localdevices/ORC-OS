@@ -64,7 +64,8 @@ async def process_video_submission(
             # Submit the video for execution
             try:
                 # video.run(upload_directory)
-                executor.submit(video.run, session, upload_directory, "", shutdown_after_task)
+                # executor.submit(video.run, session, upload_directory, "", shutdown_after_task)
+                executor.submit(video.run, upload_directory, "", shutdown_after_task)
                 logger.info(f"Video {video.file} submitted to the executor.")
             except Exception as e:
                 logger.error(f"Failed to submit video {video.file}: {str(e)}")

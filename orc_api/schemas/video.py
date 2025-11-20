@@ -131,156 +131,160 @@ class VideoResponse(VideoBase, RemoteModel):
         else:
             return True, "Ready"
 
-    def run(self, session: Session, base_path: str, prefix: str = "", shutdown_after_task: bool = False):
+    def run(self, base_path: str, prefix: str = "", shutdown_after_task: bool = False):
+        # def run(self, session: Session, base_path: str, prefix: str = "", shutdown_after_task: bool = False):
         """Run video."""
         # update state first
-        try:
-            # set up a temporary additional log file handler
-            print(f"Adding log file handler for video {self.id} {self.get_log_file(base_path=base_path)}")
-            rec = crud.video.get(session, id=self.id)
-            rec.status = models.VideoStatus.TASK
-            session.commit()
-            session.refresh(rec)
-            # now also show the state PROCESSING in web socket
-            filename = os.path.split(self.file)[1]
-            video_run_state.update(
-                video_id=self.id,
-                video_file=filename,
-                status=VideoRunStatus.PROCESSING,
-                sync_status=SyncRunStatus.IDLE,
-                message=f"Starting processing of video: {filename}",
+        with get_session() as session:
+            try:
+                # set up a temporary additional log file handler
+                print(f"Adding log file handler for video {self.id} {self.get_log_file(base_path=base_path)}")
+                rec = crud.video.get(session, id=self.id)
+                rec.status = models.VideoStatus.TASK
+                session.commit()
+                session.refresh(rec)
+                # now also show the state PROCESSING in web socket
+                filename = os.path.split(self.file)[1]
+                video_run_state.update(
+                    video_id=self.id,
+                    video_file=filename,
+                    status=VideoRunStatus.PROCESSING,
+                    sync_status=SyncRunStatus.IDLE,
+                    message=f"Starting processing of video: {filename}",
+                )
+                if self.time_series:
+                    # for older versions (python 3.9) check and validate
+                    self.time_series = TimeSeriesResponse.model_validate(self.time_series)
+                allowed_to_run, msg = self.allowed_to_run
+                if not allowed_to_run:
+                    raise Exception(msg)
+
+                # check for h_a
+                h_a = None if self.time_series is None else self.time_series.h
+                logger.debug(f"Checked for water level in time series, found {h_a}")
+
+                # overrule with set level if the video configuration is made with the current video
+                if self.video_config.sample_video_id == self.id:
+                    logger.debug("Overruling water level because video is a sample video for the video configuration.")
+                    h_a = self.video_config.camera_config.gcps.h_ref
+
+                # assemble all information
+                logger.info(f"Water level set to {h_a}")
+                output = os.path.join(self.get_path(base_path=base_path), "output")
+                cameraconfig = self.video_config.camera_config.data.model_dump()
+                # get the rotated/translated cross-section
+                cross_section_feats = self.video_config.cross_section_rt.features
+                # dump the used features in the output path of the video
+                cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
+                with open(cross, "w") as f:
+                    json.dump(cross_section_feats, f)
+                # if h_a is not available and a cross section is available, make cross section file for water level
+                if h_a is None and self.video_config.cross_section_wl:
+                    cross_section_wl_feats = self.video_config.cross_section_wl_rt.features
+                    cross_wl = os.path.join(self.get_path(base_path=base_path), "cross_section_wl.geojson")
+                    with open(cross_wl, "w") as f:
+                        json.dump(cross_section_wl_feats, f)
+                else:
+                    cross_wl = None
+                # get the recipe with any required fields filled
+                recipe = self.video_config.recipe_transect_filled.data
+                videofile = self.get_video_file(base_path=base_path)
+                # find expected image file name
+                rel_img_fn = None
+                if "plot" in recipe:
+                    key = next(iter(recipe["plot"]))
+                    img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
+                    rel_img_fn = os.path.relpath(img_fn, base_path)
+                    if h_a is not None:
+                        h_a_str = f"{np.round(h_a, 3)} m."
+                    else:
+                        h_a_str = "None"
+                    video_run_state.update(
+                        message=f"Processing with h: {h_a_str} to "
+                        f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
+                    )
+                # run the video with pyorc with an additional logger handler
+                add_filehandler(logger=logger, path=self.get_log_file(base_path=base_path), log_level=10)
+                velocity_flow(
+                    recipe=recipe,
+                    videofile=videofile,
+                    cameraconfig=cameraconfig,
+                    prefix=prefix,
+                    output=output,
+                    h_a=h_a,
+                    cross=cross,
+                    cross_wl=cross_wl,
+                    logger=logger,
+                )
+                remove_file_handler(logger, name_contains="pyorc.log")
+                self.image = rel_img_fn
+                # update time series (before video, in case time series with optical water level is added in the process
+                logger.info("Updating time series belonging to video.")
+                self.update_timeseries(session=session, base_path=base_path)
+                # update status
+                self.status = models.VideoStatus.DONE
+                video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
+            except Exception as e:
+                # ensure status is ERROR, but continue afterwards
+                self.status = models.VideoStatus.ERROR
+                # also show this state in the web socket
+                video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
+                logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
+            finally:
+                # the last handler should be our file handler.
+                remove_file_handler(logger, name_contains="pyorc.log")
+
+            update_data = self.model_dump(
+                exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"}
             )
             if self.time_series:
-                # for older versions (python 3.9) check and validate
-                self.time_series = TimeSeriesResponse.model_validate(self.time_series)
-            allowed_to_run, msg = self.allowed_to_run
-            if not allowed_to_run:
-                raise Exception(msg)
-
-            # check for h_a
-            h_a = None if self.time_series is None else self.time_series.h
-            logger.debug(f"Checked for water level in time series, found {h_a}")
-
-            # overrule with set level if the video configuration is made with the current video
-            if self.video_config.sample_video_id == self.id:
-                logger.debug("Overruling water level because video is a sample video for the video configuration.")
-                h_a = self.video_config.camera_config.gcps.h_ref
-
-            # assemble all information
-            logger.info(f"Water level set to {h_a}")
-            output = os.path.join(self.get_path(base_path=base_path), "output")
-            cameraconfig = self.video_config.camera_config.data.model_dump()
-            # get the rotated/translated cross-section
-            cross_section_feats = self.video_config.cross_section_rt.features
-            # dump the used features in the output path of the video
-            cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
-            with open(cross, "w") as f:
-                json.dump(cross_section_feats, f)
-            # if h_a is not available and a cross section is available, then make a cross section file for water level
-            if h_a is None and self.video_config.cross_section_wl:
-                cross_section_wl_feats = self.video_config.cross_section_wl_rt.features
-                cross_wl = os.path.join(self.get_path(base_path=base_path), "cross_section_wl.geojson")
-                with open(cross_wl, "w") as f:
-                    json.dump(cross_section_wl_feats, f)
-            else:
-                cross_wl = None
-            # get the recipe with any required fields filled
-            recipe = self.video_config.recipe_transect_filled.data
-            videofile = self.get_video_file(base_path=base_path)
-            # find expected image file name
-            rel_img_fn = None
-            if "plot" in recipe:
-                key = next(iter(recipe["plot"]))
-                img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
-                rel_img_fn = os.path.relpath(img_fn, base_path)
-                if h_a is not None:
-                    h_a_str = f"{np.round(h_a, 3)} m."
-                else:
-                    h_a_str = "None"
-                video_run_state.update(
-                    message=f"Processing with h: {h_a_str} to "
-                    f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
+                update_data["time_series_id"] = self.time_series.id
+            # with get_session() as session:
+            crud.video.update(session, id=self.id, video=update_data)
+            # check if remote syncing is possible.
+            # This requires a fully configured callback_url including a site to report on
+            callback_url = crud.callback_url.get(session)
+            settings = crud.settings.get(session)
+            # only in daemon mode attempt to sync automatically
+            if callback_url and callback_url.remote_site_id:
+                # video_run_state.update(
+                #     sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {callback_url.remote_site_id}"
+                # )
+                logger.debug("Attempting syncing to remote site ")
+                # try:
+                # try the callback
+                self.sync_remote(
+                    session=session,
+                    base_path=base_path,
+                    site=callback_url.remote_site_id,
+                    sync_file=settings.sync_file,
+                    sync_image=settings.sync_image,
                 )
-            # run the video with pyorc with an additional logger handler
-            add_filehandler(logger=logger, path=self.get_log_file(base_path=base_path), log_level=10)
-            velocity_flow(
-                recipe=recipe,
-                videofile=videofile,
-                cameraconfig=cameraconfig,
-                prefix=prefix,
-                output=output,
-                h_a=h_a,
-                cross=cross,
-                cross_wl=cross_wl,
-                logger=logger,
-            )
-            remove_file_handler(logger, name_contains="pyorc.log")
-            self.image = rel_img_fn
-            # update time series (before video, in case time series with optical water level is added in the process
-            logger.info("Updating time series belonging to video.")
-            self.update_timeseries(base_path=base_path)
-            # update status
-            self.status = models.VideoStatus.DONE
-            video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
-        except Exception as e:
-            # ensure status is ERROR, but continue afterwards
-            self.status = models.VideoStatus.ERROR
-            # also show this state in the web socket
-            video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
-            logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
-        finally:
-            # the last handler should be our file handler.
-            remove_file_handler(logger, name_contains="pyorc.log")
+                # logger.info(f"Syncing to remote site {callback_url.remote_site_id} successful.")
+                # video_run_state.update(
+                #     sync_status=SyncRunStatus.SUCCESS,
+                #     message=f"Syncing to remote site {callback_url.remote_site_id} successful.",
+                # )
+                # except Exception as e_sync:
+                #     logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
+                #     video_run_state.update(
+                #         sync_status=SyncRunStatus.FAILED,
+                #         message=f"Error syncing to remote site {callback_url.remote_site_id}: {e_sync}",
+                #     )
+                #     logger.exception("Traceback:")
 
-        update_data = self.model_dump(exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"})
-        if self.time_series:
-            update_data["time_series_id"] = self.time_series.id
-        # with get_session() as session:
-        crud.video.update(session, id=self.id, video=update_data)
-        # check if remote syncing is possible.
-        # This requires a fully configured callback_url including a site to report on
-        callback_url = crud.callback_url.get(session)
-        settings = crud.settings.get(session)
-        # only in daemon mode attempt to sync automatically
-        if callback_url and callback_url.remote_site_id:
-            # video_run_state.update(
-            #     sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {callback_url.remote_site_id}"
-            # )
-            logger.debug("Attempting syncing to remote site ")
-            # try:
-            # try the callback
-            self.sync_remote(
-                session=session,
-                base_path=base_path,
-                site=callback_url.remote_site_id,
-                sync_file=settings.sync_file,
-                sync_image=settings.sync_image,
-            )
-            # logger.info(f"Syncing to remote site {callback_url.remote_site_id} successful.")
-            # video_run_state.update(
-            #     sync_status=SyncRunStatus.SUCCESS,
-            #     message=f"Syncing to remote site {callback_url.remote_site_id} successful.",
-            # )
-            # except Exception as e_sync:
-            #     logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
-            #     video_run_state.update(
-            #         sync_status=SyncRunStatus.FAILED,
-            #         message=f"Error syncing to remote site {callback_url.remote_site_id}: {e_sync}",
-            #     )
-            #     logger.exception("Traceback:")
+            # shutdown if this is set
+            if shutdown_after_task:
+                logger.info(f"Shutdown triggered by daemon. Shutting down in {timeout_before_shutdown} seconds.")
+                time.sleep(timeout_before_shutdown)
+                logger.info("Shutting down after daemon task...Bye bye :-)")
+                subprocess.call("sudo shutdown -h now", shell=True)
+            # only do a raise after the shutdown has been done, to avoid not shutting down at all.
+            if self.status == models.VideoStatus.ERROR:
+                video_run_state.update(status=VideoRunStatus.ERROR)
+                raise Exception("Error running video, VideoStatus set to ERROR.")
 
-        # shutdown if this is set
-        if shutdown_after_task:
-            logger.info(f"Shutdown triggered by daemon. Shutting down in {timeout_before_shutdown} seconds.")
-            time.sleep(timeout_before_shutdown)
-            logger.info("Shutting down after daemon task...Bye bye :-)")
-            subprocess.call("sudo shutdown -h now", shell=True)
-        # only do a raise after the shutdown has been done, to avoid not shutting down at all.
-        if self.status == models.VideoStatus.ERROR:
-            video_run_state.update(status=VideoRunStatus.ERROR)
-            raise Exception("Error running video, VideoStatus set to ERROR.")
-
-        return
+            return
 
     def sync_remote(self, session: Session, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
         """Send the recipe to LiveORC API.
@@ -418,7 +422,7 @@ class VideoResponse(VideoBase, RemoteModel):
         else:
             return None
 
-    def update_timeseries(self, base_path: str):
+    def update_timeseries(self, session: Session, base_path: str):
         """Get discharge data."""
         id = None if self.time_series is None else self.time_series.id
         fn = self.get_discharge_file(base_path=base_path)
@@ -459,15 +463,15 @@ class VideoResponse(VideoBase, RemoteModel):
             "fraction_velocimetry": perc_measured[2] if np.isfinite(perc_measured[2]) else None,
             "sync_status": models.SyncStatus.UPDATED,  # set sync status to updated, so that syncing can be reperformed
         }
-        with get_session() as session:
-            if id:
-                ts = crud.time_series.update(session, id=id, time_series=update_data)
-            else:
-                # add the time stamp of the video as a valid time stamp
-                update_data["timestamp"] = self.timestamp
-                # create a new record, happens when optical water level detection has been applied
-                ts = crud.time_series.add(session, models.TimeSeries(**update_data))
-            self.time_series = TimeSeriesResponse.model_validate(ts)
+        # with get_session() as session:
+        if id:
+            ts = crud.time_series.update(session, id=id, time_series=update_data)
+        else:
+            # add the time stamp of the video as a valid time stamp
+            update_data["timestamp"] = self.timestamp
+            # create a new record, happens when optical water level detection has been applied
+            ts = crud.time_series.add(session, models.TimeSeries(**update_data))
+        self.time_series = TimeSeriesResponse.model_validate(ts)
 
 
 class DownloadVideosRequest(BaseModel):
