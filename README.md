@@ -9,52 +9,101 @@ width=100 align="right">
 
 [![License](https://img.shields.io/github/license/localdevices/nodeorc?style=flat)](https://github.com/localdevices/nodeorc/blob/main/LICENSE)
 
-> [!CAUTION]
-> The OpenRiverCam OS is currently in development. As long as this is the case, please do not expect a fully
-> working version here. Only when a formal release is present can you start relying on the OpenRiverCam OS
-> for your operational work. Until then, please use:
-> * Ad-hoc processing: pyORC command-line interface, see https://openrivercam.org
-> * Automated on-site processing: NodeORC daemon, see https://github.com/localdevices/nodeorc.git
-
 * [What is OpenRiverCam OS](#what-is-openrivercam-os)
 * [Installation](#installation)
   * [Installation on Raspberry Pi](#installation-on-raspberry-pi)
+  * [Getting the image on the SD card](#getting-the-image-on-the-sd-card)
+  * [Getting the image on the Compute Module](#getting-the-image-on-the-compute-module)
+
+
+> [!TIP]
+> Rainbow Sensing is the company behind this entirely Open-Source software framework. We provide ready-to-use images
+> with one year of support for a fixed fee. After the first year you may continue using the software on your own devices
+> indefinitely. Contact info@rainbowsensing.com for more information.
+>
+> We also provide training packages for field installation, field survey, image-based processing and principles,
+> LiveOpenRiverCam server deployment and maintenance (central API for storage and further use of data).
+> You may also contact us for training packages.
 
 # What is OpenRiverCam OS?
-Lorem Ipsum
+OpenRiverCam OS is an entirely open-source dashboard to organize automated measurements of water levels and river flows
+using camera videos. It is optimized for use on Raspberry Pi 5 devices and can utilize connected Raspberry Pi cameras.
+What can you do with OpenRiverCam OS?
+- Set up fully automated processing of videos into water levels and discharges, leveraging the power of
+  [PyOpenRiverCam](https://github.com/localdevices/pyorc)
+- Set up your own automated water level feeds from external (e.g. web-reporting) or connected devices
+- Download your data, directly from the device via the web interface.
+- Sync your data Live(!) to a [LiveORC](https://github.com/localdevices/LiveORC) server setup for operational real-time
+  use of data in Decision Support Systems or forecast systems.
+- Monitor currently ongoing tasks and logs.
+- Investigate your time series and results with powerful figures and graphs
+- Secure access to your device via a hashed password.
+- Stay up-to-date with the latest developments of OpenRiverCam OS through Over-The-Air updates.
+
+> [!NOTE] This README is only meant to instruct how to install OpenRiverCam OS on a device. For more information on how to use
+> OpenRiverCam OS, please refer to the [documentation] which is forthcoming. We here do not provide any advice on how to
+> build or water proof a device, or how to perform surveys. If you are interested in these topics, please contact us for
+> a dedicated training package.
+
+Two approaches to installation are provided.
+
+- Installation of ready-to-use images for Raspberry Pi 5 devices.
+- Installation of back end and front end on your own selected device. We provide examples for Debian-based systems only.
 
 # Installation
 
 ## Installation on Raspberry Pi
 
-We have prepared Bookworm images for Raspberry Pi 4 and 5 devices.
+If you have acquired a ready-to-use `.img` file from Rainbow Sensing for use on Raspberry Pi, please follow these
+instructions.
 
 ### Prerequisites
 
-- A Raspberry Pi 4 or 5 device. We do not support lower Raspberry Pi devices as these are not powerful enough and do not
-  work with arm64 images.
-- An SD card of good quality (really...try to not underspend on cheap SD cards) of at least 16GB in size.
+- A Raspberry Pi 4 or 5 (recommended) device with 8GB of memory. We *DO NOT* support lower Raspberry Pi devices as
+  these are not powerful enough and do not work with arm64 images. Please do not contact us for support on Raspberry Pi
+  3 or lower devices.
+
+- A suitable power supply. For Raspberry Pi 4, we recommend a 5V 2A power supply. For Raspberry Pi 5, we recommend a
+  5V 5A power supply. For connections in the field to a 12V battery (e.g. combined with solar panels), you will require
+  a buck step down converter (check your favorite electronics store or web store). Ensure that you find one with 12V
+  input (up to 24V if your battery has a higher voltage) that delivers 5V at minimum 3A (2A for Raspberry Pi 4), and
+  ideally 5V 5A for a more stable and reliable power.
+   supply.
+
+  See: https://www.raspberrypi.com/products/raspberry-pi-5/?variant=raspberry-pi-5-8gb
+- An SD card (micro) of good quality (really...try to not underspend on cheap SD cards) of at least 32GB in size; OR
+  (better) a Raspberry Pi 5 Compute Module with a carrier board, with 32GB eMMC flash storage. Ensure you have a
+  microSD card reader slot on your device, or ensure you get a SD card adapter to fit it in a large SD card reader.
+
+  See: https://www.raspberrypi.com/products/compute-module-5/?variant=cm5-104032
 - A laptop or desktop computer with the "Raspberry Pi Imager" installed.
+
+  See: https://www.raspberrypi.com/software/
 - A UTP Cable and a free network port on your router or network switch (check the NOTE below if you only have WiFi).
 
-If you want to collect videos with the same device, we also recommend to connect a Raspberry Pi camera to the device.
-The OS will have Raspberry Pi camera libraries pre-installed.
+If you want to collect videos with the same device, we also recommend to connect a Raspberry Pi (v3) camera to the device.
+The OS will have Raspberry Pi camera libraries pre-installed. Alternatively you may use a suitable
+IP Camera that can deliver video files via FTP or SFTP.
+
+See: https://www.raspberrypi.com/products/camera-module-3/
 
 For installation instructions of the Raspberry Pi Imager, please go to https://www.raspberrypi.com/software/
 
 ## Getting the image on the SD card
+If you have a Raspberry Pi Compute Module, please go to the next section. If you have an SD card, continue here.
+
 At this stage you will not need your Raspberry Pi yet. Just leave it in the box and start the laptop or desktop
 computer that has Raspberry Pi Imager installed
 
 1. Put your SD card in a free SD-card reader slot on your laptop or desktop computer that has the Raspberry Pi imager
    installed
-2. Download our image from https://....... to a location on your machine that you can find back easily, e.g.
-   `C:\User\myuser\Downloads`. The file has the extension `img.gz`. Do not unpack this file. This is not necessary.
+2. Download our image from the provided link to a location on your machine that you can find back easily, e.g.
+   `C:\User\myuser\Downloads`. The file has the extension `img.gz`. *Do not* unpack this file. This is not necessary.
 3. Start the Raspberry Pi imager application.
-4. In the field "Raspberry Pi Device", click on "CHOOSE DEVICE" and select your Raspberry Pi device in the list. T
-   this can only be Raspberry Pi 4 or 5!
+4. In the field "Raspberry Pi Device", click on "CHOOSE DEVICE" and select your Raspberry Pi device in the list.
+   This can only be Raspberry Pi 4 or 5!
 5. In the field "Operating System", click on "CHOOSE OS", scroll all the way down and select "Use custom".
-   Now navigate to the folder in which you stored the `img.gz` file and double click it to select it.
+   Now navigate to the folder in which you stored the `img.gz` file and double-click it to select it.
 6. In the field "Storage", click on "CHOOSE STORAGE". Select the SD card, typically called something like "Internal SD
    card reader."
 7. Click on "NEXT"
@@ -72,7 +121,7 @@ computer that has Raspberry Pi Imager installed
 
 9. When the application asks "All existing data on '-your selected SD card-' will be erased. Are you sure you want to
    continue?", click on YES.
-10. When Raspberry OS Imager asks for your password, please provide this.
+10. When Raspberry OS Imager asks for your computer's root/super user password, please provide this.
 
 The SD card will now be prepared and verified. This will only take a few minutes. Time for a 🍵 or ☕.
 
@@ -87,18 +136,23 @@ something wrong with your SD card. Please check the following:
   but not anymore capable of writing. If the SD card is indicated to be read only, even with the physical switch in
   the right place, you probably have a broken SD card.
 
+## Getting the image on the Compute Module
+Lorem ipsum
+
 ## Getting started with OpenRiverCam OS
 
 1. Take the SD card out of the reader and put it into your Raspberry Pi. Connect the Raspberry Pi's power adapter or
    other power source (e.g. 12V - 5V connection) and connect the UTP cable to your router or network switch. This
    should bring the device onto the same network as your computer.
-2. Open a browser and navigate to http://nodeorcpi. This should bring up the following page.
+2. Open a browser and navigate to http://orcos.local. This should bring up the following page. If this page cannot
+   be found, then try http://orcos.home or http://orcos
 
 ![image](https://github.com/user-attachments/assets/b4339ac7-c05c-4a70-afa7-20030bca4815)
 
-You are now ready to configure OpenRiverCam OS. On a Raspberry Pi, you are likely interested in configuring the device
-for automated field operations. If this is not the case, then please continue to the "Getting started" section of
-Laptop / Desktop devices.
+You now have to select your password. *Please ensure you remember this password*. If you forget it, you will not be able
+to login anymore and since the service runs locally on the device, you will not be able to perform any recovery.
+
+You should now reach the home page of the device. From here onwards, please follow our documentation pages (forthcoming).
 
 ## Configuring for automated field operations
 
