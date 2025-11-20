@@ -228,8 +228,10 @@ class RecipeResponse(RecipeRemote):
             if data.water_level.frames_options:
                 # frames are treated as natural if the second treatment is in saturation
                 if isinstance(data.water_level.frames_options, list):
-                    if "sat" in data.water_level.frames_options[1].keys():
-                        instance.wl_get_frames_method = "natural"
+                    if len(data.water_level.frames_options) > 1:
+                        # check the second treatment to set natural or manmade
+                        if "sat" in data.water_level.frames_options[1].keys():
+                            instance.wl_get_frames_method = "natural"
             if data.water_level.water_level_options:
                 # set options for the detection algorithm (literally the same names are used
                 for k, v in data.water_level.water_level_options.model_dump().items():
