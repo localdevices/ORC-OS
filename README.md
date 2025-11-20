@@ -40,7 +40,8 @@ What can you do with OpenRiverCam OS?
 - Secure access to your device via a hashed password.
 - Stay up-to-date with the latest developments of OpenRiverCam OS through Over-The-Air updates.
 
-> [!NOTE] This README is only meant to instruct how to install OpenRiverCam OS on a device. For more information on how to use
+> [!NOTE]
+> This README is only meant to instruct how to install OpenRiverCam OS on a device. For more information on how to use
 > OpenRiverCam OS, please refer to the [documentation] which is forthcoming. We here do not provide any advice on how to
 > build or water proof a device, or how to perform surveys. If you are interested in these topics, please contact us for
 > a dedicated training package.
@@ -49,8 +50,6 @@ Two approaches to installation are provided.
 
 - Installation of ready-to-use images for Raspberry Pi 5 devices.
 - Installation of back end and front end on your own selected device. We provide examples for Debian-based systems only.
-
-# Installation
 
 ## Installation on Raspberry Pi
 
@@ -89,7 +88,7 @@ See: https://www.raspberrypi.com/products/camera-module-3/
 
 For installation instructions of the Raspberry Pi Imager, please go to https://www.raspberrypi.com/software/
 
-## Getting the image on the SD card
+### Getting the image on the SD card
 If you have a Raspberry Pi Compute Module, please go to the next section. If you have an SD card, continue here.
 
 At this stage you will not need your Raspberry Pi yet. Just leave it in the box and start the laptop or desktop
@@ -136,10 +135,50 @@ something wrong with your SD card. Please check the following:
   but not anymore capable of writing. If the SD card is indicated to be read only, even with the physical switch in
   the right place, you probably have a broken SD card.
 
-## Getting the image on the Compute Module
+### Getting the image on the Compute Module
 Lorem ipsum
 
-## Getting started with OpenRiverCam OS
+# Installation on your own device
+For installation on your own device, we provide examples for Debian-based systems only. As each device or OS may be
+different in structure, naming of packages and exact approaches to establish services, we cannot provide a generic
+installation guide. Also, you may have specific requirements, such as a specific version of Python or a specific
+reverse proxy requirement. Hence the instructions below are provided as an example only. You need to understand the
+following concepts to be able to install OpenRiverCam OS on your own device:
+- Reverse proxy services (e.g. through `nginx` `apache` or other reverse proxy services)
+- Python virtual environments (e.g. through `venv` or `conda`)
+- Python Package management (e.g. through `pip`)
+- Systemd services (and how to manage, start, stop and enable/disable them)
+
+> [!CAUTION]
+> Rainbow Sensing does not provide free support for installation on your own device. We cannot guarantee that the
+> provided instructions will work for you. If you encounter any problems during installation, and you want us to assist
+> or make a special recipe for your device please contact us for support at info@rainbowsensing.com
+
+## Prerequisites
+At minimum your device should have:
+- A linux-based operating system (Debian adviced, but others may work as well)
+- A network connection to the internet during installation
+- Sufficient storage. We recommend at least 32GB of storage.
+- Sufficient memory. We recommend at least 8GB of RAM.
+- Adinistrator (sudo) rights on the device.
+- Power supply, connectivity and wiring and boxing for deployment in the field (not in scope for these instructions)
+
+Of course, you will need a camera feed as well. Camera data should lead to files on your device with a recognizable
+time stamp with date and time. For instance, `video_20250121T131523.mp4`. The exact format and naming convention can be
+configured.
+
+## Installation of components
+The following components must be installed on your device. We will go over each component in detail below.
+1. A FastAPI back-end. This component is used by the front end to communicate with the device. It is a Python package
+   that can be installed via pip.
+2. A web front-end. This component has a  is used by the user to interact with the device. It is a Python package that can
+   be installed via pip.
+4. A reverse proxy to serve the web server to the user. This component is used to serve the web server to the user. It is
+   a Python package that can be installed via pip.
+5. A database to store the data. This component is used to store the data. It is a PostgreSQL database.
+
+
+# Getting started with OpenRiverCam OS
 
 1. Take the SD card out of the reader and put it into your Raspberry Pi. Connect the Raspberry Pi's power adapter or
    other power source (e.g. 12V - 5V connection) and connect the UTP cable to your router or network switch. This
