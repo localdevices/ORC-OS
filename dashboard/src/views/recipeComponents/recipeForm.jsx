@@ -47,7 +47,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         min_z: selectedRecipe.min_z,
         max_z: selectedRecipe.max_z,
         wl_preprocess: selectedRecipe.wl_preprocess,
-        wl_get_frames_method: selectedRecipe.wl_get_frames_method,
+        wl_s2n_thres: selectedRecipe.wl_s2n_thres,
         padding: selectedRecipe.padding,
         length: selectedRecipe.length,
         bank: selectedRecipe.bank
@@ -71,7 +71,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         min_z: '',
         max_z: '',
         wl_preprocess: '',
-        wl_get_frames_method: '',
+        wl_s2n_thres: '',
         padding: '',
         length: '',
         bank: '',
@@ -157,7 +157,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       min_z: formData.min_z,
       max_z: formData.max_z,
       wl_preprocess: formData.wl_preprocess,
-      wl_get_frames_method: formData.wl_get_frames_method,
+      wl_s2n_thres: formData.wl_s2n_thres,
       padding: formData.padding,
       length: formData.length,
       bank: formData.bank
@@ -569,36 +569,98 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                 </div>
               </div>
               <div className="mb-3 mt-3 form-horizontal" onChange={handleInputLiteralChange}>
-                <label htmlFor="wl_get_frames_method" className="form-label">
-                  Type of bank (determines land/water segmentation strategy)
+                <label htmlFor="wl_preprocess" className="form-label">
+                  Stream characteristics (determines land/water segmentation strategy)
                 </label>
                 <div className="form-check">
                   <input
                     className="form-check-input"
                     type="radio"
-                    name="wl_get_frames_method"
+                    name="wl_preprocess"
                     id="manmade"
                     value="manmade"
-                    checked={formData.wl_get_frames_method === "manmade"}
+                    checked={formData.wl_preprocess === "manmade"}
                   />
-                  <label className="form-check-label" htmlFor="manmade">
-                    Man-made (e.g. storm drain, culvert, bridge piers)
+                  <label className="form-check-label" htmlFor="manmade" style={{width: "100%"}}>
+                    Man-made canal
                   </label>
                 </div>
                 <div className="form-check">
                   <input
                     className="form-check-input"
                     type="radio"
-                    name="wl_get_frames_method"
+                    name="wl_preprocess"
                     id="natural"
                     value="natural"
-                    checked={formData.wl_get_frames_method === "natural"}
+                    checked={formData.wl_preprocess === "natural"}
                   />
-                  <label className="form-check-label" htmlFor="natural">
+                  <label className="form-check-label" htmlFor="natural"  style={{width: "100%"}}>
                     Natural
                   </label>
                 </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="wl_preprocess"
+                    id="movements"
+                    value="movements"
+                    checked={formData.wl_preprocess === "movements"}
+                  />
+                  <label className="form-check-label" htmlFor="movements" style={{width: "100%"}}>
+                    Always turbulent
+                  </label>
+                </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="wl_preprocess"
+                    id="grayscale"
+                    value="grayscale"
+                    checked={formData.wl_preprocess === "grayscale"}
+                  />
+                  <label className="form-check-label" htmlFor="grayscale" style={{width: "100%"}}>
+                    Dark water
+                  </label>
+                </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="wl_preprocess"
+                    id="saturation"
+                    value="saturation"
+                    checked={formData.wl_preprocess === "saturation"}
+                  />
+                  <label className="form-check-label" htmlFor="saturation" style={{width: "100%"}}>
+                    Vegetated banks
+                  </label>
+                </div>
               </div>
+              <div className="mb-3 mt-3 form-horizontal">
+                <label htmlFor="wl_s2n_thres" className="form-label">
+                  Signal-to-noise ratio for measuring levels. Lower accepts more noise, higher is more reliable.
+                </label>
+                <ReactSlider
+                  className="horizontal-slider"
+                  thumbClassName="thumb"
+                  trackClassName="track"
+                  value={formData.wl_s2n_thres || 3} // Default values if unset
+                  min={2.0}
+                  max={5.0}
+                  step={0.1}
+                  renderThumb={(props, state) => (
+                    <div {...props}>
+                      <div className="thumb-value">{state.valueNow}</div>
+                    </div>
+                  )}
+                  onChange={(value) => {
+                    handleSliderChange("wl_s2n_thres", value)
+                  }}
+                />
+              </div>
+
             </div>
           ) : (
             <div className="mb-3 mt-3 form-horizontal">

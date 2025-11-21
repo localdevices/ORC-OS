@@ -1,3 +1,22 @@
+## [0.4.X] -
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+### Changed
+- Options for treatment of videos for water level detection is extended. The user can now select 5 different river
+  characteristics, most resembling the situation, and have influence on the acceptance criterion (signal to noise ratio)
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
 ## [0.4.2] - 2025-11-19
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

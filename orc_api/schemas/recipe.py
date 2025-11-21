@@ -11,6 +11,9 @@ from orc_api.schemas.base import RemoteModel
 frames_options = {
     "manmade": [{"method": "grayscale", "range": {}, "s2n_thres": 3}, {"method": "grayscale", "s2n_thres": 3}],
     "natural": [{"method": "grayscale", "range": {}, "s2n_thres": 2.5}, {"method": "sat", "s2n_thres": 2.5}],
+    "movements": [{"method": "grayscale", "range": {}, "s2n_thres": 3.0}],
+    "grayscale": [{"method": "grayscale", "s2n_thres": 3.0}],
+    "saturation": [{"method": "sat", "s2n_thres": 3.0}],
 }
 
 
@@ -145,9 +148,10 @@ class RecipeResponse(RecipeRemote):
     )
     window_size: int = Field(default=64, description="Size of interrogation window")
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
-    wl_get_frames_method: Optional[Literal["natural", "manmade"]] = Field(
+    wl_preprocess: Optional[Literal["natural", "manmade", "movements", "grayscale", "saturation"]] = Field(
         default="manmade", description="Method for treating frames for water level estimation."
     )
+    wl_s2n_thres: Optional[float] = Field(default=3.0, description="Threshold for signal-to-noise ratio.")
     v_distance: Optional[float] = Field(
         default=0.5, ge=0.1, le=1.0, description="Distance between velocity sampling points in cross section."
     )
@@ -224,14 +228,27 @@ class RecipeResponse(RecipeRemote):
 
         # fill the optical level estimation parameters
         if data.water_level:
-            instance.wl_get_frames_method = "manmade"
+            instance.wl_preprocess = "manmade"
             if data.water_level.frames_options:
+                # first ensure it is a list, even if only one treatment
+                if isinstance(data.water_level.frames_options, dict):
+                    data.water_level.frames_options = [data.water_level.frames_options]
                 # frames are treated as natural if the second treatment is in saturation
-                if isinstance(data.water_level.frames_options, list):
-                    if len(data.water_level.frames_options) > 1:
-                        # check the second treatment to set natural or manmade
-                        if "sat" in data.water_level.frames_options[1].keys():
-                            instance.wl_get_frames_method = "natural"
+                if len(data.water_level.frames_options) > 1:
+                    # check the second treatment to set natural or manmade
+                    if "sat" in data.water_level.frames_options[1].keys():
+                        instance.wl_preprocess = "natural"
+                else:
+                    # only movement, grayscale or saturation are possible
+                    if "range" in data.water_level.frames_options[0].keys():
+                        instance.wl_preprocess = "movements"
+                    else:
+                        if data.water_level.frames_options[0]["method"] == "grayscale":
+                            instance.wl_preprocess = "grayscale"
+                        else:
+                            instance.wl_preprocess = "saturation"
+                # set the threshold for signal-to-noise ratio, always same for all treatments
+                instance.wl_s2n_thres = data.water_level.frames_options[0].get("s2n_thres", 3.0)
             if data.water_level.water_level_options:
                 # set options for the detection algorithm (literally the same names are used
                 for k, v in data.water_level.water_level_options.model_dump().items():
@@ -279,9 +296,10 @@ class RecipeUpdate(RecipeRemote):
     )
     window_size: Optional[int] = Field(default=64, description="Size of interrogation window")
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
-    wl_get_frames_method: Optional[Literal["natural", "manmade"]] = Field(
+    wl_preprocess: Optional[Literal["natural", "manmade", "movements", "grayscale", "saturation"]] = Field(
         default="manmade", description="Method for processing video for water level estimation."
     )
+    wl_s2n_thres: Optional[float] = Field(default=3.0, description="Threshold for signal-to-noise ratio.")
     v_distance: Optional[float] = Field(
         default=0.5, ge=0.1, le=1.0, description="Distance between velocity sampling points in cross section."
     )
@@ -359,8 +377,11 @@ class RecipeUpdate(RecipeRemote):
             min_z=getattr(instance, "min_z", None),
             max_z=getattr(instance, "max_z", None),
         )
-        channel_type = getattr(instance, "wl_get_frames_method", "manmade")
+        channel_type = getattr(instance, "wl_preprocess", "manmade")
         data.water_level.frames_options = frames_options[channel_type]
+        # set the s2n_thres everywhere
+        for f in data.water_level.frames_options:
+            f["s2n_thres"] = getattr(instance, "wl_s2n_thres", 3.0)
         instance.data = data.model_dump()
         return instance
 

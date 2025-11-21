@@ -6,6 +6,7 @@ from typing import Optional
 import psutil
 from pydantic import BaseModel, ConfigDict, Field
 
+import orc_api
 from orc_api.db import DeviceFormStatus, DeviceStatus
 
 
@@ -43,6 +44,7 @@ class DeviceResponse(DeviceBase):
     )
 
     model_config = ConfigDict(from_attributes=True)
+    orc_os_version: str = Field(default=orc_api.__version__, description="Version of ORC-OS.")
 
 
 class DeviceCreate(DeviceBase):
