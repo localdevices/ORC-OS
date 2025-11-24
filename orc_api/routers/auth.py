@@ -49,7 +49,7 @@ def login(password: str, response: Response, db: Session = Depends(get_db)):
             value=token,
             httponly=True,
             max_age=ORC_COOKIE_MAX_AGE,
-            # secure=True,  # only use for https
+            secure=True,  # only use for https
             samesite=None,
         )
         return {"access_token": token, "token_type": "Bearer"}
