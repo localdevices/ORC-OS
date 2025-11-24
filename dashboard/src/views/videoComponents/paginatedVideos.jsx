@@ -78,7 +78,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         console.error('Error fetching video count:', error);
       });
 
-  }, [selectedVideo, uploadedVideo, startDate, endDate, currentPage, rowsPerPage]);
+  }, [uploadedVideo, startDate, endDate, currentPage, rowsPerPage]);
 
 
   // Fetch the existing video configs when the modal is opened

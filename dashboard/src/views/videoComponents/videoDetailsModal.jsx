@@ -17,9 +17,9 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
 
   return (
   <>
-    <div className="sidebar-overlay"></div>
+    <div className="sidebar-overlay"></div> {/*make background grey*/}
     <div className="modal fade show d-block" tabIndex="-1">
-      <div className="modal-dialog" style={{maxWidth: "1200px"}}>  {/*ensure modal spans a broad screen size*/}
+      <div className="modal-dialog" style={{maxWidth: "900px"}}>  {/*ensure modal spans a broad screen size*/}
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">Video Details</h5>
@@ -30,13 +30,13 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
             ></button>
           </div>
           <div className="modal-body">
-            <div className="flex-container">
-              <div className="card" style={{width: "70%"}}>
+            <div className="flex-container no-padding">
+              {/*<div className="card" style={{width: "70%"}}>*/}
                 <div className="flex-container" style={{flexDirection: "column"}}>
-                  <label style={{minWidth: "100px"}}>Video:</label>
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>Video:</label>
                   <div className="readonly">
                     {videoError ? (
-                      <div>Video file not found or codec not available on your browser</div>
+                      <div role="alert" style={{color: "red", fontStyle: "italic"}}>Video file not found or codec not available on your browser</div>
                     ) : (
                       <video
                         src={`${api.defaults.baseURL}/video/${selectedVideo.id}/play/`}
@@ -46,7 +46,7 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
                       />
                     )}
                   </div>
-                  <label style={{minWidth: "100px"}}>Analysis:</label>
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>Analysis:</label>
                   <div className="readonly">
                     {imageError ? (
                       <div>-</div>
@@ -58,51 +58,58 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="card" style={{minWidth: "30%"}}>
+              {/*</div>*/}
+              {/*<div className="card" style={{minWidth: "30%"}}>*/}
                 {/*<div className="form-row">*/}
-                <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                  <label style={{minWidth: "100px"}}>
+              <div className={"flex-container row"}>
+                <div className="flex-container no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
                     File:
                   </label>
                   <div
                     className="readonly">{selectedVideo.file ? selectedVideo.file.split(`/${selectedVideo.id}/`)[1] : "-"}</div>
                 </div>
                 {/*</div>*/}
-                <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                  <label style={{minWidth: "120px"}}>
+                <div className="flex-container  no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                    Time stamp:
+                  </label>
+                  <div className="readonly">{selectedVideo.timestamp}</div>
+                </div>
+                <div className="flex-container  no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
                     Status:
                   </label>
                   <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
                 </div>
-                <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                  <label style={{minWidth: "120px"}}>
-                    Time Series:
+                <div className="flex-container  no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                    Values:
                   </label>
                   <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
                     <div className="readonly">Water
-                      level: {selectedVideo.time_series ? selectedVideo.time_series.h : "-"}</div>
+                      level: {`${selectedVideo.time_series ? selectedVideo.time_series.h.toFixed(3) : "-"} m`}</div>
                     <div
-                      className="readonly">Discharge: {selectedVideo.time_series ? selectedVideo.time_series.q_50 : "-"}</div>
+                      className="readonly">Discharge: {`${selectedVideo.time_series ? selectedVideo.time_series.q_50.toFixed(3) : "-"} m3/s`}</div>
                   </div>
                 </div>
-                <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                  <label style={{minWidth: "120px"}}>
+                <div className="flex-container no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
                     LiveORC sync:
                   </label>
                   <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
                 </div>
-                <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                  <label style={{minWidth: "120px"}}>
-                    LiveORC video id:
+                <div className="flex-container no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                    LiveORC id:
                   </label>
                   <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A"}</div>
                 </div>
-                <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                  <label style={{minWidth: "120px"}}>
-                    LiveORC site id:
+                <div className="flex-container no-padding">
+                  <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                    LiveORC link:
                   </label>
-                  <div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>
+                  {/*<div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>*/}
                 </div>
               </div>
             </div>
