@@ -3,13 +3,19 @@ import { FaTimes } from 'react-icons/fa';
 import orcLogo from '/orc_favicon.svg'
 import api from '../api/api.js';
 import {useMessage} from '../messageContext';
+import {listVideoCount} from "../utils/apiCalls.jsx";
+import {VideoDetails} from "./videoComponents/videoDetails.jsx";
+
 import {Pie} from "react-chartjs-2";
 
 const Home = () => {
   const [deviceStatus, setDeviceStatus] = useState(null);
+  const [videoCounts, setVideoCounts] = useState({});
+  const [videoSyncCounts, setVideoSyncCounts] = useState({});
   const [cameraConfigs, setCameraConfigs] = useState([]);
   const [waterLevel, setWaterLevel] = useState(false);
   const [showMessage, setShowMessage] = useState(true);
+  const [lastVideo, setLastVideo] = useState(null);
   // set message box
   const {setMessageInfo} = useMessage();
 
@@ -53,10 +59,44 @@ const Home = () => {
       }
     )
   }
+  const fetchVideoCounts = async () => {
+    // retrieve video counts by status
+    const counts = [];
+    for (let i = 1; i <= 5; i++) {
+      counts.push(await listVideoCount(api, null, null, i));
+    }
+    setVideoCounts({
+      NEW: counts[0],
+      QUEUED: counts[1] + counts[2],
+      SUCCESS: counts[3],
+      ERROR: counts[4],
+    });
+    // same but according to sync status
+    const syncCounts = [];
+    for (let i = 1; i <= 4; i++) {
+      syncCounts.push(await listVideoCount(api, null, null, null, i));
+    }
+    setVideoSyncCounts({
+      LOCAL: syncCounts[0],
+      SYNCED: syncCounts[2],
+      UPDATED: syncCounts[1],
+      FAILED: syncCounts[3],
+    });
+  }
+  const fetchLastVideo = async() => {
+    // get the last video in record
+    const response = await api.get('/video/?count=1');
+    // const response = await api.get('/video/8/');
+    if (response.status === 200) {
+      setLastVideo(response.data[0]);
+    }
+  }
   useEffect(() => {
     fetchDevice();
     fetchCameraConfigs();
     fetchWaterLevel();
+    fetchVideoCounts();
+    fetchLastVideo();
   }, [])
 
 
@@ -65,13 +105,13 @@ const Home = () => {
     labels: ['New videos', 'Queued', 'Success', 'Error'],
     datasets: [
       {
-        data: [200, 50, 700, 50],
+        data: [videoCounts.NEW, videoCounts.QUEUED, videoCounts.SUCCESS, videoCounts.ERROR],
         // data: [device.used_disk_space, device.disk_space - device.used_disk_space],
         backgroundColor: [
-          'rgba(255,229,99,0.8)',
-          'rgba(75,147,192,0.8)',
-          'rgba(85,182,69,0.8)',
-          'rgba(223,10,10,0.8)',
+          'rgb(225,195,62)',
+          'rgb(75,147,192)',
+          'rgb(56,120,47)',
+          'rgb(223,10,10)',
         ],
         // borderColor: [
         //   'rgb(255,99,99)',
@@ -83,16 +123,16 @@ const Home = () => {
   };
 
   const videoSyncStatusChartData = {
-    labels: ['Local', 'Synced', 'Updated', 'Error'],
+    labels: ['Local', 'Updated', 'Synced', 'Not synced'],
     datasets: [
       {
-        data: [200, 50, 700, 50],
+        data: [videoSyncCounts.LOCAL, videoSyncCounts.SYNCED, videoSyncCounts.UPDATED, videoSyncCounts.FAILED],
         // data: [device.used_disk_space, device.disk_space - device.used_disk_space],
         backgroundColor: [
-          'rgba(255,229,99,0.8)',
-          'rgba(75,147,192,0.8)',
-          'rgba(85,182,69,0.8)',
-          'rgba(223,10,10,0.8)',
+          'rgb(225,195,62)',
+          'rgb(75,147,192)',
+          'rgb(56,120,47)',
+          'rgb(223,10,10)',
         ],
         // borderColor: [
         //   'rgb(255,99,99)',
@@ -130,8 +170,9 @@ const Home = () => {
         </a>
       <h1> OpenRiverCam-OS</h1>
       </div>
-      <div className="split-screen flex"  style={{overflowY: "auto"}}>
-        <div className="flex-container column" style={{height: "calc(100vh - 350px"}}>
+      <div className="split-screen flex"  style={{overflowY: "hidden"}}>
+        <div className="flex-container column no-padding">
+        <div className="flex-container column" style={{height: "calc(100vh - 300px"}}>
           <h4>Device status</h4>
           <div className="flex-container no-padding">
             <label>
@@ -169,7 +210,9 @@ const Home = () => {
             <div className="readonly"> Show amount of GB free</div>
           </div>
         </div>
-        <div className="flex-container column" style={{height: "calc(100vh - 350px"}}>
+        </div>
+        <div className="flex-container column no-padding" style={{height: "calc(100vh - 250px"}}>
+        <div className="flex-container column" style={{height: "400px"}}>
           <h4>Processed videos</h4>
           <div className="flex-container no-padding">
             {/*<label>*/}
@@ -183,7 +226,6 @@ const Home = () => {
                 <Pie data={videoStatusChartData} options={chartOptions} />
               </div>
             </div>
-
             <div className='mb-3 mt-3'>
               <div className='text-center mt-2'>
                 <p>Sync status</p>
@@ -192,16 +234,24 @@ const Home = () => {
                 <Pie data={videoSyncStatusChartData} options={chartOptions} />
               </div>
             </div>
-
-            {/*<div className="readonly">Here a pie-diagram with the processed videos and their cumulative status</div>*/}
           </div>
+        </div>
+            {/*<div className="readonly">Here a pie-diagram with the processed videos and their cumulative status</div>*/}
+          {/*</div>*/}
+          <div className="flex-container column" style={{height: "calc(100vh - 720px"}}>
+
           <h4>Last video</h4>
-          <div className="flex-container no-padding">
+          <div className="flex-container row no-padding" style={{height: "calc(100vh - 800px"}}>
+            {lastVideo ? (
+              <VideoDetails selectedVideo={lastVideo}/>
+              ) : "No data"
+            }
             {/*<label>*/}
             {/*  Last video:*/}
             {/*</label>*/}
             {/*<div className="readonly">Here a display of the last processed video with its time and status</div>*/}
           </div>
+        </div>
         </div>
       </div>
 

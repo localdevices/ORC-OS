@@ -89,6 +89,22 @@ export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
 
 }
 
+export const listVideoCount = async (api, start, stop, status, sync_status, first, count,
+) => {
+  try {
+    const response = await api.get("/video/count/", {params: {
+      start: start,
+      stop: stop,
+      status: status,
+      sync_status: sync_status,
+      first: first,
+      count: count,
+    }});
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+}
 export const get_videos = async (api, downloadStartDate, downloadEndDate, downloadSettings, setMessageInfo) => {
   try {
     const response = await api.post(

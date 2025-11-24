@@ -10,7 +10,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Added
 ### Changed
 - Options for treatment of videos for water level detection is extended. The user can now select 5 different river
-  characteristics, most resembling the situation, and have influence on the acceptance criterion (signal to noise ratio)
+  characteristics, most resembling the situation, and have influence on the acceptance criterion (signal-to-noise ratio)
 ### Deprecated
 ### Removed
 ### Fixed

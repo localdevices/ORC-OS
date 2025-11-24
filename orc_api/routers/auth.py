@@ -49,8 +49,8 @@ def login(password: str, response: Response, db: Session = Depends(get_db)):
             value=token,
             httponly=True,
             max_age=ORC_COOKIE_MAX_AGE,
-            secure=True,  # only use for https
-            samesite=None,
+            secure=False,  # only use for https
+            samesite="Strict",
         )
         return {"access_token": token, "token_type": "Bearer"}
     raise HTTPException(status_code=401, detail="Invalid password")

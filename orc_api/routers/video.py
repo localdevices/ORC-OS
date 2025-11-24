@@ -175,6 +175,7 @@ async def get_list_video_count(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
     status: Optional[Union[VideoStatus, int]] = Query(default=None),
+    sync_status: Optional[Union[SyncStatus, int]] = Query(default=None),
     first: Optional[int] = None,
     count: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -186,7 +187,15 @@ async def get_list_video_count(
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
-    list_videos_count = crud.video.get_list_count(db, start=start, stop=stop, status=status, first=first, count=count)
+    if isinstance(sync_status, int):
+        try:
+            sync_status = SyncStatus(sync_status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid sync status value '{sync_status}'.")
+
+    list_videos_count = crud.video.get_list_count(
+        db, start=start, stop=stop, status=status, sync_status=sync_status, first=first, count=count
+    )
     return list_videos_count
 
 
