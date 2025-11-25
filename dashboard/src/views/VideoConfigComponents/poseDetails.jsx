@@ -6,7 +6,7 @@ import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 import {createCustomMarker} from "../../utils/leafletUtils.js";
 import {rainbowColors, areControlPointsEqual} from "../../utils/helpers.jsx";
 import XYZWidget from "../calibrationTabs/XyzWidget.jsx";
-import {fitGcps} from "../../utils/apiCalls.jsx";
+import {fitGcps} from "../../utils/apiCalls/videoConfig.jsx";
 
 const PoseDetails = (
   {

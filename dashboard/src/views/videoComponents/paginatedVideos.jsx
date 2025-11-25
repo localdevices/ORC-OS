@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {run_video, sync_video} from "../../utils/apiCalls.jsx"
+import {run_video, sync_video} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";

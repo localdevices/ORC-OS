@@ -1,15 +1,20 @@
 import {useEffect, useState} from 'react';
-import { FaTimes } from 'react-icons/fa';
+import {FaCheck, FaQuestion} from 'react-icons/fa';
 import orcLogo from '/orc_favicon.svg'
 import api from '../api/api.js';
+import ServerStatus from './callbackUrlComponents/serverStatus.jsx'
+
 import {useMessage} from '../messageContext';
-import {listVideoCount} from "../utils/apiCalls.jsx";
+import {listVideoCount} from "../utils/apiCalls/video.jsx";
 import {VideoDetails} from "./videoComponents/videoDetails.jsx";
+import {getCallbackUrl} from "../utils/apiCalls/callbackUrl.jsx";
 
 import {Pie} from "react-chartjs-2";
 
 const Home = () => {
-  const [deviceStatus, setDeviceStatus] = useState(null);
+  const [diskManagementStatus, setDiskManagementStatus] = useState(null);
+  const [callbackUrl, setCallbackUrl] = useState(null);
+  const [serverStatus, setServerStatus] = useState(null);
   const [videoCounts, setVideoCounts] = useState({});
   const [videoSyncCounts, setVideoSyncCounts] = useState({});
   const [cameraConfigs, setCameraConfigs] = useState([]);
@@ -19,20 +24,31 @@ const Home = () => {
   // set message box
   const {setMessageInfo} = useMessage();
 
-  const fetchDevice = async () => {
+  const fetchDiskManagement = async () => {
     try {
-      const response = await api.get('/device/')
+      const response = await api.get('/disk_management/')
       if ( response.status === 200 ) {
-        setDeviceStatus(response.data.status)
+        setDiskManagementStatus(response.data)
+        console.log(response.data)
       }
       else {
-      throw new Error("Invalid API response: " + response.status)
+        throw new Error("Invalid API response: " + response.status)
       }
     } catch (error) {
       setMessageInfo("error retrieving device status", error);
     }
   }
 
+  const fetchOnlineStatus = async () => {
+    const callbackUrlData = await getCallbackUrl();
+    setCallbackUrl(callbackUrlData);
+    if (callbackUrlData.url) {
+      const response = await api.get('/callback_url/health/');
+      if (response.data != null) {
+        setServerStatus(response.data);
+      }
+    }
+  }
   const fetchCameraConfigs = async () => {
     try {
       const response = await api.get('/camera_config/')
@@ -49,15 +65,15 @@ const Home = () => {
   const fetchWaterLevel = async () => {
     const response = await api.get('/water_level/')
       .then((response) => {
-        if (response.data !== null) {
-          // water level config found
-          setWaterLevel(true);
-        } else {
-          // water level config not found
-          setWaterLevel(false);
+          if (response.data !== null) {
+            // water level config found
+            setWaterLevel(true);
+          } else {
+            // water level config not found
+            setWaterLevel(false);
+          }
         }
-      }
-    )
+      )
   }
   const fetchVideoCounts = async () => {
     // retrieve video counts by status
@@ -92,7 +108,8 @@ const Home = () => {
     }
   }
   useEffect(() => {
-    fetchDevice();
+    fetchDiskManagement();
+    fetchOnlineStatus();
     fetchCameraConfigs();
     fetchWaterLevel();
     fetchVideoCounts();
@@ -113,11 +130,6 @@ const Home = () => {
           'rgb(56,120,47)',
           'rgb(223,10,10)',
         ],
-        // borderColor: [
-        //   'rgb(255,99,99)',
-        //   'rgba(75,147,192, 1)',
-        // ],
-        // borderWidth: 1,
       },
     ],
   };
@@ -134,21 +146,27 @@ const Home = () => {
           'rgb(56,120,47)',
           'rgb(223,10,10)',
         ],
-        // borderColor: [
-        //   'rgb(255,99,99)',
-        //   'rgba(75,147,192, 1)',
-        // ],
-        // borderWidth: 1,
       },
     ],
   };
 
   const chartOptions = {
     responsive: true,
+    devicePixelRatio: 1,
+    // layout: {
+    //   padding: { right: 8 },
+    // },
+    // maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'bottom',
+        position: 'right',
         align: 'start',
+        labels: {
+          // pointStyle: 'rect',         // square
+          boxWidth: 10,               // small square size
+          boxHeight: 10,
+          maxWidth: 100,
+        }
       },
       tooltip: {
         callbacks: {
@@ -168,90 +186,87 @@ const Home = () => {
         <a href="https://openrivercam.org" target="_blank">
           <img src={orcLogo} className="logo"/>
         </a>
-      <h1> OpenRiverCam-OS</h1>
+        <h1> OpenRiverCam-OS</h1>
       </div>
       <div className="split-screen flex"  style={{overflowY: "hidden"}}>
         <div className="flex-container column no-padding">
-        <div className="flex-container column" style={{height: "calc(100vh - 300px"}}>
-          <h4>Device status</h4>
-          <div className="flex-container no-padding">
-            <label>
-              Device status:
-            </label>
-            <div className="readonly">{deviceStatus}</div>
-          </div>
-          <div className="flex-container no-padding">
-            <label>
-              Water level configuration:
-            </label>
-            <div className="readonly">{
-              waterLevel === false ?
-                "No water level settings found, only manual water level or optical detection possible" :
-                "Water level retrieval configured for automated processing"
-            }
+          <div className="flex-container column" style={{height: "calc(100vh - 300px"}}>
+
+            <h4>Last video</h4>
+            <div className="flex-container row no-padding" style={{height: "calc(100vh - 380px"}}>
+              {lastVideo ? (
+                <VideoDetails selectedVideo={lastVideo}/>
+              ) : "No data"
+              }
             </div>
           </div>
-          <div className="flex-container no-padding">
-            <label>
-              Device status:
-            </label>
-            <div className="readonly">{deviceStatus}</div>
-          </div>
-          <div className="flex-container no-padding">
-            <label>
-              Connectivity status:
-            </label>
-            <div className="readonly">N/A</div>
-          </div>
-          <div className="flex-container no-padding">
-            <label>
-              {"Disk space: "}
-            </label>
-            <div className="readonly"> Show amount of GB free</div>
-          </div>
-        </div>
         </div>
         <div className="flex-container column no-padding" style={{height: "calc(100vh - 250px"}}>
-        <div className="flex-container column" style={{height: "400px"}}>
-          <h4>Processed videos</h4>
-          <div className="flex-container no-padding">
-            {/*<label>*/}
-            {/*  Processed videos:*/}
-            {/*</label>*/}
-            <div className='mb-3 mt-3'>
-              <div className='text-center mt-2'>
-                <p>Process status</p>
+          <div className="flex-container column">
+            <h4>Processed videos</h4>
+            <div className="flex-container no-padding">
+              {/*<label>*/}
+              {/*  Processed videos:*/}
+              {/*</label>*/}
+              <div className='mb-3 mt-0'>
+                <div className='text-left mt-0'>
+                  <p>Process status</p>
+                </div>
+                <div>
+                  <Pie width={220} height={220} data={videoStatusChartData} options={chartOptions} />
+                </div>
               </div>
-              <div style={{ width: '250px', margin: '0 auto' }}>
-                <Pie data={videoStatusChartData} options={chartOptions} />
-              </div>
-            </div>
-            <div className='mb-3 mt-3'>
-              <div className='text-center mt-2'>
-                <p>Sync status</p>
-              </div>
-              <div style={{ width: '250px', margin: '0 auto' }}>
-                <Pie data={videoSyncStatusChartData} options={chartOptions} />
+              <div className='mb-3 mt-0'>
+                <div className='text-left mt-0'>
+                  <p>Sync status</p>
+                </div>
+                <div>
+                  <Pie width={220} height={220} data={videoSyncStatusChartData} options={chartOptions} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-            {/*<div className="readonly">Here a pie-diagram with the processed videos and their cumulative status</div>*/}
-          {/*</div>*/}
-          <div className="flex-container column" style={{height: "calc(100vh - 720px"}}>
+          <div className="flex-container column" style={{height: "calc(100vh - 660px"}}>
+            <h4>Device status</h4>
 
-          <h4>Last video</h4>
-          <div className="flex-container row no-padding" style={{height: "calc(100vh - 800px"}}>
-            {lastVideo ? (
-              <VideoDetails selectedVideo={lastVideo}/>
-              ) : "No data"
-            }
-            {/*<label>*/}
-            {/*  Last video:*/}
-            {/*</label>*/}
-            {/*<div className="readonly">Here a display of the last processed video with its time and status</div>*/}
+            <div className="mb-0 mt-0">
+              <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                Water level configuration:
+              </label>
+              <div
+                className="readonly">{
+                  waterLevel === false ? (
+                    <div><FaQuestion style={{color: "orange"}}/> Not set</div>
+                  ) : (
+                    <div><FaCheck style={{color: "green"}}/> Set</div>
+                  )
+                }
+              </div>
+            </div>
+            <div className="mb-0 mt-0">
+              <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                Connectivity status:
+              </label>
+              {serverStatus ? (
+              <ServerStatus serverStatus={serverStatus}/>
+              ) : ("No server configured")}
+            </div>
+            <div className="mb-0 mt-0">
+              <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                Disk management:
+              </label>
+              <div
+                className="readonly">{
+                !diskManagementStatus ? (
+                  <div><FaQuestion style={{color: "orange"}}/> Not set - if you run out of disk space, your device may fail</div>
+                ) : (
+                  <div><FaCheck style={{color: "green"}}/> {`Disk cleanup at < ${diskManagementStatus.min_free_space} GB available`}</div>
+                )
+              }
+              </div>
+            </div>
           </div>
-        </div>
+
         </div>
       </div>
 

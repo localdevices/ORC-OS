@@ -17,6 +17,6 @@
   max-height: 100%;
   object-fit: contain;
   cursor: crosshair;
-  pointer-events: auto !important;  // necessary to ensure that styling and click events are picked up within a transform view
+  pointer-events: auto !important;  /* necessary to ensure that styling and click events are picked up within a transform view */
   touch-action: manipulation;
 }
