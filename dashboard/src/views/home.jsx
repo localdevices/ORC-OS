@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {FaCheck, FaQuestion} from 'react-icons/fa';
+import {FaCheck, FaQuestion, FaExclamation} from 'react-icons/fa';
 import orcLogo from '/orc_favicon.svg'
 import api from '../api/api.js';
 import ServerStatus from './callbackUrlComponents/serverStatus.jsx'
@@ -13,13 +13,12 @@ import {Pie} from "react-chartjs-2";
 
 const Home = () => {
   const [diskManagementStatus, setDiskManagementStatus] = useState(null);
-  const [callbackUrl, setCallbackUrl] = useState(null);
   const [serverStatus, setServerStatus] = useState(null);
   const [videoCounts, setVideoCounts] = useState({});
   const [videoSyncCounts, setVideoSyncCounts] = useState({});
-  const [cameraConfigs, setCameraConfigs] = useState([]);
+  const [daemonStatus, setDaemonStatus] = useState(null)
+  const [videoConfig, setVideoConfig] = useState( null)
   const [waterLevel, setWaterLevel] = useState(false);
-  const [showMessage, setShowMessage] = useState(true);
   const [lastVideo, setLastVideo] = useState(null);
   // set message box
   const {setMessageInfo} = useMessage();
@@ -29,7 +28,6 @@ const Home = () => {
       const response = await api.get('/disk_management/')
       if ( response.status === 200 ) {
         setDiskManagementStatus(response.data)
-        console.log(response.data)
       }
       else {
         throw new Error("Invalid API response: " + response.status)
@@ -41,7 +39,6 @@ const Home = () => {
 
   const fetchOnlineStatus = async () => {
     const callbackUrlData = await getCallbackUrl();
-    setCallbackUrl(callbackUrlData);
     if (callbackUrlData.url) {
       const response = await api.get('/callback_url/health/');
       if (response.data != null) {
@@ -49,21 +46,8 @@ const Home = () => {
       }
     }
   }
-  const fetchCameraConfigs = async () => {
-    try {
-      const response = await api.get('/camera_config/')
-      if ( response.status === 200 ) {
-        setCameraConfigs(response.data)
-      }
-      else {
-        throw new Error("Invalid API response: " + response.status)
-      }
-    } catch (error) {
-      setMessageInfo("error retrieving device status", error);
-    }
-  }
   const fetchWaterLevel = async () => {
-    const response = await api.get('/water_level/')
+    await api.get('/water_level/')
       .then((response) => {
           if (response.data !== null) {
             // water level config found
@@ -74,6 +58,21 @@ const Home = () => {
           }
         }
       )
+  }
+  const fetchDaemon = async () => {
+    try {
+      const settingsResponse = await api.get('/settings/');
+      setDaemonStatus(settingsResponse.data)
+      console.log(settingsResponse.data)
+
+      if (settingsResponse.data) {
+        const videoConfigResponse = await api.get(`/video_config/${settingsResponse.data.video_config_id}/`);
+        setVideoConfig(videoConfigResponse.data);
+        console.log(videoConfigResponse.data);
+      }
+    } catch (error) {
+          setMessageInfo("error retrieving daemon or video configuration", error);
+    }
   }
   const fetchVideoCounts = async () => {
     // retrieve video counts by status
@@ -94,8 +93,8 @@ const Home = () => {
     }
     setVideoSyncCounts({
       LOCAL: syncCounts[0],
-      SYNCED: syncCounts[2],
-      UPDATED: syncCounts[1],
+      SYNCED: syncCounts[1],
+      UPDATED: syncCounts[2],
       FAILED: syncCounts[3],
     });
   }
@@ -110,16 +109,22 @@ const Home = () => {
   useEffect(() => {
     fetchDiskManagement();
     fetchOnlineStatus();
-    fetchCameraConfigs();
+    // fetchCameraConfigs();
     fetchWaterLevel();
     fetchVideoCounts();
     fetchLastVideo();
+    fetchDaemon();
   }, [])
 
 
   // charts
   const videoStatusChartData = {
-    labels: ['New videos', 'Queued', 'Success', 'Error'],
+    labels: [
+      `New videos (${videoCounts.NEW})`,
+      `Queued (${videoCounts.QUEUED})`,
+      `Success (${videoCounts.SUCCESS})`,
+      `Error (${videoCounts.ERROR})`
+    ],
     datasets: [
       {
         data: [videoCounts.NEW, videoCounts.QUEUED, videoCounts.SUCCESS, videoCounts.ERROR],
@@ -135,10 +140,15 @@ const Home = () => {
   };
 
   const videoSyncStatusChartData = {
-    labels: ['Local', 'Updated', 'Synced', 'Not synced'],
+    labels: [
+      `Local (${videoSyncCounts.LOCAL})`,
+      `Updated (${videoSyncCounts.UPDATED})`,
+      `Synced (${videoSyncCounts.SYNCED})`,
+      `Not synced (${videoSyncCounts.FAILED})`
+    ],
     datasets: [
       {
-        data: [videoSyncCounts.LOCAL, videoSyncCounts.SYNCED, videoSyncCounts.UPDATED, videoSyncCounts.FAILED],
+        data: [videoSyncCounts.LOCAL, videoSyncCounts.UPDATED, videoSyncCounts.SYNCED, videoSyncCounts.FAILED],
         // data: [device.used_disk_space, device.disk_space - device.used_disk_space],
         backgroundColor: [
           'rgb(225,195,62)',
@@ -149,7 +159,6 @@ const Home = () => {
       },
     ],
   };
-
   const chartOptions = {
     responsive: true,
     devicePixelRatio: 1,
@@ -184,7 +193,7 @@ const Home = () => {
     <>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <a href="https://openrivercam.org" target="_blank">
-          <img src={orcLogo} className="logo"/>
+          <img alt="logo" src={orcLogo} className="logo"/>
         </a>
         <h1> OpenRiverCam-OS</h1>
       </div>
@@ -192,7 +201,10 @@ const Home = () => {
         <div className="flex-container column no-padding">
           <div className="flex-container column" style={{height: "calc(100vh - 300px"}}>
 
-            <h4>Last video</h4>
+            <h4>{!lastVideo ? ("Last video") : (
+              `Last video taken ${lastVideo.timestamp}`
+            )
+            }</h4>
             <div className="flex-container row no-padding" style={{height: "calc(100vh - 380px"}}>
               {lastVideo ? (
                 <VideoDetails selectedVideo={lastVideo}/>
@@ -205,15 +217,12 @@ const Home = () => {
           <div className="flex-container column">
             <h4>Processed videos</h4>
             <div className="flex-container no-padding">
-              {/*<label>*/}
-              {/*  Processed videos:*/}
-              {/*</label>*/}
               <div className='mb-3 mt-0'>
                 <div className='text-left mt-0'>
                   <p>Process status</p>
                 </div>
                 <div>
-                  <Pie width={220} height={220} data={videoStatusChartData} options={chartOptions} />
+                  <Pie width={250} height={250} data={videoStatusChartData} options={chartOptions} />
                 </div>
               </div>
               <div className='mb-3 mt-0'>
@@ -221,7 +230,7 @@ const Home = () => {
                   <p>Sync status</p>
                 </div>
                 <div>
-                  <Pie width={220} height={220} data={videoSyncStatusChartData} options={chartOptions} />
+                  <Pie width={250} height={250} data={videoSyncStatusChartData} options={chartOptions} />
                 </div>
               </div>
             </div>
@@ -263,6 +272,37 @@ const Home = () => {
                   <div><FaCheck style={{color: "green"}}/> {`Disk cleanup at < ${diskManagementStatus.min_free_space} GB available`}</div>
                 )
               }
+              </div>
+            </div>
+            <div className="mb-0 mt-0">
+              <label style={{minWidth: "120px", fontWeight: "bold"}}>
+                Daemon settings:
+              </label>
+              <div
+                className="readonly">{
+                !daemonStatus ? (
+                  <div><FaQuestion style={{color: "orange"}}/> No daemon settings available</div>
+                ) : (
+                  daemonStatus.video_config_id && videoConfig ? (
+                    <div><FaCheck style={{color: "green"}}/> {`Daemon configured with video config "${videoConfig.id} - ${videoConfig.name}"`}</div>
+                  ) : (
+                    <div><FaExclamation style={{color: "orange"}}/> {`Daemon has no valid video config`}</div>
+                  )
+                )
+              }
+              </div>
+              <div
+                className="readonly">{
+                !daemonStatus?.active ? (
+                  <div><FaExclamation style={{color: "orange"}}/> Daemon is not active</div>
+                ) : (
+                  <div><FaCheck style={{color: "green"}}/> {`Daemon running`}</div>
+                )
+              }
+                {daemonStatus?.active && daemonStatus?.sample_file ? (
+                  <div>{`Waiting for files of type ${daemonStatus.sample_file}`}</div>
+                ) : (<div></div>) }
+
               </div>
             </div>
           </div>

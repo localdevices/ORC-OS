@@ -1,16 +1,18 @@
 import {useState, useEffect} from "react";
 import api from "../../api/api.js";
+import {getCallbackUrl} from "../../utils/apiCalls/callbackUrl.jsx";
 import {getStatusIcon, getSyncStatusIcon} from "./videoHelpers.jsx";
 import PropTypes from 'prop-types'
 
 export const VideoDetails = ({selectedVideo}) => {
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
+  const [callbackUrl, setCallbackUrl] = useState(null);
 
   useEffect(() => {
     const fetchCallbackUrl = async () => {
-      // TODO: make callback
-      return null
+      const callbackUrlData = await getCallbackUrl();
+      setCallbackUrl(callbackUrlData);
     }
     fetchCallbackUrl();
 
@@ -18,8 +20,7 @@ export const VideoDetails = ({selectedVideo}) => {
   return (
     <>
       <div className="flex-container no-padding" style={{overflow: "auto"}}>
-        {/*<div className="card" style={{width: "70%"}}>*/}
-        <div className="flex-container no-padding" style={{flexDirection: "column"}}>
+        <div className="mb-0 mt-0">
           <label style={{minWidth: "120px", fontWeight: "bold"}}>Video:</label>
           <div className="readonly">
             {videoError ? (
@@ -42,35 +43,33 @@ export const VideoDetails = ({selectedVideo}) => {
               <img
                 src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image/?datetime=${Date.now()}`}
                 width="90%"
-                onError={() => setImageError(true)}/>
+                onError={() => setImageError(true)}
+                alt="Analysis image"
+              />
             )}
           </div>
         </div>
-        {/*</div>*/}
-        {/*<div className="card" style={{minWidth: "30%"}}>*/}
-        {/*<div className="form-row">*/}
         <div className={"flex-container row no-padding"} style={{flexDirection: "row", justifyContent: "start"}}>
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               File:
             </label>
             <div
               className="readonly">{selectedVideo.file ? selectedVideo.file.split(`/${selectedVideo.id}/`)[1] : "-"}</div>
           </div>
-          {/*</div>*/}
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               Time stamp:
             </label>
             <div className="readonly">{selectedVideo.timestamp}</div>
           </div>
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               Status:
             </label>
             <div className="readonly">{getStatusIcon(selectedVideo.status)}</div>
           </div>
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               Values:
             </label>
@@ -81,40 +80,34 @@ export const VideoDetails = ({selectedVideo}) => {
                 className="readonly">Discharge: {`${selectedVideo.time_series ? selectedVideo.time_series.q_50.toFixed(3) : "-"} m3/s`}</div>
             </div>
           </div>
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               LiveORC sync:
             </label>
             <div className="readonly">{getSyncStatusIcon(selectedVideo.sync_status)}</div>
           </div>
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               LiveORC id:
             </label>
             <div className="readonly">{selectedVideo.remote_id ? selectedVideo.remote_id : "N/A"}</div>
           </div>
-          <div className="mb-3 mt-3">
+          <div className="mb-0 mt-0">
             <label style={{minWidth: "120px", fontWeight: "bold"}}>
               LiveORC link:
             </label>
-            {/*<div className="readonly">{selectedVideo.site_id ? selectedVideo.site_id : "N/A"}</div>*/}
+            <div className="readonly">{
+              callbackUrl && selectedVideo.remote_id ? (
+                <a
+                  href={`${callbackUrl.url}api/site/${callbackUrl.remote_site_id}/video/${selectedVideo.remote_id}`}
+                  style={{color: "blue", textDecoration: "underline"}}
+                  target="_blank"
+                >Click here</a>
+              ) : "N/A"
+            }</div>
           </div>
         </div>
       </div>
-      {/*      </div>*/}
-      {/*      <div className="modal-footer">*/}
-      {/*        <button*/}
-      {/*          type="button"*/}
-      {/*          className="btn btn-secondary"*/}
-      {/*          onClick={closeModal}*/}
-      {/*        >*/}
-      {/*          Close*/}
-      {/*        </button>*/}
-
-      {/*      </div>*/}
-      {/*    </div>*/}
-      {/*  </div>*/}
-      {/*</div>*/}
     </>
   )
 }
