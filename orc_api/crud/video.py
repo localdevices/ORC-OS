@@ -10,14 +10,16 @@ from orc_api import db as models
 from orc_api.crud import generic
 
 
-def filter_start_stop(query: Query, start: Optional[datetime] = None, stop: Optional[datetime] = None):
+def filter_start_stop(query: Query, start: Optional[datetime] = None, stop: Optional[datetime] = None, desc=True):
     """Filter query by start and stop datetime."""
     if start:
         query = query.where(models.Video.timestamp >= start)
     if stop:
         query = query.where(models.Video.timestamp < stop)
     # order from last to first
-    return query.order_by(models.Video.timestamp.desc())
+    if desc:
+        return query.order_by(models.Video.timestamp.desc())
+    return query
 
 
 def filter_status(query: Query, status: Optional[models.VideoStatus] = None):
@@ -142,8 +144,11 @@ def delete(db: Session, id: int):
 def delete_start_stop(db: Session, start: datetime, stop: datetime):
     """Delete all videos between start and stop datetime."""
     query = db.query(models.Video)
-    query = filter_start_stop(query, start, stop)
-    query.delete()
+    query = filter_start_stop(query, start, stop, desc=False)  # order_by cannot be called when records are deleted
+    videos = query.all()  # Fetch all records (load into memory)
+    for video in videos:
+        db.delete(video)  # Use session's delete method to trigger event listener for file removal
+    # query.delete()
     db.commit()
     return
 
