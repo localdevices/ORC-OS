@@ -8,6 +8,7 @@ import orcLogo from "/orc_favicon.svg";
 
 const Login = () => {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [passAvailable, setPassAvailable] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const Login = () => {
     }
     fetchPasswordAvailable();
   }, [])
+
+  const passwordsMatch = passAvailable ? true : password.length > 0 && password === confirmPassword;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -55,14 +58,33 @@ const Login = () => {
         </div>)
         }
       </div>
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleLogin} style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
         <input
           type="password"
           placeholder="Enter password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button className="btn" type="submit">Login</button>
+        {/* add another field for password confirmation when password is being created */}
+        {!passAvailable ? (
+          <>
+            <input
+              type="password"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={{ marginTop: "8px" }}
+            />
+            <button className="btn" type="submit">Create password</button>
+            {confirmPassword.length > 0 && (
+              <p style={{ color: passwordsMatch ? "green" : "red", margin: "6px 0" }}>
+                {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+              </p>
+            )}
+          </>
+        ) : (
+          <button className="btn" type="submit">Login</button>
+        )}
         {error && <p style={{ color: "red" }}>{error}</p>} {/* Display login error */}
       </form>
     </div>

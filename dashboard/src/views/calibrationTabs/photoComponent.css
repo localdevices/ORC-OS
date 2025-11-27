@@ -1,3 +1,25 @@
+.image-container {
+    width: 100%; /* Take the full width of the container */
+    height: 100%; /* Take the full height of the container */
+    max-height: 100%; /* Ensure it scales within the viewport’s height */
+    display: flex;
+    align-items: center; /* Center the image vertically */
+    justify-content: center; /* Center the image horizontally */
+    overflow: hidden; /* Prevent overflowing content */
+}
+
+
+.img-calibration {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: crosshair;
+    pointer-events: auto !important;  /* necessary to ensure that styling and click events are picked up within a transform view */
+    touch-action: manipulation;
+}
+
 .gcp-icon {
     position: absolute;
     transform: translate(-50%, -50%);

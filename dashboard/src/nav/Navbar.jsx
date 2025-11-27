@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
 import MessageBox from "../messageBox.jsx";
+import {PasswordChangeModal} from "./passwordChangeModal.jsx";
 import api from "../api/api.js";
 import { useAuth } from "../auth/useAuth.jsx";
 
@@ -11,6 +12,15 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
     const [settingsOpen, setSettingsOpen] = useState(false); // track if settings menu is open
     const { logout } = useAuth();
+    // states for handling password changes
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [changing, setChanging] = useState(false);
+    const [changeError, setChangeError] = useState('');
+
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
     };
@@ -23,6 +33,31 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
         await logout();
     };
 
+  // Password change submit (adjust API endpoint as needed)
+  const handleChangePassword = async () => {
+    setChangeError('');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setChangeError('Please fill all fields.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangeError('New passwords do not match.');
+      return;
+    }
+    try {
+      setChanging(true);
+      await api.post('/auth/change_password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setShowPasswordModal(false);
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+    } catch (e) {
+      setChangeError(e?.response?.data?.message || 'Failed to change password.');
+    } finally {
+      setChanging(false);
+    }
+  };
     const handleSettingsClick = () => {
         setSettingsOpen(!settingsOpen);
     };
@@ -105,7 +140,33 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                           onClick={handleRestartClick}
                         />
                         <FaCog onClick={handleSettingsClick}/>
-                        <FaUser onClick={handleUserButtonClick}/>
+                        <div
+                          className="user-menu-wrapper"
+                          onMouseEnter={() => setUserMenuOpen(true)}
+                          onMouseLeave={() => setUserMenuOpen(false)}
+                        >
+                          <FaUser style={{ cursor: 'pointer' }}/>
+                          {userMenuOpen && (
+                            <div className="user-menu">
+                              <div
+                                className="user-menu-item"
+                                onClick={() => {
+                                  setShowPasswordModal(true);
+                                  setUserMenuOpen(false);
+                                }}
+                              >
+                                Change password
+                              </div>
+                              <div
+                                className="user-menu-item"
+                                onClick={handleUserButtonClick}
+                              >
+                                Logout
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {/*<FaUser onClick={handleUserButtonClick}/>*/}
                     </div>
                 </div>
             </nav>
@@ -222,6 +283,51 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                 </ul>
             </div>
             {settingsOpen && <div className="settings-overlay" onClick={handleSettingsClick}></div>}
+            {showPasswordModal && (
+              <>
+                <PasswordChangeModal setShowModal={setShowPasswordModal} />
+                {/*<div className="modal-backdrop" onClick={() => setShowPasswordModal(false)} />*/}
+                {/*<div className="modal" role="dialog" aria-modal="true" aria-labelledby="change-password-title">*/}
+                {/*  <div className="modal-header">*/}
+                {/*    <h4 id="change-password-title" style={{ margin: 0 }}>Change password</h4>*/}
+                {/*    <button className="modal-close" onClick={() => setShowPasswordModal(false)} aria-label="Close">&times;</button>*/}
+                {/*  </div>*/}
+                {/*  <div className="modal-body">*/}
+                {/*    {changeError && <div style={{ color: '#f87171', marginBottom: 8 }}>{changeError}</div>}*/}
+                {/*    <label>Current password</label>*/}
+                {/*    <input*/}
+                {/*      type="password"*/}
+                {/*      value={currentPassword}*/}
+                {/*      onChange={(e) => setCurrentPassword(e.target.value)}*/}
+                {/*      autoFocus*/}
+                {/*    />*/}
+                {/*    <label>New password</label>*/}
+                {/*    <input*/}
+                {/*      type="password"*/}
+                {/*      value={newPassword}*/}
+                {/*      onChange={(e) => setNewPassword(e.target.value)}*/}
+                {/*    />*/}
+                {/*    <label>Confirm new password</label>*/}
+                {/*    <input*/}
+                {/*      type="password"*/}
+                {/*      value={confirmPassword}*/}
+                {/*      onChange={(e) => setConfirmPassword(e.target.value)}*/}
+                {/*    />*/}
+                {/*  </div>*/}
+                {/*  <div className="modal-footer">*/}
+                {/*    <button className="button" onClick={() => setShowPasswordModal(false)}>Cancel</button>*/}
+                {/*    <button*/}
+                {/*      className="button primary"*/}
+                {/*      onClick={handleChangePassword}*/}
+                {/*      disabled={changing}*/}
+                {/*      title="Save new password"*/}
+                {/*    >*/}
+                {/*      {changing ? 'Saving…' : 'Save'}*/}
+                {/*    </button>*/}
+                {/*  </div>*/}
+                {/*</div>*/}
+              </>
+            )}
         </>
 
     );

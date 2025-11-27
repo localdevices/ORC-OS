@@ -8,12 +8,21 @@ This release should only be used for:
 Feedback and bug reports are highly appreciated to improve future versions.
 
 ### Added
+- A new Home page has been added that gives the user insight in the current conditions of the device.
+  It shows the latest processed video with metadata, and the currently available settings on which it runs.
+  The user is pointed to possible missing settings with exclamation and question marks.
+- A change password option has been added to the user menu.
 ### Changed
 - Options for treatment of videos for water level detection is extended. The user can now select 5 different river
   characteristics, most resembling the situation, and have influence on the acceptance criterion (signal-to-noise ratio)
+- Upon first login, the user is prompted to set a password twice. It is only accepted if the user types the same
+  password twice.
+- The Video Details view now has a proper layout, and missing fields are fixed.
 ### Deprecated
 ### Removed
 ### Fixed
+- Bulk download did not work. This is now fixed.
+- Downloads of cross sections to GeoJSON files did not work. This is now fixed.
 ### Security
 
 
