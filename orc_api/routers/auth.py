@@ -39,8 +39,10 @@ def password_available(db: Session = Depends(get_db)):
 
 
 @router.post("/login/")
-def login(password: str, response: Response, db: Session = Depends(get_db)):
+def login(request: Request, password: str, response: Response, db: Session = Depends(get_db)):
     """Retrieve a JWT token with password."""
+    # check http / https origin dynamically
+    secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     # Check password validity
     if crud.login.verify(db, password):
         token = create_token()
@@ -49,8 +51,9 @@ def login(password: str, response: Response, db: Session = Depends(get_db)):
             value=token,
             httponly=True,
             max_age=ORC_COOKIE_MAX_AGE,
-            secure=False,  # only use for https
+            secure=secure,  # only use for https
             samesite="Strict",
+            path="/api/",
         )
         return {"access_token": token, "token_type": "Bearer"}
     raise HTTPException(status_code=401, detail="Invalid password")

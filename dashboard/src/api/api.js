@@ -48,9 +48,9 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
      //  console.log(`WebSocket connection with ID "${connectionId}" already exists`);
       return webSocketInstances[connectionId];
    }
-   const socketUrl = 'ws://' + window.location.host + API_BASE + url;
+   const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+   const socketUrl = `${socketProtocol}//${window.location.host}${API_BASE}${url}`;
    const webSocket = new WebSocket(socketUrl);  // prepend the ws prefix
-
    // Event: WebSocket successfully opened
    webSocket.onopen = () => {
      // uncomment below to debug

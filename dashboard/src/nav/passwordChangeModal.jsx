@@ -2,7 +2,6 @@ import { useState } from 'react';
 import api from "../api/api.js";
 import {useMessage} from '../messageContext';
 import PropTypes from "prop-types";
-import {VideoDetails} from "../views/videoComponents/videoDetails.jsx";
 
 export const PasswordChangeModal = ({setShowModal}) => {
   const [currentPassword, setCurrentPassword] = useState('');
