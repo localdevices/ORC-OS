@@ -115,6 +115,7 @@ class VideoResponse(VideoBase, RemoteModel):
         # if there is no video config, return False immediately
         if self.video_config is None:
             return False, "No video config available."
+            return False, "No video config available."
         # second check if video_config sample video is the same as current video, then retrieve water level
         if self.video_config.sample_video_id == self.id:
             if self.video_config.camera_config.gcps.h_ref is not None:
@@ -132,7 +133,6 @@ class VideoResponse(VideoBase, RemoteModel):
             return True, "Ready"
 
     def run(self, base_path: str, prefix: str = "", shutdown_after_task: bool = False):
-        # def run(self, session: Session, base_path: str, prefix: str = "", shutdown_after_task: bool = False):
         """Run video."""
         # update state first
         with get_session() as session:
@@ -204,7 +204,9 @@ class VideoResponse(VideoBase, RemoteModel):
                         f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
                     )
                 # run the video with pyorc with an additional logger handler
-                add_filehandler(logger=logger, path=self.get_log_file(base_path=base_path), log_level=10)
+                add_filehandler(
+                    logger=logger, path=self.get_log_file(base_path=base_path), function="velocimetry", log_level=10
+                )
                 velocity_flow(
                     recipe=recipe,
                     videofile=videofile,

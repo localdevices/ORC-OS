@@ -14,6 +14,18 @@ from orc_api import LOG_DIRECTORY, __home__, __version__
 FMT = "%(asctime)s - %(name)s - %(module)s - %(levelname)s - %(message)s"
 
 
+class FunctionFilter(logging.Filter):
+    """Custom logging filter to limit logs to a specific function."""
+
+    def __init__(self, function_name: str):
+        super().__init__()
+        self.function_name = function_name
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Only allow logs from the specific function."""
+        return record.funcName == self.function_name
+
+
 def setuplog(
     name: str = "orc-os",
     path: str = None,
@@ -60,7 +72,7 @@ def setuplog(
     return logger
 
 
-def add_filehandler(logger, path, log_level=20, fmt=FMT, backupCount=0):
+def add_filehandler(logger, path, log_level=20, fmt=FMT, backupCount=0, function=None):
     """Add file handler to logger."""
     if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
@@ -75,6 +87,11 @@ def add_filehandler(logger, path, log_level=20, fmt=FMT, backupCount=0):
         ch = logging.FileHandler(path, encoding="utf-8")
     ch.setFormatter(logging.Formatter(fmt))
     ch.setLevel(log_level)
+    # add filter
+    if function:
+        # only log for defined function
+        func_filter = FunctionFilter(function)
+        ch.addFilter(func_filter)
     logger.addHandler(ch)
 
 
