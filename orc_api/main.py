@@ -129,7 +129,7 @@ async def auth_middleware(request: Request, call_next):
         return await call_next(request)
 
     # login by def. does not require a token as it should return a token
-    if request.url.path in ["/api/auth/login", "/api/auth/password_available/"]:
+    if request.url.path in ["/api/auth/login/", "/api/auth/password_available/"]:
         return await call_next(request)
 
     # case where no password yet exists and password store is requested also does not require auth
