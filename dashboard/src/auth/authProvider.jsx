@@ -19,6 +19,7 @@ const checkValidate = async () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     // Check session when the app loads
@@ -27,7 +28,10 @@ export const AuthProvider = ({ children }) => {
       if (session) {
         // session validated
         setUser("orc_client"); // Update user state based on session
+      } else {
+        setUser(null);
       }
+      setInitializing(false);
     };
     validateSession();
   }, []);
@@ -46,9 +50,9 @@ export const AuthProvider = ({ children }) => {
     try {
       await authApi.logout();
       setUser(null);
-      setUser(null);
     } catch (error) {
       console.error("Logout failed:", error);
+      setUser(null);
     }
   };
 
@@ -75,8 +79,17 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       async (error) => {
         if (error.response?.status === 401) {
-          setUser(null); // Clear user and trigger logout flow
-          console.error("Session expired, logging out.");
+          // revalidate before clearing user
+          try {
+            const session = await checkValidate();
+            if (!session) {
+              setUser(null);
+              console.error("Session expired, logging out.");
+            }
+          } catch {
+            setUser(null);
+            console.error("Session validation failed, logging out.");
+          }
         }
         return Promise.reject(error);
       }
@@ -101,7 +114,7 @@ export const AuthProvider = ({ children }) => {
   // }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, passwordAvailable, setNewPassword }}>
+    <AuthContext.Provider value={{ user, initializing, setUser, login, logout, passwordAvailable, setNewPassword }}>
       {children}
     </AuthContext.Provider>
   )

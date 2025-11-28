@@ -11,12 +11,12 @@ export const authApi = {
     });
     return response;
   },
-  logout: () => api.post('/auth/logout/'), //, {}, {withCredentials: true}),
+  logout: () => api.post('/auth/logout/', null, {withCredentials: true}),
   validate: async () => {
-    return await api.get('/auth/verify/');
+    return await api.get('/auth/verify/', {withCredentials: true});
   },
   passwordAvailable: async () => {
-    return await api.get('auth/password_available/');
+    return await api.get('/auth/password_available/');
   },
   setPassword: async (password) => {
     return await api.post('/auth/set_password/', null, { params: { password }, withCredentials: true });

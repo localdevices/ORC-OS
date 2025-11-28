@@ -62,7 +62,11 @@ def login(request: Request, password: str, response: Response, db: Session = Dep
 @router.post("/logout/")
 async def logout(request: Request, response: Response):
     """Logout the user by blacklisting the JWT token."""
-    response.delete_cookie(ORC_COOKIE_NAME)
+    response.delete_cookie(
+        key=ORC_COOKIE_NAME,
+        domain=request.url.hostname,
+        path="/api/",
+    )
     return {"message": "Successfully logged out."}
 
 
