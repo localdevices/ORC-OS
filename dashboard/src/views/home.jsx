@@ -63,12 +63,10 @@ const Home = () => {
     try {
       const settingsResponse = await api.get('/settings/');
       setDaemonStatus(settingsResponse.data)
-      console.log(settingsResponse.data)
 
       if (settingsResponse.data) {
         const videoConfigResponse = await api.get(`/video_config/${settingsResponse.data.video_config_id}/`);
         setVideoConfig(videoConfigResponse.data);
-        console.log(videoConfigResponse.data);
       }
     } catch (error) {
           setMessageInfo("error retrieving daemon or video configuration", error);

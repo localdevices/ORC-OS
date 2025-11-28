@@ -50,10 +50,55 @@
 .navbar-right {
     position: relative;
     display: flex;
-    gap: 15px;
+    gap: 12px;
     z-index: 1;
 }
 
+/* User menu container */
+.user-menu-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* empty buffer around menu to prevent immediate close when hovering from icon to menu */
+.user-menu-wrapper::after {
+    content: "";
+    position: absolute;
+    top: 20px; /* just below the icon */
+    left: -8px;
+    right: -8px;
+    height: 12px; /* buffer height */
+    /* Make it an interactive area so mouse is considered inside wrapper */
+    pointer-events: auto;
+}
+
+.user-menu {
+    position: absolute;
+    right: 0;
+    top: 28px;
+    background-color: #343a40;
+    color: white;
+    border: 1px solid #333;
+    border-radius: 6px;
+    min-width: 160px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    padding: 6px 0;
+    z-index: 1000;
+
+}
+
+.user-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.user-menu-item:hover {
+    /*background: #2a2a2a;*/
+    background-color: #495057;
+}
 
 a {
     color: #FFFFFF;
@@ -61,17 +106,6 @@ a {
 a:hover {
     color: #FFFFFF;
     font-weight: bold;
-}
-
-.wifi-button {
-    font-size: 22px;
-    color: white;
-    cursor: pointer;
-    transition: color 0.2s ease-in-out;
-}
-
-.wifi-button:hover {
-    color: #e0e0e0;
 }
 
 /* Sidebar Styles */
@@ -157,7 +191,7 @@ a:hover {
 
 /* Overlay for the Sidebar */
 .sidebar-overlay {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -176,7 +210,7 @@ a:hover {
   background-color: #343a40;
   transition: all 0.3s ease;
   color: white;
-  z-index: -1;
+  z-index: 1040;
   padding: 10px;
   overflow: auto; /*hide when width is zero*/
   max-height: 100%;  /* will not exceed content height */

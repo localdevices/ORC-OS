@@ -36,12 +36,12 @@ const MessageBox = () => {
     <div
       style={{
 
-        position: 'absolute', // Position absolutely within a parent container (e.g., Navbar)
+        position: 'fixed', // Position absolutely within a parent container (e.g., Navbar)
         top: '40px', // Center the message box vertically
         right: '10px',
         // left: 'max(30px, 50%)',
         // transform: 'translate(-110%, 0%)', // Adjust for width/height shift due to centering
-        zIndex: 1000, // Ensure it appears on top of other elements
+        zIndex: '999999', // Ensure it appears on top of other elements
         width: '1400px', // Fixed maximum width
         maxWidth: 'calc(100vw - 140px)',
         backgroundColor: getBackgroundColor(),
@@ -58,6 +58,7 @@ const MessageBox = () => {
         onClick={() => setShowMessage(false)} // Hide the message on clicking
         style={{
           position: 'absolute',
+          zIndex: 999999,
           right: '10px',
           top: '10px',
           cursor: 'pointer',

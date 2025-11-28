@@ -15,11 +15,9 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
     // states for handling password changes
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [changing, setChanging] = useState(false);
-    const [changeError, setChangeError] = useState('');
+
+    // delay on closure of User menu to prevent closing when hovering over the menu items
+    let userMenuCloseTimer = null;
 
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
@@ -33,31 +31,6 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
         await logout();
     };
 
-  // Password change submit (adjust API endpoint as needed)
-  const handleChangePassword = async () => {
-    setChangeError('');
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setChangeError('Please fill all fields.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setChangeError('New passwords do not match.');
-      return;
-    }
-    try {
-      setChanging(true);
-      await api.post('/auth/change_password', {
-        current_password: currentPassword,
-        new_password: newPassword,
-      });
-      setShowPasswordModal(false);
-      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-    } catch (e) {
-      setChangeError(e?.response?.data?.message || 'Failed to change password.');
-    } finally {
-      setChanging(false);
-    }
-  };
     const handleSettingsClick = () => {
         setSettingsOpen(!settingsOpen);
     };
@@ -142,8 +115,18 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         <FaCog onClick={handleSettingsClick}/>
                         <div
                           className="user-menu-wrapper"
-                          onMouseEnter={() => setUserMenuOpen(true)}
-                          onMouseLeave={() => setUserMenuOpen(false)}
+                          onMouseEnter={() => {
+                            if (userMenuCloseTimer) {
+                              clearTimeout(userMenuCloseTimer);
+                              userMenuCloseTimer = null;
+                            }
+                            setUserMenuOpen(true)}
+                          }
+                          onMouseLeave={() => {
+                            userMenuCloseTimer = setTimeout(() => {
+                              setUserMenuOpen(false)
+                            }, 100);
+                          }}
                         >
                           <FaUser style={{ cursor: 'pointer' }}/>
                           {userMenuOpen && (
