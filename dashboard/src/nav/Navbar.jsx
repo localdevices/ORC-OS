@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import {FaUser, FaCog, FaSync, FaSpinner, FaCheck, FaTimes} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import {
+  FaUser,
+  FaCog,
+  FaSync,
+  FaSpinner,
+  FaCheck,
+  FaTimes,
+  FaSignOutAlt,
+  FaKey,
+  FaHome,
+  FaVideo,
+  FaFilm,
+  FaFileAlt,
+  FaProjectDiagram,
+  FaUtensils,
+} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import { FaMicrochip } from 'react-icons/fa6';
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
@@ -138,18 +154,19 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                                   setUserMenuOpen(false);
                                 }}
                               >
+                                <FaKey style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                                 Change password
                               </div>
                               <div
                                 className="user-menu-item"
                                 onClick={handleUserButtonClick}
                               >
+                                <FaSignOutAlt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                                 Logout
                               </div>
                             </div>
                           )}
                         </div>
-                        {/*<FaUser onClick={handleUserButtonClick}/>*/}
                     </div>
                 </div>
             </nav>
@@ -170,6 +187,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                       <NavLink
                         className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                         to="/" onClick={handleClose}>
+                        <FaHome style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Home
                       </NavLink>
                     </li>
@@ -178,6 +196,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/device" onClick={handleClose}>
+                          <FaMicrochip style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                             Device information
                         </NavLink>
                     </li>
@@ -185,6 +204,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                       <NavLink
                         className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                         to="/log" onClick={handleClose}>
+                        <FaFileAlt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Log file
                       </NavLink>
                     </li>
@@ -192,27 +212,33 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/camera_aim" onClick={handleClose}>
-                            Aim your camera in the field
+                          <FaVideo style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                            Aim your camera
                         </NavLink>
                     </li>
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/recipe" onClick={handleClose}>
-                            Recipes
+                          <FaUtensils style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+
+                          Recipes
                         </NavLink>
                     </li>
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/cross_section" onClick={handleClose}>
-                            Cross sections
+                          <FaProjectDiagram style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+
+                          Cross sections
                         </NavLink>
                     </li>
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/video" onClick={handleClose}>
+                          <FaFilm style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                             Videos
                         </NavLink>
                     </li>
@@ -269,46 +295,6 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
             {showPasswordModal && (
               <>
                 <PasswordChangeModal setShowModal={setShowPasswordModal} />
-                {/*<div className="modal-backdrop" onClick={() => setShowPasswordModal(false)} />*/}
-                {/*<div className="modal" role="dialog" aria-modal="true" aria-labelledby="change-password-title">*/}
-                {/*  <div className="modal-header">*/}
-                {/*    <h4 id="change-password-title" style={{ margin: 0 }}>Change password</h4>*/}
-                {/*    <button className="modal-close" onClick={() => setShowPasswordModal(false)} aria-label="Close">&times;</button>*/}
-                {/*  </div>*/}
-                {/*  <div className="modal-body">*/}
-                {/*    {changeError && <div style={{ color: '#f87171', marginBottom: 8 }}>{changeError}</div>}*/}
-                {/*    <label>Current password</label>*/}
-                {/*    <input*/}
-                {/*      type="password"*/}
-                {/*      value={currentPassword}*/}
-                {/*      onChange={(e) => setCurrentPassword(e.target.value)}*/}
-                {/*      autoFocus*/}
-                {/*    />*/}
-                {/*    <label>New password</label>*/}
-                {/*    <input*/}
-                {/*      type="password"*/}
-                {/*      value={newPassword}*/}
-                {/*      onChange={(e) => setNewPassword(e.target.value)}*/}
-                {/*    />*/}
-                {/*    <label>Confirm new password</label>*/}
-                {/*    <input*/}
-                {/*      type="password"*/}
-                {/*      value={confirmPassword}*/}
-                {/*      onChange={(e) => setConfirmPassword(e.target.value)}*/}
-                {/*    />*/}
-                {/*  </div>*/}
-                {/*  <div className="modal-footer">*/}
-                {/*    <button className="button" onClick={() => setShowPasswordModal(false)}>Cancel</button>*/}
-                {/*    <button*/}
-                {/*      className="button primary"*/}
-                {/*      onClick={handleChangePassword}*/}
-                {/*      disabled={changing}*/}
-                {/*      title="Save new password"*/}
-                {/*    >*/}
-                {/*      {changing ? 'Saving…' : 'Save'}*/}
-                {/*    </button>*/}
-                {/*  </div>*/}
-                {/*</div>*/}
               </>
             )}
         </>

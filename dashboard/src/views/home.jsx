@@ -197,7 +197,7 @@ const Home = () => {
       </div>
       <div className="split-screen flex"  style={{overflowY: "hidden"}}>
         <div className="flex-container column no-padding">
-          <div className="flex-container column" style={{height: "calc(100vh - 300px"}}>
+          <div className="flex-container column" style={{height: "calc(100vh - 300px", minHeight: "723px"}}>
 
             <h4>{!lastVideo ? ("Last video") : (
               `Last video taken ${lastVideo.timestamp}`
@@ -233,7 +233,7 @@ const Home = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{height: "calc(100vh - 660px"}}>
+          <div className="flex-container column" style={{height: "calc(100vh - 692px", minHeight: "330px"}}>
             <h4>Device status</h4>
 
             <div className="mb-0 mt-0">
