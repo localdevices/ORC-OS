@@ -37,8 +37,8 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/api/auth/set_password", params=credentials)
-    response = client.post("/api/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password/", params=credentials)
+    response = client.post("/api/auth/login/", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
@@ -200,6 +200,6 @@ def test_get_set_refresh_tokens_success(session_config, mocker, monkeypatch, aut
     mock_response.json.return_value = {"access": "new_access_token", "refresh": "new_refresh_token"}
     _ = mocker.patch("requests.post", return_value=mock_response)
     # once token is stored refresh it!
-    response = auth_client.get("/callback_url/refresh_tokens/")
+    response = auth_client.get("/api/callback_url/refresh_tokens/")
     assert response.status_code == 200
     assert response.json()["token_access"] == "new_access_token"

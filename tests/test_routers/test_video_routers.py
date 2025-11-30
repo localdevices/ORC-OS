@@ -34,8 +34,8 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/api/auth/set_password", params=credentials)
-    response = client.post("/api/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password/", params=credentials)
+    response = client.post("/api/auth/login/", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
