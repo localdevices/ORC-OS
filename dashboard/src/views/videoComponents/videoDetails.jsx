@@ -43,6 +43,9 @@ export const VideoDetails = ({selectedVideo}) => {
               <img
                 src={`${api.defaults.baseURL}/video/${selectedVideo.id}/image/?datetime=${Date.now()}`}
                 width="90%"
+                onLoad={() => {
+                  if (imageError) setImageError(false);
+                }}
                 onError={() => setImageError(true)}
                 alt="Analysis image"
               />

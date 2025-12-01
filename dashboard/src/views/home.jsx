@@ -64,7 +64,7 @@ const Home = () => {
       const settingsResponse = await api.get('/settings/');
       setDaemonStatus(settingsResponse.data)
 
-      if (settingsResponse.data) {
+      if (settingsResponse.data && settingsResponse?.data?.video_config_id) {
         const videoConfigResponse = await api.get(`/video_config/${settingsResponse.data.video_config_id}/`);
         setVideoConfig(videoConfigResponse.data);
       }
@@ -281,8 +281,9 @@ const Home = () => {
                 !daemonStatus ? (
                   <div><FaQuestion style={{color: "orange"}}/> No daemon settings available</div>
                 ) : (
-                  daemonStatus.video_config_id && videoConfig ? (
-                    <div><FaCheck style={{color: "green"}}/> {`Daemon configured with video config "${videoConfig.id} - ${videoConfig.name}"`}</div>
+                  daemonStatus.video_config_id && videoConfig && videoConfig?.id ? (
+
+                    <div><FaCheck style={{color: "green"}}/> {`Daemon configured with video config "${videoConfig?.id} - ${videoConfig.name}"`}</div>
                   ) : (
                     <div><FaExclamation style={{color: "orange"}}/> {`Daemon has no valid video config`}</div>
                   )
