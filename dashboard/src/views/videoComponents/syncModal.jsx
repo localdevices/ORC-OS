@@ -1,6 +1,6 @@
 import api from "../../api/api.js";
 import {useEffect, useState} from "react";
-import {sync_videos} from "../../utils/apiCalls.jsx";
+import {sync_videos} from "../../utils/apiCalls/video.jsx";
 
 const SyncModal = ({showSyncModal, setShowSyncModal, urlSite, setMessageInfo}) => {
   const [syncStartDate, setSyncStartDate] = useState(null);

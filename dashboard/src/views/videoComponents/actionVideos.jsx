@@ -3,7 +3,7 @@ import DownloadModal from "./downloadModal.jsx";
 import DeleteModal from "./deleteModal.jsx";
 import SyncModal from "./syncModal.jsx";
 import api from "../../api/api.js";
-import {get_videos_ids} from "../../utils/apiCalls.jsx";
+import {get_videos_ids} from "../../utils/apiCalls/video.jsx";
 import {useEffect, useState} from "react";
 
 import PropTypes from 'prop-types';

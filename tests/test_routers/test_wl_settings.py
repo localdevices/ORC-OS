@@ -33,8 +33,8 @@ def auth_client():
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/api/auth/set_password", params=credentials)
-    response = client.post("/api/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password/", params=credentials)
+    response = client.post("/api/auth/login/", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
 
@@ -54,5 +54,5 @@ def test_post_wl_settings(auth_client):
     session = next(get_db_override())
     assert crud.water_level.get(session).id == 1
     # check if a Response model is returned from get
-    response = auth_client.get("/water_level/")
+    response = auth_client.get("/api/water_level/")
     WaterLevelResponse.model_validate(response.json())

@@ -1,6 +1,6 @@
 import api from "../../api/api.js";
 import {useState} from "react";
-import {delete_videos} from "../../utils/apiCalls.jsx";
+import {delete_videos} from "../../utils/apiCalls/video.jsx";
 
 const DeleteModal = ({showDeleteModal, setShowDeleteModal, setMessageInfo}) => {
   const [deleteStartDate, setDeleteStartDate] = useState(null);

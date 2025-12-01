@@ -43,16 +43,16 @@ const VideoUploader = ({uploadedVideo, setUploadedVideo}) => {
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles) => {
-      console.log("onDrop trggered with: " , acceptedFiles)
+      console.log("onDrop triggered with: " , acceptedFiles)
       onDrop(acceptedFiles);
     },
     onDropRejected: (rejectedFiles) => {
-      console.log("onDropRejected trggered with: " , rejectedFiles)
+      console.log("onDropRejected triggered with: " , rejectedFiles)
 
     },
-
-    accept: "video/*",
+    // note: accepting or rejecting of files is organized elsewhere in onDrop'
     multiple: false,
+    maxFiles: 1
   });
 
   const handleDateChange = (e) => {

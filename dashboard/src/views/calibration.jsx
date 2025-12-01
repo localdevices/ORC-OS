@@ -8,7 +8,7 @@ import api from '../api/api.js';
 import '../nav/Navbar.css'
 import './calibration.css'; // Ensure the styles reflect the updated layout.
 import {createCustomMarker} from '../utils/leafletUtils';
-import {fitGcps} from '../utils/apiCalls';
+import {fitGcps} from '../utils/apiCalls/videoConfig.jsx';
 import {rainbowColors} from '../utils/helpers';
 
 

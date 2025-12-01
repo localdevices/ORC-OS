@@ -11,8 +11,8 @@ import epsgDB from '../../proj-db.json'; // Adjust the path as needed
 proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
 
 // Test: Get the definition of one of the EPSG codes added dynamically
-console.log(proj4.defs['EPSG:4326']); // Output: "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
-console.log(proj4.defs[epsgDB[28992]]); // Output: "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
+// console.log(proj4.defs['EPSG:4326']); // Output: "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
+// console.log(proj4.defs[epsgDB[28992]]); // Output: "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
 
 import PropTypes from "prop-types";
 

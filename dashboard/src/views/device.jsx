@@ -164,6 +164,7 @@ const Device = () => {
         plugins: {
             legend: {
                 position: 'bottom',
+                align: 'start'
             },
             tooltip: {
                 callbacks: {

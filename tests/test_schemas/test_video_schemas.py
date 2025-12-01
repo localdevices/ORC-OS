@@ -18,7 +18,7 @@ def test_video_run(
 ):
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
     assert video_response.status == models.VideoStatus.NEW
-    video_response.run(session=session_video_config, base_path=sample_data.get_hommerich_pyorc_files())
+    video_response.run(base_path=sample_data.get_hommerich_pyorc_files())
     assert video_response.status == models.VideoStatus.DONE
     assert len(video_response.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
     assert video_response.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None
@@ -35,7 +35,7 @@ def test_video_run(
 def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, monkeypatch):
     monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
     assert video_response_no_ts.time_series is None
-    video_response_no_ts.run(session=session_video_config, base_path=sample_data.get_hommerich_pyorc_files())
+    video_response_no_ts.run(base_path=sample_data.get_hommerich_pyorc_files())
     assert video_response_no_ts.time_series is not None
     assert video_response_no_ts.status == models.VideoStatus.DONE
     assert len(video_response_no_ts.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
@@ -74,7 +74,7 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.update_timeseries", mock_update_timeseries)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.sync_remote", mock_update_timeseries)
     with pytest.raises(ShutdownException):
-        video_response_no_ts.run(session=session_video_config, base_path=str(tmpdir), shutdown_after_task=True)
+        video_response_no_ts.run(base_path=str(tmpdir), shutdown_after_task=True)
     # test if mock shutdown is called once
     assert mock_shutdown.call_count == 1
 

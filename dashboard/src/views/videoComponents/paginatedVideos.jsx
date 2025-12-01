@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {run_video, sync_video} from "../../utils/apiCalls.jsx"
+import {run_video, sync_video} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -78,7 +78,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         console.error('Error fetching video count:', error);
       });
 
-  }, [selectedVideo, uploadedVideo, startDate, endDate, currentPage, rowsPerPage]);
+  }, [uploadedVideo, startDate, endDate, currentPage, rowsPerPage]);
 
 
   // Fetch the existing video configs when the modal is opened

@@ -29,7 +29,7 @@ def create_token():
     return token
 
 
-@router.get("/password_available")
+@router.get("/password_available/")
 def password_available(db: Session = Depends(get_db)):
     """Check if a password is available."""
     if crud.login.get(db):
@@ -38,9 +38,11 @@ def password_available(db: Session = Depends(get_db)):
         return False
 
 
-@router.post("/login")
-def login(password: str, response: Response, db: Session = Depends(get_db)):
+@router.post("/login/")
+def login(request: Request, password: str, response: Response, db: Session = Depends(get_db)):
     """Retrieve a JWT token with password."""
+    # check http / https origin dynamically
+    secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     # Check password validity
     if crud.login.verify(db, password):
         token = create_token()
@@ -49,21 +51,26 @@ def login(password: str, response: Response, db: Session = Depends(get_db)):
             value=token,
             httponly=True,
             max_age=ORC_COOKIE_MAX_AGE,
-            # secure=True,  # only use for https
-            samesite=None,
+            secure=secure,  # only use for https
+            samesite="Strict",
+            path="/api/",
         )
         return {"access_token": token, "token_type": "Bearer"}
     raise HTTPException(status_code=401, detail="Invalid password")
 
 
-@router.post("/logout")
+@router.post("/logout/")
 async def logout(request: Request, response: Response):
     """Logout the user by blacklisting the JWT token."""
-    response.delete_cookie(ORC_COOKIE_NAME)
+    response.delete_cookie(
+        key=ORC_COOKIE_NAME,
+        domain=request.url.hostname,
+        path="/api/",
+    )
     return {"message": "Successfully logged out."}
 
 
-@router.get("/verify")
+@router.get("/verify/")
 def verify_token(request: Request):
     """Verify if the cookie contains a valid token.
 
@@ -83,7 +90,7 @@ def verify_token(request: Request):
         raise HTTPException(status_code=401, detail="Token is invalid")
 
 
-@router.post("/set_password")
+@router.post("/set_password/")
 def set_or_update_password(password: str, db: Session = Depends(get_db)):
     """Set or update the password. Updating only works with a valid existing JWT token."""
     if crud.login.get(db):  # Check if password exists.
@@ -92,3 +99,12 @@ def set_or_update_password(password: str, db: Session = Depends(get_db)):
     else:
         crud.login.create(db, password)
         return {"message": "Password set successfully."}
+
+
+@router.post("/change_password/")
+def change_password(current_password: str, new_password: str, db: Session = Depends(get_db)):
+    """Set or update the password. Updating only works with a valid existing JWT token."""
+    if not crud.login.verify(db, current_password):  # Check if password is valid
+        raise HTTPException(status_code=500, detail="Your current password is incorrect.")
+    crud.login.update(db, new_password)
+    return {"message": "Password updated successfully."}

@@ -1,3 +1,37 @@
+## [0.4.3] -
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- A new Home page has been added that gives the user insight in the current conditions of the device.
+  It shows the latest processed video with metadata, and the currently available settings on which it runs.
+  The user is pointed to possible missing settings with exclamation and question marks.
+- A change password option has been added to the user menu.
+- All menu options now have recognizable icons.
+### Changed
+- Options for treatment of videos for water level detection is extended. The user can now select 5 different river
+  characteristics, most resembling the situation, and have influence on the acceptance criterion (signal-to-noise ratio)
+- Upon first login, the user is prompted to set a password twice. It is only accepted if the user types the same
+  password twice.
+- User can now change the password in the User menu.
+- The Video Details view now has a proper layout, and missing fields are fixed.
+### Deprecated
+### Removed
+### Fixed
+- User session often missed validation of token based on cookie causing an incorrect user redirect to login page.
+  This is now fixed.
+- Access over HTTPS (e.g. through a reverse proxy) was not fully working as real-time updates of e.g. currently running
+  tasks and updates were not visible. This is now fixed.
+- Bulk download did not work. This is now fixed.
+- Downloads of cross sections to GeoJSON files did not work. This is now fixed.
+### Security
+
+
 ## [0.4.2] - 2025-11-19
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

@@ -1,6 +1,8 @@
 import {useState, useEffect} from 'react';
 import api from '../api/api.js';
+import ServerStatus from './callbackUrlComponents/serverStatus.jsx'
 import {useMessage} from '../messageContext';
+import {getCallbackUrl} from '../utils/apiCalls/callbackUrl.jsx'
 
 const CallbackUrl = ({setRequiresRestart}) => {
 
@@ -23,22 +25,23 @@ const CallbackUrl = ({setRequiresRestart}) => {
   const {setMessageInfo} = useMessage();
 
   const fetchCallbackUrl = async () => {
-    const response = await api.get('/callback_url/');
-    if (response.data != null) {
-      console.log("RESPONSE:", response.data);
-      const received_data = {
-        "url": response.data.url,
-        "user": '',
-        "password": '',
-        "retry_timeout": response.data.retry_timeout,
-        "remote_site_id": response.data.remote_site_id,
-        "createdAt": response.data.created_at,
-        "tokenRefresh": response.data.token_refresh,
-        "tokenAccess": response.data.token_access,
-        "tokenExpiration": response.data.token_expiration
-      }
-      setCallbackUrl(received_data)
-    }
+    const callbackUrlData = await getCallbackUrl();
+    // const response = await api.get('/callback_url/');
+    // if (response.data != null) {
+    //   console.log("RESPONSE:", response.data);
+    //   const received_data = {
+    //     "url": response.data.url,
+    //     "user": '',
+    //     "password": '',
+    //     "retry_timeout": response.data.retry_timeout,
+    //     "remote_site_id": response.data.remote_site_id,
+    //     "createdAt": response.data.created_at,
+    //     "tokenRefresh": response.data.token_refresh,
+    //     "tokenAccess": response.data.token_access,
+    //     "tokenExpiration": response.data.token_expiration
+    //   }
+    setCallbackUrl(callbackUrlData)
+    // }
 
   };
   const fetchServerStatus = async () => {
@@ -230,47 +233,48 @@ const CallbackUrl = ({setRequiresRestart}) => {
           <label htmlFor='serverStatus' className='form-label'>
             Server status:
           </label>
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-            {/* Indicator for server online/offline */}
-            <div
-              style={{
-                width: '15px',
-                height: '15px',
-                borderRadius: '50%',
-                backgroundColor: serverStatus.serverOnline === true
-                  ? 'green' // Green if server is online
-                  : serverStatus.serverOnline === false
-                    ? 'red' // red if server offline
-                    : 'grey' // server is not set
-              }}
-              title={serverStatus.serverOnline ? 'online' : 'offline'}
-            ></div>
-              <span>{serverStatus.serverOnline === true
-                ? 'Server is online'
-                : serverStatus.serverOnline === false
-                  ? 'Server is offline or your computer is not connected to the internet'
-                  : 'Server is not set'
-              }</span>
-            <div
-              style={{
-                width: '15px',
-                height: '15px',
-                borderRadius: '50%',
-                backgroundColor: serverStatus.tokenValid
-                  ? 'green'
-                  : serverStatus.tokenValid === false
-                  ? 'red'
-                  : 'grey'  // no status so no token
-              }}
-              title={serverStatus.tokenValid ? 'valid' : 'invalid'}
-            ></div>
-            <span>{serverStatus.tokenValid === true
-              ? 'Token is valid'
-              : serverStatus.tokenValid === false
-              ? 'Token is invalid or expired'
-              : 'No token or server set'
-            }</span>
-          </div>
+          <ServerStatus serverStatus={serverStatus}/>
+          {/*<div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>*/}
+          {/*  /!* Indicator for server online/offline *!/*/}
+          {/*  <div*/}
+          {/*    style={{*/}
+          {/*      width: '15px',*/}
+          {/*      height: '15px',*/}
+          {/*      borderRadius: '50%',*/}
+          {/*      backgroundColor: serverStatus.serverOnline === true*/}
+          {/*        ? 'green' // Green if server is online*/}
+          {/*        : serverStatus.serverOnline === false*/}
+          {/*          ? 'red' // red if server offline*/}
+          {/*          : 'grey' // server is not set*/}
+          {/*    }}*/}
+          {/*    title={serverStatus.serverOnline ? 'online' : 'offline'}*/}
+          {/*  ></div>*/}
+          {/*    <span>{serverStatus.serverOnline === true*/}
+          {/*      ? 'Server is online'*/}
+          {/*      : serverStatus.serverOnline === false*/}
+          {/*        ? 'Server is offline or your computer is not connected to the internet'*/}
+          {/*        : 'Server is not set'*/}
+          {/*    }</span>*/}
+          {/*  <div*/}
+          {/*    style={{*/}
+          {/*      width: '15px',*/}
+          {/*      height: '15px',*/}
+          {/*      borderRadius: '50%',*/}
+          {/*      backgroundColor: serverStatus.tokenValid*/}
+          {/*        ? 'green'*/}
+          {/*        : serverStatus.tokenValid === false*/}
+          {/*        ? 'red'*/}
+          {/*        : 'grey'  // no status so no token*/}
+          {/*    }}*/}
+          {/*    title={serverStatus.tokenValid ? 'valid' : 'invalid'}*/}
+          {/*  ></div>*/}
+          {/*  <span>{serverStatus.tokenValid === true*/}
+          {/*    ? 'Token is valid'*/}
+          {/*    : serverStatus.tokenValid === false*/}
+          {/*    ? 'Token is invalid or expired'*/}
+          {/*    : 'No token or server set'*/}
+          {/*  }</span>*/}
+          {/*</div>*/}
         </div>
 
         <button type='submit' className='btn'>

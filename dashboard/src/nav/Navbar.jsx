@@ -1,9 +1,26 @@
 import { useState } from 'react';
-import {FaUser, FaCog, FaSync, FaSpinner, FaCheck, FaTimes} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import {
+  FaUser,
+  FaCog,
+  FaSync,
+  FaSpinner,
+  FaCheck,
+  FaTimes,
+  FaSignOutAlt,
+  FaKey,
+  FaHome,
+  FaVideo,
+  FaFilm,
+  FaFileAlt,
+  FaProjectDiagram,
+  FaUtensils,
+} from 'react-icons/fa'; // Import User, Cog and Restart icons
+import { FaMicrochip } from 'react-icons/fa6';
 import { NavLink } from 'react-router-dom';
 import './Navbar.css'
 import orcLogo from '/orc_favicon.svg'
 import MessageBox from "../messageBox.jsx";
+import {PasswordChangeModal} from "./passwordChangeModal.jsx";
 import api from "../api/api.js";
 import { useAuth } from "../auth/useAuth.jsx";
 
@@ -11,6 +28,13 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
     const [isOpen, setIsOpen] = useState(false); // track if navbar is open / closed
     const [settingsOpen, setSettingsOpen] = useState(false); // track if settings menu is open
     const { logout } = useAuth();
+    // states for handling password changes
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+    // delay on closure of User menu to prevent closing when hovering over the menu items
+    let userMenuCloseTimer = null;
+
     const handleToggle = (openState, setOpenState) => {
       setOpenState(!openState); // Toggles the `isOpen` state
     };
@@ -105,7 +129,44 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                           onClick={handleRestartClick}
                         />
                         <FaCog onClick={handleSettingsClick}/>
-                        <FaUser onClick={handleUserButtonClick}/>
+                        <div
+                          className="user-menu-wrapper"
+                          onMouseEnter={() => {
+                            if (userMenuCloseTimer) {
+                              clearTimeout(userMenuCloseTimer);
+                              userMenuCloseTimer = null;
+                            }
+                            setUserMenuOpen(true)}
+                          }
+                          onMouseLeave={() => {
+                            userMenuCloseTimer = setTimeout(() => {
+                              setUserMenuOpen(false)
+                            }, 100);
+                          }}
+                        >
+                          <FaUser style={{ cursor: 'pointer' }}/>
+                          {userMenuOpen && (
+                            <div className="user-menu">
+                              <div
+                                className="user-menu-item"
+                                onClick={() => {
+                                  setShowPasswordModal(true);
+                                  setUserMenuOpen(false);
+                                }}
+                              >
+                                <FaKey style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                                Change password
+                              </div>
+                              <div
+                                className="user-menu-item"
+                                onClick={handleUserButtonClick}
+                              >
+                                <FaSignOutAlt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                                Logout
+                              </div>
+                            </div>
+                          )}
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -126,6 +187,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                       <NavLink
                         className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                         to="/" onClick={handleClose}>
+                        <FaHome style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Home
                       </NavLink>
                     </li>
@@ -134,6 +196,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/device" onClick={handleClose}>
+                          <FaMicrochip style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                             Device information
                         </NavLink>
                     </li>
@@ -141,6 +204,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                       <NavLink
                         className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                         to="/log" onClick={handleClose}>
+                        <FaFileAlt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Log file
                       </NavLink>
                     </li>
@@ -148,27 +212,33 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/camera_aim" onClick={handleClose}>
-                            Aim your camera in the field
+                          <FaVideo style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                            Aim your camera
                         </NavLink>
                     </li>
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/recipe" onClick={handleClose}>
-                            Recipes
+                          <FaUtensils style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+
+                          Recipes
                         </NavLink>
                     </li>
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/cross_section" onClick={handleClose}>
-                            Cross sections
+                          <FaProjectDiagram style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+
+                          Cross sections
                         </NavLink>
                     </li>
                     <li>
                         <NavLink
                           className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                           to="/video" onClick={handleClose}>
+                          <FaFilm style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                             Videos
                         </NavLink>
                     </li>
@@ -222,6 +292,11 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
                 </ul>
             </div>
             {settingsOpen && <div className="settings-overlay" onClick={handleSettingsClick}></div>}
+            {showPasswordModal && (
+              <>
+                <PasswordChangeModal setShowModal={setShowPasswordModal} />
+              </>
+            )}
         </>
 
     );

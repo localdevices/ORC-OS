@@ -72,7 +72,7 @@ async def get_cs_cam_config(id: int, camera_config: CameraConfigUpdate, db: Sess
 @router.get("/{id}/download/", response_model=CrossSectionResponse, status_code=200)
 async def download_cs(id: int, db: Session = Depends(get_db)):
     """Download a recipe from the database into a .yaml file."""
-    cs = crud.recipe.get(db=db, id=id)
+    cs = crud.cross_section.get(db=db, id=id)
     if not cs:
         raise HTTPException(status_code=404, detail="Recipe not found.")
 

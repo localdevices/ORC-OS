@@ -1,6 +1,6 @@
 import api from "../../api/api.js";
 import {useState} from "react";
-import {get_videos} from "../../utils/apiCalls.jsx";
+import {get_videos} from "../../utils/apiCalls/video.jsx";
 
 const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}) => {
   const [downloadStartDate, setDownloadStartDate] = useState(null);

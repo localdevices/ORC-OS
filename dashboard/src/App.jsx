@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types'
 
 import './App.css'
 import { MessageProvider } from './messageContext';
@@ -14,7 +15,6 @@ import Settings from './views/settings';
 import DiskManagement from './views/diskManagement'
 import WaterLevel from './views/waterLevel'
 import CameraAim from './views/cameraAim'
-import Calibration from './views/calibration'
 import CallbackUrl from "./views/callbackUrl.jsx";
 import ListVideo from "./views/listVideo.jsx";
 import VideoConfig from "./views/videoConfig.jsx";
@@ -222,11 +222,6 @@ const App = () => {
                     <CameraAim />
                   </ProtectedRoute>
                 } />
-                <Route path="/calibration" element={
-                  <ProtectedRoute>
-                    <Calibration />
-                  </ProtectedRoute>
-                } />
                 <Route path="/video" element={
                   <ProtectedRoute>
                     <ListVideo
@@ -260,5 +255,18 @@ const App = () => {
         </MessageProvider>
     )
 }
-
+Layout.propTypes = {
+  children: PropTypes.node.isRequired,
+  requiresRestart: PropTypes.bool.isRequired,
+  setRequiresRestart: PropTypes.func.isRequired,
+  setIsLoading: PropTypes.func.isRequired,
+  videoRunState: PropTypes.shape({
+    video_id: PropTypes.number,
+    video_file: PropTypes.string,
+    status: PropTypes.number,
+    sync_status: PropTypes.number,
+    message: PropTypes.string
+  }),
+  setVideoRunState: PropTypes.func.isRequired,
+};
 export default App

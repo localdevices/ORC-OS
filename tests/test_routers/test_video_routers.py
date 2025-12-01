@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 
 import pytest
@@ -29,21 +30,53 @@ def get_db_override():
 def auth_client():
     app.dependency_overrides[get_db] = get_db_override
     app.state.session = next(get_db_override())
-
     client = TestClient(app)
     # credentials = HTTPBasicCredentials(password="welcome123")
     credentials = {"password": "welcome123"}
     # first create the password
-    _ = client.post("/api/auth/set_password", params=credentials)
-    response = client.post("/api/auth/login", params=credentials)
+    _ = client.post("/api/auth/set_password/", params=credentials)
+    response = client.post("/api/auth/login/", params=credentials)
     assert response.status_code == 200
     return TestClient(app, cookies=response.cookies)
+
+
+def test_video_details_log_delete(auth_client, tmpdir, mocker):
+    upload_dir = os.path.join(tmpdir, "uploads")
+    mocker.patch("orc_api.UPLOAD_DIRECTORY", return_value=upload_dir)
+
+    # add some videos
+    db_session = next(get_db_override())
+    video1 = models.Video(timestamp=datetime.now(), file=os.path.join(upload_dir, "test_video.mp4"))
+    video2 = models.Video(timestamp=datetime.now() + timedelta(hours=1))
+
+    db_session.add_all([video1, video2])
+    db_session.commit()
+    # get details, log play, and so on
+    r = auth_client.get("/api/video/1/")
+    assert r.status_code == 200
+    r = auth_client.get("/api/video/1/log/")
+    assert r.status_code == 404
+    # now patch the log file with tmpdir file
+    log_file = os.path.join(upload_dir, "pyorc.log")
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    with open(log_file, "w") as f:
+        f.write("log test")
+    r = auth_client.get("/api/video/1/log/")
+    assert r.status_code == 200
+    # finally delete video, also check if log file is removed
+    r = auth_client.delete("/api/video/1/")
+    assert r.status_code == 204
+    assert not os.path.exists(log_file)
+    db_session.query(models.Video).delete()
+    db_session.commit()
+    db_session.flush()
 
 
 def test_list_videos_no_params(auth_client):
     # Create test videos
     # app.dependency_overrides[get_db] = get_db_override
     # client = TestClient(app)
+
     db_session = next(get_db_override())
     video1 = models.Video(timestamp=datetime.now())
     video2 = models.Video(timestamp=datetime.now() + timedelta(hours=1))
@@ -53,6 +86,19 @@ def test_list_videos_no_params(auth_client):
     response = auth_client.get("/api/video/")
     assert response.status_code == 200
     assert len(response.json()) == 2
+    # also check count end point
+    response = auth_client.get("/api/video/count/")
+    assert response.status_code == 200
+    print(response.json())
+    assert response.json() == 2
+    # also test routes with failing parameters, these should give 400 errors
+    r = auth_client.get("/api/video/?status=10")
+    assert r.status_code == 400
+    assert "Invalid status value" in r.json()["detail"]
+    r = auth_client.get("/api/video/count/?sync_status=10")
+    assert r.status_code == 400
+    assert "Invalid sync status value" in r.json()["detail"]
+
     # delete videos before continuing
     db_session.query(models.Video).delete()
     db_session.commit()

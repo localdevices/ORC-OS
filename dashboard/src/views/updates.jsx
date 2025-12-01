@@ -2,7 +2,7 @@ import {useState, useEffect, useRef} from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import api, {createWebSocketConnection} from '../api/api.js';
-import {orcVersion, startUpdate} from '../utils/apiCalls.jsx';
+import {orcVersion, startUpdate} from '../utils/apiCalls/update.jsx';
 import "./updates.css"
 import '../App.css';
 

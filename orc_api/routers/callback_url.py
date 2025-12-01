@@ -39,7 +39,7 @@ async def get_callback_url_health(db: Session = Depends(get_db)):
 
 
 @router.get(
-    "/refresh_tokens",
+    "/refresh_tokens/",
     response_model=CallbackUrlResponse,
     status_code=200,
     description="Refresh the access token of LiveORC callback URL",

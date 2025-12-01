@@ -73,12 +73,12 @@ async def lifespan(app: FastAPI):
         if len(videos_left) > 0:
             logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
             for video_rec in videos_left:
-                with get_session() as db:
-                    # ensure state is set back to new so that processing will be accepted.
-                    db.commit()
-                    # session.refresh(video_rec)
-                    video_rec = crud.video.update(db, video_rec.id, {"status": VideoStatus.NEW})
-                    video_instance = VideoResponse.model_validate(video_rec)
+                # with get_session() as db:
+                # ensure state is set back to new so that processing will be accepted.
+                # db.commit()
+                # session.refresh(video_rec)
+                video_rec = crud.video.update(session, video_rec.id, {"status": VideoStatus.NEW})
+                video_instance = VideoResponse.model_validate(video_rec)
                 if video_instance.ready_to_run[0]:
                     _ = await queue.process_video_submission(
                         session=session,
@@ -129,11 +129,11 @@ async def auth_middleware(request: Request, call_next):
         return await call_next(request)
 
     # login by def. does not require a token as it should return a token
-    if request.url.path in ["/api/auth/login", "/api/auth/password_available"]:
+    if request.url.path in ["/api/auth/login/", "/api/auth/password_available/"]:
         return await call_next(request)
 
     # case where no password yet exists and password store is requested also does not require auth
-    if request.url.path in ["/api/auth/set_password"]:
+    if request.url.path in ["/api/auth/set_password/"]:
         # Check if any password exists in database
         has_password = crud.login.get(request.app.state.session) is not None
         if not has_password:
