@@ -227,6 +227,8 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.status = models.VideoStatus.DONE
                 video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
             except Exception as e:
+                # ensure the file handler is removed, even if an error occurs
+                remove_file_handler(logger, name_contains="pyorc.log")
                 # ensure status is ERROR, but continue afterwards
                 self.status = models.VideoStatus.ERROR
                 # also show this state in the web socket
