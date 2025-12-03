@@ -56,8 +56,81 @@ def upgrade() -> None:
             update(callback_url_table).where(callback_url_table.c.id == 1).values(remote_site_id=remote_site_id)
         )
 
-    # Drop the remote_site_id column from the settings table
-    op.drop_column("settings", "remote_site_id")
+    # migration strategy below is for sqlite3 < v3.35 (used on Pi-OS bullseye / Python3.9). A much simpler alternative
+    # is show below this code block
+    # Create a new table without the remote_site_id column
+    op.create_table(
+        "settings_new",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column(
+            "parse_dates_from_file",
+            sa.Boolean(),
+            nullable=False,
+            comment="Flag determining if dates should be read from a datestring in the filename (True, default) or from the file metadata (False)",
+        ),
+        sa.Column(
+            "video_file_fmt",
+            sa.String(),
+            nullable=False,
+            comment="Filename template (excluding path) defining the file name convention of video files. The template contains a datestring format in between {} signs, e.g. video_{%Y%m%dT%H%M%S}.mp4",
+        ),
+        sa.Column(
+            "allowed_dt",
+            sa.Float(),
+            nullable=False,
+            comment="Float indicating the maximum difference in time allowed between a videofile time stamp and a water level time stamp to match them",
+        ),
+        sa.Column(
+            "shutdown_after_task",
+            sa.Boolean(),
+            nullable=False,
+            comment="Flag for enabling automated shutdown after a task is performed. Must only be used if a power cycling scheme is implemented and is meant to save power only.",
+        ),
+        sa.Column(
+            "reboot_after",
+            sa.Float(),
+            nullable=False,
+            comment="Float indicating the amount of seconds after which device reboots (0 means never reboot)",
+        ),
+        sa.Column(
+            "enable_daemon",
+            sa.Boolean(),
+            nullable=False,
+            comment="Flag for enabling the daemon. If disabled, the daemon will not be started and the service will only run in the foreground. A Video Config must be selected to process videos.",
+        ),
+        sa.Column("video_config_id", sa.Integer(), nullable=True, comment="Video Config ID used to process videos."),
+        sa.Column("sync_file", sa.Boolean(), nullable=False, comment="Flag for syncing video files to remote server"),
+        sa.Column("sync_image", sa.Boolean(), nullable=False, comment="Flag for syncing images to remote server"),
+        sa.Column(
+            "active",
+            sa.Boolean(),
+            nullable=False,
+            comment="Flag for enabling the daemon. If disabled, the daemon will not be started and only interactive processing is done.",
+        ),
+        sa.ForeignKeyConstraint(
+            ["video_config_id"],
+            ["video_config.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    # move records from old to new
+    connection = op.get_bind()
+    connection.execute("""
+        INSERT INTO settings_new (id, created_at, parse_dates_from_file, video_file_fmt, allowed_dt, shutdown_after_task, reboot_after, enable_daemon, video_config_id, sync_file, sync_image, active)
+        SELECT id, created_at, parse_dates_from_file, video_file_fmt, allowed_dt, shutdown_after_task, reboot_after, enable_daemon, video_config_id, sync_file, sync_image, active FROM settings;
+    """) # noqa: E501
+
+    # Drop the old settings table
+    op.drop_table("settings")
+
+    # Rename the new table to replace the old one
+    op.rename_table("settings_new", "settings")
+
+    # # The code below (much simpler) should work only on sqlite3 versions > 3.35. With Pi-OS Bullseye and Python3.9 sqlite is on 3.33
+    # # or 3.34
+    # # Drop the remote_site_id column from the settings table
+    # op.drop_column("settings", "remote_site_id")
 
     # ### end Alembic commands ###
 
