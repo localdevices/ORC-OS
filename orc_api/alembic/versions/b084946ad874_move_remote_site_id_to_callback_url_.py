@@ -116,10 +116,10 @@ def upgrade() -> None:
     )
     # move records from old to new
     connection = op.get_bind()
-    connection.execute("""
+    connection.execute(sa.text("""
         INSERT INTO settings_new (id, created_at, parse_dates_from_file, video_file_fmt, allowed_dt, shutdown_after_task, reboot_after, enable_daemon, video_config_id, sync_file, sync_image, active)
         SELECT id, created_at, parse_dates_from_file, video_file_fmt, allowed_dt, shutdown_after_task, reboot_after, enable_daemon, video_config_id, sync_file, sync_image, active FROM settings;
-    """) # noqa: E501
+    """))# noqa: E501
 
     # Drop the old settings table
     op.drop_table("settings")
