@@ -1,7 +1,8 @@
 """Main ORC-OS API module."""
 
+import asyncio
 import multiprocessing
-from concurrent.futures import ThreadPoolExecutor
+import time
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -35,7 +36,12 @@ from orc_api.routers import (
     video_stream,
     water_level,
 )
-from orc_api.schedulers import schedule_disk_maintenance, schedule_video_checker, schedule_water_level
+from orc_api.schedulers import (
+    delayed_sync_videos,
+    schedule_disk_maintenance,
+    schedule_video_checker,
+    schedule_water_level,
+)
 from orc_api.schemas.video import VideoResponse
 from orc_api.utils import auth_helpers, queue
 from orc_api.utils.states import video_run_state
@@ -53,15 +59,19 @@ async def lifespan(app: FastAPI):
     # add scheduler to api state for use in routers
     app.state.scheduler = scheduler  # scheduler is accessible throughout the app
     app.state.process_list = []  # state with queue of videos to run
-    app.state.executor = ThreadPoolExecutor(max_workers=1)
+    app.state.executor = queue.PriorityThreadPoolExecutor(max_workers=1)  # ThreadPoolExecutor(max_workers=1)
     # app.state.processing = False  # state processing yes/no
     app.state.video_run_state = video_run_state  # initialize video run status queue
     # app.state.processing_message = None  # string defining last status condition
     app.state.session = session
+    app.state.start_time = time.time()
 
-    # with get_session() as session:
     schedule_water_level(scheduler, logger, session)
     schedule_disk_maintenance(scheduler, logger, session)
+
+    # delay syncing of non-synced videos to ensure any video jobs for daemon are always prioritized
+    asyncio.create_task(delayed_sync_videos(app, logger))
+
     process_queue_videos = schedule_video_checker(scheduler, logger, session, app)
     if process_queue_videos:
         # finally check if there are any jobs left to do from an earlier occasion
@@ -80,7 +90,7 @@ async def lifespan(app: FastAPI):
                 video_rec = crud.video.update(session, video_rec.id, {"status": VideoStatus.NEW})
                 video_instance = VideoResponse.model_validate(video_rec)
                 if video_instance.ready_to_run[0]:
-                    _ = await queue.process_video_submission(
+                    _ = await queue.process_video(
                         session=session,
                         video=video_instance,
                         logger=logger,

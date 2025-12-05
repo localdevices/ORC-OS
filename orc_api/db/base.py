@@ -17,6 +17,7 @@ class SyncStatus(enum.Enum):
     SYNCED = 2
     UPDATED = 3
     FAILED = 4
+    QUEUE = 5
 
 
 class RemoteBase(Base):

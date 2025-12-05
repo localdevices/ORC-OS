@@ -26,7 +26,6 @@ const Settings = ({setRequiresRestart}) => {
   const fetchSettings = async () => {
     const response = await api.get('/settings/');
     setSettings(response.data);
-    console.log(response.data);
   };
 
   useEffect(() => {
@@ -57,9 +56,7 @@ const Settings = ({setRequiresRestart}) => {
   }, [settings]);
 
   const handleInputChange = (event) => {
-    console.log(event.target.checked, event.target.value);
     const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
-    console.log(value);
     setFormData({
       ...formData,
       [event.target.name]: value,
@@ -219,7 +216,7 @@ const Settings = ({setRequiresRestart}) => {
               Reboot device after some time [sec]. Just in case a system fails, the device may go back online after this
               time.
             </label>
-            <input type='number' className='form-control' id='reboot_after' name='reboot_after' step="1"
+            <input type='number' min='300' max='86400' className='form-control' id='reboot_after' name='reboot_after' step='1'
                    onChange={handleInputIntChange} value={formData.reboot_after}/>
           </div>
           <div className='mb-3 mt-3'>

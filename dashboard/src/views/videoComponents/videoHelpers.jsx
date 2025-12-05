@@ -34,7 +34,9 @@ export const getSyncStatusIcon = (status) => {
     case 2:
       return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
     case 3:
-      return <div><FaSync style={{color: "cadetblue", animation: "spin 1s linear infinite"}}/> out of sync</div>; // Error
+      return <div><FaSync style={{color: "cadetblue", animation: "spin 1s linear infinite"}}/> updated</div>; // Error
+    case 5:
+      return <div><FaHourglass style={{color: "purple", animation: "spin 5s linear infinite"}}/> queue</div>; // Error
     default:
       return <FaSync style={{color: "grey"}}/>;
   }

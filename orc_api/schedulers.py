@@ -4,8 +4,11 @@ import asyncio
 from datetime import datetime, timedelta
 
 from orc_api import INCOMING_DIRECTORY, UPLOAD_DIRECTORY, crud
+from orc_api.database import get_session
+from orc_api.db import SyncStatus
 from orc_api.schemas.disk_management import DiskManagementResponse
 from orc_api.schemas.settings import SettingsResponse
+from orc_api.utils import queue
 
 
 def async_job_wrapper(func, kwargs):
@@ -16,6 +19,32 @@ def async_job_wrapper(func, kwargs):
 def get_water_level(logger):
     """Get dummy water level for testing the APScheduler API."""
     logger.info(f"Getting water level in daemon mode {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+async def delayed_sync_videos(app, logger):
+    """Sync videos after a delay to avoid syncing during startup when daemon event may trigger."""
+    logger.info("Starting sync of videos with a 60-second delay.")
+    await asyncio.sleep(60)
+    with get_session() as session:
+        # start sync tasks if there is a working callback_url with site id
+        callback_url = crud.callback_url.get(session)
+        settings = crud.settings.get(session)
+        timeout = min(callback_url.retry_timeout, 150) if callback_url.retry_timeout else 150
+        if callback_url and callback_url.remote_site_id:
+            videos_for_syncing = crud.video.get_list(db=session, sync_status=SyncStatus.QUEUE)
+            logger.info(f"There are {len(videos_for_syncing)} videos left to synchronize.")
+            if len(videos_for_syncing) > 0:
+                # resubmit these for processing
+                _ = await queue.sync_videos_list(
+                    videos=videos_for_syncing,
+                    session=session,
+                    executor=app.state.executor,
+                    upload_directory=UPLOAD_DIRECTORY,
+                    site=callback_url.remote_site_id,
+                    sync_file=settings.sync_file,
+                    sync_image=settings.sync_image,
+                    timeout=timeout,
+                )
 
 
 def schedule_water_level(scheduler, logger, session):
@@ -38,7 +67,6 @@ def schedule_water_level(scheduler, logger, session):
 
 def schedule_disk_maintenance(scheduler, logger, session):
     """Schedule the disk maintenance."""
-    # with get_session() as session:
     dm = crud.disk_management.get(session)
     if dm:
         # validate the settings model instance
@@ -66,6 +94,7 @@ def schedule_video_checker(scheduler, logger, session, app):
     settings = crud.settings.get(session)
     dm = crud.disk_management.get(session)
 
+    # default the additional processing if queued videos to true
     process_queue_videos = True
     # settings must be provided AND active
     if settings and dm:

@@ -1,3 +1,24 @@
+## [0.4.x] -
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+### Changed
+- videos that are not synced yet are attempted to be synced in the background upon starting the daemon. This
+  only happens after one minute to prevent that automated video processing is interrupted by syncing of a video.
+  Submitted videos through the daemon are now always prioritized over syncing jobs.
+### Deprecated
+### Removed
+### Fixed
+- Syncing of videos to LiveORC does not interrupt the front end anymore.
+### Security
+
+
 ## [0.4.3] - 2025-12-03
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

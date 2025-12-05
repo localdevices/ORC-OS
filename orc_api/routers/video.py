@@ -320,7 +320,7 @@ async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
     video = get_video_record(db, id)
     executor = request.app.state.executor
     # session = request.app.state.session
-    video_patch = await queue.process_video_submission(
+    video_patch = await queue.process_video(
         session=db,
         video=video,
         logger=logger,
@@ -465,7 +465,7 @@ async def download_videos_on_ids(
 
 
 @router.post("/{id}/sync/", status_code=200, response_model=None)
-async def sync_video(id: int, db: Session = Depends(get_db)):
+async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
     """Sync a selected video."""
     # if no settings found assume everything should be synced
     sync_file = True
@@ -491,27 +491,33 @@ async def sync_video(id: int, db: Session = Depends(get_db)):
     if settings is not None:
         sync_file = settings.sync_file
         sync_image = settings.sync_image
-    video.sync_remote(
+
+    # retrieve the executor instance
+    executor = request.app.state.executor
+    video_patch = await queue.sync_video(
         session=db,
-        base_path=UPLOAD_DIRECTORY,
+        video=video,
+        logger=logger,
         site=callback_url.remote_site_id,
         sync_file=sync_file,
         sync_image=sync_image,
+        executor=executor,
+        upload_directory=UPLOAD_DIRECTORY,
     )
-    return video
+    return video_patch
 
 
-@router.post("/sync/", status_code=200, response_model=None)
-async def sync_list_videos(request: SyncVideosRequest, db: Session = Depends(get_db)):
+@router.post("/sync/", status_code=200, response_model=List[VideoResponse])
+async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Session = Depends(get_db)):
     """Sync a list of videos."""
-    sync_image = request.sync_image
-    sync_file = request.sync_file
-    start = request.start
-    stop = request.stop
-    site = request.site
+    sync_image = params.sync_image
+    sync_file = params.sync_file
+    start = params.start
+    stop = params.stop
+    site = params.site
+    url = crud.callback_url.get(db)
     if site is None:
         # get the site from the callback url settings
-        url = crud.callback_url.get(db)
         if url is None:
             raise HTTPException(
                 status_code=400,
@@ -519,27 +525,47 @@ async def sync_list_videos(request: SyncVideosRequest, db: Session = Depends(get
                 "email/password and a site ID to report on.",
             )
         site = url.remote_site_id
-    videos = [
-        crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.LOCAL),
-        crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.UPDATED),
-        crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.FAILED),
-    ]
-    # start with LOCAl, then UPDATED, then FAILED
-    for list_v in videos:
-        # sync one by one
-        for v in list_v:
-            v = VideoResponse.model_validate(v)
-            file_path = v.get_video_file(base_path=UPLOAD_DIRECTORY)
-            image_path = v.get_image_file(base_path=UPLOAD_DIRECTORY)
-            s_f = sync_file and bool(file_path and os.path.isfile(file_path))
-            s_i = sync_image and bool(image_path and os.path.isfile(image_path))
-            v.sync_remote(
-                session=db,
-                base_path=UPLOAD_DIRECTORY,
-                site=site,
-                sync_file=s_f,
-                sync_image=s_i,
-            )
+    timeout = min(url.retry_timeout, 150) if url.retry_timeout else 150
+    try:
+        videos = await queue.sync_videos_start_stop(
+            session=db,
+            executor=request.app.state.executor,
+            upload_directory=UPLOAD_DIRECTORY,
+            start=start,
+            stop=stop,
+            logger=logger,
+            site=site,
+            sync_file=sync_file,
+            sync_image=sync_image,
+            timeout=timeout,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error syncing videos: {str(e)}")
+    msg = f"{len(videos)} videos submitted for syncing to site {site}."
+    logger.info(msg)
+    return videos
+
+    # videos = [
+    #     crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.LOCAL),
+    #     crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.UPDATED),
+    #     crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.FAILED),
+    # ]
+    # # start with LOCAl, then UPDATED, then FAILED
+    # for list_v in videos:
+    #     # sync one by one
+    #     for v in list_v:
+    #         v = VideoResponse.model_validate(v)
+    #         file_path = v.get_video_file(base_path=UPLOAD_DIRECTORY)
+    #         image_path = v.get_image_file(base_path=UPLOAD_DIRECTORY)
+    #         s_f = sync_file and bool(file_path and os.path.isfile(file_path))
+    #         s_i = sync_image and bool(image_path and os.path.isfile(image_path))
+    #         v.sync_remote(
+    #             session=db,
+    #             base_path=UPLOAD_DIRECTORY,
+    #             site=site,
+    #             sync_file=s_f,
+    #             sync_image=s_i,
+    #         )
 
 
 @router.websocket("/status/")

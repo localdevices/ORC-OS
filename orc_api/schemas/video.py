@@ -251,31 +251,17 @@ class VideoResponse(VideoBase, RemoteModel):
             settings = crud.settings.get(session)
             # only in daemon mode attempt to sync automatically
             if callback_url and callback_url.remote_site_id:
-                # video_run_state.update(
-                #     sync_status=SyncRunStatus.SYNCING, message=f"Syncing to remote site {callback_url.remote_site_id}"
-                # )
+                # make a timeout, maximized on 150 seconds
+                timeout = min(callback_url.retry_timeout, 150) if callback_url.retry_timeout else 150
                 logger.debug("Attempting syncing to remote site ")
-                # try:
-                # try the callback
                 self.sync_remote(
                     session=session,
                     base_path=base_path,
                     site=callback_url.remote_site_id,
                     sync_file=settings.sync_file,
                     sync_image=settings.sync_image,
+                    timeout=timeout,
                 )
-                # logger.info(f"Syncing to remote site {callback_url.remote_site_id} successful.")
-                # video_run_state.update(
-                #     sync_status=SyncRunStatus.SUCCESS,
-                #     message=f"Syncing to remote site {callback_url.remote_site_id} successful.",
-                # )
-                # except Exception as e_sync:
-                #     logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
-                #     video_run_state.update(
-                #         sync_status=SyncRunStatus.FAILED,
-                #         message=f"Error syncing to remote site {callback_url.remote_site_id}: {e_sync}",
-                #     )
-                #     logger.exception("Traceback:")
 
             # shutdown if this is set
             if shutdown_after_task:
@@ -290,13 +276,19 @@ class VideoResponse(VideoBase, RemoteModel):
 
             return
 
-    def sync_remote(self, session: Session, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True):
-        """Send the recipe to LiveORC API.
-
-        Recipes belong to an institute, hence also the institute ID is required.
-        """
+    def sync_remote(
+        self,
+        session: Session,
+        base_path: str,
+        site: int,
+        sync_file: bool = True,
+        sync_image: bool = True,
+        timeout: float = 120,
+    ):
+        """Send the video to LiveORC API."""
         try:
-            # first check if the recipe and cross section are synced
+            # first update Sync Status to QUEUE so that syncing may be re-attempted upon reboot
+            _ = crud.video.update(session, id=self.id, video={"sync_status": models.SyncStatus.QUEUE})
             filename = os.path.split(self.file)[1]
             video_run_state.update(
                 video_id=self.id,
@@ -305,7 +297,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 status=self.status,
                 message=f"Syncing to remote site {site}",
             )
-
+            # first check if the video config and time series are synced
             if self.video_config is not None:
                 if self.video_config.sync_status != models.SyncStatus.SYNCED:
                     # first sync/update recipe
@@ -321,8 +313,6 @@ class VideoResponse(VideoBase, RemoteModel):
                     self.time_series = self.time_series.sync_remote(session=session, site=site)
                     self.time_series_id = self.time_series.id
 
-            # now report the entire video config (this currently reports to cameraconfig,
-            # should be updated after LiveORC restructuring)
             if self.remote_id is None:
                 # committing a new video always occurs on a central end point (not site specific)
                 endpoint = "/api/video/"
@@ -346,7 +336,9 @@ class VideoResponse(VideoBase, RemoteModel):
                 files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
             # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
             logger.debug(f"Syncing video {self.id} - {self.file} to remote site {site}.")
-            response_data = super().sync_remote(session=session, endpoint=endpoint, data=data, files=files, timeout=60)
+            response_data = super().sync_remote(
+                session=session, endpoint=endpoint, data=data, files=files, timeout=timeout
+            )
             if response_data is not None:
                 response_data.pop("camera_config", None)
                 response_data.pop("created_at", None)
@@ -381,6 +373,23 @@ class VideoResponse(VideoBase, RemoteModel):
                 message=f"Error syncing to remote site {site}: {e_sync}",
             )
             logger.exception("Traceback: ")
+
+    def sync_remote_wrapper(
+        self, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True, timeout: float = 150
+    ):
+        """Wrap remote sync from queue without a required database input.
+
+        This wrapper prevents that very long opened database sessions are created when queueing sync jobs.
+        """
+        with get_session() as session:
+            return self.sync_remote(
+                session=session,
+                base_path=base_path,
+                site=site,
+                sync_file=sync_file,
+                sync_image=sync_image,
+                timeout=timeout,
+            )
 
     def get_path(self, base_path: str):
         """Get media path to video."""
@@ -500,8 +509,8 @@ class DeleteVideosRequest(BaseModel):
 class SyncVideosRequest(BaseModel):
     """Request body schema for syncing videos."""
 
-    start: datetime = None
-    stop: datetime = None
+    start: Optional[datetime] = None
+    stop: Optional[datetime] = None
     sync_file: Optional[bool] = True
     sync_image: Optional[bool] = True
     site: Optional[int] = None
