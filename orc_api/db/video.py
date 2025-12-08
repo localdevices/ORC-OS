@@ -73,7 +73,6 @@ class Video(RemoteBase):
     video_config_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("video_config.id", use_alter=True), nullable=True
     )  # relate by id
-    # time_series = Column(ForeignKey("time_series.id"))
     video_config = relationship("VideoConfig", foreign_keys=[video_config_id])
     time_series_id: Mapped[int] = mapped_column(Integer, ForeignKey("time_series.id"), nullable=True, unique=True)
     time_series = relationship("TimeSeries", uselist=False, back_populates="video")  # , foreign_keys=[time_series_id]

@@ -149,7 +149,6 @@ export const run_video = async(video, setMessageInfo) => {
     const response = await api.get(`/video/${video.id}/run/`);
     // update the status of the video
     video.status = response.data.status;
-    // setVideo({ ...video, status: response.data.status});
     console.log("Run video response:", response.data);
 
     // Display success message
@@ -175,7 +174,7 @@ export const sync_video = async(video, setMessageInfo) => {
     // Make the API call
     const response = await api.post(`/video/${video.id}/sync/`);
     // update the status of the video
-    video.status = response.data.status;
+    video.sync_status = response.data.sync_status;
     // setVideo({ ...video, status: response.data.status});
     console.log("Sync video response:", response.data);
 
