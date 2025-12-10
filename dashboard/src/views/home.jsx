@@ -30,7 +30,7 @@ const Home = () => {
         setDiskManagementStatus(response.data)
       }
       else {
-        throw new Error("Invalid API response: " + response.status)
+        console.error("Invalid API response: " + response.status)
       }
     } catch (error) {
       setMessageInfo("error retrieving device status", error);
@@ -189,14 +189,14 @@ const Home = () => {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div className="home-header" style={{ display: 'flex', alignItems: 'center' }}>
         <a href="https://openrivercam.org" target="_blank">
           <img alt="logo" src={orcLogo} className="logo"/>
         </a>
         <h1> OpenRiverCam-OS</h1>
       </div>
-      <div className="split-screen flex"  style={{overflowY: "hidden"}}>
-        <div className="flex-container column no-padding">
+      <div className="split-screen flex">
+        <div className="flex-container column no-padding"  style={{height: "100%"}}>
           <div className="flex-container column" style={{height: "calc(100vh - 300px", minHeight: "723px"}}>
 
             <h4>{!lastVideo ? ("Last video") : (
@@ -233,7 +233,7 @@ const Home = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{height: "calc(100vh - 692px", minHeight: "330px"}}>
+          <div className="flex-container column" style={{height: "calc(100vh - 692px", minHeight: "370px"}}>
             <h4>Device status</h4>
 
             <div className="mb-0 mt-0">

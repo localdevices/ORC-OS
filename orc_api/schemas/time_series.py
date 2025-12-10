@@ -75,3 +75,13 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
                 session, id=self.id, time_series=update_time_series.model_dump(exclude_unset=True)
             )
             return TimeSeriesResponse.model_validate(r)
+
+
+class TimeSeriesPatch(TimeSeriesResponse):
+    """Patch model for a time series.
+
+    Make timestamp also optional
+    """
+
+    id: Optional[int] = Field(description="TimeSeries ID", default=None)
+    timestamp: Optional[datetime] = Field(default=None)

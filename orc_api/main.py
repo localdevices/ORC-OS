@@ -30,6 +30,7 @@ from orc_api.routers import (
     pivideo_stream,
     recipe,
     settings,
+    time_series,
     updates,
     video,
     video_config,
@@ -179,6 +180,7 @@ app.include_router(pivideo_stream.router)
 app.include_router(recipe.router)
 app.include_router(auth.router)
 app.include_router(settings.router)
+app.include_router(time_series.router)
 app.include_router(updates.router)
 app.include_router(video.router)
 app.include_router(video_config.router)

@@ -306,7 +306,7 @@ const VideoConfig = () => {
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
-        <div className="flex-container column" style={{"height": "100%"}}>
+        <div className="flex-container column" style={{height: "100%"}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
             <h5 style={{margin: 0}}>Image view</h5>
           </div>
@@ -545,8 +545,10 @@ const VideoConfig = () => {
                       <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
-                        recipe={recipe}
-                        cameraConfig={cameraConfig}
+                        zMin={recipe?.min_z}
+                        zMax={recipe?.max_z}
+                        waterLevel={cameraConfig?.gcps?.z_0}
+                        yRightOffset={cameraConfig?.gcps?.h_ref - cameraConfig?.gcps?.z_0}
                       />
                   </div>
                 </div>

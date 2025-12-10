@@ -545,28 +545,6 @@ async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Sess
     logger.info(msg)
     return videos
 
-    # videos = [
-    #     crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.LOCAL),
-    #     crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.UPDATED),
-    #     crud.video.get_list(db=db, start=start, stop=stop, sync_status=SyncStatus.FAILED),
-    # ]
-    # # start with LOCAl, then UPDATED, then FAILED
-    # for list_v in videos:
-    #     # sync one by one
-    #     for v in list_v:
-    #         v = VideoResponse.model_validate(v)
-    #         file_path = v.get_video_file(base_path=UPLOAD_DIRECTORY)
-    #         image_path = v.get_image_file(base_path=UPLOAD_DIRECTORY)
-    #         s_f = sync_file and bool(file_path and os.path.isfile(file_path))
-    #         s_i = sync_image and bool(image_path and os.path.isfile(image_path))
-    #         v.sync_remote(
-    #             session=db,
-    #             base_path=UPLOAD_DIRECTORY,
-    #             site=site,
-    #             sync_file=s_f,
-    #             sync_image=s_i,
-    #         )
-
 
 @router.websocket("/status/")
 async def update_video_ws(websocket: WebSocket):

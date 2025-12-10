@@ -27,7 +27,7 @@ export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
   } catch (error) {
     setMessageInfo("error: ", error);
   }
-  setMessageInfo("success", "Download started, please don´t refresh or close the page until download is finished.");
+  setMessageInfo("success", "Download started, please don't refresh or close the page until download is finished.");
 
 }
 
