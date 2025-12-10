@@ -1,5 +1,5 @@
 import api from "../../api/api.js";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 
 const VideoConfigForm = (
   {
@@ -31,7 +31,6 @@ const VideoConfigForm = (
         sync_status: selectedVideoConfig.sync_status || 1,
         sample_video_id: selectedVideoConfig.sample_video_id || video.id,
       });
-      console.log("SELECTED VIDEO CONFIG: ", selectedVideoConfig);
     } else {
       setFormData({
         name: '',

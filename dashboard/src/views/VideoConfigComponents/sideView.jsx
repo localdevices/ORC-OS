@@ -112,7 +112,7 @@ const SideView = ({CSDischarge, CSWaterLevel, zMin, zMax, waterLevel, yRightOffs
         },
         ticks: {
           // ensure not more than 2 decimal digits
-          function (value) {
+          callback: function (value) {
             return Number(value).toFixed(2);
           }
         }
@@ -124,7 +124,7 @@ const SideView = ({CSDischarge, CSWaterLevel, zMin, zMax, waterLevel, yRightOffs
         },
 
         ticks: {
-          function (value) {
+          callback: function (value) {
             return Number(value).toFixed(2);
           }
         }
@@ -142,7 +142,7 @@ const SideView = ({CSDischarge, CSWaterLevel, zMin, zMax, waterLevel, yRightOffs
           }
         },
         ticks: {
-          function(value) {
+          callback: function(value) {
             return (Number(value) + yRightOffset).toFixed(2);
           }
         },

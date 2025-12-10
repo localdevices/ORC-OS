@@ -16,7 +16,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   const [imgDims, setImgDims] = useState({width: 0, height: 0});
   const [waterLevelMin, setWaterLevelMin] = useState(0); // max water level
   const [waterLevelMax, setWaterLevelMax] = useState(1); // min water level
-  const [waterLevel, setWaterLevel] = useState(0);  // current water level
+  const [waterLevel, setWaterLevel] = useState(null);  // current water level
   const [waterLevelChange, setWaterLevelChange] = useState(false);
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
@@ -78,7 +78,6 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
       setWaterLevelMin(Math.ceil(Math.min(...crossSection.z) * 100) /100);
       setWaterLevelMax(Math.floor(Math.max(...crossSection.z) * 100) /100);
       if (videoConfig?.camera_config?.gcps) {
-        console.log(videoConfig.camera_config.gcps.h_ref, videoConfig.camera_config.gcps.z_0)
         setYOffset(videoConfig.camera_config.gcps.h_ref - videoConfig.camera_config.gcps.z_0);
       }
       if (video?.time_series?.h) {
@@ -96,7 +95,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
         )
         setCSDischargePolygon(newCSPolPoints);
       }
-    };
+    }
   }, [crossSection, imageRef.current, imgDims, videoConfig?.camera_config?.gcps])
 
   useEffect(() => {
@@ -129,7 +128,6 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
               )
             })
             setCSWaterLines(drawLines);
-            console.log(drawLines)
           }
         )
       }, 100);
@@ -154,14 +152,16 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
     }
   };
 
-
+  const handleAddVideo = async (e) => {
+    setWaterLevel(waterLevelMin + yOffset);
+  }
   // Password change submit (adjust API endpoint as needed)
   const handleSubmitVideo = async (e, {forceOptical = false } = {}) => {
     e.preventDefault();
     const waterLevelSubmit = forceOptical ? null : waterLevel;
     const waterLevelChangeSubmit = forceOptical ? true : waterLevelChange;
-    if (waterLevelChangeSubmit) {
-      // first update time series in front end and database with new water level
+    if (waterLevelChangeSubmit && video.time_series) {
+      // with existing time series, first update time series in front end and database with new water level
       setVideo({...video, time_series: {...video.time_series, h: waterLevelSubmit}});
       try {
         await patchTimeSeries({"id": video.time_series.id, "h": waterLevelSubmit});
@@ -201,50 +201,79 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
             <div className="modal-body">
               {/*<form onSubmit={handleSubmitVideo} style={{display: "flex", flexDirection: "column", alignItems: "center"}}>*/}
               {/*  <div className="mb-3 mt-3 form-horizontal">*/}
-                <div className="mb-3 mt-3">
+              {waterLevel && (
+                <div className="mb-3 mt-0">
                   <label htmlFor="waterLevel" className="form-label">
                     Water level [m]
                   </label>
-                  <ReactSlider
-                    title="Move slider to adjust water level manually"
-                    className="horizontal-slider"
-                    thumbClassName="thumb"
-                    trackClassName="track"
-                    value={waterLevel}
-                    min={waterLevelMin + yOffset}
-                    max={waterLevelMax + yOffset}
-                    step={0.01}
-                    renderThumb={(props, state) => {
-                      const { key, ...rest } = props;
-                      return (
-                      <div key={key} {...rest}>
-                        <div className="thumb-value">{state.valueNow}</div>
-                      </div>
-                      );
-                    }}
-                    onChange={handleChangeWaterLevel}
-                  />
-                  <div className="help-block">
-                    Select or improve the set water level visually with this slider, before processing. If you want to
-                    remove a set water level and optically re-estimate it, click on the right-hand button below.
+                  <div className="slider-container">
+                    <div className="slider-min">{(waterLevelMin + yOffset).toFixed(2)}</div>
+                    <div className="slider-max">{(waterLevelMax + yOffset).toFixed(2)}</div>
+                    <ReactSlider
+                      title="Move slider to adjust water level manually"
+                      className="horizontal-slider"
+                      thumbClassName="thumb"
+                      trackClassName="track"
+                      disabled={!waterLevel}
+                      value={waterLevel ? waterLevel : NaN}
+                      min={waterLevelMin + yOffset}
+                      max={waterLevelMax + yOffset}
+                      step={0.01}
+                      renderThumb={(props, state) => {
+                        // const { key, ...rest } = props;
+                        return (
+                        <div {...props}>
+                          <div className="thumb-value">{state.valueNow ? state.valueNow : "N/A"}</div>
+                        </div>
+                        );
+                      }}
+                      onChange={handleChangeWaterLevel}
+                    />
                   </div>
-
+                    <div className="help-block" style={{marginTop: "80px"}}>
+                      Select or improve the set water level visually with this slider, before processing. If you want to
+                      remove a set water level and optically re-estimate it, click on the right-hand button below.
+                    </div>
                 </div>
-                <button
+              )}
+              {!waterLevel && (<div role="alert" style={{color: "green", fontStyle: "italic"}}>
+                No water level is set. Click on "Add water level" to set a water level manually.
+              </div>
+              )}
+              <button
+                className="btn"
+                type="submit"
+                disabled={waterLevel}
+                onClick={handleAddVideo}
+              >Add water level
+              </button>
+              <span
+                title={waterLevel ? "Submit video with set water level" : "Disabled, because no water level is set"}
+                style={{ display: "inline-block" }}
+              >
+
+              <button
                   className="btn"
                   type="submit"
+                  disabled={!waterLevel}
                   onClick={handleSubmitVideo}
-                >Submit video
+                >Submit video with water level
                 </button>
+              </span>
                 <span
-                  title={(waterLevel && videoConfig?.cross_section_wl) ? "Re-estimate water level optically using the water level cross section" : "Disabled, because either water level or cross section for water level estimation is not set"}
+                  title={(videoConfig?.cross_section_wl) ? "(Re-)estimate water level optically using the water level cross section" : "Disabled, because either water level or cross section for water level estimation is not set"}
                   style={{ display: "inline-block" }}
                 >
+              {videoConfig?.cross_section_wl && (<div role="alert" style={{color: "green", fontStyle: "italic"}}>
+                  You have set a cross section for water levels. Click on "Submit and estimate level optically"
+                  to remove any set water level and estimate the water level visually.
+                </div>
+              )}
                 <button
                   className="btn"
                   type="submit"
                   onClick={(e) => handleSubmitVideo(e, { forceOptical: true })}
-                  disabled={!(waterLevel && videoConfig?.cross_section_wl)}
+                  disabled={!videoConfig?.cross_section_wl}
                 >Submit and estimate level optically
                 </button>                {/*{confirmPassword.length > 0 && (*/}
                 </span>
@@ -259,7 +288,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
               CSDischarge={videoConfig?.cross_section}
               zMin={videoConfig?.recipe?.min_z}
               zMax={videoConfig?.recipe?.max_z}
-              waterLevel={waterLevel - yOffset}
+              waterLevel={waterLevel ? waterLevel - yOffset : null}
               yRightOffset={yOffset}
             />
             <div>
@@ -269,7 +298,6 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                 style={{width: '100%', height: '100%', maxHeight: '400px', objectFit: 'contain'}}
                 className="img-calibration"
                 ref={imageRef}
-                onClick={(e) => {console.log(e.nativeEvent.offsetX, e.nativeEvent.offsetY);}}
                 onLoad={() => {
                   setLoading(true);
                   handleImageLoad()

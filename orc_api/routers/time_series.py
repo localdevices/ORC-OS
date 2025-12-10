@@ -31,16 +31,6 @@ async def get_time_series(id: int, db: Session = Depends(get_db)):
     return get_time_series_record(db, id)
 
 
-#
-#
-# @router.delete("/{id}/", status_code=204, response_model=None)
-# async def delete_video(id: int, db: Session = Depends(get_db)):
-#     """Delete a video."""
-#     _ = crud.video.delete(db=db, id=id)
-#     return
-#
-
-
 @router.patch("/{id}/", status_code=200, response_model=TimeSeriesResponse)
 async def patch_time_series(id: int, time_series: Dict, db: Session = Depends(get_db)):
     """Update a video in the database."""

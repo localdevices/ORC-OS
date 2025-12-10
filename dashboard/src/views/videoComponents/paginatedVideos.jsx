@@ -45,7 +45,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   const {setMessageInfo} = useMessage();
   const navigate = useNavigate();
 
-  // Data must be updated when the page changes, when start and end date changes, or when
+  // Data must be updated when the page changes, when start and end date changes
   useEffect(() => {
     // set loading
     setIsLoading(true);
@@ -193,7 +193,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
 
 
 
-  // TODO: modal for "View" button action
   const handleView = (video) => {
     setSelectedVideo(video);
     setShowModal(true);

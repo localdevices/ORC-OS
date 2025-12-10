@@ -7,7 +7,7 @@
 
 .horizontal-slider {
     width: 100%;
-    margin-bottom: 40px;  /* ensure the next element is not covered by the slider */
+    margin-bottom: 30px;  /* ensure the next element is not covered by the slider */
 }
 
 .slider-container {
