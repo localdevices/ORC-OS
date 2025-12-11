@@ -19,7 +19,7 @@ export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
     const contentDisposition = response.headers['content-disposition'];
     const filename = contentDisposition
       ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
-      : 'download.zip'; // Fallback filename if header doesn't exist.
+      : 'download.zip'; // Fallback filename if the header doesn't exist.
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
@@ -72,7 +72,7 @@ export const get_videos = async (api, downloadStartDate, downloadEndDate, downlo
       const contentDisposition = response.headers['content-disposition'];
       const filename = contentDisposition
         ? contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '') // Extract filename
-        : 'download.zip'; // Fallback filename if header doesn't exist.
+        : 'download.zip'; // Fallback filename if the header doesn't exist.
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
@@ -162,12 +162,12 @@ export const run_video = async(video, setMessageInfo) => {
     video.status = response.data.status;
     console.log("Run video response:", response.data);
 
-    // Display success message
+    // Display the success message
     setMessageInfo("success", "Video has been submitted for processing.");
   } catch (error) {
     console.error("Error running the video:", error);
 
-    // Handle error and send message to container
+    // Handle error and send the message to container
     const errorMessage =
       error.response?.data?.detail || "An unexpected error occurred while running the video.";
     setMessageInfo("error", errorMessage);
@@ -189,12 +189,12 @@ export const sync_video = async(video, setMessageInfo) => {
     // setVideo({ ...video, status: response.data.status});
     console.log("Sync video response:", response.data);
 
-    // Display success message
+    // Display the success message
     setMessageInfo("success", "Video has been submitted for syncing.");
   } catch (error) {
     console.error("Error syncing the video:", error);
 
-    // Handle error and send message to container
+    // Handle error and send the message to container
     const errorMessage =
       error.response?.data?.detail || "An unexpected error occurred while syncing the video.";
     setMessageInfo("error", errorMessage);

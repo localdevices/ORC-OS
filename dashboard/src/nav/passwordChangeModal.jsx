@@ -43,7 +43,7 @@ export const PasswordChangeModal = ({setShowModal}) => {
   };
   return (
     <>
-      <div className="sidebar-overlay"></div> {/*make background grey*/}
+      <div className="sidebar-overlay"></div> {/*make the background gray*/}
       <div className="modal fade show d-block" tabIndex="-1">
         <div className="modal-dialog" style={{maxWidth: "600px", marginTop: "140px"}}>  {/*ensure modal spans a broad screen size*/}
           <div className="modal-content">

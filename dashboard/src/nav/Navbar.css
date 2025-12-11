@@ -100,6 +100,10 @@
     background-color: #495057;
 }
 
+.user-menu-item.no-hover-bg:hover {
+    background-color: transparent !important;
+    cursor: default;
+}
 a {
     color: #FFFFFF;
 }

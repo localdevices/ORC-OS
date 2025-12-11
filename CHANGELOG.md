@@ -1,4 +1,4 @@
-## [0.4.x] -
+## [0.4.4] - 2025-12-11
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -8,10 +8,13 @@ This release should only be used for:
 Feedback and bug reports are highly appreciated to improve future versions.
 
 ### Added
+- a brand new processing window for processing new, or reprocessing existing videos. Water levels can be interactively
+  set to a user defined level, along the provided cross section for water level or (if not available) discharge.
 ### Changed
 - videos that are not synced yet are attempted to be synced in the background upon starting the daemon. This
   only happens after one minute to prevent that automated video processing is interrupted by syncing of a video.
   Submitted videos through the daemon are now always prioritized over syncing jobs.
+- The options menu is now revamped with a new design and awesome icons.
 ### Deprecated
 ### Removed
 ### Fixed
