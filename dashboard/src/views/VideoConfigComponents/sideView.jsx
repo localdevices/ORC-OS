@@ -1,4 +1,4 @@
-import {Line, Scatter} from 'react-chartjs-2';
+import {Scatter} from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,31 +25,31 @@ import PropTypes from 'prop-types';
 
 
 
-const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
+const SideView = ({CSDischarge, CSWaterLevel, zMin, zMax, waterLevel, yRightOffset = 0}) => { //recipe, cameraConfig}) => {
 
   const data = {
   datasets: [
-    {
+    ...(CSDischarge?.s ? [{
       label: "CS - Discharge", // First scatter plot
       data: CSDischarge?.s ? CSDischarge.s.map((s, i) => ({x: s, y: CSDischarge.z[i]})) : [], // Map s and z to (x, y) points
       backgroundColor: "rgba(0, 192, 192, 0.6)", // Point color
       borderColor: "rgba(0, 192, 192, 0.3)", // Optional: Line color
       showLine: true, // Show connecting lines
       tension: 0, // linear connections
-    },
-    {
+    }] : []),
+    ...(CSWaterLevel?.s ? [{
       label: "CS - Water Level", // Second scatter plot
       data: CSWaterLevel?.s ? CSWaterLevel.s.map((s, i) => ({x: s, y: CSWaterLevel.z[i]})) : [], // Map s and z to (x, y) points
       backgroundColor: "rgba(255, 99, 0, 0.6)", // Point color
       borderColor: "rgba(255, 99, 0, 0.6)", // Optional: Line color
       showLine: true, // Show connecting lines
       tension: 0, // linear connection
-    },
+    }] : []),
     {
-      label: "Level during survey",
-      data: CSDischarge?.s && cameraConfig?.gcps?.z_0 ? [
-        {x: Math.min(...CSDischarge.s), y: cameraConfig?.gcps?.z_0},
-        {x: Math.max(...CSDischarge.s), y: cameraConfig?.gcps?.z_0}
+      label: "Current level",
+      data: CSDischarge?.s && waterLevel ? [
+        {x: Math.min(...CSDischarge.s), y: waterLevel},
+        {x: Math.max(...CSDischarge.s), y: waterLevel}
       ] : [
       ],
       backgroundColor: "rgba(0,50,200, 0.6)",
@@ -59,18 +59,17 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
       tension: 0,
       borderWidth: 2
     },
-    {
+    ...(CSWaterLevel?.s ? [{
       label: "Min. optical level",
       data: CSWaterLevel?.s ? (
-        recipe?.min_z ? [
-          {x: Math.min(...CSWaterLevel.s), y: recipe?.min_z},
-          {x: Math.max(...CSWaterLevel.s), y: recipe?.min_z}
+        zMin ? [
+          {x: Math.min(...CSWaterLevel.s), y: zMin},
+          {x: Math.max(...CSWaterLevel.s), y: zMin}
         ] : [
           {x: Math.min(...CSWaterLevel.s), y: Math.min(...CSWaterLevel.z)},
           {x: Math.max(...CSWaterLevel.s), y: Math.min(...CSWaterLevel.z)}
         ]
       ) : [
-
       ],
       backgroundColor: "rgba(146,218,66, 0.6)",
       borderDash: [5, 10],
@@ -78,13 +77,13 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
       showLine: true,
       tension: 0,
       borderWidth: 2
-    },
-    {
+    }] : []),
+    ...(CSWaterLevel?.s ? [{
       label: "Max. optical level",
       data: CSWaterLevel?.s ? (
-        recipe?.max_z ? [
-          {x: Math.min(...CSWaterLevel.s), y: recipe?.max_z},
-          {x: Math.max(...CSWaterLevel.s), y: recipe?.max_z}
+        zMax ? [
+          {x: Math.min(...CSWaterLevel.s), y: zMax},
+          {x: Math.max(...CSWaterLevel.s), y: zMax}
         ] : [
           {x: Math.min(...CSWaterLevel.s), y: Math.max(...CSWaterLevel.z)},
           {x: Math.max(...CSWaterLevel.s), y: Math.max(...CSWaterLevel.z)}
@@ -98,7 +97,7 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
       showLine: true,
       tension: 0,
       borderWidth: 2
-    },
+    }] : []),
   ],
 };
 
@@ -128,6 +127,28 @@ const SideView = ({CSDischarge, CSWaterLevel, recipe, cameraConfig}) => {
           callback: function (value) {
             return Number(value).toFixed(2);
           }
+        }
+      },
+      y2: {
+        position: 'right',
+        grid: {
+          drawOnChartArea: false
+        },
+        afterDataLimits: (scale) => {
+          const primary = scale.chart.scales.y;
+          if (primary) {
+            scale.min = primary.min;
+            scale.max = primary.max;
+          }
+        },
+        ticks: {
+          callback: function(value) {
+            return (Number(value) + yRightOffset).toFixed(2);
+          }
+        },
+        title: {
+          display: true,
+          text: `Water level (m)`
         }
       }
     },
@@ -159,12 +180,14 @@ SideView.propTypes = {
   CSDischarge: PropTypes.shape({
     s: PropTypes.arrayOf(PropTypes.number),
     z: PropTypes.arrayOf(PropTypes.number)
-  }).isRequired,
+  }),
   CSWaterLevel: PropTypes.shape({
     s: PropTypes.arrayOf(PropTypes.number),
     z: PropTypes.arrayOf(PropTypes.number)
-  }).isRequired,
-  recipe: PropTypes.object,
-  cameraConfig: PropTypes.object,
+  }),
+  zMin: PropTypes.number,
+  zMax: PropTypes.number,
+  waterLevel: PropTypes.number,
+  yRightOffset: PropTypes.number
 };
 export default SideView;

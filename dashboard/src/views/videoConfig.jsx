@@ -27,7 +27,7 @@ const VideoConfig = () => {
   const [activeView, setActiveView] = useState('camView');
   const {setMessageInfo} = useMessage();
 
-  // consts for image clicking
+  // constants for image clicking
   const [widgets, setWidgets] = useState([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
   const rotateState = useRef(cameraConfig?.rotation);
@@ -97,7 +97,7 @@ const VideoConfig = () => {
                   setCSWaterLevel(response.data.video_config.cross_section_wl)
                 }
               } else {
-                createNewRecipe(updatedFrameCount);  // if recipe exists it will be overwritten later
+                createNewRecipe(updatedFrameCount);  // if the recipe exists, it will be overwritten later
                 createCameraConfig();  // if cam config exists, it will be overwritten later
               }
             })
@@ -108,7 +108,7 @@ const VideoConfig = () => {
           setSave(false)
         });
     };
-    fetchFrameCountAndVideo(videoId);
+    fetchFrameCountAndVideo(videoId).then(r => {return r});
   }, [videoId]);
 
   useEffect(() => {
@@ -119,12 +119,12 @@ const VideoConfig = () => {
   }, [widgets])
 
   useEffect(() => {
-    // ensure user can save if any of the video config items changes
+    // ensure the user can save if any of the video config items changes
     setSave(true);
   }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
 
   useEffect(() => {
-    // check if height and width of camera config must be adapted to a new rotation
+    // check if the height and width of camera config must be adapted to a new rotation
     if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
       // set state to new
       rotateState.current = cameraConfig.rotation;
@@ -137,7 +137,7 @@ const VideoConfig = () => {
     }
   }, [imgDims])
 
-  // if any cross section is set, make sure that the CS camera perspective is only provided when lens parameters are
+  // if any cross-section is set, make sure that the CS camera perspective is only provided when lens parameters are
   // complete
   useEffect(() => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
@@ -154,7 +154,7 @@ const VideoConfig = () => {
 
 
   const createCameraConfig = () => {
-    api.get(`/camera_config/empty/${videoId}`) // Replace with your API endpoint
+    api.get(`/camera_config/empty/${videoId}`)
       .then((response) => {
         setCameraConfig(response.data);
       })
@@ -186,8 +186,8 @@ const VideoConfig = () => {
         await api.delete(`/video_config/${videoConfig.id}/deps`); // remove video config including its dependencies
         setMessageInfo("success", "Video configuration deleted successfully.");
         setVideoConfig(null); // Reset the video configuration in the state
-        createNewRecipe();  // if recipe exists it will be overwritten later
-        createCameraConfig();  // if cam config exists, it will be overwritten later
+        createNewRecipe();  // if the recipe exists, it will be overwritten later
+        createCameraConfig();  // if the cam config exists, it will be overwritten later
         setCSDischarge({});
         setCSWaterLevel({});
         setActiveTab('configDetails');
@@ -241,7 +241,7 @@ const VideoConfig = () => {
   };
 
   const runVideo = async () => {
-    run_video(video, setMessageInfo);
+    await run_video(video, setMessageInfo);
   };
 
   const updateWidget = (id, updatedCoordinates) => {
@@ -287,7 +287,7 @@ const VideoConfig = () => {
       setCameraConfig(newConfig);
       setCSDischarge({});
       setCSWaterLevel({});
-      // also remove selected cross sections
+      // also remove selected cross-sections
       return newWidgets;
     });
   };
@@ -306,7 +306,7 @@ const VideoConfig = () => {
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
-        <div className="flex-container column" style={{"height": "100%"}}>
+        <div className="flex-container column" style={{height: "100%"}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
             <h5 style={{margin: 0}}>Image view</h5>
           </div>
@@ -545,8 +545,10 @@ const VideoConfig = () => {
                       <SideView
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
-                        recipe={recipe}
-                        cameraConfig={cameraConfig}
+                        zMin={recipe?.min_z}
+                        zMax={recipe?.max_z}
+                        waterLevel={cameraConfig?.gcps?.z_0}
+                        yRightOffset={cameraConfig?.gcps?.h_ref - cameraConfig?.gcps?.z_0}
                       />
                   </div>
                 </div>

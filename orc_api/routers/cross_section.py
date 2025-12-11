@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import CrossSection
-from orc_api.schemas.camera_config import CameraConfigUpdate
+from orc_api.schemas.camera_config import CameraConfigResponse, CameraConfigUpdate
 from orc_api.schemas.cross_section import (
     CrossSectionCreate,
     CrossSectionResponse,
@@ -23,6 +23,14 @@ from orc_api.schemas.cross_section import (
 )
 
 router: APIRouter = APIRouter(prefix="/cross_section", tags=["cross_section"])
+
+
+def get_record(db: Session, id: int):
+    """Retrieve a cross section record from the database."""
+    cs = crud.cross_section.get(db=db, id=id)
+    if not cs:
+        raise HTTPException(status_code=404, detail="Cross section not found.")
+    return cs
 
 
 @router.delete("/{id}/", status_code=204, response_model=None)
@@ -42,9 +50,81 @@ async def get_list_cs(db: Session = Depends(get_db)):
 @router.get("/{id}/", response_model=CrossSectionResponse, status_code=200)
 async def get_cs(id: int, db: Session = Depends(get_db)):
     """Retrieve a cross section."""
-    cs = crud.cross_section.get(db=db, id=id)
-    if not cs:
-        raise HTTPException(status_code=404, detail="Cross section not found.")
+    return get_record(db, id)
+
+
+@router.get("/{id}/download/", response_model=CrossSectionResponse, status_code=200)
+async def download_cs(id: int, db: Session = Depends(get_db)):
+    """Download a recipe from the database into a .yaml file."""
+    cs = get_record(db, id)
+    # Convert cross section data into a GeoJSON string
+    json_data = json.dumps(cs.features, indent=4)
+    # set up file content
+    json_file = io.BytesIO(json_data.encode("utf-8"))
+    json_file.seek(0)
+
+    # Return file response
+    return StreamingResponse(
+        json_file,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename=cross_section_{id}.geojson"},
+    )
+
+
+@router.get("/{id}/wetted_surface/", response_model=List[List[float]], status_code=200)
+async def get_wetted_surface(
+    id: int, db: Session = Depends(get_db), camera_config_id: int = None, h: float = 0.0, camera: bool = True
+):
+    """Return wetted surface at a given height in serializable coordinates."""
+    if camera_config_id is None:
+        raise HTTPException(
+            status_code=400, detail="Camera configuration ID must be provided with parameter camera_config_id."
+        )
+    cs = CrossSectionResponseCameraConfig.model_validate(get_record(db, id))
+    cc_rec = crud.camera_config.get(db, camera_config_id)
+    if cc_rec is None:
+        raise HTTPException(status_code=404, detail="Camera configuration not found.")
+    camera_config = CameraConfigResponse.model_validate(cc_rec)
+    cs.camera_config = camera_config
+    # get wetted surface from pyorc cross section object
+    return cs.get_wetted_surface(h=h, camera=camera)
+
+
+@router.get("/{id}/csl_water_lines/", response_model=List[List[List[float]]], status_code=200)
+async def get_csl_line(
+    id: int,
+    db: Session = Depends(get_db),
+    camera_config_id: int = None,
+    h: float = 0.0,
+    length: float = 1.0,
+    offset: float = 0.0,
+    camera: bool = True,
+):
+    """Return wetted surface at a given height in serializable coordinates."""
+    if camera_config_id is None:
+        raise HTTPException(
+            status_code=400, detail="Camera configuration ID must be provided with parameter camera_config_id."
+        )
+    cs = CrossSectionResponseCameraConfig.model_validate(get_record(db, id))
+    cc_rec = crud.camera_config.get(db, camera_config_id)
+    if cc_rec is None:
+        raise HTTPException(status_code=404, detail="Camera configuration not found.")
+    camera_config = CameraConfigResponse.model_validate(cc_rec)
+    cs.camera_config = camera_config
+
+    # get wetted surface from pyorc cross section object
+    try:
+        lines = cs.get_csl_line(h=h, length=length, offset=offset, camera=camera)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return lines
+
+
+@router.patch("/{id}/", status_code=200, response_model=CrossSectionResponse)
+async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db)):
+    """Update a cross section in the database."""
+    update_cs = cs.model_dump(exclude_none=True, exclude={"id", "x", "y", "z", "s"})
+    cs = crud.cross_section.update(db=db, id=id, cross_section=update_cs)
     return cs
 
 
@@ -67,35 +147,6 @@ async def get_cs_cam_config(id: int, camera_config: CameraConfigUpdate, db: Sess
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e).split(", ")[1])
     return cs_response
-
-
-@router.get("/{id}/download/", response_model=CrossSectionResponse, status_code=200)
-async def download_cs(id: int, db: Session = Depends(get_db)):
-    """Download a recipe from the database into a .yaml file."""
-    cs = crud.cross_section.get(db=db, id=id)
-    if not cs:
-        raise HTTPException(status_code=404, detail="Recipe not found.")
-
-    # Convert cross section data into a GeoJSON string
-    json_data = json.dumps(cs.features, indent=4)
-    # set up file content
-    json_file = io.BytesIO(json_data.encode("utf-8"))
-    json_file.seek(0)
-
-    # Return file response
-    return StreamingResponse(
-        json_file,
-        media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename=cross_section_{id}.geojson"},
-    )
-
-
-@router.patch("/{id}/", status_code=200, response_model=CrossSectionResponse)
-async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db)):
-    """Update a cross section in the database."""
-    update_cs = cs.model_dump(exclude_none=True, exclude={"id", "x", "y", "z", "s"})
-    cs = crud.cross_section.update(db=db, id=id, cross_section=update_cs)
-    return cs
 
 
 @router.post("/", response_model=CrossSectionResponse, status_code=201)

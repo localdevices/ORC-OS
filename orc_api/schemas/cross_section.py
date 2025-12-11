@@ -6,7 +6,6 @@ from typing import List, Optional
 import geopandas as gpd
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pyorc import CameraConfig as pyorcCameraConfig
 from pyorc import CrossSection as pyorcCrossSection
 from pyorc.cli.cli_utils import read_shape_as_gdf
 from sqlalchemy.orm import Session
@@ -114,38 +113,63 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
         if v.camera_config is not None:
             if pose_info_complete(v.camera_config):
                 # create a cross section object with the camera configuration
-                camera_config = pyorcCameraConfig(**v.camera_config.data.model_dump())
                 h = 0.0
                 # overwrite when h_ref is defined
-                if camera_config.gcps is not None:
-                    if camera_config.gcps["h_ref"] is not None:
-                        h = camera_config.gcps["h_ref"]
+                if v.camera_config.obj.gcps is not None:
+                    if v.camera_config.obj.gcps["h_ref"] is not None:
+                        h = v.camera_config.obj.gcps["h_ref"]
 
-                cs = pyorcCrossSection(camera_config=camera_config, cross_section=v.gdf)
                 # add the fields for plotting
                 v.bottom_surface = list(
                     map(
                         list,
-                        cs.get_bottom_surface(
+                        v.obj.get_bottom_surface(
                             length=0.01, offset=0.0, camera=True, swap_y_coords=False
                         ).exterior.coords,
                     )
                 )
-                pols = cs.get_wetted_surface(camera=True, swap_y_coords=False, h=h)
-                # find the largest one
-                area = 0.0
-                for p in pols.geoms:
-                    if p.area > area:
-                        pol = p
-                v.wetted_surface = list(map(list, pol.exterior.coords))
+                v.wetted_surface = v.get_wetted_surface(h=h, camera=True)
                 # also provide the info to determine if the cross section is within the image and not too far off
-                v.within_image = cs.within_image
-                v.distance_camera = cs.distance_camera
-                v.x = cs.x.tolist()
-                v.y = cs.y.tolist()
-                v.z = cs.z.tolist()
-                v.s = np.append(np.array(0.0), np.cumsum((np.diff(cs.x) ** 2 + np.diff(cs.y) ** 2) ** 0.5)).tolist()
+                v.within_image = v.obj.within_image
+                v.distance_camera = v.obj.distance_camera
+                v.x = v.obj.x.tolist()
+                v.y = v.obj.y.tolist()
+                v.z = v.obj.z.tolist()
+                v.s = np.append(
+                    np.array(0.0), np.cumsum((np.diff(v.obj.x) ** 2 + np.diff(v.obj.y) ** 2) ** 0.5)
+                ).tolist()
         return v
+
+    @property
+    def obj(self):
+        """Return the cross section as a pyorc CrossSection object."""
+        if self.camera_config is None:
+            return None
+        return pyorcCrossSection(camera_config=self.camera_config.obj, cross_section=self.gdf)
+
+    def get_wetted_surface(self, h: float, camera: bool = True) -> Optional[List[List[float]]]:
+        """Return the wetted surface of the cross section in serializable coordinates."""
+        if self.obj is None:
+            return []
+        pols = self.obj.get_wetted_surface(camera=camera, swap_y_coords=False, h=h)
+        # find the largest one
+        area = 0.0
+        pol = None
+        for p in pols.geoms:
+            if p.area > area:
+                pol = p
+        if pol is None:
+            return []
+        return list(map(list, pol.exterior.coords))
+
+    def get_csl_line(self, h: float, camera: bool = True, length=1.0, offset=0.0) -> Optional[List[List[List[float]]]]:
+        """Return the cross section line of the cross section in serializable coordinates."""
+        if self.obj is None:
+            return []
+        # get list of linestrings
+        lines = self.obj.get_csl_line(h=h, camera=camera, length=length, offset=offset)
+        # convert into list of list of lists (with coordinates)
+        return [list(map(list, line.coords)) for line in lines]
 
 
 class CrossSectionUpdate(CrossSectionBase):

@@ -64,6 +64,11 @@ class CameraConfigBase(BaseModel):
             _crs = CRS.from_user_input(self.data["crs"])
         return _crs
 
+    @property
+    def obj(self):
+        """Return the camera configuration as pyorc camera config object."""
+        return pyorcCameraConfig(**self.data.model_dump())
+
 
 class CameraConfigRemote(CameraConfigBase, RemoteModel):
     """Model for camera configuration with remote fields included."""

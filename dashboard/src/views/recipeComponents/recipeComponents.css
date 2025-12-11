@@ -7,7 +7,7 @@
 
 .horizontal-slider {
     width: 100%;
-    margin-bottom: 40px;  /* ensure the next element is not covered by the slider */
+    margin-bottom: 30px;  /* ensure the next element is not covered by the slider */
 }
 
 .slider-container {
@@ -53,20 +53,6 @@
     background-color: #ddd;
 }
 
-/* Add value labels under each thumb */
-.thumb-value {
-    position: absolute;
-    top: 28px; /* Adjust to position the label under the thumb */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #fff;
-    color: #000;
-    font-size: 11px;
-    padding: 2px 5px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
-}
 
 .form-horizontal {
     display: flex; /* Use flexbox for horizontal alignment */

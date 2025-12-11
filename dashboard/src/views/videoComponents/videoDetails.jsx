@@ -78,9 +78,9 @@ export const VideoDetails = ({selectedVideo}) => {
             </label>
             <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
               <div className="readonly">Water
-                level: {`${selectedVideo.time_series ? selectedVideo.time_series.h.toFixed(3) : "-"} m`}</div>
+                level: {`${selectedVideo?.time_series?.h ? selectedVideo.time_series.h.toFixed(3) : "-"} m`}</div>
               <div
-                className="readonly">Discharge: {`${selectedVideo.time_series ? selectedVideo.time_series.q_50.toFixed(3) : "-"} m3/s`}</div>
+                className="readonly">Discharge: {`${selectedVideo?.time_series?.q_50 ? selectedVideo.time_series.q_50.toFixed(3) : "-"} m3/s`}</div>
             </div>
           </div>
           <div className="mb-0 mt-0">

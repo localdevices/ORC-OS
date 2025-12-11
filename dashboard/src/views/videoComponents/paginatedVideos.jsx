@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {run_video, sync_video} from "../../utils/apiCalls/video.jsx"
+import {sync_video} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -23,6 +23,7 @@ import ActionVideos from "./actionVideos.jsx";
 import {useMessage} from "../../messageContext.jsx";
 import VideoUploader from "./videoUpload.jsx";
 import {createRoot} from "react-dom/client";
+import {TimeSeriesChangeModal} from "./timeSeriesChangeModal.jsx";
 
 const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRunState}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,13 +38,14 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   const [showLog, setShowLog] = useState(false);
   const [showModal, setShowModal] = useState(false); // State for modal visibility
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showRunModal, setShowRunModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
   // allow for setting messages
   const {setMessageInfo} = useMessage();
   const navigate = useNavigate();
 
-  // Data must be updated when the page changes, when start and end date changes, or when
+  // Data must be updated when the page changes, when start and end date changes
   useEffect(() => {
     // set loading
     setIsLoading(true);
@@ -120,6 +122,19 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
     });
   }, [videoRunState])
 
+  useEffect(() => {
+    // ensure that time series information is always up-to-date
+    if (!selectedVideo) return;
+    setData(prevData => {
+      return prevData.map(video => {
+        if (video.id === selectedVideo.id) {
+          return {...video, time_series: selectedVideo.time_series, video_config: selectedVideo.video_config};
+        }
+        return video;
+      });
+    });
+  }, [selectedVideo]);
+
   const renderVideoConfigButton = (video) => {
     return (
       <button
@@ -178,14 +193,15 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
 
 
 
-  // TODO: modal for "View" button action
   const handleView = (video) => {
     setSelectedVideo(video);
     setShowModal(true);
   };
 
   const handleRun = (video) => {
-    run_video(video, setMessageInfo);
+    console.log(video);
+    setSelectedVideo(video);
+    setShowRunModal(true);
   }
 
   const handleSync = (video) => {
@@ -325,10 +341,10 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 </td>
                 <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
                 <td>
-                  <strong><i>h</i></strong>: {video.time_series ? Math.round(video.time_series.h * 1000) / 1000 + " m " : "N/A "}
-                  | <strong><i>Q</i></strong>: {video.time_series ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s " : "N/A "}
-                  | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series ? Math.round(video.time_series.v_av * 100) / 100 + " m/s " : "N/A "}
-                  | <strong><i>v<sub>bulk</sub></i></strong>: {video.time_series ? Math.round(video.time_series.v_bulk * 100) / 100 + " m/s " : "N/A "}
+                  <strong><i>h</i></strong>: {video.time_series && video.time_series?.h ? Math.round(video.time_series.h * 1000) / 1000 + " m " : "N/A "}
+                  | <strong><i>Q</i></strong>: {video.time_series && video.time_series?.q_50 ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s " : "N/A "}
+                  | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series && video.time_series?.v_av ? Math.round(video.time_series.v_av * 100) / 100 + " m/s " : "N/A "}
+                  | <strong><i>v<sub>bulk</sub></i></strong>: {video.time_series && video.time_series?.v_bulk ? Math.round(video.time_series.v_bulk * 100) / 100 + " m/s " : "N/A "}
                 </td>
                 <td>{getStatusIcon(video.status)}</td>
                 <td>{getSyncStatusIcon(video.sync_status)}</td>
@@ -504,6 +520,10 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           setSelectedVideo={setSelectedVideo}
           setShowModal={setShowModal}
         />
+      )}
+      {/*Modal for running video */}
+      {showRunModal && selectedVideo && (
+        <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo}/>
       )}
     </div>
   );

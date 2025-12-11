@@ -5,6 +5,8 @@ import './photoComponent.css';
 import PropTypes from 'prop-types';
 import api from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
+import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
+
 
 const PhotoComponent = (
   {
@@ -147,44 +149,17 @@ const PhotoComponent = (
     updateTransform();
   });
 
-
-  const getFrameUrl = (frameNr, rotate) => {
-    if (!video) return '';
-    const apiHost = api.defaults.baseURL.replace(/\/$/, '');
-    const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
-    if (rotate !== null) {
-      // ensure that if rotate is set, it is also parsed
-      return `${frameUrl}?rotate=${rotate}`;
-    }
-    return frameUrl
-  }
-  const isImageCached = (url) => {
-    const img = new Image();
-    img.src = url; // Set the source
-    return img.complete; // This will be true for cached images
-  };
-
-  // set / reset timer for reloading of image with requested changes
-  const debounce = (callback, delay) => {
-    let timeout;
-    return (...args) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => callback(...args), delay);
-    };
-  };
-
-  useEffect(() => {
-    const debouncedUpdate = debounce(() => {
-      // Update the image URL whenever frameNr or rotate changes
-      const url = getFrameUrl(frameNr, rotate);
-      setImageUrl(url); // Set the new image URL
-      if (isImageCached(url)) {
-        setLoading(false);  // skil loading stage if cached (prevents race issues)
+  useDebouncedImageUrl({
+    setImageUrl,
+    deps: [rotate, video, frameNr],
+    urlBuilder: () => getFrameUrl(video, frameNr, rotate),
+    onUrlReady: (url, { cached }) => {
+      if (cached) {
+        setLoading(false);
       }
-    }, 300);
-    debouncedUpdate();
-    return () => clearTimeout(debouncedUpdate);
-  }, [rotate, video, frameNr]);
+    },
+    delayMs: 300
+  });
 
 
   const updateFittedPoints = () => {
@@ -534,138 +509,46 @@ const PhotoComponent = (
         );
       })}
       {transformState && photoBbox && bBoxPolygon && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-          }}
-        >
-          <svg
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            <polygon
-              // points={polygonPoints
-              //   .map(p => `${p.x / transformState.scale},${p.y / transformState.scale}`)
-              //   .join(' ')}
-              points={bBoxPolygon
-                .map(p => `${p.x},${p.y}`)
-                .join(' ')}
-              fill="rgba(255, 255, 255, 0.3)"
-              stroke="white"
-              strokeWidth={2 / transformState.scale}
-            />
-          </svg>
-        </div>
+        <PolygonDrawer
+          points={bBoxPolygon}
+          fill={"rgba(255, 255, 255, 0.3)"}
+          stroke={"white"}
+          strokeWidth={2 / transformState.scale}
+          zIndex={0}
+
+        />
+
       )}
       {/*Render Discharge Cross Section*/}
       {transformState && photoBbox && CSDischargePolygon && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-          }}
-        >
-          <svg
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            <polygon
-              points={CSDischargePolygon
-                .map(p => `${p.x},${p.y}`)
-                .join(' ')}
-              fill="rgba(75, 192, 192, 0.3)"
-              stroke="white"
-              strokeWidth={2 / transformState.scale}
-            />
-          </svg>
-        </div>
+        <PolygonDrawer
+          points={CSDischargePolygon}
+          fill={"rgba(75, 192, 192, 0.3)"}
+          stroke={"white"}
+          strokeWidth={2 / transformState.scale}
+          zIndex={0}
+          />
       )}
       {/*Render Discharge Cross Section*/}
       {transformState && photoBbox && CSWettedSurfacePolygon && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-          }}
-        >
-          <svg
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            <polygon
-              points={CSWettedSurfacePolygon
-                .map(p => `${p.x},${p.y}`)
-                .join(' ')}
-              fill="rgba(75, 130, 192, 0.3)"
-              stroke="white"
-              strokeWidth={2 / transformState.scale}
-            />
-          </svg>
-        </div>
+        <PolygonDrawer
+          points={CSWettedSurfacePolygon}
+          fill={"rgba(75, 130, 192, 0.3)"}
+          stroke={"white"}
+          strokeWidth={2 / transformState.scale}
+          zIndex={0}
+        />
       )}
       {/*Render Water Level Cross Section*/}
       {transformState && photoBbox && CSWaterLevelPolygon && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-          }}
-        >
-          <svg
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            <polygon
-              points={CSWaterLevelPolygon
-                .map(p => `${p.x},${p.y}`)
-                .join(' ')}
-              fill="rgba(255, 99, 132, 0.3)"
-              stroke="rgba(255, 160, 0, 1)"
-              strokeWidth={4 / transformState.scale}
-            />
-          </svg>
-        </div>
+        <PolygonDrawer
+          points={CSWaterLevelPolygon}
+          fill={"rgba(255, 99, 132, 0.3)"}
+          stroke={"rgba(255, 160, 0, 1)"}
+          strokeWidth={4 / transformState.scale}
+          zIndex={0}
+        />
       )}
-
-
-
 
       {/* Render the dashed line */}
       {lineCoordinates && (

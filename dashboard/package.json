@@ -20,6 +20,7 @@
     "epsg-index": "^2.0.0",
     "leaflet": "^1.9.4",
     "proj4": "^2.15.0",
+    "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.0",
     "react-confetti": "^6.4.0",
