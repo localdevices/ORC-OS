@@ -117,6 +117,7 @@ export const sync_videos = async (api, syncStartDate, syncEndDate, syncSettings,
 
 
 export const delete_videos = async (api, deleteStartDate, deleteEndDate, setMessageInfo) => {
+  /* delete videos between start and end date. */
   try {
     const response = await api.post(
       "/video/delete/", {
@@ -134,6 +135,16 @@ export const delete_videos = async (api, deleteStartDate, deleteEndDate, setMess
   } finally {
     // ensure deletes are administered to the application
     window.location.reload()
+  }
+}
+
+export const patchVideo = async (id, videoPatch) => {
+  /* patch a video object with the given id and fields in videoPatch.*/
+  try {
+    const response = await api.patch(`/video/${id}/`, videoPatch)
+    return response.data;
+  } catch (error) {
+    console.error(error)
   }
 }
 

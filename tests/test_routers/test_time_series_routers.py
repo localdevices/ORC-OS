@@ -41,7 +41,7 @@ def auth_client():
     return TestClient(app, cookies=response.cookies)
 
 
-def test_get_patch_time_series(auth_client):
+def test_get_patch_post_time_series(auth_client):
     # add some videos
     db_session = next(get_db_override())
     ts1 = models.TimeSeries(timestamp=datetime.now(), h=20.0)
@@ -57,12 +57,18 @@ def test_get_patch_time_series(auth_client):
     assert r.status_code == 404
     # try patching time series
     r = auth_client.patch("/api/time_series/1/", json={"h": 22.0})
-
     assert r.status_code == 200
     assert r.json()["h"] == 22.0
     # also check in database if h was changed
     rec = db_session.query(models.TimeSeries).get(1)
     assert rec.h == 22.0
+    # add via post
+    r = auth_client.post(
+        "/api/time_series/", json={"timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"), "h": 23.0}
+    )
+    assert r.status_code == 201
+    assert r.json()["h"] == 23.0
+    assert r.json()["id"] == 3
     # remove after test
     db_session.query(models.TimeSeries).delete()
     db_session.commit()

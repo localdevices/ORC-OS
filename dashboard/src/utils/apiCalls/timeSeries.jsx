@@ -6,6 +6,15 @@ export const patchTimeSeries = async (timeSeries) => {
     const response = await api.patch(`/time_series/${id}/`, tsPatch)
     return response.data;
   } catch (error) {
-    console.log(error);
+    console.error(error);
+  }
+}
+
+export const postTimeSeries = async (timeSeries) => {
+  try {
+    const response = await api.post("/time_series/", timeSeries)
+    return response.data;
+  } catch (error) {
+    console.error(error);
   }
 }

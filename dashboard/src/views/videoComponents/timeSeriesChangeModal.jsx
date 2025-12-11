@@ -4,7 +4,8 @@ import {useMessage} from '../../messageContext';
 import PropTypes from "prop-types";
 import ReactSlider from "react-slider";
 import SideView from "../VideoConfigComponents/sideView.jsx";
-import {patchTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
+import {patchTimeSeries, postTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
+import {patchVideo} from "../../utils/apiCalls/video.jsx";
 import {getWettedSurface, getWaterLines} from "../../utils/apiCalls/crossSection.jsx";
 import {run_video} from "../../utils/apiCalls/video.jsx"
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
@@ -119,15 +120,17 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
         // also retrieve water lines
         getWaterLines(crossSection.id, videoConfig.camera_config.id, waterLevel).then(
           response => {
-            const drawLines = response.map(line => {
-              return rescale_coords(
-                line,
-                imgDims,
-                bBoxRect,
-                containerRect
-              )
-            })
-            setCSWaterLines(drawLines);
+            if (response) {
+              const drawLines = response.map(line => {
+                return rescale_coords(
+                  line,
+                  imgDims,
+                  bBoxRect,
+                  containerRect
+                )
+              })
+              setCSWaterLines(drawLines);
+            }
           }
         )
       }, 100);
@@ -164,9 +167,22 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
       // with existing time series, first update time series in front end and database with new water level
       setVideo({...video, time_series: {...video.time_series, h: waterLevelSubmit}});
       try {
-        await patchTimeSeries({"id": video.time_series.id, "h": waterLevelSubmit});
+        await patchTimeSeries({id: video.time_series.id, h: waterLevelSubmit});
       } catch (error) {
         console.error(`Error updating water level: ${error.response.data.detail}`);
+        return
+      }
+    }
+    // if no time series exists yet, create with the video time stamp
+    if (!video.time_series && waterLevelChangeSubmit) {
+      try {
+        const ts = await postTimeSeries({timestamp: video.timestamp, h: waterLevelSubmit});
+        // // patch video to reflect new time series id
+        // await patchVideo({id: video.id, time_series_id: ts.id});
+        // // also set time series id on video object
+        // setVideo({...video, time_series_id: ts.id});
+      } catch (error) {
+        console.error(`Error creating water level: ${error.response.data.detail}`);
         return
       }
     }
