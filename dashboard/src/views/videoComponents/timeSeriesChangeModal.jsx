@@ -5,7 +5,6 @@ import PropTypes from "prop-types";
 import ReactSlider from "react-slider";
 import SideView from "../VideoConfigComponents/sideView.jsx";
 import {patchTimeSeries, postTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
-import {patchVideo} from "../../utils/apiCalls/video.jsx";
 import {getWettedSurface, getWaterLines} from "../../utils/apiCalls/crossSection.jsx";
 import {run_video} from "../../utils/apiCalls/video.jsx"
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
@@ -22,7 +21,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLines, setCSWaterLines] = useState([]);
-  const [yOffset, setYOffset] = useState(0.0);
+  const [yOffset, setYOffset] = useState(0);
   const [videoConfig, setVideoConfig] = useState(null);
   const [crossSection, setCrossSection] = useState(null);  // current water level
   const {setMessageInfo} = useMessage();
@@ -176,11 +175,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
     // if no time series exists yet, create with the video time stamp
     if (!video.time_series && waterLevelChangeSubmit) {
       try {
-        const ts = await postTimeSeries({timestamp: video.timestamp, h: waterLevelSubmit});
-        // // patch video to reflect new time series id
-        // await patchVideo({id: video.id, time_series_id: ts.id});
-        // // also set time series id on video object
-        // setVideo({...video, time_series_id: ts.id});
+        await postTimeSeries({timestamp: video.timestamp, h: waterLevelSubmit});
       } catch (error) {
         console.error(`Error creating water level: ${error.response.data.detail}`);
         return
@@ -207,7 +202,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
         <div className="modal-dialog" style={{maxWidth: "600px", marginTop: "30px"}}>  {/*ensure modal spans a broad screen size*/}
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Process video</h5>
+              <h5 className="modal-title">{`Process video ${video.id} - ${video.file.split(`/${video.id}/`)[1]}`}</h5>
               <button
                 type="button"
                 className="btn-close"
@@ -215,8 +210,6 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
               ></button>
             </div>
             <div className="modal-body">
-              {/*<form onSubmit={handleSubmitVideo} style={{display: "flex", flexDirection: "column", alignItems: "center"}}>*/}
-              {/*  <div className="mb-3 mt-3 form-horizontal">*/}
               {waterLevel && (
                 <div className="mb-3 mt-0">
                   <label htmlFor="waterLevel" className="form-label">
@@ -231,12 +224,11 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                       thumbClassName="thumb"
                       trackClassName="track"
                       disabled={!waterLevel}
-                      value={waterLevel ? waterLevel : NaN}
+                      value={waterLevel ? waterLevel : Number.NaN}
                       min={waterLevelMin + yOffset}
                       max={waterLevelMax + yOffset}
                       step={0.01}
                       renderThumb={(props, state) => {
-                        // const { key, ...rest } = props;
                         return (
                         <div {...props}>
                           <div className="thumb-value">{state.valueNow ? state.valueNow : "N/A"}</div>
@@ -291,13 +283,8 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                   onClick={(e) => handleSubmitVideo(e, { forceOptical: true })}
                   disabled={!videoConfig?.cross_section_wl}
                 >Submit and estimate level optically
-                </button>                {/*{confirmPassword.length > 0 && (*/}
+                </button>
                 </span>
-                {/*  <p style={{ color: error ? "red" : passwordsMatch ? "green" : "red", margin: "6px 0" }}>*/}
-                {/*    {error ? error: passwordsMatch ? "New passwords match" : "New passwords do not match"}*/}
-                {/*  </p>*/}
-                {/*)}*/}
-              {/*</form>*/}
             </div>
             <SideView
               CSWaterLevel={videoConfig?.cross_section_wl}

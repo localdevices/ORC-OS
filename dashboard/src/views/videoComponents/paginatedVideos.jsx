@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {run_video, sync_video} from "../../utils/apiCalls/video.jsx"
+import {sync_video} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -202,7 +202,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
     console.log(video);
     setSelectedVideo(video);
     setShowRunModal(true);
-    // run_video(video, setMessageInfo);
   }
 
   const handleSync = (video) => {

@@ -64,7 +64,6 @@ export const PolygonDrawer = ({
   fill = "rgba(255, 255, 255, 0.3)",
   stroke = "white",
   strokeWidth = 2,
-  // scale = 1,
   zIndex = 1,
   visible = true,
 }) => {
@@ -108,7 +107,6 @@ PolygonDrawer.propTypes = {
   fill: PropTypes.string,
   stroke: PropTypes.string,
   strokeWidth: PropTypes.number,
-  scale: PropTypes.number,
   zIndex: PropTypes.number,
   visible: PropTypes.bool,
 };

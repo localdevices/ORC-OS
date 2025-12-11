@@ -2,7 +2,6 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   FaUser,
-  FaCog,
   FaSync,
   FaSpinner,
   FaCheck,
@@ -29,7 +28,6 @@ import { useAuth } from "../auth/useAuth.jsx";
 const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunState}) => {
 
   const [isOpen, setIsOpen] = useState(false); // track if the navbar is open / closed
-  const [settingsOpen, setSettingsOpen] = useState(false); // track if the settings menu is open
   const { logout } = useAuth();
   // states for handling password changes
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -43,15 +41,10 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
   };
   const handleClose = () => {
     setIsOpen(false); // Closes the navbar when called
-    setSettingsOpen(false);
   };
 
   const handleUserButtonClick = async () => {
     await logout();
-  };
-
-  const handleSettingsClick = () => {
-    setSettingsOpen(!settingsOpen);
   };
 
   const handleRestartClick = () => {

@@ -101,7 +101,6 @@ async def get_csl_line(
     camera: bool = True,
 ):
     """Return wetted surface at a given height in serializable coordinates."""
-    # cs = get_pyorc_cs(db, id, camera_config_id)
     if camera_config_id is None:
         raise HTTPException(
             status_code=400, detail="Camera configuration ID must be provided with parameter camera_config_id."

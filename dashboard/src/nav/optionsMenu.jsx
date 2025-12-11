@@ -9,6 +9,10 @@ export const OptionsMenu = () => {
   // delay on closure of the User menu to prevent closing when hovering over the menu items
   let optionsMenuCloseTimer = null;
 
+  const openSetting = (uri) => {
+    navigate(uri);
+    setOptionsMenuOpen(false);
+  }
   return (
     <div
       className="user-menu-wrapper"
@@ -30,50 +34,45 @@ export const OptionsMenu = () => {
         <div className="user-menu">
           <div
             className="user-menu-item"
-            onClick={() => {
-              navigate("/settings");
-              setOptionsMenuOpen(false);
-            }}
+            onClick={() => {openSetting("/settings")}}
+            onKeyDown={() => {openSetting("/settings")}}
+            role="button"
           >
             <FaClock style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Daemon
           </div>
           <div
             className="user-menu-item"
-            onClick={() => {
-              navigate("/disk_management");
-              setOptionsMenuOpen(false);
-            }}
+            onClick={() => {openSetting("/disk_management")}}
+            onKeyDown={() => {openSetting("/disk_management")}}
+            role="button"
           >
             <FaSave style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Disk management
           </div>
           <div
             className="user-menu-item"
-            onClick={() => {
-              navigate("/water_level");
-              setOptionsMenuOpen(false);
-            }}
+            onClick={() => {openSetting("/water_level")}}
+            onKeyDown={() => {openSetting("/water_level")}}
+            role="button"
           >
             <FaWater style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Water level
           </div>
           <div
             className="user-menu-item"
-            onClick={() => {
-              navigate("/callback_url");
-              setOptionsMenuOpen(false);
-            }}
+            onClick={() => {openSetting("/callback_url")}}
+            onKeyDown={() => {openSetting("/callback_url")}}
+            role="button"
           >
             <FaCloudUploadAlt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             LiveORC API
           </div>
           <div
             className="user-menu-item"
-            onClick={() => {
-              navigate("/updates");
-              setOptionsMenuOpen(false);
-            }}
+            onClick={() => {openSetting("/updates")}}
+            onKeyDown={() => {openSetting("/updates")}}
+            role="button"
           >
             <FaTools style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Updates
