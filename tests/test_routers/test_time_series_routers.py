@@ -1,49 +1,42 @@
 from datetime import datetime, timedelta
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from orc_api import db as models
-from orc_api.database import get_db
-from orc_api.db import Base
-from orc_api.main import app
-from orc_api.utils import queue
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# get the database connection from general configuration instances
+
+# engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+#
+#
+# def get_db_override():
+#     Base.metadata.create_all(bind=engine)
+#     session = SessionLocal()
+#     try:
+#         yield session
+#     finally:
+#         # Base.metadata.drop_all(bind=engine)
+#         session.close()
+#
+
+# @pytest.fixture
+# def auth_client():
+#     app.dependency_overrides[get_db] = get_db_override
+#     app.state.session = next(get_db_override())
+#     # app.state.executor = queue.PriorityThreadPoolExecutor(max_workers=1)  # ThreadPoolExecutor(max_workers=1)
+#     client = TestClient(app)
+#     # credentials = HTTPBasicCredentials(password="welcome123")
+#     credentials = {"password": "welcome123"}
+#     # first create the password
+#     _ = client.post("/api/auth/set_password/", params=credentials)
+#     response = client.post("/api/auth/login/", params=credentials)
+#     assert response.status_code == 200
+#     return TestClient(app, cookies=response.cookies)
+#
 
 
-def get_db_override():
-    Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        # Base.metadata.drop_all(bind=engine)
-        session.close()
-
-
-@pytest.fixture
-def auth_client():
-    app.dependency_overrides[get_db] = get_db_override
-    app.state.session = next(get_db_override())
-    app.state.executor = queue.PriorityThreadPoolExecutor(max_workers=1)  # ThreadPoolExecutor(max_workers=1)
-    client = TestClient(app)
-    # credentials = HTTPBasicCredentials(password="welcome123")
-    credentials = {"password": "welcome123"}
-    # first create the password
-    _ = client.post("/api/auth/set_password/", params=credentials)
-    response = client.post("/api/auth/login/", params=credentials)
-    assert response.status_code == 200
-    return TestClient(app, cookies=response.cookies)
-
-
-def test_get_patch_post_time_series(auth_client):
-    # add some videos
-    db_session = next(get_db_override())
+def test_get_patch_post_time_series(auth_client, db_session):
+    # add some time series
+    # db_session = next(get_db_override())
     ts1 = models.TimeSeries(timestamp=datetime.now(), h=20.0)
     ts2 = models.TimeSeries(timestamp=datetime.now() + timedelta(hours=1), h=21.0)
 
