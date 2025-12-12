@@ -372,6 +372,8 @@ class VideoResponse(VideoBase, RemoteModel):
                 sync_status=SyncRunStatus.FAILED,
                 message=f"Error syncing to remote site {site}: {e_sync}",
             )
+            # also update record
+            _ = crud.video.update(session, id=self.id, video={"sync_status": models.SyncStatus.FAILED})
             logger.exception("Traceback: ")
 
     def sync_remote_wrapper(

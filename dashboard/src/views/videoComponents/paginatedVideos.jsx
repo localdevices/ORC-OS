@@ -199,7 +199,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   };
 
   const handleRun = (video) => {
-    console.log(video);
     setSelectedVideo(video);
     setShowRunModal(true);
   }

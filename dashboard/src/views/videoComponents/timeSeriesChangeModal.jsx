@@ -154,7 +154,8 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
     }
   };
 
-  const handleAddVideo = async (e) => {
+  const handleAddWaterLevel = async (e) => {
+    console.log(waterLevelMin, yOffset);
     setWaterLevel(waterLevelMin + yOffset);
   }
   // Password change submit (adjust API endpoint as needed)
@@ -210,7 +211,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
               ></button>
             </div>
             <div className="modal-body">
-              {waterLevel && (
+              {waterLevel !== null && (
                 <div className="mb-3 mt-0">
                   <label htmlFor="waterLevel" className="form-label">
                     Water level [m]
@@ -223,15 +224,15 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                       className="horizontal-slider"
                       thumbClassName="thumb"
                       trackClassName="track"
-                      disabled={!waterLevel}
-                      value={waterLevel ? waterLevel : Number.NaN}
+                      disabled={waterLevel == null}
+                      value={waterLevel !== null ? waterLevel : Number.NaN}
                       min={waterLevelMin + yOffset}
                       max={waterLevelMax + yOffset}
                       step={0.01}
                       renderThumb={(props, state) => {
                         return (
                         <div {...props}>
-                          <div className="thumb-value">{state.valueNow ? state.valueNow : "N/A"}</div>
+                          <div className="thumb-value">{state.valueNow !== null ? state.valueNow : "N/A"}</div>
                         </div>
                         );
                       }}
@@ -252,7 +253,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                 className="btn"
                 type="submit"
                 disabled={waterLevel}
-                onClick={handleAddVideo}
+                onClick={handleAddWaterLevel}
               >Add water level
               </button>
               <span
