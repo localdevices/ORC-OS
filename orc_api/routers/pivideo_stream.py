@@ -155,6 +155,7 @@ def record_async_task(
 
 @router.post("/record")
 async def record_camera_stream(
+    camera_idx: Optional[int] = None,
     width: int = 1920,
     height: int = 1080,
     fps: int = 30,
@@ -177,7 +178,9 @@ async def record_camera_stream(
         response = {"message": "Recording video started in the background", "status": "processing"}
 
         # Add the recording task in the background
-        background_tasks.add_task(record_async_task, db=db, width=width, height=height, fps=fps, length=length)
+        background_tasks.add_task(
+            record_async_task, db=db, camera_idx=camera_idx, width=width, height=height, fps=fps, length=length
+        )
         return response
 
     except Exception as e:
