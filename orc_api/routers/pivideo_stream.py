@@ -23,6 +23,7 @@ picam = None
 camera_streaming = False
 
 try:
+    from libcamera import controls
     from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
     from picamera2.encoders import H264Encoder
     from picamera2.outputs import FfmpegOutput
@@ -59,7 +60,12 @@ def start_camera(camera_idx: Optional[int] = None, width: int = 1920, height: in
     else:
         picam = Picamera2()
     video_config = picam.create_video_configuration(
-        main={"size": (width, height)}, controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
+        main={"size": (width, height)},
+        controls={
+            "FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps)),
+            "AfMode": controls.AfModeEnum.Manual,  # manual focus
+            "LensPosition": 0.0,
+        },
     )
     picam.configure(video_config)
     picam.start()
