@@ -1,3 +1,21 @@
+## [0.4.x] - 2025-xx-xx
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- PiCamera was not selecting second camera module when recording a video.
+- PiCamera could be out of focus. The camera is now always set to infinity focus.
+### Security
+
 ## [0.4.4] - 2025-12-11
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:

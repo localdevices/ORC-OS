@@ -23,6 +23,7 @@ picam = None
 camera_streaming = False
 
 try:
+    from libcamera import controls
     from picamera2 import Picamera2  # Use 'from picamera import PiCamera' if using old library
     from picamera2.encoders import H264Encoder
     from picamera2.outputs import FfmpegOutput
@@ -59,7 +60,12 @@ def start_camera(camera_idx: Optional[int] = None, width: int = 1920, height: in
     else:
         picam = Picamera2()
     video_config = picam.create_video_configuration(
-        main={"size": (width, height)}, controls={"FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps))}
+        main={"size": (width, height)},
+        controls={
+            "FrameDurationLimits": (int(1e6 / fps), int(1e6 / fps)),
+            "AfMode": controls.AfModeEnum.Manual,  # manual focus
+            "LensPosition": 0.0,
+        },
     )
     picam.configure(video_config)
     picam.start()
@@ -155,6 +161,7 @@ def record_async_task(
 
 @router.post("/record")
 async def record_camera_stream(
+    camera_idx: Optional[int] = None,
     width: int = 1920,
     height: int = 1080,
     fps: int = 30,
@@ -177,7 +184,9 @@ async def record_camera_stream(
         response = {"message": "Recording video started in the background", "status": "processing"}
 
         # Add the recording task in the background
-        background_tasks.add_task(record_async_task, db=db, width=width, height=height, fps=fps, length=length)
+        background_tasks.add_task(
+            record_async_task, db=db, camera_idx=camera_idx, width=width, height=height, fps=fps, length=length
+        )
         return response
 
     except Exception as e:
