@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest" ] #, "macos-latest", "windows-latest"]
-        python-version: ["3.11"] # fix tests to support older versions, related to pillow<=9.5.0 for Raspberry Pi Bullseye
+        python-version: ["3.9", "3.14"] # fix tests to oldest and newest supported versions
 
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
       - name: OpenCV dependencies
         run: |
           sudo apt update
-          sudo apt install libegl1 libopengl0 ffmpeg libjpeg-dev -y
+          sudo apt install libegl1 libopengl0 ffmpeg libjpeg-dev libfftw3-dev -y
 
       # build environment with pip
       - name: Install orc_api
