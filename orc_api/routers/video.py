@@ -39,6 +39,7 @@ from orc_api.schemas.video import (
     VideoPatch,
     VideoResponse,
 )
+from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue, websockets
 from orc_api.utils.states import video_run_state
 
@@ -162,10 +163,13 @@ async def get_list_video(
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
     list_videos = crud.video.get_list(db, start=start, stop=stop, status=status, first=first, count=count)
-
-    # Convert to VideoListResponse list (light-weight for front end use
+    unique_video_configs = set([v.video_config_id for v in list_videos])
+    video_configs = {v: VideoConfigResponse.model_validate(crud.video_config.get(db, v)) for v in unique_video_configs}
     video_list_responses = [
-        VideoListResponse.from_video_response(VideoResponse.model_validate(video)) for video in list_videos
+        VideoListResponse.from_orm_model(
+            video, video_configs[video.video_config_id if hasattr(video, "video_config_id") else None]
+        )
+        for video in list_videos
     ]
     return video_list_responses
 
@@ -226,10 +230,10 @@ async def delete_video(id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id}/", status_code=200, response_model=VideoResponse)
-async def patch_video(id: int, video: VideoPatch, db: Session = Depends(get_db)):
+async def patch_video(id: int, video: dict, db: Session = Depends(get_db)):
     """Update a video in the database."""
-    update_video = video.model_dump(exclude_none=True, exclude={"id", "video_config", "time_series"})
-    video = crud.video.update(db=db, id=id, video=update_video)
+    # update_video = video.model_dump(exclude_none=True, exclude={"id", "video_config", "time_series"})
+    video = crud.video.update(db=db, id=id, video=video)
     return video
 
 

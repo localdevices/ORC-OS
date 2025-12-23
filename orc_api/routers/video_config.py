@@ -39,7 +39,7 @@ async def delete_video_config(id: int, db: Session = Depends(get_db)):
     return
 
 
-@router.delete("/{id}/deps", status_code=204, response_model=None)
+@router.delete("/{id}/deps/", status_code=204, response_model=None)
 async def delete_video_config_with_deps(id: int, db: Session = Depends(get_db)):
     """Delete a video config and attempt to also delete the associated camera config and recipe, if they exist."""
     warn = False

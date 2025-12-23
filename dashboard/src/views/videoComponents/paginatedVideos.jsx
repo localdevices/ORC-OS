@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {sync_video} from "../../utils/apiCalls/video.jsx"
+import {sync_video, patchVideo} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -123,12 +123,19 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   }, [videoRunState])
 
   useEffect(() => {
-    // ensure that time series information is always up-to-date
+    // ensure that table information is always up-to-date
     if (!selectedVideo) return;
     setData(prevData => {
       return prevData.map(video => {
         if (video.id === selectedVideo.id) {
-          return {...video, time_series: selectedVideo.time_series, video_config: selectedVideo.video_config};
+          return {
+            ...video,
+            time_series: selectedVideo.time_series,
+            video_config: selectedVideo.video_config,
+            allowed_to_run: selectedVideo.allowed_to_run[0] || selectedVideo.allowed_to_run,
+            status: selectedVideo.status,
+            sync_status: selectedVideo.sync_status
+          };
         }
         return video;
       });
@@ -212,16 +219,31 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   }
 
   // Function to handle configuration selection and API call
-  const handleConfigSelection = (event) => {
+  const handleConfigSelection = async (event) => {
     const {value} = event.target;
     try {
-      // Send a POST request to update the video with the selected configuration
-      api.patch(`/video/${selectedVideo.id}`, {
-        video_config_id: value, // Pass the selected configuration ID
+      await patchVideo(selectedVideo.id, {video_config_id: value}).then(async () => {
+        await api.get(`/video/${selectedVideo.id}/`).then((r) => {
+          setSelectedVideo(r.data);
+          // update table if required
+          setData(prevData => {
+            return prevData.map(video => {
+              if (video.id === selectedVideo.id) {
+                return {
+                  ...video,
+                  video_config_id: value,
+                  video_config: r.data.video_config,
+                  allowed_to_run: r.data.allowed_to_run[0]
+                };
+              }
+              return video;
+            });
+          });
+        })
       });
       // Success feedback
       setMessageInfo('success', `Video configuration selected on ${value}`);
-      setSelectedVideo(null)
+      // setSelectedVideo(null)
       setShowConfigModal(false);
     } catch (error) {
       // Error handling
@@ -295,8 +317,8 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
               <th>Thumbnail</th>
               <th>Video config</th>
               <th>Time series</th>
-              <th>Status</th>
-              <th>Sync status</th>
+              <th style={{width: "100px", whiteSpace: "nowrap"}}>Status</th>
+              <th style={{width: "100px", whiteSpace: "nowrap"}}>Sync status</th>
               <th style={{width: "189px", whiteSpace: "nowrap"}}>Actions</th>
             </tr>
             </thead>

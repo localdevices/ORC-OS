@@ -164,9 +164,10 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
     const waterLevelSubmit = forceOptical ? null : waterLevel;
     const waterLevelChangeSubmit = forceOptical ? true : waterLevelChange;
     if (waterLevelChangeSubmit && video.time_series) {
-      // with existing time series, first update time series in front end and database with new water level
+      // with existing time series, first update time series in front end and database with new water level and status
       setVideo({...video, time_series: {...video.time_series, h: waterLevelSubmit}});
       try {
+        // patching the time series record
         await patchTimeSeries({id: video.time_series.id, h: waterLevelSubmit});
       } catch (error) {
         console.error(`Error updating water level: ${error.response.data.detail}`);
@@ -182,6 +183,8 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
         return
       }
     }
+    setVideo({...video, status: 2}); // status 2 is QUEUE
+    // finally, enqueue the video for processing
     try {
       await run_video(video, setMessageInfo);
       setMessageInfo('success', 'Video submitted successfully');
