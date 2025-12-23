@@ -163,7 +163,7 @@ async def get_list_video(
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
     list_videos = crud.video.get_list(db, start=start, stop=stop, status=status, first=first, count=count)
-    unique_video_configs = set([v.video_config_id for v in list_videos])
+    unique_video_configs = set([v.video_config_id for v in list_videos if v is not None])
     video_configs = {v: VideoConfigResponse.model_validate(crud.video_config.get(db, v)) for v in unique_video_configs}
     video_list_responses = [
         VideoListResponse.from_orm_model(
