@@ -166,9 +166,7 @@ async def get_list_video(
     unique_video_configs = set([v.video_config_id for v in list_videos if v.video_config_id is not None])
     video_configs = {v: VideoConfigResponse.model_validate(crud.video_config.get(db, v)) for v in unique_video_configs}
     video_list_responses = [
-        VideoListResponse.from_orm_model(
-            video, video_configs[video.video_config_id if hasattr(video, "video_config_id") else None]
-        )
+        VideoListResponse.from_orm_model(video, video_configs[video.video_config_id] if video.video_config_id else None)
         for video in list_videos
     ]
     return video_list_responses
