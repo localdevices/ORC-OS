@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
 
 # Directory to save uploaded files
-from orc_api import __home__, crud
+from orc_api import UPLOAD_DIRECTORY, crud
 from orc_api.database import get_db
 from orc_api.db import SyncStatus, Video, VideoStatus
 from orc_api.log import logger
@@ -45,7 +45,7 @@ from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
-UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
+# UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
