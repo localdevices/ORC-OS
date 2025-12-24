@@ -100,7 +100,7 @@ class PlotData(BaseModel):
 
 mask_data = {
     "write": True,
-    "mask_group1": {"minmax": {"s_max": 5.0}},
+    "mask_group1": {"minmax": {"s_max": 10.0}},
     "mask_group2": {"outliers": {"mode": "and"}},
     "mask_group3": {"count": {"tolerance": 0.2}},
     "mask_group4": {"window_mean": {"wdw": 2, "reduce_time": True}},
