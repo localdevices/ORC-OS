@@ -39,52 +39,60 @@ export default api;
 let webSocketInstances = {};
 
 export const createWebSocketConnection = (connectionId, url, onMessageCallback, json) => {
-   // Create WebSocket connection
+  // Create WebSocket connection
   if (json === undefined) {
     json = true;
   }
-   if (webSocketInstances[connectionId]) {
-     // uncomment below to debug
-     //  console.log(`WebSocket connection with ID "${connectionId}" already exists`);
-      return webSocketInstances[connectionId];
-   }
-   const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-   const socketUrl = `${socketProtocol}//${window.location.host}${API_BASE}${url}`;
-   const webSocket = new WebSocket(socketUrl);  // prepend the ws prefix
-   // Event: WebSocket successfully opened
-   webSocket.onopen = () => {
-     // uncomment below to debug
-     // console.log("WebSocket connection established");
-   };
+  if (webSocketInstances[connectionId]) {
+    // uncomment below to debug
+    //  console.log(`WebSocket connection with ID "${connectionId}" already exists`);
+    return webSocketInstances[connectionId];
+  }
+  const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socketUrl = `${socketProtocol}//${window.location.host}${API_BASE}${url}`;
+  let reconnectTimeout;
 
-   // Event: When a message is received
-   webSocket.onmessage = (event) => {
-     let msg;
-     if (json === true) {
-       msg = JSON.parse(event.data)
-     } else {
-       msg = event.data
-     }
-     // uncomment below to debug
-      // console.log(`Message on connection Id "${connectionId}":`, msg);
-      if (onMessageCallback) {
-         onMessageCallback(msg); // Execute the callback with the new message
-      }
-   };
+  const connect = () => {
+    const webSocket = new WebSocket(socketUrl);
+    webSocketInstances[connectionId] = webSocket;
 
-   // Event: When the WebSocket connection is closed
-   webSocket.onclose = () => {
+    // Event: WebSocket successfully opened
+    webSocket.onopen = () => {
       // uncomment below to debug
-      // console.log(`WebSocket connection with ID ${connectionId} closed`);
+      console.log("WebSocket connection established");
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+
+    // Event: When a message is received
+    webSocket.onmessage = (event) => {
+      let msg;
+      try {
+        msg = json ? JSON.parse(event.data) : event.data;
+        // uncomment below to debug
+        // console.log(`Message on connection Id "${connectionId}":`, msg);
+        if (onMessageCallback) onMessageCallback(msg);
+      } catch (e) {
+        console.error("WS parsing error:", e);
+      }
+    };
+
+    // Event: When the WebSocket connection is closed
+    webSocket.onclose = (e) => {
+      // uncomment below to debug
+      console.log(`WebSocket ${connectionId} closed. Reconnecting in 3s...`, e.reason);
       delete webSocketInstances[connectionId];
-   };
+      // Avoid reconnecting if the close was intentional (status code 1000)
+      if (e.code !== 1000) {
+        reconnectTimeout = setTimeout(connect, 3000);
+      }
+    };
 
-   // Event: When an error occurs
-   webSocket.onerror = (error) => {
+    // Event: When an error occurs
+    webSocket.onerror = (error) => {
       console.error(`WebSocket error on connection ID "${connectionId}":`, error);
-   };
-
-   // store and return webSocket instance
-  webSocketInstances[connectionId] = webSocket;
-   return webSocket;
+      webSocket.close();
+    };
+    return webSocket;
+  };
+  return connect()
 };
