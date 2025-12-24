@@ -16,6 +16,8 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - PiCamera was not selecting second camera module when recording a video.
 - PiCamera could be out of focus. The camera is now always set to infinity focus.
 - Fixed bug in login procedure, causing infinite authorization validation attempts after typing wrong password
+- Fixed database overflow issue with video table when large amounts of thumbnails were requested at once over slow
+  connections.
 
 ### Security
 
