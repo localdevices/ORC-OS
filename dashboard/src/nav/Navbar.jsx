@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {
   FaUser,
   FaSync,
+  FaChartLine,
   FaSpinner,
   FaCheck,
   FaTimes,
@@ -236,6 +237,14 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
               to="/video" onClick={handleClose}>
               <FaFilm style={{ marginRight: '8px', verticalAlign: 'middle' }} />
               Videos
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+              to="/time_series" onClick={handleClose}>
+              <FaChartLine style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+              Time Series
             </NavLink>
           </li>
         </ul>

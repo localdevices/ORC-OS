@@ -17,6 +17,7 @@ import WaterLevel from './views/waterLevel'
 import CameraAim from './views/cameraAim'
 import CallbackUrl from "./views/callbackUrl.jsx";
 import ListVideo from "./views/listVideo.jsx";
+import TimeSeries from "./views/timeSeries.jsx";
 import VideoConfig from "./views/videoConfig.jsx";
 import ListRecipe from "./views/listRecipe.jsx";
 import ListCrossSection from "./views/listCrossSection.jsx";
@@ -37,6 +38,7 @@ const routeTemplates = [
   "/camera_aim",
   "/calibration",
   "/video",
+  "/time_series",
   "/video_config/<videoId>",
   "/recipe",
   "/cross_section",
@@ -226,6 +228,12 @@ const App = () => {
                   <ProtectedRoute>
                     <ListVideo
                       videoRunState={videoRunState}
+                    />
+                  </ProtectedRoute>
+                } />
+                <Route path="/time_series" element={
+                  <ProtectedRoute>
+                    <TimeSeries
                     />
                   </ProtectedRoute>
                 } />

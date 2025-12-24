@@ -1,6 +1,7 @@
 """Time series routers."""
 
-from typing import Dict
+from datetime import datetime
+from typing import Dict, List, Optional
 
 from fastapi import (  # Requests holds the app
     APIRouter,
@@ -24,6 +25,18 @@ def get_time_series_record(db: Session, id: int) -> TimeSeriesResponse:
         raise HTTPException(status_code=404, detail="Time series not found.")
     # Open the video file
     return TimeSeriesResponse.model_validate(ts_rec)
+
+
+@router.get("/", response_model=List[TimeSeriesResponse], status_code=200)
+async def get_list_time_series(
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    count: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retrieve list of time series."""
+    list_time_series = crud.time_series.get_list(db, start=start, stop=stop, count=count)
+    return list_time_series
 
 
 @router.get("/{id}/", response_model=TimeSeriesResponse, status_code=200)
