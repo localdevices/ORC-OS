@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/api.js";
-import {run_video} from "../utils/apiCalls/video.jsx"
+import {run_video, patchVideo} from "../utils/apiCalls/video.jsx"
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
@@ -79,10 +79,10 @@ const VideoConfig = () => {
               setVideo(response.data);
               if (response.data.video_config !== null) {
                 setVideoConfig({
-                    id: response.data.video_config.id,
-                    name: response.data.video_config.name,
-                    sync_status: response.data.video_config.sync_status,
-                    sample_video_id: response.data.video_config.sample_video_id
+                  id: response.data.video_config.id,
+                  name: response.data.video_config.name,
+                  sync_status: response.data.video_config.sync_status,
+                  sample_video_id: response.data.video_config.sample_video_id
                 })
                 if (response.data.video_config.recipe !== null) {
                   setRecipe(response.data.video_config.recipe);
@@ -102,7 +102,7 @@ const VideoConfig = () => {
               }
             })
             .catch(err => console.error("Error fetching video data:", err))
-            })
+        })
         .catch((err) => console.error("Error fetching frame count:", err))
         .finally(() => {
           setSave(false)
@@ -143,7 +143,7 @@ const VideoConfig = () => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
       if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
         setCSDischarge({});
-    }
+      }
       if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
         setCSWaterLevel({});
       }
@@ -180,25 +180,42 @@ const VideoConfig = () => {
   }
 
   const deleteVideoConfig = async () => {
-    const userConfirmed = window.confirm("Are you sure you want to delete this video configuration? This action is irreversible.");
-    if (userConfirmed) {
-      try {
-        await api.delete(`/video_config/${videoConfig.id}/deps`); // remove video config including its dependencies
-        setMessageInfo("success", "Video configuration deleted successfully.");
-        setVideoConfig(null); // Reset the video configuration in the state
-        createNewRecipe();  // if the recipe exists, it will be overwritten later
-        createCameraConfig();  // if the cam config exists, it will be overwritten later
-        setCSDischarge({});
-        setCSWaterLevel({});
-        setActiveTab('configDetails');
-        setActiveView('camView');
-
-      } catch (error) {
-        console.error("Error deleting video configuration:", error);
-        setMessageInfo("error", "Failed to delete video configuration. Please try again later." );
-      }
+    let warnUser = "";
+    if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
+      warnUser = "This video acts as the reference video for the current video configuration. Deleting means the actual configuration is removed irreversibly. Are you sure you want to remove the video configuration?"
+    } else {
+      warnUser = "This video uses another video's video configuration. Deleting means you can set a new video configuration for this particular video. This action is reversible by re-selecting the video configuration later. Do you want to remove the video configuration use?"
     }
+    const userConfirmed = window.confirm(warnUser);
+    if (userConfirmed) {
+      if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
+        try {
+          await api.delete(`/video_config/${videoConfig.id}/deps/`); // remove video config including its dependencies
+          setMessageInfo("success", "Video configuration deleted successfully.");
+        } catch (error) {
+          console.error("Error deleting video configuration:", error);
+          setMessageInfo("error", "Failed to delete video configuration. Please try again later.");
+        }
+      } else {
+        try {
+          await api.patch(`/video/${video.id}/`, {video_config_id: null });
+        } catch (error) {
+          console.error("Error patching video:", error);
+          setMessageInfo("error", "Failed to patch video. Please try again later.");
 
+        }
+
+      }
+      setVideoConfig(null); // Reset the video configuration in the state
+      createNewRecipe();  // if the recipe exists, it will be overwritten later
+      createCameraConfig();  // if the cam config exists, it will be overwritten later
+      setCSDischarge({});
+      setCSWaterLevel({});
+      setActiveTab('configDetails');
+      setActiveView('camView');
+      setWidgets([]);
+      setSelectedWidgetId(null);
+    }
   }
 
 
@@ -249,14 +266,14 @@ const VideoConfig = () => {
       const newWidgets = prevWidgets.map((widget) =>
         widget.id === id
           ? {
-              ...widget,
-              coordinates: {
-                ...updatedCoordinates,
-                x: parseFloat(updatedCoordinates.x) || null,
-                y: parseFloat(updatedCoordinates.y) || null,
-                z: parseFloat(updatedCoordinates.z) || null,
-                row: parseFloat(updatedCoordinates.row) || null,
-                col: parseFloat(updatedCoordinates.col) || null,
+            ...widget,
+            coordinates: {
+              ...updatedCoordinates,
+              x: parseFloat(updatedCoordinates.x) || null,
+              y: parseFloat(updatedCoordinates.y) || null,
+              z: parseFloat(updatedCoordinates.z) || null,
+              row: parseFloat(updatedCoordinates.row) || null,
+              col: parseFloat(updatedCoordinates.col) || null,
 
             }
           } : widget
@@ -306,61 +323,61 @@ const VideoConfig = () => {
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
-        <div className="flex-container column" style={{height: "100%"}}>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
-            <h5 style={{margin: 0}}>Image view</h5>
+          <div className="flex-container column" style={{height: "100%"}}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
+              <h5 style={{margin: 0}}>Image view</h5>
+            </div>
+            <div className="tabs-row">
+              <button
+                className={activeView === 'camView' ? 'active-tab' : ''}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleViewChange('camView');
+                }}
+              >
+                Camera view
+              </button>
+              <button
+                className={activeView === 'topView' ? 'active-tab' : ''}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleViewChange('topView');
+                }}
+              >
+                Top view
+              </button>
+            </div>
+
+            {video && activeView === 'camView' && recipe?.start_frame !== undefined && recipe?.start_frame !== null && (
+              <VideoTab
+                video={video}
+                frameNr={recipe?.start_frame}
+                cameraConfig={cameraConfig}
+                widgets={widgets}
+                selectedWidgetId={selectedWidgetId}
+                updateWidget={updateWidget}
+                imgDims={imgDims}
+                rotate={cameraConfig?.rotation || null}
+                CSDischarge={CSDischarge}
+                CSWaterLevel={CSWaterLevel}
+                setCameraConfig={setCameraConfig}
+                setSelectedWidgetId={setSelectedWidgetId}
+                setImgDims={setImgDims}
+              />
+            )}
+            {activeView === 'topView' && (
+              <TopView
+                CSDischarge={CSDischarge}
+                CSWaterLevel={CSWaterLevel}
+                Gcps={cameraConfig?.gcps?.control_points}
+                cameraPosition={cameraConfig?.camera_position}
+                rotation={cameraConfig?.camera_rotation ? cameraConfig?.camera_rotation[1] : 0}  // only down-pose rotation is needed
+                bBox={cameraConfig?.bbox}
+              />
+
+            )}
+
           </div>
-          <div className="tabs-row">
-            <button
-              className={activeView === 'camView' ? 'active-tab' : ''}
-              onClick={(e) => {
-                e.preventDefault();
-                handleViewChange('camView');
-              }}
-            >
-              Camera view
-            </button>
-            <button
-              className={activeView === 'topView' ? 'active-tab' : ''}
-              onClick={(e) => {
-                e.preventDefault();
-                handleViewChange('topView');
-              }}
-            >
-              Top view
-            </button>
-          </div>
-
-          {video && activeView === 'camView' && recipe?.start_frame !== undefined && recipe?.start_frame !== null && (
-            <VideoTab
-              video={video}
-              frameNr={recipe?.start_frame}
-              cameraConfig={cameraConfig}
-              widgets={widgets}
-              selectedWidgetId={selectedWidgetId}
-              updateWidget={updateWidget}
-              imgDims={imgDims}
-              rotate={cameraConfig?.rotation || null}
-              CSDischarge={CSDischarge}
-              CSWaterLevel={CSWaterLevel}
-              setCameraConfig={setCameraConfig}
-              setSelectedWidgetId={setSelectedWidgetId}
-              setImgDims={setImgDims}
-            />
-          )}
-          {activeView === 'topView' && (
-            <TopView
-              CSDischarge={CSDischarge}
-              CSWaterLevel={CSWaterLevel}
-              Gcps={cameraConfig?.gcps?.control_points}
-              cameraPosition={cameraConfig?.camera_position}
-              rotation={cameraConfig?.camera_rotation ? cameraConfig?.camera_rotation[1] : 0}  // only down-pose rotation is needed
-              bBox={cameraConfig?.bbox}
-            />
-
-          )}
-
-        </div>
           <CameraParameters
             cameraConfig={cameraConfig}
             setCameraConfig={setCameraConfig}
@@ -371,7 +388,7 @@ const VideoConfig = () => {
             <div className="tabbed-form-container">
               <div className="tabs-header">
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                <h5>Manage configuration</h5>
+                  <h5>Manage configuration</h5>
                   <div style={{display: 'flex', gap: '10px'}}>
                     <button
                       type="submit"
@@ -464,7 +481,7 @@ const VideoConfig = () => {
                 <div className="tab-content">
                   <div style={{ display: activeTab === 'configDetails' ? 'block' : 'none' }}>
 
-                  {/*{activeTab === 'configDetails' && (*/}
+                    {/*{activeTab === 'configDetails' && (*/}
                     <VideoConfigForm
                       selectedVideoConfig={videoConfig}
                       setSelectedVideoConfig={setVideoConfig}
@@ -480,7 +497,7 @@ const VideoConfig = () => {
                       setSave={setSave}
                       setMessageInfo={setMessageInfo}
                     />
-                    </div>
+                  </div>
 
                   {activeTab === 'gcps' && (
                     <CameraConfigForm
@@ -541,19 +558,19 @@ const VideoConfig = () => {
               "overflowY": "hidden",
               "overflowX": "hidden"
             }}>
-                  <h5>Side view</h5>
-                      <SideView
-                        CSDischarge={CSDischarge}
-                        CSWaterLevel={CSWaterLevel}
-                        zMin={recipe?.min_z}
-                        zMax={recipe?.max_z}
-                        waterLevel={cameraConfig?.gcps?.z_0}
-                        yRightOffset={cameraConfig?.gcps?.h_ref - cameraConfig?.gcps?.z_0}
-                      />
-                  </div>
-                </div>
-              </div>
+              <h5>Side view</h5>
+              <SideView
+                CSDischarge={CSDischarge}
+                CSWaterLevel={CSWaterLevel}
+                zMin={recipe?.min_z}
+                zMax={recipe?.max_z}
+                waterLevel={cameraConfig?.gcps?.z_0}
+                yRightOffset={cameraConfig?.gcps?.h_ref - cameraConfig?.gcps?.z_0}
+              />
             </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

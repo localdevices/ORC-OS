@@ -18,3 +18,12 @@ export const postTimeSeries = async (timeSeries) => {
     console.error(error);
   }
 }
+
+export const getTimeSeries = async (timeSeriesId) => {
+  try {
+    const response = await api.get(`/time_series/${timeSeriesId}/`)
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+}

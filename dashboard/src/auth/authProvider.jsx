@@ -24,16 +24,32 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check session when the app loads
     const validateSession = async () => {
-      const session = await checkValidate();
-      if (session) {
-        // session validated
-        setUser("orc_client"); // Update user state based on session
-      } else {
-        setUser(null);
+      // Create a timeout promise, to prevent stalling on slow connections
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout")), 5000)
+      );
+      try {
+        const session = await Promise.race([checkValidate(), timeout]);
+        if (session) {
+          // session validated
+          setUser("orc_client"); // Update user state based on session
+        } else {
+          if (user) {
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error("Session validation failed or timed out", error);
+        if (user) {
+          setUser(null);  // return to login page
+        }
+      } finally {
+        setInitializing(false);
       }
-      setInitializing(false);
     };
+    console.log("AM I VALIDATING?")
     validateSession();
+
   }, []);
 
   const login = async ( password ) => {
@@ -49,10 +65,14 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authApi.logout();
-      setUser(null);
+      if (user) {
+        setUser(null);
+      }
     } catch (error) {
       console.error("Logout failed:", error);
-      setUser(null);
+      if (user) {
+        setUser(null);
+      }
     }
   };
 
@@ -78,16 +98,22 @@ export const AuthProvider = ({ children }) => {
     const interceptor = api.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401) {
+        // Only intercept 401s that are NOT from the login attempts to avoid infinite loops
+        const isAuthRequest = error.config.url.includes('/auth/login') || error.config.url.includes('/auth/verify');
+        if (error.response?.status === 401 && !isAuthRequest) {
           // revalidate before clearing user
           try {
             const session = await checkValidate();
             if (!session) {
-              setUser(null);
+              if (user) {
+                setUser(null);
+              }
               console.error("Session expired, logging out.");
             }
           } catch {
-            setUser(null);
+            if (user) {
+              setUser(null);
+            }
             console.error("Session validation failed, logging out.");
           }
         }
@@ -99,7 +125,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       api.interceptors.response.eject(interceptor);
     };
-  }, [setUser]);
+  }, [user]);
 
   // useEffect (() => {
   //   ( async () => {

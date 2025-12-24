@@ -11,6 +11,9 @@ from orc_api.routers import pivideo_stream
 from orc_api.routers.pivideo_stream import start_camera
 
 app = FastAPI()
+mock_controls = MagicMock()
+mock_controls.AfModeEnum.Manual = 2
+pivideo_stream.controls = mock_controls
 app.include_router(pivideo_stream.router)
 
 client = TestClient(app)
@@ -75,6 +78,8 @@ def test_start_camera_no_cameras_detected(monkeypatch):
 def test_start_camera_success(monkeypatch):
     """Test start_camera success with default parameters."""
     monkeypatch.setattr("orc_api.routers.pivideo_stream.picam_available", True)
+    # Mock libcamera controls before importing pivideo_stream
+
     # monkeypatch.setattr("picamera2.Picamera2", mock_picamera)
     # monkeypatch.setattr("orc_api.routers.pivideo_stream.picamera2.Picamera2", mock_picamera)
     mock_camera_info = [{"id": 0, "Model": "camera_1"}, {"id": 1, "Model": "camera_2"}]

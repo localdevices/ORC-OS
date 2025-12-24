@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
 
 # Directory to save uploaded files
-from orc_api import __home__, crud
+from orc_api import UPLOAD_DIRECTORY, crud
 from orc_api.database import get_db
 from orc_api.db import SyncStatus, Video, VideoStatus
 from orc_api.log import logger
@@ -39,12 +39,13 @@ from orc_api.schemas.video import (
     VideoPatch,
     VideoResponse,
 )
+from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue, websockets
 from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
-UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
+# UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
@@ -85,6 +86,9 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Video record is found, but thumbnail is not found.")
     # Determine the MIME type of the file
     file_path = video.get_thumbnail(base_path=UPLOAD_DIRECTORY)
+
+    # close database to prevent overflow issues when calling many thumbnail files
+    db.close()
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Thumbnail file not found on local data store.")
 
@@ -115,6 +119,9 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     if not video.file:
         raise HTTPException(status_code=404, detail="Video record is found, but video file is not found.")
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # prevent unnecessarily long database connection, close!
+    db.close()
     # open video
     cap = cv2.VideoCapture(file_path)
     # set to frame
@@ -162,10 +169,11 @@ async def get_list_video(
             raise HTTPException(status_code=400, detail=f"Invalid status value '{status}'.")
 
     list_videos = crud.video.get_list(db, start=start, stop=stop, status=status, first=first, count=count)
-
-    # Convert to VideoListResponse list (light-weight for front end use
+    unique_video_configs = set([v.video_config_id for v in list_videos if v.video_config_id is not None])
+    video_configs = {v: VideoConfigResponse.model_validate(crud.video_config.get(db, v)) for v in unique_video_configs}
     video_list_responses = [
-        VideoListResponse.from_video_response(VideoResponse.model_validate(video)) for video in list_videos
+        VideoListResponse.from_orm_model(video, video_configs[video.video_config_id] if video.video_config_id else None)
+        for video in list_videos
     ]
     return video_list_responses
 
@@ -211,6 +219,9 @@ async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
     video = get_video_record(db, id)
     # open video
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # close db connection
+    db.close()
     # open video
     cap = cv2.VideoCapture(file_path)
     # check amount of frames
@@ -226,10 +237,10 @@ async def delete_video(id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id}/", status_code=200, response_model=VideoResponse)
-async def patch_video(id: int, video: VideoPatch, db: Session = Depends(get_db)):
+async def patch_video(id: int, video: dict, db: Session = Depends(get_db)):
     """Update a video in the database."""
-    update_video = video.model_dump(exclude_none=True, exclude={"id", "video_config", "time_series"})
-    video = crud.video.update(db=db, id=id, video=update_video)
+    # update_video = video.model_dump(exclude_none=True, exclude={"id", "video_config", "time_series"})
+    video = crud.video.update(db=db, id=id, video=video)
     return video
 
 
@@ -255,6 +266,9 @@ async def play_video(id: int, range: str = Header(None), db: Session = Depends(g
     # convert into schema and return data
 
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # close db connection
+    db.close()
     # Ensure the file exists
     if not os.path.exists(file_path):
         raise HTTPException(
@@ -338,6 +352,9 @@ async def get_image(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Image file field not available.")
 
     file_path = video.get_image_file(base_path=UPLOAD_DIRECTORY)
+
+    # close db connection
+    db.close()
     # Ensure the file exists
     if not os.path.exists(file_path):
         raise HTTPException(
@@ -422,6 +439,8 @@ async def download_videos(request: DownloadVideosRequest, db: Session = Depends(
         if get_log:
             # TODO: figure out default name for .log file and also return that
             pass
+    # close database connection!
+    db.close()
     return StreamingResponse(
         zip_generator(files_to_zip, base_path=UPLOAD_DIRECTORY),
         media_type="application/zip",
@@ -456,7 +475,8 @@ async def download_videos_on_ids(
             # TODO: figure out default name for .log file and also return that
             pass
     _ = [(os.path.basename(f), f) for f in files_to_zip]
-
+    # close database connection!
+    db.close()
     return StreamingResponse(
         zip_generator(files_to_zip, base_path=UPLOAD_DIRECTORY),
         media_type="application/zip",

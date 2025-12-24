@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
-import {sync_video} from "../../utils/apiCalls/video.jsx"
+import {sync_video, patchVideo} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -24,6 +24,7 @@ import {useMessage} from "../../messageContext.jsx";
 import VideoUploader from "./videoUpload.jsx";
 import {createRoot} from "react-dom/client";
 import {TimeSeriesChangeModal} from "./timeSeriesChangeModal.jsx";
+import {getTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
 
 const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRunState}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -115,6 +116,16 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           } else {
             sync_status = video.sync_status;
           }
+          if (videoRunState.status === 4 && video?.time_series?.id) {
+            getTimeSeries(video.time_series.id).then((time_series) => {
+              // Update the specific video in the state once data arrives
+              setData(currentData =>
+                currentData.map(v =>
+                  v.id === video.id ? { ...v, time_series: time_series } : v
+                )
+              );
+            }).catch(err => console.error("Failed to fetch time series:", err));
+          }
           return {...video, status: status, sync_status: sync_status};
         }
         return video;
@@ -123,12 +134,19 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   }, [videoRunState])
 
   useEffect(() => {
-    // ensure that time series information is always up-to-date
+    // ensure that table information is always up-to-date
     if (!selectedVideo) return;
     setData(prevData => {
       return prevData.map(video => {
         if (video.id === selectedVideo.id) {
-          return {...video, time_series: selectedVideo.time_series, video_config: selectedVideo.video_config};
+          return {
+            ...video,
+            time_series: selectedVideo.time_series,
+            video_config: selectedVideo.video_config,
+            allowed_to_run: selectedVideo.allowed_to_run[0] || selectedVideo.allowed_to_run,
+            status: selectedVideo.status,
+            sync_status: selectedVideo.sync_status
+          };
         }
         return video;
       });
@@ -212,16 +230,31 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   }
 
   // Function to handle configuration selection and API call
-  const handleConfigSelection = (event) => {
+  const handleConfigSelection = async (event) => {
     const {value} = event.target;
     try {
-      // Send a POST request to update the video with the selected configuration
-      api.patch(`/video/${selectedVideo.id}`, {
-        video_config_id: value, // Pass the selected configuration ID
+      await patchVideo(selectedVideo.id, {video_config_id: value}).then(async () => {
+        await api.get(`/video/${selectedVideo.id}/`).then((r) => {
+          setSelectedVideo(r.data);
+          // update table if required
+          setData(prevData => {
+            return prevData.map(video => {
+              if (video.id === selectedVideo.id) {
+                return {
+                  ...video,
+                  video_config_id: value,
+                  video_config: r.data.video_config,
+                  allowed_to_run: r.data.allowed_to_run[0]
+                };
+              }
+              return video;
+            });
+          });
+        })
       });
       // Success feedback
       setMessageInfo('success', `Video configuration selected on ${value}`);
-      setSelectedVideo(null)
+      // setSelectedVideo(null)
       setShowConfigModal(false);
     } catch (error) {
       // Error handling
@@ -295,8 +328,8 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
               <th>Thumbnail</th>
               <th>Video config</th>
               <th>Time series</th>
-              <th>Status</th>
-              <th>Sync status</th>
+              <th style={{width: "100px", whiteSpace: "nowrap"}}>Status</th>
+              <th style={{width: "100px", whiteSpace: "nowrap"}}>Sync status</th>
               <th style={{width: "189px", whiteSpace: "nowrap"}}>Actions</th>
             </tr>
             </thead>
@@ -315,13 +348,13 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 <td>{video.timestamp.slice(0, 19)}</td>
                 <td>
                   <img
+                    loading="lazy"
                     src={`${api.defaults.baseURL}/video/${video.id}/thumbnail/`}
                     onError={(e) => {
                       if (e.target.parentNode.querySelector(".fallback-container")) {
                         // Avoid creating multiple fallback containers
                         return;
                       }
-
                       e.target.onerror = null;  // stop looping error behaviour
                       e.target.style.display = "none";  // do not display default broken link icon
                       // add a div with a nice icon in case the thumbnail fails

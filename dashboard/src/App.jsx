@@ -80,7 +80,7 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, v
       // Cleanup when component unmounts
       return () => {
         if (ws) {
-          ws.close();
+          ws.close(1000);
         }
       };
     }, 100);
