@@ -53,7 +53,7 @@ def test_get_patch_post_time_series(auth_client, db_session):
     assert r.status_code == 200
     assert r.json()["h"] == 22.0
     # also check in database if h was changed
-    rec = db_session.query(models.TimeSeries).get(1)
+    rec = db_session.get(models.TimeSeries, 1)
     assert rec.h == 22.0
     # add via post
     r = auth_client.post(
