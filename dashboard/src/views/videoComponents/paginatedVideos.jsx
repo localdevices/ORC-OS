@@ -24,6 +24,7 @@ import {useMessage} from "../../messageContext.jsx";
 import VideoUploader from "./videoUpload.jsx";
 import {createRoot} from "react-dom/client";
 import {TimeSeriesChangeModal} from "./timeSeriesChangeModal.jsx";
+import {getTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
 
 const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRunState}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -114,6 +115,16 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
             sync_status = videoRunState.sync_status
           } else {
             sync_status = video.sync_status;
+          }
+          if (videoRunState.status === 4 && video?.time_series?.id) {
+            getTimeSeries(video.time_series.id).then((time_series) => {
+              // Update the specific video in the state once data arrives
+              setData(currentData =>
+                currentData.map(v =>
+                  v.id === video.id ? { ...v, time_series: time_series } : v
+                )
+              );
+            }).catch(err => console.error("Failed to fetch time series:", err));
           }
           return {...video, status: status, sync_status: sync_status};
         }
