@@ -86,6 +86,9 @@ async def get_thumbnail(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Video record is found, but thumbnail is not found.")
     # Determine the MIME type of the file
     file_path = video.get_thumbnail(base_path=UPLOAD_DIRECTORY)
+
+    # close database to prevent overflow issues when calling many thumbnail files
+    db.close()
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Thumbnail file not found on local data store.")
 
@@ -116,6 +119,9 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     if not video.file:
         raise HTTPException(status_code=404, detail="Video record is found, but video file is not found.")
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # prevent unnecessarily long database connection, close!
+    db.close()
     # open video
     cap = cv2.VideoCapture(file_path)
     # set to frame
@@ -213,6 +219,9 @@ async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
     video = get_video_record(db, id)
     # open video
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # close db connection
+    db.close()
     # open video
     cap = cv2.VideoCapture(file_path)
     # check amount of frames
@@ -257,6 +266,9 @@ async def play_video(id: int, range: str = Header(None), db: Session = Depends(g
     # convert into schema and return data
 
     file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+
+    # close db connection
+    db.close()
     # Ensure the file exists
     if not os.path.exists(file_path):
         raise HTTPException(
@@ -340,6 +352,9 @@ async def get_image(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Image file field not available.")
 
     file_path = video.get_image_file(base_path=UPLOAD_DIRECTORY)
+
+    # close db connection
+    db.close()
     # Ensure the file exists
     if not os.path.exists(file_path):
         raise HTTPException(
@@ -424,6 +439,8 @@ async def download_videos(request: DownloadVideosRequest, db: Session = Depends(
         if get_log:
             # TODO: figure out default name for .log file and also return that
             pass
+    # close database connection!
+    db.close()
     return StreamingResponse(
         zip_generator(files_to_zip, base_path=UPLOAD_DIRECTORY),
         media_type="application/zip",
@@ -458,7 +475,8 @@ async def download_videos_on_ids(
             # TODO: figure out default name for .log file and also return that
             pass
     _ = [(os.path.basename(f), f) for f in files_to_zip]
-
+    # close database connection!
+    db.close()
     return StreamingResponse(
         zip_generator(files_to_zip, base_path=UPLOAD_DIRECTORY),
         media_type="application/zip",

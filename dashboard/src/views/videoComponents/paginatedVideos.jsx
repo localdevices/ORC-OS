@@ -337,13 +337,13 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 <td>{video.timestamp.slice(0, 19)}</td>
                 <td>
                   <img
+                    loading="lazy"
                     src={`${api.defaults.baseURL}/video/${video.id}/thumbnail/`}
                     onError={(e) => {
                       if (e.target.parentNode.querySelector(".fallback-container")) {
                         // Avoid creating multiple fallback containers
                         return;
                       }
-
                       e.target.onerror = null;  // stop looping error behaviour
                       e.target.style.display = "none";  // do not display default broken link icon
                       // add a div with a nice icon in case the thumbnail fails
