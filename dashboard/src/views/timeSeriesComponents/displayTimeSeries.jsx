@@ -34,29 +34,22 @@ ChartJS.register(
   zoomPlugin
 );
 
-const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate, fractionVelocimetry, setFractionVelocimetry}) => {
+const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState([]);  // initialize data
   const [filteredData, setFilteredData] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showRunModal, setShowRunModal] = useState(false);
   const chartRef = useRef(null);
-  const [tooltipImage, setTooltipImage] = useState(null);
-  const [tooltipImageLoading, setTooltipImageLoading] = useState(false);
-  const [tooltipImageError, setTooltipImageError] = useState(false);
-  const hoverTimeoutRef = useRef(null);
-
+  const loadDataTimeoutRef = useRef(null);
   // allow for setting messages
   const {setMessageInfo} = useMessage();
-
   // View toggle: 'timeSeries' or 'ratingCurve'
   const [viewMode, setViewMode] = useState('timeSeries');
-
   // Threshold filters
   const [filterH, setFilterH] = useState({enabled: false, min: null, max: null});
   const [filterQ50, setFilterQ50] = useState({enabled: false, min: null, max: null});
   const [filterFractionVel, setFilterFractionVel] = useState({enabled: false, value: 20});
-
   // Video config filter
   const [selectedVideoConfigIds, setSelectedVideoConfigIds] = useState(null);
   const [showVideoConfigModal, setShowVideoConfigModal] = useState(false);
@@ -111,7 +104,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate, fracti
         if (response.data && response.data.length > 0) {
           const lastTimestamp = new Date(`${response.data[0].timestamp}Z`);
           const oneWeekBefore = new Date(lastTimestamp);
-          oneWeekBefore.setDate(oneWeekBefore.getDate() - 35);
+          oneWeekBefore.setDate(oneWeekBefore.getDate() - 7);
 
           setStartDate(oneWeekBefore.toISOString().slice(0, -1));
           setEndDate(lastTimestamp.toISOString().slice(0, -1));
@@ -174,39 +167,51 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate, fracti
 
   // Handle zoom and load additional data if needed
   const handleZoomComplete = async ({chart}) => {
-    const xScale = chart.scales.x;
-    const minDate = new Date(xScale.min);
-    const maxDate = new Date(xScale.max);
-    // Check if we need to load more data
-    const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp))));
-    const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp))));
-
-    const needsDataBefore = minDate < currentMinDate;
-    const needsDataAfter = maxDate > currentMaxDate;
-
-    if (needsDataBefore || needsDataAfter) {
-      try {
-        const newStart = needsDataBefore ? minDate.toISOString().slice(0, -1) : currentMinDate.toISOString().slice(0, -1);
-        const newEnd = needsDataAfter ? maxDate.toISOString().slice(0, -1) : currentMaxDate.toISOString().slice(0, -1);
-
-        const response = await api.get('/time_series/', {
-          params: buildQueryParams(newStart, newEnd)
-        });
-
-        // Merge new data with existing, removing duplicates
-        const merged = [...data, ...response.data];
-        const unique = merged.filter((item, index, self) =>
-          index === self.findIndex((t) => t.timestamp === item.timestamp)
-        );
-
-        setData(unique.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-        setStartDate(newStart);
-        setEndDate(newEnd);
-      } catch (error) {
-        console.error('Error loading additional data:', error);
-      }
+    if (loadDataTimeoutRef.current) {
+      clearTimeout(loadDataTimeoutRef.current);
     }
-  };
+    // debounce in one second to prevent continuous reloading
+    loadDataTimeoutRef.current = setTimeout(async () => {
+      const xScale = chart.scales.x;
+      const minDate = new Date(xScale.min);
+      const maxDate = new Date(xScale.max);
+      // Check if we need to load more data
+      const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp))));
+      const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp))));
+
+      const needsDataBefore = minDate < currentMinDate;
+      const needsDataAfter = maxDate > currentMaxDate;
+
+      if (needsDataBefore || needsDataAfter) {
+        // load new data
+        console.log(`Loading additional data: ${minDate} to ${maxDate}`);
+        setIsLoading(true);
+        try {
+          const newStart = needsDataBefore ? minDate.toISOString().slice(0, -1) : currentMinDate.toISOString().slice(0, -1);
+          const newEnd = needsDataAfter ? maxDate.toISOString().slice(0, -1) : currentMaxDate.toISOString().slice(0, -1);
+
+          const response = await api.get('/time_series/', {
+            params: buildQueryParams(newStart, newEnd)
+          });
+
+          // Merge new data with existing, removing duplicates
+          const merged = [...data, ...response.data];
+          const unique = merged.filter((item, index, self) =>
+            index === self.findIndex((t) => t.timestamp === item.timestamp)
+          );
+
+          setData(unique.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+          setStartDate(newStart);
+          setEndDate(newEnd);
+        } catch (error) {
+          console.error('Error loading additional data:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }, 1000)
+  }
+
 
   const handlefilterFracChange = async (value) => {
 
@@ -739,28 +744,6 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate, fracti
         </div>
 
         {/* Tooltip Image Display */}
-        <div style={{marginTop: '20px', minHeight: '200px', textAlign: 'center'}}>
-          {tooltipImageLoading && (
-            <div>
-              <div className="spinner" style={{margin: '0 auto'}}/>
-              <div>Loading image...</div>
-            </div>
-          )}
-          {tooltipImage && !tooltipImageLoading && (
-            <div>
-              <img
-                src={tooltipImage}
-                alt="Video frame"
-                style={{maxWidth: '100%', maxHeight: '400px', border: '1px solid #ccc'}}
-              />
-            </div>
-          )}
-          {tooltipImageError && !tooltipImageLoading && (
-            <div style={{padding: '20px', color: '#666'}}>
-              Video or video analysis is missing
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Video Config Filter Modal */}

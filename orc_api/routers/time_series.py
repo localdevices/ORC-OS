@@ -32,7 +32,7 @@ async def get_list_time_series(
     stop: Optional[datetime] = None,
     count: Optional[int] = None,
     desc: Optional[bool] = None,
-    # video_config_ids: Annotated[list[int] | None, Query()] = None,
+    # video_config_ids: Annotated[list[int] | None, Query()] = None,  # TODO: select when removing py3.9 compatibility
     video_config_ids: Optional[List[int]] = Query(default=None),
     db: Session = Depends(get_db),
 ):
