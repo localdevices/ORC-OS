@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from io import BytesIO
-from typing import Annotated, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query  # Requests holds the app
@@ -32,7 +32,8 @@ async def get_list_time_series(
     stop: Optional[datetime] = None,
     count: Optional[int] = None,
     desc: Optional[bool] = None,
-    video_config_ids: Annotated[list[int] | None, Query()] = None,
+    # video_config_ids: Annotated[list[int] | None, Query()] = None,
+    video_config_ids: Optional[List[int]] = Query(default=None),
     db: Session = Depends(get_db),
 ):
     """Retrieve list of time series."""
