@@ -1,5 +1,15 @@
 import api from "../../api/api.js";
 
+export const getVideoId = async (videoId) => {
+  // retrieve a single video record on its ID number
+  try {
+    const response = await api.get(`/video/${videoId}/`);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
   try {
     const response = await api.post(

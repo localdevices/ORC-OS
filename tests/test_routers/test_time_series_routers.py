@@ -62,6 +62,14 @@ def test_get_patch_post_time_series(auth_client, db_session):
     assert r.status_code == 201
     assert r.json()["h"] == 23.0
     assert r.json()["id"] == 3
+    # get all time series again
+    r = auth_client.get("/api/time_series/")
+    assert r.status_code == 200
+    assert len(r.json()) == 3
+
+    # get all time series with null video_config_ids (should return empty)
+    r = auth_client.get("/api/time_series/", params={"video_config_ids": [None]})
+    assert len(r.json()) == 0
     # remove after test
     db_session.query(models.TimeSeries).delete()
     db_session.commit()
