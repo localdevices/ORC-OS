@@ -87,7 +87,11 @@ class VideoListResponse(BaseModel):
         if video_config is None:
             return False
         if video_config.sample_video_id == video.id:
-            if video_config.camera_config.gcps.h_ref is not None:
+            if (
+                video_config.camera_config.gcps is not None
+                and hasattr(video_config.camera_config.gcps, "h_ref")
+                and video_config.camera_config.gcps.h_ref is not None
+            ):
                 return True
         if time_series:
             if time_series.h:
@@ -141,7 +145,12 @@ class VideoResponse(VideoBase, RemoteModel):
             return False, "No video config available."
         # second check if video_config sample video is the same as current video, then retrieve water level
         if self.video_config.sample_video_id == self.id:
-            if self.video_config.camera_config.gcps.h_ref is not None:
+            if (
+                self.video_config.camera_config.gcps is not None
+                and hasattr(self.video_config.camera_config.gcps, "h_ref")
+                and self.video_config.camera_config.gcps.h_ref is not None
+            ):
+                # if self.video_config.camera_config.gcps.h_ref is not None:
                 return True, "Ready"
         if self.time_series:
             if self.time_series.h:
