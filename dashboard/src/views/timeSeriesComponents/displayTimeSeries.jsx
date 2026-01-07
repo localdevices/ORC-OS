@@ -21,6 +21,7 @@ import api from "../../api/api.js";
 import ReactSlider from "react-slider";
 import {TimeSeriesChangeModal} from "../videoComponents/timeSeriesChangeModal.jsx";
 import {getVideoId} from "../../utils/apiCalls/video.jsx";
+import FilterDates from "../../utils/filterDates.jsx";
 
 ChartJS.register(
   CategoryScale,
@@ -70,26 +71,6 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
 
     fetchAllVideoConfigIds();
   }, []);
-
-  // Helper function to build query params
-  const buildQueryParams = (start, stop) => {
-    const params = {
-      start: start,
-      stop: stop,
-      desc: false
-    };
-
-    // Only add video_config_ids if not all are selected
-    if (selectedVideoConfigIds && allVideoConfigIds.length > 0 &&
-        selectedVideoConfigIds.length !== allVideoConfigIds.length) {
-      params.video_config_ids = selectedVideoConfigIds.join(',');
-    }
-    if (selectedVideoConfigIds.length === 0) {
-      delete params.video_config_ids;
-    }
-
-    return params;
-  };
 
   // Initial data load: one week before last timestamp to last timestamp
   useEffect(() => {
@@ -160,6 +141,26 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     setFilteredData(filtered);
   }, [data, filterH, filterQ50, filterFractionVel]);
 
+  // Helper function to build query params
+  const buildQueryParams = (start, stop) => {
+    const params = {
+      start: start,
+      stop: stop,
+      desc: false
+    };
+
+    // Only add video_config_ids if not all are selected
+    if (selectedVideoConfigIds && allVideoConfigIds.length > 0 &&
+      selectedVideoConfigIds.length !== allVideoConfigIds.length) {
+      params.video_config_ids = selectedVideoConfigIds.join(',');
+    }
+    if (selectedVideoConfigIds.length === 0) {
+      delete params.video_config_ids;
+    }
+
+    return params;
+  };
+
   // handle change in time series view mode
   const handleViewModeChange = (view) => {
     setViewMode(view);
@@ -178,13 +179,13 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
       // Check if we need to load more data
       const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp))));
       const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp))));
+      console.log(`Current view range: ${currentMinDate} to ${currentMaxDate}`);
+      const needsDataBefore = currentMinDate.getTime() ? (minDate < currentMinDate) : true;
+      const needsDataAfter = currentMaxDate.getTime() ? (maxDate > currentMaxDate) : true;
 
-      const needsDataBefore = minDate < currentMinDate;
-      const needsDataAfter = maxDate > currentMaxDate;
-
-      if (needsDataBefore || needsDataAfter) {
+      if (needsDataBefore || needsDataAfter || !currentMinDate.getTime() || !currentMaxDate.getTime()) {
         // load new data
-        console.log(`Loading additional data: ${minDate} to ${maxDate}`);
+        console.log(`Loading additional data: ${minDate} to ${maxDate} with  ${needsDataBefore} and ${needsDataAfter}`);
         setIsLoading(true);
         try {
           const newStart = needsDataBefore ? minDate.toISOString().slice(0, -1) : currentMinDate.toISOString().slice(0, -1);
@@ -206,6 +207,8 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         } catch (error) {
           console.error('Error loading additional data:', error);
         } finally {
+          // remove any trailing data outside of the current view to prevent delay due to large data in memory
+          setData(data.filter(d => new Date(d.timestamp) >= minDate && new Date(d.timestamp) <= maxDate));
           setIsLoading(false);
         }
       }
@@ -325,7 +328,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     datasets: [
     {
       label: 'Water Level',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.h})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.h || NaN})),
       borderColor: 'rgba(30,63,192,0.8)',
       backgroundColor: 'rgba(30, 63, 192, 0.3)',
       yAxisID: 'y',
@@ -334,7 +337,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     },
     {
       label: 'Discharge (median)',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.q_50})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.q_50 || NaN })),
       borderColor: 'rgb(255,99,99)',
       backgroundColor: 'rgba(255,99,99,0.5)',
       yAxisID: 'y1',
@@ -342,7 +345,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     },
     {
       label: 'Surface Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.v_surf})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.v_surf || NaN})),
       borderColor: 'rgb(85,218,53)',
       backgroundColor: 'rgba(85,218,53, 0.5)',
       yAxisID: 'y2',
@@ -350,7 +353,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     },
     {
       label: 'Bulk Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.v_bulk})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.v_bulk || NaN})),
       borderColor: 'rgb(33,81,21)',
       backgroundColor: 'rgba(33,81,21, 0.5)',
       yAxisID: 'y3',
@@ -361,7 +364,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     // Rating curve: x = h (water level), y = q_50 (discharge)
     datasets: [{
       label: 'Rating Curve',
-      data: filteredData.map(d => ({x: d.h, y: d.q_50})).filter(d => d.x != null && d.y != null),
+      data: filteredData.map(d => ({x: d.h, y: d.q_50 || NaN})).filter(d => d.y !== null),
       borderColor: 'rgb(30, 63, 192)',
       backgroundColor: 'rgba(30, 63, 192, 0.5)',
       showLine: false,
@@ -375,6 +378,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     interaction: {
       mode: 'index',
       intersect: false,
+      axis: 'xy'
     },
     onClick: handleClick,
     plugins: {
@@ -419,14 +423,11 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         pan: {
           enabled: true,
           mode: 'x',
+          onPanComplete: handleZoomComplete,
         },
         zoom: {
-          wheel: {
-            enabled: true,
-          },
-          pinch: {
-            enabled: true,
-          },
+          wheel: { enabled: true },
+          pinch: { enabled: true },
           mode: 'x',
           onZoomComplete: handleZoomComplete,
         },
@@ -544,7 +545,8 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
       )}
       <div className="flex-container column">
         <h5>Filters</h5>
-
+        <div className="flex-container columns no-padding">
+          <div style={{"flex": "1 1 auto"}}>
         {/*<div className="mb-3">*/}
         {/*  <h6>Variables</h6>*/}
         {/*  <label className="me-3">*/}
@@ -593,18 +595,6 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         {/* Threshold Filters */}
         <div className="mb-3">
           {/* Video Config Filter Button */}
-          <div className="mb-3">
-            <button
-              className="btn"
-              onClick={() => setShowVideoConfigModal(true)}
-            >
-              Filter by Video Configuration
-              {selectedVideoConfigIds && allVideoConfigIds.length > 0 &&
-               selectedVideoConfigIds.length !== allVideoConfigIds.length &&
-                selectedVideoConfigIds.length > 0 &&
-               ` (${selectedVideoConfigIds.length} selected)`}
-            </button>
-          </div>
           <div className="mb-5 mt-3 form-horizontal">
             <label htmlFor="filterHSlider" className="form-label">
               <input
@@ -681,7 +671,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
                 onChange={(e) => setFilterFractionVel({...filterFractionVel, enabled: e.target.checked})}
                 className="me-1"
               />
-              Min. Measured / Total [%]
+              min. Measured to total flow [%]
             </label>
             <div className="slider-container">
               <div className="slider-min">{0}</div>
@@ -711,8 +701,33 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
           </button>
 
         </div>
+          </div>
+          <div style={{"flex": "0 0 auto", "width": "300px"}}>
+            <div className="mb-3">
+              <button
+                className="btn"
+                onClick={() => setShowVideoConfigModal(true)}
+              >
+                Video Configuration
+                {selectedVideoConfigIds && allVideoConfigIds.length > 0 &&
+                  selectedVideoConfigIds.length !== allVideoConfigIds.length &&
+                  selectedVideoConfigIds.length > 0 &&
+                  ` (${selectedVideoConfigIds.length} selected)`}
+              </button>
+            </div>
 
-        <h5>Data</h5>
+            <FilterDates
+                startDate={startDate}
+                endDate={endDate}
+                setStartDate={setStartDate}
+                setEndDate={setEndDate}
+              />
+          </div>
+        </div>
+      </div>
+      <div className="flex-container column">
+
+      <h5>Data</h5>
 
         <div className="tabs-row">
           <button
