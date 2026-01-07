@@ -45,7 +45,8 @@ FilterDates.propTypes = {
   endDate: PropTypes.string,
   setStartDate: PropTypes.func.isRequired,
   setEndDate: PropTypes.func.isRequired,
-  handleDateFilter: PropTypes.func.isRequired
+  title: PropTypes.string,
+  handleDateFilter: PropTypes.func
 };
 
 export default FilterDates;

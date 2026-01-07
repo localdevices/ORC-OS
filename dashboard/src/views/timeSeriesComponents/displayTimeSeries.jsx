@@ -35,12 +35,13 @@ ChartJS.register(
   zoomPlugin
 );
 
-const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
+const DisplayTimeSeries = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState([]);  // initialize data
   const [filteredData, setFilteredData] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  const [dateRange, setDateRange] = useState({startDate: null, endDate: null});
   const chartRef = useRef(null);
   const loadDataTimeoutRef = useRef(null);
   // allow for setting messages
@@ -68,36 +69,85 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         console.error('Error fetching video configs:', error);
       }
     };
-
-    fetchAllVideoConfigIds();
+    if (allVideoConfigIds.length == 0) {
+      fetchAllVideoConfigIds();
+    }
   }, []);
+
+  // if start and/or end date changes, reload data
+  useEffect(() => {
+    const loadData = async (minDate, maxDate, currentMinDate, currentMaxDate, needsDataBefore, needsDataAfter) => {
+      // load new data
+      console.log(`Loading additional data: ${minDate} to ${maxDate}`);
+      setIsLoading(true);
+      let uniqueSorted = data;
+      // try updating
+      try {
+        const newStart = needsDataBefore ? minDate.toISOString().slice(0, -1) : currentMinDate.toISOString().slice(0, -1);
+        const newEnd = needsDataAfter ? maxDate.toISOString().slice(0, -1) : currentMaxDate.toISOString().slice(0, -1);
+
+        const response = await api.get('/time_series/', {
+          params: buildQueryParams(newStart, newEnd)
+        });
+
+        // Merge new data with existing, removing duplicates
+        const merged = [...data, ...response.data];
+        const unique = Array.from(
+          new Map(merged.map(item => [item.id, item])).values()
+        );
+        uniqueSorted = unique.sort((a, b) => new Date(a.timestamp + "Z") - new Date(b.timestamp + "Z"));
+      } catch (error) {
+        console.error('Error loading additional data:', error);
+      }
+      return uniqueSorted;
+    }
+    const updateTimeSeries = async () => {
+      const minDate = dateRange.startDate ? getDateDiff(new Date(dateRange.startDate), -1) : null;
+      const maxDate = dateRange.endDate ? getDateDiff(new Date(dateRange.endDate), 1) : null;
+      if (!minDate || !maxDate) return;
+      // Check if we need to load more data
+      const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp + ".000Z"))));
+      const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp + ".000Z"))));
+      const needsDataBefore = currentMinDate.getTime() ? (minDate < currentMinDate) : true;
+      const needsDataAfter = currentMaxDate.getTime() ? (maxDate > currentMaxDate) : true;
+      let sortedData = data;
+      try {
+        if (needsDataBefore || needsDataAfter || !currentMinDate.getTime() || !currentMaxDate.getTime()) {
+          sortedData = await loadData(minDate, maxDate, currentMinDate, currentMaxDate, needsDataBefore, needsDataAfter);
+        }
+      } catch (error) {
+        console.error('Error loading additional data:', error);
+      } finally {
+        setData(
+          sortedData.filter(
+            d => new Date(d.timestamp + "Z") >= minDate && new Date(d.timestamp + ".000Z") <= maxDate
+          ))
+        setIsLoading(false);
+      }
+    }
+    updateTimeSeries();
+  }, [dateRange]);
 
   // Initial data load: one week before last timestamp to last timestamp
   useEffect(() => {
-    if (!selectedVideoConfigIds) return; // Wait for video config IDs to be loaded
+    if (!selectedVideoConfigIds)
+    {
+      return;
+    } // Wait for video config IDs to be loaded
 
     const fetchInitialData = async () => {
-      setIsLoading(true);
+      // setIsLoading(true);
       try {
         // First, get the last timestamp
         const response = await api.get('/time_series/', {params: {count: 1}});
 
         if (response.data && response.data.length > 0) {
           const lastTimestamp = new Date(`${response.data[0].timestamp}Z`);
-          const oneWeekBefore = new Date(lastTimestamp);
-          oneWeekBefore.setDate(oneWeekBefore.getDate() - 7);
-
-          setStartDate(oneWeekBefore.toISOString().slice(0, -1));
-          setEndDate(lastTimestamp.toISOString().slice(0, -1));
-
-          // Fetch data for the range
-          const dataResponse = await api.get('/time_series/', {
-            params: buildQueryParams(
-              oneWeekBefore.toISOString().slice(0, -1),
-              lastTimestamp.toISOString().slice(0, -1)
-            )
+          const oneWeekBefore = getDateDiff(lastTimestamp, -7);
+          setDateRange({
+            startDate: oneWeekBefore.toISOString().slice(0, -1),
+            endDate: lastTimestamp.toISOString().slice(0, -1)
           });
-          setData(dataResponse.data);
         }
       } catch (error) {
         console.error('Error fetching initial time series:', error);
@@ -140,6 +190,11 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
 
     setFilteredData(filtered);
   }, [data, filterH, filterQ50, filterFractionVel]);
+  const getDateDiff = (date, days) => {
+    const newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
+  }
 
   // Helper function to build query params
   const buildQueryParams = (start, stop) => {
@@ -166,6 +221,18 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     setViewMode(view);
   };
 
+  const setStartDate = (date) => {
+    setDateRange({
+      ...dateRange,
+      startDate: date
+    })
+  }
+  const setEndDate = (date) => {
+    setDateRange({
+      ...dateRange,
+      endDate: date
+    })
+  }
   // Handle zoom and load additional data if needed
   const handleZoomComplete = async ({chart}) => {
     if (loadDataTimeoutRef.current) {
@@ -176,48 +243,13 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
       const xScale = chart.scales.x;
       const minDate = new Date(xScale.min);
       const maxDate = new Date(xScale.max);
-      // Check if we need to load more data
-      const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp))));
-      const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp))));
-      console.log(`Current view range: ${currentMinDate} to ${currentMaxDate}`);
-      const needsDataBefore = currentMinDate.getTime() ? (minDate < currentMinDate) : true;
-      const needsDataAfter = currentMaxDate.getTime() ? (maxDate > currentMaxDate) : true;
-
-      if (needsDataBefore || needsDataAfter || !currentMinDate.getTime() || !currentMaxDate.getTime()) {
-        // load new data
-        console.log(`Loading additional data: ${minDate} to ${maxDate} with  ${needsDataBefore} and ${needsDataAfter}`);
-        setIsLoading(true);
-        try {
-          const newStart = needsDataBefore ? minDate.toISOString().slice(0, -1) : currentMinDate.toISOString().slice(0, -1);
-          const newEnd = needsDataAfter ? maxDate.toISOString().slice(0, -1) : currentMaxDate.toISOString().slice(0, -1);
-
-          const response = await api.get('/time_series/', {
-            params: buildQueryParams(newStart, newEnd)
-          });
-
-          // Merge new data with existing, removing duplicates
-          const merged = [...data, ...response.data];
-          const unique = merged.filter((item, index, self) =>
-            index === self.findIndex((t) => t.timestamp === item.timestamp)
-          );
-
-          setData(unique.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-          setStartDate(newStart);
-          setEndDate(newEnd);
-        } catch (error) {
-          console.error('Error loading additional data:', error);
-        } finally {
-          // remove any trailing data outside of the current view to prevent delay due to large data in memory
-          setData(data.filter(d => new Date(d.timestamp) >= minDate && new Date(d.timestamp) <= maxDate));
-          setIsLoading(false);
-        }
-      }
+      setDateRange({
+        startDate: minDate.toISOString().slice(0, -1),
+        endDate: maxDate.toISOString().slice(0, -1)
+      })
     }, 1000)
   }
-
-
   const handlefilterFracChange = async (value) => {
-
     // Ensure values are at least `minimumDifference` apart
     const updatedFilterFrac = {
       ...filterFractionVel,
@@ -228,7 +260,6 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
 
   const handlefilterHChange = async (values) => {
     let [minH, maxH] = values;
-
     // Ensure values are at least `minimumDifference` apart
     const updatedFilterH = {
       ...filterH,
@@ -260,10 +291,10 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         setSelectedVideo(video);
         setShowRunModal(true);
       } else {
-        setMessageInfo('warning', `Video configuration not ready for clicked timestamp ${data[elements[0].index].timestamp}`);
+        setMessageInfo('warning', `Video configuration not ready for clicked timestamp ${data[elements[0].index].timestamp}.000Z`);
       }
     } else {
-      setMessageInfo('warning', `No video available for clicked timestamp ${data[elements[0].index].timestamp}`);
+      setMessageInfo('warning', `No video available for clicked timestamp ${data[elements[0].index].timestamp}.000Z`);
     }
   }
 
@@ -307,8 +338,8 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
       link.href = url;
 
       // Generate filename with date range
-      const startDateStr = startDate ? new Date(startDate).toISOString().split('T')[0] : 'start';
-      const endDateStr = endDate ? new Date(endDate).toISOString().split('T')[0] : 'end';
+      const startDateStr = dateRange.startDate ? new Date(dateRange.startDate).toISOString().slice(0, -1).split('T')[0] : 'start';
+      const endDateStr = dateRange.endDate ? new Date(dateRange.endDate).toISOString().slice(0, -1).split('T')[0] : 'end';
       const filename = `timeseries_${startDateStr}_to_${endDateStr}.csv`;
 
       link.setAttribute('download', filename);
@@ -328,7 +359,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     datasets: [
     {
       label: 'Water Level',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.h || NaN})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.h || NaN})),
       borderColor: 'rgba(30,63,192,0.8)',
       backgroundColor: 'rgba(30, 63, 192, 0.3)',
       yAxisID: 'y',
@@ -337,7 +368,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     },
     {
       label: 'Discharge (median)',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.q_50 || NaN })),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.q_50 || NaN })),
       borderColor: 'rgb(255,99,99)',
       backgroundColor: 'rgba(255,99,99,0.5)',
       yAxisID: 'y1',
@@ -345,7 +376,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     },
     {
       label: 'Surface Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.v_surf || NaN})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.v_surf || NaN})),
       borderColor: 'rgb(85,218,53)',
       backgroundColor: 'rgba(85,218,53, 0.5)',
       yAxisID: 'y2',
@@ -353,7 +384,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     },
     {
       label: 'Bulk Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp), y: d.v_bulk || NaN})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.v_bulk || NaN})),
       borderColor: 'rgb(33,81,21)',
       backgroundColor: 'rgba(33,81,21, 0.5)',
       yAxisID: 'y3',
@@ -373,6 +404,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
   };
 
   const chartOptions = viewMode === 'timeSeries' ? {
+    animation: false,
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -397,11 +429,14 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         callbacks: {
           title: (tooltipItems) => {
             const ts = data[tooltipItems[0].dataIndex];
-            let title = `${ts.id}: ${tooltipItems[0].label}`;
-            if (ts.video_id) {
-              title += `\nClick to edit analysis of video ${ts.video_id}`;
+            // when panning, current time series may disappear from data
+            if (ts) {
+              let title = `${ts.id}: ${tooltipItems[0].label}`;
+              if (ts.video_id) {
+                title += `\nClick to edit analysis of video ${ts.video_id}`;
+              }
+              return title
             }
-            return title
           },
           label: (context) => {
             let l = '';
@@ -413,9 +448,7 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
             } else {
               l += ' m';
             }
-
-            return l //`${context.dataset.label}: ${context.parsed.y.toFixed(3)}`;
-
+            return l
           },
         },
       },
@@ -440,8 +473,8 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
           display: true,
           text: 'Timestamp',
         },
-        min: startDate,
-        max: endDate,
+        min: dateRange.startDate,
+        max: dateRange.endDate
       },
       y: {
         type: 'linear',
@@ -496,12 +529,26 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'x',
+          onPanComplete: null,
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: 'x',
+          onZoomComplete: null,
+        },
+      },
+
       legend: {
         position: 'top',
       },
       title: {
         display: true,
-        text: 'Rating Curve (Discharge vs Water Level)',
+        text: ["Rating Curve (Q-h)", `${dateRange.startDate} to ${dateRange.endDate}`],
       },
       tooltip: {
         displayColors: false,
@@ -547,51 +594,6 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         <h5>Filters</h5>
         <div className="flex-container columns no-padding">
           <div style={{"flex": "1 1 auto"}}>
-        {/*<div className="mb-3">*/}
-        {/*  <h6>Variables</h6>*/}
-        {/*  <label className="me-3">*/}
-        {/*    <input*/}
-        {/*      type="checkbox"*/}
-        {/*      checked={showH}*/}
-        {/*      disabled={viewMode !== 'timeSeries'}*/}
-        {/*      onChange={(e) => setShowH(e.target.checked)}*/}
-        {/*      className="me-1"*/}
-        {/*    />*/}
-        {/*    Water Level (h)*/}
-        {/*  </label>*/}
-        {/*  <label className="me-3">*/}
-        {/*    <input*/}
-        {/*      type="checkbox"*/}
-        {/*      checked={showQ50}*/}
-        {/*      disabled={viewMode !== 'timeSeries'}*/}
-        {/*      onChange={(e) => setShowQ50(e.target.checked)}*/}
-        {/*      className="me-1"*/}
-        {/*    />*/}
-        {/*    Discharge (q_50)*/}
-        {/*  </label>*/}
-        {/*  <label className="me-3">*/}
-        {/*    <input*/}
-        {/*      type="checkbox"*/}
-        {/*      checked={showVSurf}*/}
-        {/*      disabled={viewMode !== 'timeSeries'}*/}
-        {/*      onChange={(e) => setShowVSurf(e.target.checked)}*/}
-        {/*      className="me-1"*/}
-        {/*    />*/}
-        {/*    Surface Velocity (v_surf)*/}
-        {/*  </label>*/}
-        {/*  <label>*/}
-        {/*    <input*/}
-        {/*      type="checkbox"*/}
-        {/*      checked={showVBulk}*/}
-        {/*      disabled={viewMode !== 'timeSeries'}*/}
-        {/*      onChange={(e) => setShowVBulk(e.target.checked)}*/}
-        {/*      className="me-1"*/}
-        {/*    />*/}
-        {/*    Bulk Velocity (v_bulk)*/}
-        {/*  </label>*/}
-        {/*</div>*/}
-
-
         {/* Threshold Filters */}
         <div className="mb-3">
           {/* Video Config Filter Button */}
@@ -717,10 +719,11 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
             </div>
 
             <FilterDates
-                startDate={startDate}
-                endDate={endDate}
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
                 setStartDate={setStartDate}
                 setEndDate={setEndDate}
+                title={"Select date range"}
               />
           </div>
         </div>
@@ -753,11 +756,10 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
         {/* Chart */}
         <div style={{height: '500px', position: 'relative'}}>
             <>
-              <Line ref={chartRef} data={chartData} options={chartOptions} />
+              <Line ref={chartRef} data={chartData} options={chartOptions} key={viewMode} />
             </>
             {/*<div>No data available for the selected filters and date range.</div>*/}
         </div>
-
         {/* Tooltip Image Display */}
       </div>
 
@@ -775,18 +777,8 @@ const DisplayTimeSeries = ({startDate, endDate, setStartDate, setEndDate}) => {
       {showRunModal && selectedVideo && (
         <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo}/>
       )}
-
     </div>
   );
-};
-DisplayTimeSeries.propTypes = {
-  startDate: PropTypes.string,
-  endDate: PropTypes.string,
-  setStartDate: PropTypes.func.isRequired,
-  setEndDate: PropTypes.func.isRequired,
-  fractionVelocimetry: PropTypes.number.isRequired,
-  setFractionVelocimetry: PropTypes.func.isRequired,
-
 };
 
 export default DisplayTimeSeries;
