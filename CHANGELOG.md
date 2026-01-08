@@ -1,4 +1,4 @@
-## [0.4.x] - 2025-xx-xx
+## [0.5.x] - 2026-xx-xx
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -8,6 +8,8 @@ This release should only be used for:
 Feedback and bug reports are highly appreciated to improve future versions.
 
 ### Added
+- A brand new time series view for water level and discharge data displays, filtering and downloading. A rating curve
+  view is also available for a quick view on the water level - discharge relationship.
 ### Changed
 - Video table loads much faster and responds to changes made by user without a full page refresh being required.
 ### Deprecated
@@ -18,6 +20,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - Fixed bug in login procedure, causing infinite authorization validation attempts after typing wrong password
 - Fixed database overflow issue with video table when large amounts of thumbnails were requested at once over slow
   connections.
+- Fixed issue with videos not appearing in the video table when video configuration is not complete yet.
 
 ### Security
 

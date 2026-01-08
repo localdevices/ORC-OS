@@ -47,7 +47,6 @@ export const AuthProvider = ({ children }) => {
         setInitializing(false);
       }
     };
-    console.log("AM I VALIDATING?")
     validateSession();
 
   }, []);

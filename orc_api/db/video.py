@@ -117,7 +117,7 @@ def add_water_level(mapper, connection, target):
 
     db = Session(bind=connection)
     # check if a record is available
-    settings = crud.settings.get(db)
+    settings = crud.settings.get(db)  # settings needed for time difference allowance
     if settings:
         timestamp = datetime.now() if not target.timestamp else target.timestamp
         timeseries_record = crud.time_series.get_closest(
