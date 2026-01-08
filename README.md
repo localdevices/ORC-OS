@@ -158,6 +158,54 @@ to login anymore and since the service runs locally on the device, you will not 
 You should now reach the home page of the device. From here onwards, please follow our documentation pages
 (forthcoming).
 
+# Installation via Docker on a server or your own computer
+
+We have a fully working Docker composition that can be used to run OpenRiverCam OS on a server. This allows you to
+run ORC-OS on your own computer via Docker, for instance to reprocess videos in a non-operational context. Basically
+this gives you Desktop functionality without the need to install anything on your device.
+
+Install as follows: first make sure `Docker` and `Docker Compose` are installed on your computer. On Windows you must
+install Docker Desktop. On Linux you can use the linux package manager such as `apt`. On macOS you can use `homebrew`.
+
+In windows make sure you use Windows System for Linux (WSL) or Git Bash as these have the same command interface as
+linux.
+
+1. Create a local data directory
+    ```bash
+    mkdir -p $HOME/.ORC-OS
+    ```
+
+2. Copy the `.env.example` file to `.env` and generate a secret key and set a data path. Replace `$HOME/.ORC-OS` with
+   the desired folder (see step 1) and make sure it exists:
+    ```bash
+    cp .env.example .env
+    # Generate a secure secret key and update it in .env
+    sed -i "s/^ORC_SECRET_KEY=.*/ORC_SECRET_KEY=$(openssl rand -hex 32)/" .env
+    sed -i "s|^ORC_DATA_PATH=.*|ORC_DATA_PATH=$HOME/.ORC-OS|" .env
+
+    ```
+3. Build and start all services (replace `$HOME/.ORC-OS` for the desired folder:
+   ```bash
+   docker-compose up --build -d
+   ```
+   You should now be able to reach the web interface at http://localhost:3000
+
+
+4. View logs
+    ```bash
+    docker-compose logs -f
+    ```
+5. Stop services
+    ```bash
+    docker-compose down
+    ```
+
+
+
+
+3.
+
+
 # Installation on your own device
 For installation on your own device, we provide examples for Debian-based systems only. As each device or OS may be
 different in structure, naming of packages and exact approaches to establish services, we cannot provide a generic
