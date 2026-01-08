@@ -41,7 +41,7 @@ class TimeSeriesBase(BaseModel):
     fraction_velocimetry: Optional[float] = Field(
         default=None, description="Fraction of discharge resolved using velocimetry [-]"
     )
-    video_id: Optional[int] = Field(default=None, description="Connected video ID")
+    video_id: Optional[int] = Field(default=None, description="Connected video ID", exclude=True)
 
     model_config = {"from_attributes": True}
 
@@ -55,8 +55,6 @@ class TimeSeriesBase(BaseModel):
                 result = {key: getattr(data, key) for key in data.__dict__ if not key.startswith("_")}
                 result["video_id"] = data.video.id
                 return result
-
-                data["video_id"] = data.video.id
         return data
 
 
@@ -78,7 +76,7 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
         """
         endpoint = f"/api/site/{site}/timeseries/"
         data = self.model_dump(
-            exclude_unset=True, exclude_none=True, exclude=["id", "remote_id", "created_at", "sync_status"], mode="json"
+            exclude_unset=True, exclude_none=True, exclude={"id", "remote_id", "created_at", "sync_status"}, mode="json"
         )
 
         # sync remotely with the updated data, following the LiveORC end point naming
