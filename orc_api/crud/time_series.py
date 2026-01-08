@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
@@ -36,10 +37,19 @@ def get_query_list(
     stop: Optional[datetime] = None,
     desc: Optional[bool] = None,
     count: Optional[int] = None,
+    has_video: Optional[bool] = None,
 ):
     """Get a query of time series (not yet extracted)."""
     query = db.query(models.TimeSeries)
     query = filter_start_stop(query, start, stop, desc)
+    if has_video is not None:
+        if has_video:
+            # Only TimeSeries WITH a video
+            query = query.filter(exists().where(models.Video.time_series_id == models.TimeSeries.id))
+        else:
+            # Only TimeSeries WITHOUT a video
+            query = query.filter(~exists().where(models.Video.time_series_id == models.TimeSeries.id))
+
     if count is not None:
         # limit the amount of returned records to "count"
         query = query.limit(count)
@@ -86,7 +96,8 @@ def get_closest(
     allowed_dt: Optional[float] = None,
 ):
     """Fetch the water level closest to the given timestamp (None if further away than allowed_dt)."""
-    return generic.get_closest(db.query(models.TimeSeries), models.TimeSeries, timestamp, allowed_dt)
+    ts_query = get_query_list(db, has_video=False)  # only time series without attached video can be used.
+    return generic.get_closest(ts_query, models.TimeSeries, timestamp, allowed_dt)
 
 
 def add(db: Session, time_series: models.TimeSeries) -> models.TimeSeries:
