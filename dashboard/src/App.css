@@ -114,11 +114,22 @@ a:hover {
 }
 .help-block {
   padding-left: 10px;
-  font-size: 0.6875rem;
+  font-size: 0.7875rem;
   margin-top: 0;
   margin-bottom: 0;
   color: #666;
 }
+
+.help-block a {
+  color: #646cff;
+}
+
+.help-block a:hover {
+  font-weight: bold;
+  color: #646cff;
+  /*color: #cc5200;      !* Optional: darker shade on hover *!*/
+}
+
 /* Grid container for two equal columns */
 .split-screen {
   display: grid;
