@@ -28,23 +28,24 @@ async def delayed_sync_videos(app, logger):
     with get_session() as session:
         # start sync tasks if there is a working callback_url with site id
         callback_url = crud.callback_url.get(session)
-        settings = crud.settings.get(session)
-        timeout = min(callback_url.retry_timeout, 150) if callback_url.retry_timeout else 150
-        if callback_url and callback_url.remote_site_id:
-            videos_for_syncing = crud.video.get_list(db=session, sync_status=SyncStatus.QUEUE)
-            logger.info(f"There are {len(videos_for_syncing)} videos left to synchronize.")
-            if len(videos_for_syncing) > 0:
-                # resubmit these for processing
-                _ = await queue.sync_videos_list(
-                    videos=videos_for_syncing,
-                    session=session,
-                    executor=app.state.executor,
-                    upload_directory=UPLOAD_DIRECTORY,
-                    site=callback_url.remote_site_id,
-                    sync_file=settings.sync_file,
-                    sync_image=settings.sync_image,
-                    timeout=timeout,
-                )
+        if callback_url:
+            settings = crud.settings.get(session)
+            timeout = min(callback_url.retry_timeout, 150) if callback_url.retry_timeout else 150
+            if callback_url and callback_url.remote_site_id:
+                videos_for_syncing = crud.video.get_list(db=session, sync_status=SyncStatus.QUEUE)
+                logger.info(f"There are {len(videos_for_syncing)} videos left to synchronize.")
+                if len(videos_for_syncing) > 0:
+                    # resubmit these for processing
+                    _ = await queue.sync_videos_list(
+                        videos=videos_for_syncing,
+                        session=session,
+                        executor=app.state.executor,
+                        upload_directory=UPLOAD_DIRECTORY,
+                        site=callback_url.remote_site_id,
+                        sync_file=settings.sync_file,
+                        sync_image=settings.sync_image,
+                        timeout=timeout,
+                    )
 
 
 def schedule_water_level(scheduler, logger, session):
