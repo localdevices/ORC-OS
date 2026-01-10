@@ -23,7 +23,7 @@ const CrossSectionForm = (
 
   const fetchCrossSections = async () => {
     try {
-      const response = await api.get('/cross_section');
+      const response = await api.get('/cross_section/');
       setAvailableCrossSections(response.data);
     } catch (error) {
       setMessageInfo({
