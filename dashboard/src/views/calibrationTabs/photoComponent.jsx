@@ -62,7 +62,6 @@ const PhotoComponent = (
   useEffect(() => {
     // ensure if click count is 3, the camera config is updated with the set bbox
     if (bboxClickCount === 3) {
-      console.log("last response", lastResponse.current.data);
       setCameraConfig(lastResponse.current.data)
     }
   }, [bboxClickCount])
@@ -82,6 +81,10 @@ const PhotoComponent = (
       if (cameraConfig && cameraConfig?.gcps?.control_points) {
         updateFittedPoints();
         updateDots();
+      } else {
+        setDots({});
+        setFittedPoints([]);
+        setBBoxPolygon([]);
       }
     }
 
@@ -273,7 +276,6 @@ const PhotoComponent = (
         )
           .then(response => {
             lastResponse.current = response;
-            // console.log(lastResponse.current.data);
             const bbox = response.data.bbox_camera;
             // set the bbox_camera on the current cameraConfig
             bboxPoints = bbox.map(p => {
@@ -284,7 +286,6 @@ const PhotoComponent = (
             setBBoxPolygon(bboxPoints);
           })
       }, 100);
-      // console.log(polygonPoints);
       setLineCoordinates(null);
     }
 

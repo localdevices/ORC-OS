@@ -1,12 +1,12 @@
 """Time series routers."""
 
-from typing import Dict
+from datetime import datetime
+from io import BytesIO
+from typing import Dict, List, Optional
 
-from fastapi import (  # Requests holds the app
-    APIRouter,
-    Depends,
-    HTTPException,
-)
+import pandas as pd
+from fastapi import APIRouter, Depends, HTTPException, Query  # Requests holds the app
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from orc_api import crud
@@ -24,6 +24,23 @@ def get_time_series_record(db: Session, id: int) -> TimeSeriesResponse:
         raise HTTPException(status_code=404, detail="Time series not found.")
     # Open the video file
     return TimeSeriesResponse.model_validate(ts_rec)
+
+
+@router.get("/", response_model=List[TimeSeriesResponse], status_code=200)
+async def get_list_time_series(
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    count: Optional[int] = None,
+    desc: Optional[bool] = None,
+    # video_config_ids: Annotated[list[int] | None, Query()] = None,  # TODO: select when removing py3.9 compatibility
+    video_config_ids: Optional[List[int]] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Retrieve list of time series."""
+    list_time_series = crud.time_series.get_list(
+        db, start=start, stop=stop, count=count, desc=desc, video_config_ids=video_config_ids
+    )
+    return list_time_series
 
 
 @router.get("/{id}/", response_model=TimeSeriesResponse, status_code=200)
@@ -48,3 +65,33 @@ async def post_time_series(time_series: TimeSeriesCreate, db: Session = Depends(
     new_ts = TimeSeries(**time_series.model_dump(exclude_none=True, exclude={"id"}))
     ts = crud.time_series.add(db=db, time_series=new_ts)
     return ts
+
+
+@router.post("/download/", status_code=200)
+async def download(
+    start: Optional[datetime] = None,
+    stop: Optional[datetime] = None,
+    count: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retrieve time series from database and create a CSV file."""
+    timeseries = crud.time_series.get_list(db=db, start=start, stop=stop, count=count)
+    if len(timeseries) == 0:
+        raise HTTPException(status_code=404, detail="No videos found in database with selected ids.")
+
+    # Convert time series to DataFrame
+    df = pd.DataFrame([ts.__dict__ for ts in timeseries])
+
+    # Create CSV in memory
+    output = BytesIO()
+    df.to_csv(output, index=False)
+    output.seek(0)
+
+    # close database connection
+    db.close()
+
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="time_series.csv"'},
+    )

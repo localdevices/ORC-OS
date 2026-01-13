@@ -108,8 +108,8 @@ const ActionVideos = (
   }, [])
 
   return (
-    <div className="split-screen">
-      <div className="ms-3">
+    <div className="flex-container no-padding">
+      <div className="ms-3" style={{"flex": "1 1 auto"}}>
         <h5>Selected</h5>
         {/*<hr/>*/}
         {/*<div style={{minWidth: "20%", flex: 0, padding: "20px"}}>*/}
@@ -164,7 +164,7 @@ const ActionVideos = (
         endDate={endDate}
         setStartDate={setStartDate}
         setEndDate={setEndDate}
-        handleDateFilter={handleDateFilter}
+        // handleDateFilter={handleDateFilter}
       />
       {showDownloadModal && (
         <DownloadModal

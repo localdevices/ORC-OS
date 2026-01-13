@@ -24,7 +24,7 @@ async def get_callback_url(db: Session = Depends(get_db)):
 
 
 @router.get(
-    "/health",
+    "/health/",
     response_model=CallbackUrlHealth,
     description="Check the online status and token health of LiveORC callback URL",
 )

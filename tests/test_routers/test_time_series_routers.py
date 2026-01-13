@@ -53,7 +53,7 @@ def test_get_patch_post_time_series(auth_client, db_session):
     assert r.status_code == 200
     assert r.json()["h"] == 22.0
     # also check in database if h was changed
-    rec = db_session.query(models.TimeSeries).get(1)
+    rec = db_session.get(models.TimeSeries, 1)
     assert rec.h == 22.0
     # add via post
     r = auth_client.post(
@@ -62,6 +62,17 @@ def test_get_patch_post_time_series(auth_client, db_session):
     assert r.status_code == 201
     assert r.json()["h"] == 23.0
     assert r.json()["id"] == 3
+    # get all time series again
+    r = auth_client.get("/api/time_series/")
+    assert r.status_code == 200
+    assert len(r.json()) == 3
+
+    # get all time series with no video_config_ids (should return empty)
+    r = auth_client.get("/api/time_series/", params={"video_config_ids": [1]})
+    assert len(r.json()) == 0
+    # get all time series with null video_config_ids (should return empty)
+    r = auth_client.get("/api/time_series/", params={"video_config_ids": [0]})
+    assert len(r.json()) == 3
     # remove after test
     db_session.query(models.TimeSeries).delete()
     db_session.commit()

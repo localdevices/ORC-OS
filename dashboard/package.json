@@ -16,6 +16,8 @@
     "@xterm/xterm": "^5.5.0",
     "axios": "^1.7.9",
     "chart.js": "^4.4.9",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "chartjs-plugin-zoom": "^2.2.0",
     "dotenv": "^16.4.7",
     "epsg-index": "^2.0.0",
     "leaflet": "^1.9.4",
