@@ -1,3 +1,21 @@
+## [0.5.x] - xxxx-xx-xx
+This is a **preproduction alpha release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+### Changed
+- maximum velocity is now default set to 10 m/s.
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
 ## [0.4.4] - 2025-12-11
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
