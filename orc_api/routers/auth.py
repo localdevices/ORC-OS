@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from orc_api import ALGORITHM, ORC_COOKIE_MAX_AGE, ORC_COOKIE_NAME, SECRET_KEY, crud
+from orc_api import ALGORITHM, DEV_MODE, ORC_COOKIE_MAX_AGE, ORC_COOKIE_NAME, SECRET_KEY, crud
 from orc_api.database import get_db
 from orc_api.db import Session
 
@@ -76,6 +76,8 @@ def verify_token(request: Request):
 
     If the token is valid, return its claims (decoded payload).
     """
+    if DEV_MODE:
+        return {"detail": "DEV_MODE is enabled. No token verification required."}
     token = request.cookies.get(ORC_COOKIE_NAME)  # retrieve token from client-side cookie
     if not token:
         raise HTTPException(status_code=401, detail="Token not found in cookies")

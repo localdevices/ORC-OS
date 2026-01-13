@@ -10,6 +10,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Added
 - A brand new time series view for water level and discharge data displays, filtering and downloading. A rating curve
   view is also available for a quick view on the water level - discharge relationship.
+- maximum velocity is now default set to 10 m/s.
 ### Changed
 - Video table loads much faster and responds to changes made by user without a full page refresh being required.
 ### Deprecated
@@ -21,8 +22,8 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - Fixed database overflow issue with video table when large amounts of thumbnails were requested at once over slow
   connections.
 - Fixed issue with videos not appearing in the video table when video configuration is not complete yet.
-
 ### Security
+
 
 ## [0.4.4] - 2025-12-11
 This is a **preproduction alpha release**, not yet fit for production and operational environments.

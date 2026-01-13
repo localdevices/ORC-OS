@@ -37,7 +37,7 @@ const CameraAim = () => {
   useEffect(() => {
     const fetchSwitchState = async () => {
       try {
-        const response = await api.get("/pivideo_stream/has_picam");
+        const response = await api.get("/pivideo_stream/has_picam/");
         if (response.status === 200) {
           setHasPiCamera(response.data); // Disable if "enabled" is false
           if (!response.data) {
@@ -45,7 +45,7 @@ const CameraAim = () => {
             setIsToggledOn(false);
           } else {
             // also request the camera models and set those
-            const responseCameraModels = await api.get("/pivideo_stream/picam_info");
+            const responseCameraModels = await api.get("/pivideo_stream/picam_info/");
             if (responseCameraModels.data === null) {
               // empty list
               setCameraModels([]);
@@ -75,7 +75,7 @@ const CameraAim = () => {
     try {
       if (newState) {
         // Call endpoint for "enabled" state
-        let endPoint = `/pivideo_stream/start`
+        let endPoint = `/pivideo_stream/start/`
         if (piFormData.camera_idx !== null) {
           endPoint += `?camera_idx=${piFormData.camera_idx}`;
         }
@@ -88,13 +88,13 @@ const CameraAim = () => {
 
         await api.post(endPoint);
         // re-create a unique url to prevent the browser thinks it can use a cached version
-        const feedUrl = `${api.defaults.baseURL}/pivideo_stream/stream?${new Date().getTime()}`;
+        const feedUrl = `${api.defaults.baseURL}/pivideo_stream/stream/?${new Date().getTime()}`;
         console.log(`setting feed to ${feedUrl}`);
         setVideoFeedUrl(feedUrl);
         setIsToggledOn(true);
       } else {
         // Call endpoint for "disabled" state
-        await api.post('/pivideo_stream/stop');
+        await api.post('/pivideo_stream/stop/');
         setVideoFeedUrl("");
         setIsToggledOn(false);
       }
@@ -109,7 +109,7 @@ const CameraAim = () => {
   };
   const handleVideoRecord = async () => {
     try {
-      let endPoint = `/pivideo_stream/record`
+      let endPoint = `/pivideo_stream/record/`
       if (piFormData.camera_idx !== null) {
         endPoint += `?camera_idx=${piFormData.camera_idx}`;
       }
