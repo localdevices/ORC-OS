@@ -16,7 +16,7 @@ from orc_api.log import logger
 from orc_api.routers.video import upload_video
 
 # Initialize router
-router = APIRouter(prefix="/pivideo_stream/", tags=["pivideo_stream"])
+router = APIRouter(prefix="/pivideo_stream", tags=["pivideo_stream"])
 
 # Globals for managing the camera
 picam = None
