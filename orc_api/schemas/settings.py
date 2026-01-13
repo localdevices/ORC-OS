@@ -9,6 +9,7 @@ from typing import Optional
 
 from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from typing_extensions import Self
 
 from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
@@ -134,12 +135,18 @@ class SettingsResponse(SettingsBase):
         user = get_user()
         return f"scp {self.file_format} {user}@{hostname}:{INCOMING_DIRECTORY}"
 
+    # @model_validator(mode="after")
+    # def add_sample_filename(cls, instance):
+    #     """Add sample filename to the response."""
+    #     if instance.video_file_fmt:
+    #         instance.sample_file = os.path.join(INCOMING_DIRECTORY, instance.file_format)
+    #     return instance
     @model_validator(mode="after")
-    def add_sample_filename(cls, instance):
+    def add_sample_filename(self) -> Self:
         """Add sample filename to the response."""
-        if instance.video_file_fmt:
-            instance.sample_file = os.path.join(INCOMING_DIRECTORY, instance.file_format)
-        return instance
+        if self.video_file_fmt:
+            self.sample_file = os.path.join(INCOMING_DIRECTORY, self.file_format)
+        return self
 
     async def check_new_videos(self, path_incoming, app, logger):
         """Check for new videos in incoming folder, add to database and queue if ready to run."""

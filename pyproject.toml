@@ -14,10 +14,9 @@ dependencies = [
     "fastapi[standard]",
     "numpy<2; python_version <= '3.9'",  # for compatibility with older picamera2 version on Bullseye
     "numpy>=2; python_version >= '3.10'",
-    "pillow<=9.5.0; python_version == '3.9'",  # for compatibility with picamera2 on Bullseye
-    "pillow; python_version != '3.9'",
-    "rocket-fft @ git+https://github.com/localdevices/rocket-fft.git@main ; python_version >= '3.13'",
-    "rocket-fft; python_version < '3.13'",  # pypi for versions lower than 3.13
+    "pillow==9.5.0; python_version < '3.10'",  # for compatibility with picamera2 on Bullseye
+    "pillow; python_version >= '3.10'",
+    "rocket-fft",
     "pydantic",  # 2025-10-08, there seem to be regression errors in @model_validator. related to https://github.com/pydantic/pydantic/issues/12353
     "PyJWT",
     "pyopenrivercam>=0.9.0",
@@ -44,7 +43,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13"
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
 ]
 dynamic = ['version', 'description']
 
