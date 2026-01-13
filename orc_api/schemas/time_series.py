@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
 from orc_api import crud
@@ -41,7 +41,21 @@ class TimeSeriesBase(BaseModel):
     fraction_velocimetry: Optional[float] = Field(
         default=None, description="Fraction of discharge resolved using velocimetry [-]"
     )
+    video_id: Optional[int] = Field(default=None, description="Connected video ID", exclude=True)
+
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_video_id(cls, data):
+        """Extract video ID from ORM object."""
+        if hasattr(data, "__dict__"):
+            # we have an ORM object
+            if hasattr(data, "video") and data.video is not None:
+                result = {key: getattr(data, key) for key in data.__dict__ if not key.startswith("_")}
+                result["video_id"] = data.video.id
+                return result
+        return data
 
 
 class TimeSeriesCreate(TimeSeriesBase):
@@ -62,7 +76,7 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
         """
         endpoint = f"/api/site/{site}/timeseries/"
         data = self.model_dump(
-            exclude_unset=True, exclude_none=True, exclude=["id", "remote_id", "created_at", "sync_status"], mode="json"
+            exclude_unset=True, exclude_none=True, exclude={"id", "remote_id", "created_at", "sync_status"}, mode="json"
         )
 
         # sync remotely with the updated data, following the LiveORC end point naming

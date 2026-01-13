@@ -10,7 +10,7 @@ from typing import Optional
 
 import numpy as np
 import xarray as xr
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from pyorc.service import velocity_flow
 from sqlalchemy.orm import Session
 
@@ -47,31 +47,58 @@ class VideoListResponse(BaseModel):
     remote_id: Optional[int] = Field(default=None)
 
     @classmethod
-    def from_video_response(cls, video_response: "VideoResponse") -> "VideoListResponse":
-        """Create a VideoListResponse from a VideoResponse."""
-        allowed_to_run, _ = video_response.allowed_to_run  # Extract truth value
-        video_config_data = (
-            {
-                "id": video_response.video_config.id,
-                "name": video_response.video_config.name,
-                "sample_video_id": video_response.video_config.sample_video_id,
-                "ready_to_run": video_response.video_config.ready_to_run,
+    def from_orm_model(
+        cls, video: models.Video, video_config: Optional[VideoConfigResponse] = None
+    ) -> "VideoListResponse":
+        """Create a VideoListResponse directly from an ORM Video model."""
+        # Build video_config dict directly from ORM relationship
+        time_series = TimeSeriesResponse.model_validate(video.time_series) if video.time_series else None
+        video_config_data = None
+        if video.video_config:
+            video_config_data = {
+                "id": video.video_config.id,
+                "name": video.video_config.name,
+                "sample_video_id": video.video_config.sample_video_id,
+                "ready_to_run": video_config.ready_to_run if hasattr(video_config, "ready_to_run") else None,
             }
-            if video_response.video_config
-            else None
-        )
+
+        # Calculate allowed_to_run directly
+        allowed = cls._calculate_allowed_to_run(video, video_config, video.time_series)
 
         return cls(
-            id=video_response.id,
-            file=video_response.file,
-            timestamp=video_response.timestamp,
+            id=video.id,
+            file=video.file,
+            timestamp=video.timestamp,
             video_config=video_config_data,
-            allowed_to_run=allowed_to_run,
-            time_series=video_response.time_series if video_response.time_series else None,
-            status=video_response.status if video_response.status else None,
-            sync_status=video_response.sync_status if video_response.sync_status else None,
-            remote_id=video_response.remote_id if video_response.remote_id else None,
+            allowed_to_run=allowed,
+            time_series=time_series,
+            status=video.status,
+            sync_status=video.sync_status,
+            remote_id=video.remote_id,
         )
+
+    @staticmethod
+    def _calculate_allowed_to_run(
+        video: "models.Video",
+        video_config: Optional[VideoConfigResponse] = None,
+        time_series: Optional[TimeSeriesResponse] = None,
+    ) -> bool:
+        """Calculate allowed_to_run without full Pydantic validation."""
+        if video_config is None:
+            return False
+        if video_config.sample_video_id == video.id:
+            if (
+                video_config.camera_config.gcps is not None
+                and hasattr(video_config.camera_config.gcps, "h_ref")
+                and video_config.camera_config.gcps.h_ref is not None
+            ):
+                return True
+        if time_series:
+            if time_series.h:
+                return True
+        if video_config.cross_section_wl is None:
+            return False
+        return True
 
 
 class VideoCreate(VideoBase):
@@ -109,16 +136,21 @@ class VideoResponse(VideoBase, RemoteModel):
         If the site is not available, False is returned. If the site is available, True is returned.
         """
 
+    @computed_field
     @property
-    def allowed_to_run(self):
+    def allowed_to_run(self) -> tuple[bool, str]:
         """Check if prerequisites are met for running video."""
         # if there is no video config, return False immediately
         if self.video_config is None:
             return False, "No video config available."
-            return False, "No video config available."
         # second check if video_config sample video is the same as current video, then retrieve water level
         if self.video_config.sample_video_id == self.id:
-            if self.video_config.camera_config.gcps.h_ref is not None:
+            if (
+                self.video_config.camera_config.gcps is not None
+                and hasattr(self.video_config.camera_config.gcps, "h_ref")
+                and self.video_config.camera_config.gcps.h_ref is not None
+            ):
+                # if self.video_config.camera_config.gcps.h_ref is not None:
                 return True, "Ready"
         if self.time_series:
             if self.time_series.h:
@@ -238,9 +270,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 # the last handler should be our file handler.
                 remove_file_handler(logger, name_contains="pyorc.log")
 
-            update_data = self.model_dump(
-                exclude_unset=True, exclude={"id", "created_at", "video_config", "time_series"}
-            )
+            update_data = self.serialize_for_db()
             if self.time_series:
                 update_data["time_series_id"] = self.time_series.id
             # with get_session() as session:
@@ -275,6 +305,13 @@ class VideoResponse(VideoBase, RemoteModel):
                 raise Exception("Error running video, VideoStatus set to ERROR.")
 
             return
+
+    def serialize_for_db(self):
+        """Only maintain fields that can and must be stored in the database."""
+        return self.model_dump(
+            exclude_unset=True,
+            exclude={"id", "created_at", "video_config", "time_series", "allowed_to_run"},
+        )
 
     def sync_remote(
         self,
@@ -357,7 +394,9 @@ class VideoResponse(VideoBase, RemoteModel):
                 # update schema instance
                 update_video = VideoResponse.model_validate(response_data)
                 r = crud.video.update(
-                    session, id=self.id, video=update_video.model_dump(exclude_unset=True, exclude_none=True)
+                    session,
+                    id=self.id,
+                    video=update_video.serialize_for_db(),  # model_dump(exclude_unset=True, exclude_none=True)
                 )
                 logger.info(f"Syncing to remote site {site} successful.")
                 video_run_state.update(

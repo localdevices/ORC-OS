@@ -22,16 +22,16 @@ async def test_lifespan_initializes_state(monkeypatch, mocker):
     async def fake_delayed_sync_videos(app_arg, logger_arg):
         return
 
-    async def run_nothing(coro):
-        # just await the coroutine for testing purposes and return None
-        await coro
-        return None
-
     mocker.patch("orc_api.main.delayed_sync_videos", fake_delayed_sync_videos)
     mocker.patch("orc_api.main.get_session", return_value=fake_session)
     mocker.patch("orc_api.main.crud.video.get_list", return_value=[])
 
-    mocker.patch("orc_api.main.asyncio.create_task", side_effect=run_nothing)  # ensures awaiting
+    def sync_run_nothing(coro):
+        # close coroutine to prevent "never awaited" warning.
+        coro.close()
+        return None
+
+    mocker.patch("orc_api.main.asyncio.create_task", side_effect=sync_run_nothing)  # ensures awaiting
 
     async with lifespan(app):
         assert app.state.scheduler is fake_scheduler

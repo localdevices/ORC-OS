@@ -1,8 +1,10 @@
 import os
 from datetime import datetime, timedelta
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -42,13 +44,19 @@ def auth_client():
     return TestClient(app, cookies=response.cookies)
 
 
-def test_video_details_log_delete(auth_client, tmpdir, mocker):
+def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
     upload_dir = os.path.join(tmpdir, "uploads")
-    mocker.patch("orc_api.UPLOAD_DIRECTORY", return_value=upload_dir)
+    monkeypatch.setattr("orc_api.routers.video.UPLOAD_DIRECTORY", upload_dir)
+    monkeypatch.setattr("orc_api.UPLOAD_DIRECTORY", upload_dir)
 
     # add some videos
     db_session = next(get_db_override())
-    video1 = models.Video(timestamp=datetime.now(), file=os.path.join(upload_dir, "test_video.mp4"))
+    video1 = models.Video(
+        timestamp=datetime.now(),
+        file=os.path.join(upload_dir, "test_video.mp4"),
+        thumbnail="thumbnail.jpg",
+        image="image.jpg",
+    )
     video2 = models.Video(timestamp=datetime.now() + timedelta(hours=1))
 
     db_session.add_all([video1, video2])
@@ -58,12 +66,27 @@ def test_video_details_log_delete(auth_client, tmpdir, mocker):
     assert r.status_code == 200
     r = auth_client.get("/api/video/1/log/")
     assert r.status_code == 404
-    # now patch the log file with tmpdir file
+    r = auth_client.get("/api/video/1/thumbnail/")
+    assert r.status_code == 404
+    r = auth_client.get("/api/video/1/image/")
+    assert r.status_code == 404
+    # now patch the log file, a image, thumbnail with tmpdir file
     log_file = os.path.join(upload_dir, "pyorc.log")
+    image_file = os.path.join(upload_dir, "image.jpg")
+    thumbnail_file = os.path.join(upload_dir, "thumbnail.jpg")
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    img = np.array([[0, 255], [255, 0]], np.uint8)
+    img = Image.fromarray(np.stack([img, img, img], axis=-1))
     with open(log_file, "w") as f:
         f.write("log test")
+    img.save(image_file)
+    img.save(thumbnail_file)
     r = auth_client.get("/api/video/1/log/")
+    assert r.status_code == 200
+    # let's try to get a thumbnail, frame and play
+    r = auth_client.get("/api/video/1/thumbnail/")
+    assert r.status_code == 200
+    r = auth_client.get("/api/video/1/image/")
     assert r.status_code == 200
     # finally delete video, also check if log file is removed
     r = auth_client.delete("/api/video/1/")

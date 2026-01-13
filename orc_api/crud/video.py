@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.query import Query
 
 from orc_api import db as models
@@ -87,7 +87,14 @@ def get_query_list(
     count: Optional[int] = None,
 ):
     """Get a query of videos (not yet extracted)."""
-    query = db.query(models.Video)
+    query = db.query(models.Video).options(
+        joinedload(models.Video.video_config).joinedload(models.VideoConfig.camera_config),
+        joinedload(models.Video.video_config).joinedload(models.VideoConfig.cross_section),
+        joinedload(models.Video.video_config).joinedload(models.VideoConfig.cross_section_wl),
+        joinedload(models.Video.video_config).joinedload(models.VideoConfig.recipe),
+        joinedload(models.Video.time_series),
+    )
+
     query = filter_start_stop(query, start, stop)
     if status:
         query = filter_status(query, status)

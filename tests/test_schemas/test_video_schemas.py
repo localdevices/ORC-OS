@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from pyorc import sample_data
@@ -8,6 +9,7 @@ from pyorc import sample_data
 from orc_api import crud
 from orc_api import db as models
 from orc_api.schemas.callback_url import CallbackUrlCreate, CallbackUrlResponse
+from orc_api.schemas.video import VideoListResponse
 
 
 @pytest.mark.skip(reason="Testing full video run only done on interactive request.")
@@ -40,6 +42,17 @@ def test_video_run_no_waterlevel(video_response_no_ts, session_video_config, mon
     assert video_response_no_ts.status == models.VideoStatus.DONE
     assert len(video_response_no_ts.get_netcdf_files(base_path=sample_data.get_hommerich_pyorc_files())) > 0
     assert video_response_no_ts.get_discharge_file(base_path=sample_data.get_hommerich_pyorc_files()) is not None
+
+
+def test_get_video_list_response(session_video_with_config):
+    rec = session_video_with_config.get(models.Video, 1)
+    video_list_response1 = VideoListResponse.from_orm_model(rec, None)
+    assert video_list_response1.allowed_to_run == False
+    # also attempt without a time series
+    rec.time_series = None
+    rec.time_series_id = None
+    video_list_response2 = VideoListResponse.from_orm_model(rec, None)
+    assert video_list_response2.allowed_to_run == False
 
 
 def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_config, monkeypatch):
@@ -77,6 +90,41 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
         video_response_no_ts.run(base_path=str(tmpdir), shutdown_after_task=True)
     # test if mock shutdown is called once
     assert mock_shutdown.call_count == 1
+
+
+def test_video_update_timeseries(video_response_no_ts, session_video_config, monkeypatch):
+    # create a time series record first
+    crud.time_series.add(session_video_config, models.TimeSeries(timestamp=datetime.now(), h=1.5))
+    monkeypatch.setattr("orc_api.schemas.video.get_session", lambda: session_video_config)
+    monkeypatch.setattr(
+        "orc_api.schemas.video.VideoResponse.get_discharge_file", lambda self, base_path: "mock_discharge.nc"
+    )
+
+    # Mock a time series record that already exists
+    mock_video = video_response_no_ts
+    mock_video.time_series = MagicMock(id=1)
+
+    # mock_video.get_discharge_file = MagicMock(return_value="mock_discharge.nc")
+
+    # Simulate dataset structure
+    ds_mock = MagicMock()
+    ds_mock.h_a = 10.5
+    ds_mock.river_flow.values = [500, 600, 700, 800, 900]
+    ds_mock.isel.return_value.transect.get_v_surf.return_value.values = 2.5
+    ds_mock.isel.return_value.transect.get_v_bulk.return_value.values = 1.5
+    ds_mock.transect.wetted_surface = 20.5
+    ds_mock.transect.wetted_perimeter = 15.0
+    # make sure "v_eff" is found
+    ds_mock.__contains__ = lambda self, key: key == "v_eff"
+
+    # Patch xarray open_dataset call to return mock dataset
+    xr_open_dataset = MagicMock(return_value=ds_mock)
+
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setattr("orc_api.schemas.video.xr.open_dataset", xr_open_dataset)
+        mock_video.update_timeseries(session_video_config, "mock_base_path")
+    # delete all records before closing
+    session_video_config.query(models.TimeSeries).delete()
 
 
 def test_video_properties(tmpdir, video_response_no_ts, monkeypatch):

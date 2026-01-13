@@ -115,13 +115,6 @@ def video_response(session_video_with_config: Session):
     # retrieve recipe
     video_rec = session_video_with_config.query(Video).first()
     return VideoResponse.model_validate(video_rec)
-    #
-    #     file=sample_data.get_hommerich_dataset(),
-    #     status=VideoStatus.NEW,
-    #     sync_status=SyncStatus.LOCAL,
-    #     timestamp=datetime.now(timezone.UTC),
-    #     video_config=VideoConfigBase.model_validate(vc_rec),
-    # )
 
 
 @pytest.fixture
