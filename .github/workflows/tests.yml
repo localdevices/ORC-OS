@@ -46,7 +46,7 @@ jobs:
       - name: OpenCV dependencies
         run: |
           sudo apt update
-          sudo apt install libegl1 libopengl0 ffmpeg libjpeg-dev libfftw3-dev -y
+          sudo apt install gdal-bin libegl1 libgdal-dev libopengl0 ffmpeg libjpeg-dev libfftw3-dev -y
 
       # build environment with pip
       - name: Install orc_api

@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from pyorc import sample_data
@@ -78,7 +78,7 @@ def session_video_no_ts_with_config(session_video_config, monkeypatch):
     monkeypatch.setattr("orc_api.database.get_session", lambda: session_video_config)
     vc_rec = session_video_config.query(VideoConfig).first()
     video = Video(
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
         video_config_id=vc_rec.id,
         file=os.path.split(sample_data.get_hommerich_dataset())[1],
     )
@@ -92,10 +92,10 @@ def session_video_with_config(session_video_config, monkeypatch):
     monkeypatch.setattr("orc_api.database.get_session", lambda: session_video_config)
     vc_rec = session_video_config.query(VideoConfig).first()
     h = 93.345
-    ts = TimeSeries(timestamp=datetime.now(), h=h)
+    ts = TimeSeries(timestamp=datetime.now(timezone.utc), h=h)
     ts = crud.time_series.add(session_video_config, ts)
     video = Video(
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
         video_config_id=vc_rec.id,
         file=os.path.split(sample_data.get_hommerich_dataset())[1],
     )

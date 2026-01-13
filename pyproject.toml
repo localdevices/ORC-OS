@@ -12,6 +12,8 @@ dependencies = [
     "apscheduler",
     "bcrypt",
     "fastapi[standard]",
+    "numpy<2; python_version <= '3.9'",  # for compatibility with older picamera2 version on Bullseye
+    "numpy>=2; python_version >= '3.10'",
     "pillow<=9.5.0; python_version == '3.9'",  # for compatibility with picamera2 on Bullseye
     "pillow; python_version != '3.9'",
     "rocket-fft @ git+https://github.com/localdevices/rocket-fft.git@main ; python_version >= '3.13'",

@@ -72,14 +72,14 @@ def start_camera(camera_idx: Optional[int] = None, width: int = 1920, height: in
     return picam
 
 
-@router.get("/has_picam", response_model=bool)
+@router.get("/has_picam/", response_model=bool)
 async def has_picam():
     """Test if the PiCamera is available."""
     global picam_available
     return picam_available
 
 
-@router.get("/picam_info", response_model=Union[List[Dict], None])
+@router.get("/picam_info/", response_model=Union[List[Dict], None])
 async def picam_info():
     """Return list of connected cameras with dict of camera info."""
     global picam_available
@@ -92,7 +92,7 @@ async def picam_info():
 
 
 # Start video stream
-@router.post("/start")
+@router.post("/start/")
 async def start_camera_stream(camera_idx: Optional[int] = None, width: int = 1920, height: int = 1080, fps: int = 30):
     """Start the video stream with the specified width, height, and FPS."""
     global picam, camera_streaming, picam_available
@@ -159,7 +159,7 @@ def record_async_task(
     asyncio.run(upload_video(file=file, timestamp=timestamp, video_config_id=None, db=db))
 
 
-@router.post("/record")
+@router.post("/record/")
 async def record_camera_stream(
     camera_idx: Optional[int] = None,
     width: int = 1920,
@@ -197,7 +197,7 @@ async def record_camera_stream(
 
 
 # Stop video stream
-@router.post("/stop")
+@router.post("/stop/")
 async def stop_camera_stream():
     """Stop the video stream."""
     global picam, camera_streaming
@@ -235,7 +235,7 @@ def generate_camera_frames():
 
 
 # Stream endpoint
-@router.get("/stream")
+@router.get("/stream/")
 async def stream_camera_video():
     """Stream video frames from the camera (first start the stream)."""
     global camera_streaming, picam_available
