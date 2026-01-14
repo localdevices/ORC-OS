@@ -12,7 +12,12 @@ from sqlalchemy.orm import Session
 from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import TimeSeries
-from orc_api.schemas.time_series import TimeSeriesCreate, TimeSeriesPatch, TimeSeriesResponse
+from orc_api.schemas.time_series import (
+    TimeSeriesCreate,
+    TimeSeriesPatch,
+    TimeSeriesResponse,
+    TimeSeriesResponseWithVideoId,
+)
 
 router: APIRouter = APIRouter(prefix="/time_series", tags=["time_series"])
 
@@ -26,7 +31,7 @@ def get_time_series_record(db: Session, id: int) -> TimeSeriesResponse:
     return TimeSeriesResponse.model_validate(ts_rec)
 
 
-@router.get("/", response_model=List[TimeSeriesResponse], status_code=200)
+@router.get("/", response_model=List[TimeSeriesResponseWithVideoId], status_code=200)
 async def get_list_time_series(
     start: Optional[datetime] = None,
     stop: Optional[datetime] = None,
