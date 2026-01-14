@@ -1,9 +1,12 @@
 import PropTypes from 'prop-types';
 
-export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultValue, name, disabled, allowNoSelection}) => {
+export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultValue, name, disabled, allowNoSelection, noSelectionText}) => {
   if (allowNoSelection === undefined || allowNoSelection === null) {
     // default allow no selection to true
     allowNoSelection = true;
+  }
+  if (noSelectionText === undefined || noSelectionText === null) {
+    noSelectionText = "-- No value selected --";
   }
   const resolveDefaultValue = () => {
     // get the default from the data if available
@@ -28,7 +31,7 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultV
       >
         {allowNoSelection && (
         <option value="">
-          {"-- No value selected --"}
+          {noSelectionText}
         </option>)
         }
         {data.length > 0 ? (

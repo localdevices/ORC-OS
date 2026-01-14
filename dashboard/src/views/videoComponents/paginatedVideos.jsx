@@ -233,7 +233,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   const handleConfigSelection = async (event) => {
     const {value} = event.target;
     try {
-      await patchVideo(selectedVideo.id, {video_config_id: value}).then(async () => {
+      await patchVideo(selectedVideo.id, {video_config_id: value ? value : null}).then(async () => {
         await api.get(`/video/${selectedVideo.id}/`).then((r) => {
           setSelectedVideo(r.data);
           // update table if required
@@ -443,13 +443,14 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           },
 
           content: {
-            maxWidth: "500px",
+            maxWidth: "600px",
             maxHeight: "400px",
             margin: "auto",
             padding: "20px",
           },
         }}
       >
+
         <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
           <h2>Video Configurations</h2>
           <button
@@ -467,13 +468,21 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           </button>
         </div>
         {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
+        {selectedVideo?.video_config?.id ?
+          selectedVideo?.video_config?.sample_video_id === selectedVideo?.id ? (
+            <div role="alert" style={{"color": "blue"}}><p>{`This is the reference video for config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}. Click edit to modify.`}</p></div>
+          ) : (
+            <div role="alert" style={{"color": "green"}}><p>{`Current selected config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}`}</p></div>
+
+        ) : (<div role="alert" style={{"color": "red"}}><p>No config selected. Select one below or start editing a new config.</p></div>)}
         <h5>Select an Existing Config:</h5>
-        <div className="container">
+        <div className="mb-3 mt-0">
           <DropdownMenu
             dropdownLabel="Video configurations"
             callbackFunc={handleConfigSelection}
             data={availableVideoConfigs}
-            value={selectedVideo ? selectedVideo.video_config_id : ""}
+            value={selectedVideo && selectedVideo?.video_config ? selectedVideo.video_config.id : ""}
+            noSelectionText={"-- Select no config --"}
           />
         </div>
         <div className="container">
