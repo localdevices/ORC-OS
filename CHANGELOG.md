@@ -15,6 +15,8 @@ Feedback and bug reports are highly appreciated to improve future versions.
   options.
 ### Changed
 - Video table loads much faster and responds to changes made by user without a full page refresh being required.
+- Video editing modal and video config selection modal now show feedback during loading and saving, preventing user
+  from clicking multiple times.
 ### Deprecated
 ### Removed
 ### Fixed
