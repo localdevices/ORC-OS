@@ -1,0 +1,45 @@
+services:
+  orcapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orc-api
+    restart: unless-stopped
+    mem_limit: 8g
+    memswap_limit: 8g
+    environment:
+      - ORC_HOME=/app/data
+      - ORC_UPLOAD_DIRECTORY=/app/data/uploads
+      - ORC_INCOMING_DIRECTORY=/app/data/uploads/incoming
+      - ORC_SECRET_KEY=${ORC_SECRET_KEY}
+      - ORC_DEV_MODE=${ORC_DEV_MODE:-0}
+    volumes:
+      - ${ORC_DATA_PATH:-./data}:/app/data
+    ports:
+      - "3001:5000"
+    networks:
+      - orc-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/api/ | grep -qE '^(200|401)$'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: orc-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      orcapi:
+        condition: service_healthy
+    networks:
+      - orc-network
+
+networks:
+  orc-network:
+    driver: bridge

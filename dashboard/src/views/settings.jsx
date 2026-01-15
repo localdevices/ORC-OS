@@ -3,9 +3,10 @@ import api from '../api/api.js';
 import {DropdownMenu} from "../utils/dropdownMenu.jsx";
 import {useMessage} from '../messageContext';
 import '../App.css';
+import {FileTransferModal} from "./settingsComponents/fileTransferModal.jsx";
 
 const Settings = ({setRequiresRestart}) => {
-
+  const [showFileTransferModal, setShowFileTransferModal] = useState(false);
   const [settings, setSettings] = useState([]);
   const [videoConfigs, setVideoConfigs] = useState([]);
   const [formData, setFormData] = useState({
@@ -285,18 +286,24 @@ const Settings = ({setRequiresRestart}) => {
               <div className="help-block">
                 Switch on the daemon and save settings if you are ready.
               </div>
-
               )
             }
           </div>
-
           <button type='submit' className='btn'>
             Submit
           </button>
-
+          <button type='submit' className='btn bg-primary' onClick={() => setShowFileTransferModal(true)} style={{marginLeft: '10px'}} disabled={!validateSettings()}>
+            Show file transfer examples
+          </button>
         </form>
       </div>
+      {/*Modal for running video */}
+      {showFileTransferModal && (
+        <FileTransferModal setShowModal={setShowFileTransferModal} settings={settings}/>
+      )}
+
     </div>
+
 
   );
 };

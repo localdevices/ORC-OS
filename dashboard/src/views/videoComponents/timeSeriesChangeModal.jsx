@@ -8,10 +8,13 @@ import {patchTimeSeries, postTimeSeries} from "../../utils/apiCalls/timeSeries.j
 import {getWettedSurface, getWaterLines} from "../../utils/apiCalls/crossSection.jsx";
 import {run_video} from "../../utils/apiCalls/video.jsx"
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
+import {FaSpinner} from "react-icons/fa";
 
 
 export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   const [loading, setLoading] = useState(false);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imgDims, setImgDims] = useState({width: 0, height: 0});
   const [waterLevelMin, setWaterLevelMin] = useState(0); // max water level
@@ -51,7 +54,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
       return getFrameUrl(video, frameNr, rotate);
     },
     onUrlReady: (url, { cached }) => {
-      if (cached) setLoading(false);
+      setLoading(true)
     },
     delayMs: 300
   });
@@ -59,6 +62,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   useEffect(() => {
     // retrieve water level and other data from video and time series
     // get the entire record
+    setLoadingConfig(true);
     api.get(`/video/${video.id}/`)
       .then((response) => {
         setVideo(response.data);
@@ -69,6 +73,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
           // if no water level cross section is set, use the default one
           setCrossSection(response.data.video_config.cross_section);
         }
+        setLoadingConfig(false);
       })
   }, [])
 
@@ -161,6 +166,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   // Password change submit (adjust API endpoint as needed)
   const handleSubmitVideo = async (e, {forceOptical = false } = {}) => {
     e.preventDefault();
+    setSaving(true);
     const waterLevelSubmit = forceOptical ? null : waterLevel;
     const waterLevelChangeSubmit = forceOptical ? true : waterLevelChange;
     if (waterLevelChangeSubmit && video.time_series) {
@@ -201,6 +207,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   }
   return (
     <>
+
       <div className="sidebar-overlay"></div> {/*make background grey*/}
       <div className="modal fade show d-block" tabIndex="-1">
         <div className="modal-dialog" style={{maxWidth: "600px", marginTop: "30px"}}>  {/*ensure modal spans a broad screen size*/}
@@ -252,22 +259,29 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                 No water level is set. Click on "Add water level" to set a water level manually.
               </div>
               )}
+              {saving && (
+                <div className="spinner-viewport">
+                  <div className="spinner"/>
+                  <div>Submitting video...</div>
+                </div>
+              )}
               <button
                 className="btn"
                 type="submit"
-                disabled={waterLevel}
+                disabled={waterLevel | saving | !videoConfig}
                 onClick={handleAddWaterLevel}
               >Add water level
               </button>
               <span
-                title={waterLevel ? "Submit video with set water level" : "Disabled, because no water level is set"}
+                title={
+                  waterLevel ? "Submit video with set water level" : "Disabled, because no water level is set"}
                 style={{ display: "inline-block" }}
               >
 
               <button
                   className="btn"
                   type="submit"
-                  disabled={!waterLevel}
+                  disabled={!waterLevel | saving}
                   onClick={handleSubmitVideo}
                 >Submit video with water level
                 </button>
@@ -285,19 +299,23 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                   className="btn"
                   type="submit"
                   onClick={(e) => handleSubmitVideo(e, { forceOptical: true })}
-                  disabled={!videoConfig?.cross_section_wl}
+                  disabled={!videoConfig?.cross_section_wl | saving}
                 >Submit and estimate level optically
                 </button>
                 </span>
             </div>
-            <SideView
-              CSWaterLevel={videoConfig?.cross_section_wl}
-              CSDischarge={videoConfig?.cross_section}
-              zMin={videoConfig?.recipe?.min_z}
-              zMax={videoConfig?.recipe?.max_z}
-              waterLevel={waterLevel ? waterLevel - yOffset : null}
-              yRightOffset={yOffset}
-            />
+            {loadingConfig ? (
+              <div className="container"><div className="mt-0 mb-3"><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> Loading side view...</div></div>
+            ) : (
+              <SideView
+                CSWaterLevel={videoConfig?.cross_section_wl}
+                CSDischarge={videoConfig?.cross_section}
+                zMin={videoConfig?.recipe?.min_z}
+                zMax={videoConfig?.recipe?.max_z}
+                waterLevel={waterLevel ? waterLevel - yOffset : null}
+                yRightOffset={yOffset}
+              />
+            )}
             <div>
             <div className="image-container">
               <span>
@@ -306,7 +324,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                 className="img-calibration"
                 ref={imageRef}
                 onLoad={() => {
-                  setLoading(true);
+                  // setLoading(true);
                   handleImageLoad()
                 }}
                 onError={() => {
@@ -344,6 +362,12 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
                   zIndex={100}
                 />
               ))}
+              {loading && (
+                <div style={{"backgroundColor": "rgba(1, 1, 1, 0)"}} className="spinner-container">
+                  <div style={{"color": "rgba(100, 100, 100, 0))"}} className="spinner"/>
+                  <div>Please wait...</div>
+                </div>
+              )}
             </span>
             </div>
             </div>

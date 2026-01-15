@@ -91,6 +91,12 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
             return TimeSeriesResponse.model_validate(r)
 
 
+class TimeSeriesResponseWithVideoId(TimeSeriesResponse):
+    """For listing of time series, we want the video_id included in serialization."""
+
+    video_id: Optional[int] = Field(default=None, description="Connected video ID", exclude=False)
+
+
 class TimeSeriesPatch(TimeSeriesResponse):
     """Patch model for a time series.
 

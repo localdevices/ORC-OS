@@ -102,12 +102,12 @@ const DisplayTimeSeries = () => {
       return uniqueSorted;
     }
     const updateTimeSeries = async () => {
-      const minDate = dateRange.startDate ? getDateDiff(new Date(dateRange.startDate), -1) : null;
-      const maxDate = dateRange.endDate ? getDateDiff(new Date(dateRange.endDate), 1) : null;
+      const minDate = dateRange.startDate ? getDateDiff(new Date(dateRange.startDate), -0.5) : null;
+      const maxDate = dateRange.endDate ? getDateDiff(new Date(dateRange.endDate), + 0.5) : null;
       if (!minDate || !maxDate) return;
       // Check if we need to load more data
-      const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp + ".000Z"))));
-      const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp + ".000Z"))));
+      const currentMinDate = new Date(Math.min(...data.map(d => new Date(d.timestamp + "Z"))));
+      const currentMaxDate = new Date(Math.max(...data.map(d => new Date(d.timestamp + "Z"))));
       const needsDataBefore = currentMinDate.getTime() ? (minDate < currentMinDate) : true;
       const needsDataAfter = currentMaxDate.getTime() ? (maxDate > currentMaxDate) : true;
       let sortedData = data;
@@ -120,7 +120,7 @@ const DisplayTimeSeries = () => {
       } finally {
         setData(
           sortedData.filter(
-            d => new Date(d.timestamp + "Z") >= minDate && new Date(d.timestamp + ".000Z") <= maxDate
+            d => new Date(d.timestamp + "Z") >= minDate && new Date(d.timestamp + "Z") <= maxDate
           ))
         setIsLoading(false);
       }
@@ -145,8 +145,8 @@ const DisplayTimeSeries = () => {
           const lastTimestamp = new Date(`${response.data[0].timestamp}Z`);
           const oneWeekBefore = getDateDiff(lastTimestamp, -7);
           setDateRange({
-            startDate: oneWeekBefore.toISOString().slice(0, -1),
-            endDate: lastTimestamp.toISOString().slice(0, -1)
+            startDate: toISOLocal(oneWeekBefore), //.toISOString().slice(0, -1),
+            endDate: toISOLocal(lastTimestamp) //.toISOString().slice(0, -1)
           });
         }
       } catch (error) {
@@ -187,9 +187,10 @@ const DisplayTimeSeries = () => {
         return value > (filterFractionVel.value || 0);
       });
     }
-
     setFilteredData(filtered);
   }, [data, filterH, filterQ50, filterFractionVel]);
+
+  // helper function to get a difference in date in days
   const getDateDiff = (date, days) => {
     const newDate = new Date(date);
     newDate.setDate(newDate.getDate() + days);
@@ -215,6 +216,11 @@ const DisplayTimeSeries = () => {
 
     return params;
   };
+  // helper function to get a local timezone specific datestring for use in graphs
+  const toISOLocal = (d) => {
+    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
+  }
+
 
   // handle change in time series view mode
   const handleViewModeChange = (view) => {
@@ -244,8 +250,8 @@ const DisplayTimeSeries = () => {
       const minDate = new Date(xScale.min);
       const maxDate = new Date(xScale.max);
       setDateRange({
-        startDate: minDate.toISOString().slice(0, -1),
-        endDate: maxDate.toISOString().slice(0, -1)
+        startDate: toISOLocal(minDate),
+        endDate: toISOLocal(maxDate)
       })
     }, 1000)
   }
@@ -291,10 +297,10 @@ const DisplayTimeSeries = () => {
         setSelectedVideo(video);
         setShowRunModal(true);
       } else {
-        setMessageInfo('warning', `Video configuration not ready for clicked timestamp ${data[elements[0].index].timestamp}.000Z`);
+        setMessageInfo('warning', `Video configuration not ready for clicked timestamp ${data[elements[0].index].timestamp}Z`);
       }
     } else {
-      setMessageInfo('warning', `No video available for clicked timestamp ${data[elements[0].index].timestamp}.000Z`);
+      setMessageInfo('warning', `No video available for clicked timestamp ${data[elements[0].index].timestamp}Z`);
     }
   }
 
@@ -359,7 +365,7 @@ const DisplayTimeSeries = () => {
     datasets: [
     {
       label: 'Water Level',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.h || NaN})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.h || NaN})),
       borderColor: 'rgba(30,63,192,0.8)',
       backgroundColor: 'rgba(30, 63, 192, 0.3)',
       yAxisID: 'y',
@@ -368,7 +374,7 @@ const DisplayTimeSeries = () => {
     },
     {
       label: 'Discharge (median)',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.q_50 || NaN })),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.q_50 || NaN })),
       borderColor: 'rgb(255,99,99)',
       backgroundColor: 'rgba(255,99,99,0.5)',
       yAxisID: 'y1',
@@ -376,7 +382,7 @@ const DisplayTimeSeries = () => {
     },
     {
       label: 'Surface Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.v_surf || NaN})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.v_surf || NaN})),
       borderColor: 'rgb(85,218,53)',
       backgroundColor: 'rgba(85,218,53, 0.5)',
       yAxisID: 'y2',
@@ -384,7 +390,7 @@ const DisplayTimeSeries = () => {
     },
     {
       label: 'Bulk Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + ".000Z"), y: d.v_bulk || NaN})),
+      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.v_bulk || NaN})),
       borderColor: 'rgb(33,81,21)',
       backgroundColor: 'rgba(33,81,21, 0.5)',
       yAxisID: 'y3',
@@ -582,6 +588,20 @@ const DisplayTimeSeries = () => {
     },
   };
 
+  // helper functions to get the min / max values for the sliders, without getting Inf
+  const safeMin = (values, fallback = 0) => {
+    const arr = values.filter(v => v != null);
+    if (!arr.length) return fallback;
+    const m = Math.min(...arr);
+    return Number.isFinite(m) ? m : fallback;
+  };
+
+  const safeMax = (values, fallback = 0) => {
+    const arr = values.filter(v => v != null);
+    if (!arr.length) return fallback;
+    const m = Math.max(...arr);
+    return Number.isFinite(m) ? m : fallback;
+  };
   return (
     <div className="flex-container column no-padding">
       {isLoading && (
@@ -610,23 +630,35 @@ const DisplayTimeSeries = () => {
               Water level (m)
             </label>
             <div className="slider-container">
-              <div className="slider-min">{Math.floor(Math.min(...data.map(d => d.h)) * 1000) / 1000 || 0}</div>
-              <div className="slider-max">{Math.ceil(Math.max(...data.map(d => d.h)) * 1000) / 1000 || 1}</div>
+              <div className="slider-min">{Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0}</div>
+              <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1}</div>
               <ReactSlider
                 className="horizontal-slider small"
                 disabled={!filterH.enabled}
                 value={[
-                  filterH.min || Math.floor(Math.min(...data.map(d => d.h)) * 1000) / 1000 || 0,
-                  filterH.max || Math.ceil(Math.max(...data.map(d => d.h)) * 1000) / 1000 || 1
+                  filterH.min || Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0,
+                  filterH.max || Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1
                 ]} // Default values if unset
-                min={Math.floor(Math.min(...data.map(d => d.h)) * 1000) / 1000 || 0}
-                max={Math.ceil(Math.max(...data.map(d => d.h)) * 1000) / 1000 || 1}
+                min={Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0}
+                max={Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1}
                 step={0.001}
-                renderThumb={(props, state) => (
-                  <div {...props} className={!filterH.enabled ? 'thumb thumb-disabled' : 'thumb'}>
-                    <div className="thumb-value">{state.valueNow}</div>
-                  </div>
-                )}
+                renderThumb={(props, state) => {
+                  const { key, ...rest } = props;
+                  return (
+                    <div
+                      key={key}
+                      {...rest}
+                      className={!filterH.enabled ? 'thumb thumb-disabled' : 'thumb'}
+                    >
+                      <div className="thumb-value">{state.valueNow}</div>
+                    </div>
+                  );
+                }}
+                // renderThumb={(props, state) => (
+                //   <div {...props} className={!filterH.enabled ? 'thumb thumb-disabled' : 'thumb'}>
+                //     <div className="thumb-value">{state.valueNow}</div>
+                //   </div>
+                // )}
                 onAfterChange={handlefilterHChange}
               />
             </div>
@@ -643,23 +675,35 @@ const DisplayTimeSeries = () => {
               Discharge (m³/s)
             </label>
             <div className="slider-container">
-              <div className="slider-min">{Math.floor(Math.min(...data.map(d => d.q_50)) * 1000) / 1000 || 0}</div>
-              <div className="slider-max">{Math.ceil(Math.max(...data.map(d => d.q_50)) * 1000) / 1000 || 1}</div>
+              <div className="slider-min">{Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0}</div>
+              <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1}</div>
               <ReactSlider
                 className="horizontal-slider small"
                 disabled={!filterQ50.enabled}
                 value={[
-                  filterQ50.min || Math.floor(Math.min(...data.map(d => d.q_50)) * 1000) / 1000 || 0,
-                  filterQ50.max || Math.ceil(Math.max(...data.map(d => d.q_50)) * 1000) / 1000 || 1
+                  filterQ50.min || Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0,
+                  filterQ50.max || Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1
                 ]} // Default values if unset
-                min={Math.floor(Math.min(...data.map(d => d.q_50)) * 1000) / 1000 || 0}
-                max={Math.ceil(Math.max(...data.map(d => d.q_50)) * 1000) / 1000 || 1}
+                min={Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0}
+                max={Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1}
                 step={0.001}
-                renderThumb={(props, state) => (
-                  <div {...props} className={!filterQ50.enabled ? 'thumb thumb-disabled' : 'thumb'}>
-                    <div className="thumb-value">{state.valueNow}</div>
-                  </div>
-                )}
+                renderThumb={(props, state) => {
+                  const { key, ...rest } = props;
+                  return (
+                    <div
+                      key={key}
+                      {...rest}
+                      className={!filterQ50.enabled ? 'thumb thumb-disabled' : 'thumb'}
+                    >
+                      <div className="thumb-value">{state.valueNow}</div>
+                    </div>
+                  );
+                }}
+                // renderThumb={(props, state) => (
+                //   <div {...props} className={!filterQ50.enabled ? 'thumb thumb-disabled' : 'thumb'}>
+                //     <div className="thumb-value">{state.valueNow}</div>
+                //   </div>
+                // )}
                 onAfterChange={handlefilterQ50Change}
               />
             </div>
@@ -685,11 +729,23 @@ const DisplayTimeSeries = () => {
                 min={0}
                 max={100}
                 step={1}
-                renderThumb={(props, state) => (
-                  <div {...props} className={!filterFractionVel.enabled ? 'thumb thumb-disabled' : 'thumb'}>
-                    <div className="thumb-value">{state.valueNow}</div>
-                  </div>
-                )}
+                renderThumb={(props, state) => {
+                  const { key, ...rest } = props;
+                  return (
+                    <div
+                      key={key}
+                      {...rest}
+                      className={!filterFractionVel.enabled ? 'thumb thumb-disabled' : 'thumb'}
+                    >
+                      <div className="thumb-value">{state.valueNow}</div>
+                    </div>
+                  );
+                }}
+                // renderThumb={(props, state) => (
+                //   <div {...props} className={!filterFractionVel.enabled ? 'thumb thumb-disabled' : 'thumb'}>
+                //     <div className="thumb-value">{state.valueNow}</div>
+                //   </div>
+                // )}
                 onAfterChange={handlefilterFracChange}
               />
             </div>
