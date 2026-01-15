@@ -1,6 +1,4 @@
 import {useState, useEffect} from "react";
-import {useNavigate} from "react-router-dom";
-import {DropdownMenu} from "../../utils/dropdownMenu.jsx"
 import {sync_video, patchVideo} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
@@ -23,18 +21,19 @@ import ActionVideos from "./actionVideos.jsx";
 import {useMessage} from "../../messageContext.jsx";
 import VideoUploader from "./videoUpload.jsx";
 import {createRoot} from "react-dom/client";
+import {VideoConfigModal} from "./videoConfigModal.jsx";
 import {TimeSeriesChangeModal} from "./timeSeriesChangeModal.jsx";
 import {getTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
 
 const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRunState}) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
   const [data, setData] = useState([]);  // initialize data
   const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
   const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page (default 25)
   const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
   const [uploadedVideo, setUploadedVideo] = useState(null);
-  const [availableVideoConfigs, setAvailableVideoConfigs] = useState([]);
   const [videoLogData, setVideoLogData] = useState("");
   const [showLog, setShowLog] = useState(false);
   const [showModal, setShowModal] = useState(false); // State for modal visibility
@@ -44,7 +43,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
 
   // allow for setting messages
   const {setMessageInfo} = useMessage();
-  const navigate = useNavigate();
 
   // Data must be updated when the page changes, when start and end date changes
   useEffect(() => {
@@ -83,19 +81,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
 
   }, [uploadedVideo, startDate, endDate, currentPage, rowsPerPage]);
 
-
-  // Fetch the existing video configs when the modal is opened
-  useEffect(() => {
-    if (showConfigModal) {
-      api.get("/video_config/") // Replace with your endpoint for fetching video configs
-        .then((response) => {
-          setAvailableVideoConfigs(response.data);
-        })
-        .catch((error) => {
-          console.error("Error fetching video configs:", error);
-        });
-    }
-  }, [showConfigModal]);
 
   useEffect(() => {
     if (!videoRunState) return;
@@ -253,19 +238,15 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         })
       });
       // Success feedback
-      setMessageInfo('success', `Video configuration selected on ${value}`);
+      setMessageInfo('success', `Video configuration ${value} selected for video ${selectedVideo.id}`);
       // setSelectedVideo(null)
       setShowConfigModal(false);
+      setSavingConfig(false);
     } catch (error) {
       // Error handling
       setMessageInfo('error', 'Error while selecting video configuration', error.response.data);
     }
   };
-
-  const createNewVideoConfig = (video_id) => {
-    // redirect to editing or creating page for video config
-    navigate(`/video_config/${video_id}`);
-  }
 
   return (
     <div className="flex-container column no-padding">
@@ -430,66 +411,73 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           />
         </div>
       </div>
-      {/*Modal for selecting a VideoConfig or creating a new Video Config*/}
-      {/* Modal for video config */}
-      <Modal
-        isOpen={showConfigModal}
-        onRequestClose={() => setShowConfigModal(false)}
-        contentLabel="Video Configurations"
+      <VideoConfigModal
+        showModal={showConfigModal}
+        setShowModal={setShowConfigModal}
+        saving={savingConfig}
+        setSaving={setSavingConfig}
+        video={selectedVideo}
+        handleConfigSelection={handleConfigSelection}
+      />
+      {/*/!*Modal for selecting a VideoConfig or creating a new Video Config*!/*/}
+      {/*/!* Modal for video config *!/*/}
+      {/*<Modal*/}
+      {/*  isOpen={showConfigModal}*/}
+      {/*  onRequestClose={() => setShowConfigModal(false)}*/}
+      {/*  contentLabel="Video Configurations"*/}
 
-        style={{
-          overlay: {
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-          },
+      {/*  style={{*/}
+      {/*    overlay: {*/}
+      {/*      backgroundColor: "rgba(0, 0, 0, 0.6)",*/}
+      {/*    },*/}
 
-          content: {
-            maxWidth: "600px",
-            maxHeight: "400px",
-            margin: "auto",
-            padding: "20px",
-          },
-        }}
-      >
+      {/*    content: {*/}
+      {/*      maxWidth: "600px",*/}
+      {/*      maxHeight: "400px",*/}
+      {/*      margin: "auto",*/}
+      {/*      padding: "20px",*/}
+      {/*    },*/}
+      {/*  }}*/}
+      {/*>*/}
 
-        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-          <h2>Video Configurations</h2>
-          <button
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "1.5rem",
-              cursor: "pointer",
-              lineHeight: "1",
-            }}
-            onClick={() => setShowConfigModal(false)}
-            aria-label="Close"
-          >
-            &times;
-          </button>
-        </div>
-        {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}
-        {selectedVideo?.video_config?.id ?
-          selectedVideo?.video_config?.sample_video_id === selectedVideo?.id ? (
-            <div role="alert" style={{"color": "blue"}}><p>{`This is the reference video for config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}. Click edit to modify.`}</p></div>
-          ) : (
-            <div role="alert" style={{"color": "green"}}><p>{`Current selected config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}`}</p></div>
+      {/*  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>*/}
+      {/*    <h2>Video Configurations</h2>*/}
+      {/*    <button*/}
+      {/*      style={{*/}
+      {/*        background: "none",*/}
+      {/*        border: "none",*/}
+      {/*        fontSize: "1.5rem",*/}
+      {/*        cursor: "pointer",*/}
+      {/*        lineHeight: "1",*/}
+      {/*      }}*/}
+      {/*      onClick={() => setShowConfigModal(false)}*/}
+      {/*      aria-label="Close"*/}
+      {/*    >*/}
+      {/*      &times;*/}
+      {/*    </button>*/}
+      {/*  </div>*/}
+      {/*  {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}*/}
+      {/*  {selectedVideo?.video_config?.id ?*/}
+      {/*    selectedVideo?.video_config?.sample_video_id === selectedVideo?.id ? (*/}
+      {/*      <div role="alert" style={{"color": "blue"}}><p>{`This is the reference video for config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}. Click edit to modify.`}</p></div>*/}
+      {/*    ) : (*/}
+      {/*      <div role="alert" style={{"color": "green"}}><p>{`Current selected config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}`}</p></div>*/}
 
-        ) : (<div role="alert" style={{"color": "red"}}><p>No config selected. Select one below or start editing a new config.</p></div>)}
-        <h5>Select an Existing Config:</h5>
-        <div className="mb-3 mt-0">
-          <DropdownMenu
-            dropdownLabel="Video configurations"
-            callbackFunc={handleConfigSelection}
-            data={availableVideoConfigs}
-            value={selectedVideo && selectedVideo?.video_config ? selectedVideo.video_config.id : ""}
-            noSelectionText={"-- Select no config --"}
-          />
-        </div>
-        <div className="container">
-          <h5>Create new or edit existing config:</h5>
-          <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Edit</button>
-        </div>
-      </Modal>
+      {/*  ) : (<div role="alert" style={{"color": "red"}}><p>No config selected. Select one below or start editing a new config.</p></div>)}*/}
+      {/*  <h5>Select an Existing Config:</h5>*/}
+      {/*  <div className="mb-3 mt-0">*/}
+      {/*    <DropdownMenu*/}
+      {/*      callbackFunc={handleConfigSelection}*/}
+      {/*      data={availableVideoConfigs}*/}
+      {/*      value={selectedVideo && selectedVideo?.video_config ? selectedVideo.video_config.id : ""}*/}
+      {/*      noSelectionText={"-- Select no config --"}*/}
+      {/*    />*/}
+      {/*  </div>*/}
+      {/*  <div className="container">*/}
+      {/*    <h5>Create new or edit existing config:</h5>*/}
+      {/*    <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Edit</button>*/}
+      {/*  </div>*/}
+      {/*</Modal>*/}
 
       {/* modal for video log file display */}
       <Modal

@@ -478,7 +478,7 @@ button.btn-icon:disabled .document {
   left: 50%;
   font-size: 20px;
   font-weight: bold;
-    color: #666666;
+  color: #666666;
   transform: translate(-50%, 0%);
   background-color: #eeeeee;
   z-index: 1000; /* Higher than the image */

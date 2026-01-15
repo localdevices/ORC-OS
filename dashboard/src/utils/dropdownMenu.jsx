@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 
 export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultValue, name, disabled, allowNoSelection, noSelectionText}) => {
+  if (!dropdownLabel) {dropdownLabel = "";}
   if (allowNoSelection === undefined || allowNoSelection === null) {
     // default allow no selection to true
     allowNoSelection = true;
@@ -18,9 +19,11 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultV
 
   return (
     <>
-      <label htmlFor={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`} className='form-label'>
-        {dropdownLabel}
-      </label>
+      {dropdownLabel && (
+        <label htmlFor={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`} className='form-label'>
+          {dropdownLabel}
+        </label>
+      )}
       <select
         id={`${dropdownLabel.toLowerCase().replace(/\s+/g, '_')}`}
         name={name}
@@ -48,7 +51,7 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultV
   );
 };
 DropdownMenu.propTypes = {
-  dropdownLabel: PropTypes.string.isRequired,
+  dropdownLabel: PropTypes.string,
   callbackFunc: PropTypes.func.isRequired,
   data: PropTypes.arrayOf(
     PropTypes.shape({
