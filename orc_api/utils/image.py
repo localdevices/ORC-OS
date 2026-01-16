@@ -22,3 +22,11 @@ def get_height_width(fn):
     cap.release()
     del cap
     return height, width
+
+
+def get_frame_count(fn):
+    """Get frame count of video."""
+    cap = cv2.VideoCapture(fn)
+    # check amount of frames
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    return frame_count

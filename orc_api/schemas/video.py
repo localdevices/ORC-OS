@@ -21,7 +21,7 @@ from orc_api.log import add_filehandler, logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
-from orc_api.utils.image import get_height_width
+from orc_api.utils.image import get_frame_count, get_height_width
 from orc_api.utils.states import SyncRunStatus, VideoRunStatus, video_run_state
 
 
@@ -133,6 +133,10 @@ class VideoResponse(VideoBase, RemoteModel):
     def dims(self, base_path: str) -> tuple[int, int]:
         """Get dimensions of video file."""
         return get_height_width(self.get_video_file(base_path=base_path))
+
+    def frame_count(self, base_path: str) -> int:
+        """Get number of frames in video file."""
+        return get_frame_count(self.get_video_file(base_path=base_path))
 
     def ready_to_sync(self, site=None):
         """Check if video can be synced or not.

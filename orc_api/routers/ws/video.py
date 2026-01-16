@@ -2,14 +2,18 @@
 
 from typing import Any, Dict, Literal, Optional
 
+from fastapi import HTTPException
 from pydantic import BaseModel
 from pyorc import CameraConfig
 
+from orc_api import UPLOAD_DIRECTORY
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse
+from orc_api.schemas.recipe import RecipeResponse
+from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigResponse
 
 
-class WSVideoConfigMsg(BaseModel):
+class WSVideoMsg(BaseModel):
     """WebSocket message model.
 
     Defines the structure of messages sent to the client via WebSocket.
@@ -19,24 +23,25 @@ class WSVideoConfigMsg(BaseModel):
     action : Literal["save", "update", "reset"]
         Defines the type of message.
         "save" indicates that the current state of the video config should be saved to database
-        "update" indicates that the video config should be updated using a specified action and required parameters.
+        "update_video_config" indicates that the video config should be updated using a specified action and
+        required parameters.
         Update may either return None or an output as pydantic model instance.
-        "reset" indicates that the video config should be reset to a default state without details.
+        "reset_video_config" indicates that the video config should be reset to a default state without details.
     op : str
         name of the operation to be performed (ignored with reset and save)
     params : additional parameters required for operation (ignored with reset and save).
 
     """
 
-    action: Literal["save", "update", "reset"]
+    action: Literal["save", "update_video_config", "reset_video_config"]
     op: str = None
     params: Optional[Dict] = None
 
 
-class WSVideoConfigState(BaseModel):
+class WSVideoState(BaseModel):
     """WebSocket state for current video config."""
 
-    vc: VideoConfigResponse
+    video: VideoResponse
     saved: bool = False
 
     def __str__(self):
@@ -50,12 +55,30 @@ class WSVideoConfigState(BaseModel):
         self.saved = True
         # TODO: save to database
 
-    def reset(self):
+    def reset_video_config(self, name: Optional[str] = None):
         """Reset state to default."""
         # TODO: implement reset
+        if self.video.video_config_id is not None:
+            # get the name from the original config
+            name = self.video.video_config.name
+        if name is None:
+            raise HTTPException(
+                status_code=400, detail='For a new video config, "name" must be provided as query param.'
+            )
+        vc = VideoConfigResponse(name=name)
+        # check if recipe is None, if so make a default recipe
+        if vc.recipe is None:
+            frame_count = self.video.frame_count(base_path=UPLOAD_DIRECTORY)
+            vc.recipe = RecipeResponse(name=vc.name, end_frame=frame_count)
+        if vc.camera_config is None:
+            # initialize camera config with default values
+            height, width = self.video.dims(base_path=UPLOAD_DIRECTORY)
+            vc.camera_config = CameraConfigResponse(name=vc.name, data={"height": height, "width": width})
+        self.video.video_config = vc
         self.saved = False
+        return WSVideoResponse(success=True, data=vc.model_dump())
 
-    def update(self, op: str, params: Optional[Dict] = None) -> Optional[Any]:
+    def update_video_config(self, op: str, params: Optional[Dict] = None) -> Optional[Any]:
         """Execute operation for updating, passing optional parameters.
 
         Returns a structured response encapsulating the result or error details.
@@ -90,22 +113,24 @@ class WSVideoConfigState(BaseModel):
             response = getattr(self, op)(**params)
             self.saved = False
             # create ws response instance
-            return WSVideoConfigResponse(success=True, data=response.model_dump())
+            return WSVideoResponse(success=True, data=response.model_dump())
         except Exception as e:
-            return WSVideoConfigResponse(success=False, error=str(e))
+            return WSVideoResponse(success=False, error=str(e))
 
     def update_cam_config(self, op, **params):
         """Update camera config following an operation."""
-        cc = CameraConfig(**self.vc.camera_config.data.model_dump())
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
         getattr(cc, op)(**params)
         data = CameraConfigData.model_validate(cc.to_dict_str())
-        new_cc = CameraConfigResponse(name=self.vc.camera_config.name, id=self.vc.camera_config.id, data=data)
-        self.vc.camera_config = new_cc
+        new_cc = CameraConfigResponse(
+            name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
+        )
+        self.video.video_config.camera_config = new_cc
         return new_cc
 
     def get_from_cam_config(self, op, **params):
         """Get output from a CameraConfig operation."""
-        cc = CameraConfig(**self.vc.camera_config.data.model_dump())
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
         return getattr(cc, op)(**params)
 
     def set_bbox_from_width_length(self, **params):
@@ -116,12 +141,14 @@ class WSVideoConfigState(BaseModel):
         """Resizes bbox according to params."""
         cc_bbox_trans = self.get_from_cam_config("rotate_translate_bbox", **params)
         data = CameraConfigData.model_validate(cc_bbox_trans.to_dict_str())
-        new_cc = CameraConfigResponse(name=self.vc.camera_config.name, id=self.vc.camera_config.id, data=data)
-        self.vc.camera_config = new_cc
+        new_cc = CameraConfigResponse(
+            name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
+        )
+        self.video.video_config.camera_config = new_cc
         return new_cc
 
 
-class WSVideoConfigResponse(BaseModel):
+class WSVideoResponse(BaseModel):
     """WebSocket response model."""
 
     success: bool
