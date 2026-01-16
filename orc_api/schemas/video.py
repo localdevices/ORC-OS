@@ -21,6 +21,7 @@ from orc_api.log import add_filehandler, logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
+from orc_api.utils.image import get_height_width
 from orc_api.utils.states import SyncRunStatus, VideoRunStatus, video_run_state
 
 
@@ -51,7 +52,7 @@ class VideoListResponse(BaseModel):
         cls, video: models.Video, video_config: Optional[VideoConfigResponse] = None
     ) -> "VideoListResponse":
         """Create a VideoListResponse directly from an ORM Video model."""
-        # Build video_config dict directly from ORM relationship
+        # Build ws dict directly from ORM relationship
         time_series = TimeSeriesResponse.model_validate(video.time_series) if video.time_series else None
         video_config_data = None
         if video.video_config:
@@ -128,6 +129,10 @@ class VideoResponse(VideoBase, RemoteModel):
             return False, "Video already in process or queued for processing."
         # check if all run components are available
         return self.allowed_to_run
+
+    def dims(self, base_path: str) -> tuple[int, int]:
+        """Get dimensions of video file."""
+        return get_height_width(self.get_video_file(base_path=base_path))
 
     def ready_to_sync(self, site=None):
         """Check if video can be synced or not.

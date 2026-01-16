@@ -30,6 +30,9 @@ from orc_api import UPLOAD_DIRECTORY, crud
 from orc_api.database import get_db
 from orc_api.db import SyncStatus, Video, VideoStatus
 from orc_api.log import logger
+from orc_api.routers.ws.video_config import WSVideoConfigMsg, WSVideoConfigState
+from orc_api.schemas.camera_config import CameraConfigResponse
+from orc_api.schemas.recipe import RecipeResponse
 from orc_api.schemas.video import (
     DeleteVideosRequest,
     DownloadVideosRequest,
@@ -44,8 +47,6 @@ from orc_api.utils import queue, websockets
 from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
-
-# UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
@@ -583,3 +584,67 @@ async def update_video_ws(websocket: WebSocket):
     except WebSocketDisconnect:
         f"Websocket {websocket} disconnected."
         conn_manager.disconnect(websocket)
+
+
+@router.websocket("/{id}/video_config_ws/")
+async def video_config_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
+    """Get continuous status of video config belonging to video via websocket."""
+    await conn_manager.connect(websocket)
+    print(f"Connected websocket for video config data exchange: {websocket}")
+    # initialize the websocket state
+    try:
+        db = next(get_db())
+        video_rec = crud.video.get(db=db, id=id)
+        video = VideoResponse.model_validate(video_rec)
+        if video.video_config_id is None:
+            if name is None:
+                raise HTTPException(
+                    status_code=400, detail='For a new video config, "name" must be provided as query param.'
+                )
+            vc = VideoConfigResponse(name=name)
+            isSaved = False
+        else:
+            # make into VideoConfigResponse
+            vc = video.video_config
+            isSaved = True
+        # check if recipe is None, if so make a default recipe
+        if vc.recipe is None:
+            vc.recipe = RecipeResponse(name=vc.name)
+        if vc.camera_config is None:
+            # initialize camera config with default values
+            height, width = video.dims(base_path=UPLOAD_DIRECTORY)
+            vc.camera_config = CameraConfigResponse(name=vc.name, data={"height": height, "width": width})
+        # create a state for the rest of the session
+        vc_state = WSVideoConfigState(vc=vc, saved=isSaved)
+        db.close()
+        await websocket.send_json(vc_state.model_dump(mode="json"))
+
+    except Exception as e:
+        await websocket.send_json({"error": str(e)})
+        print(f"Error sending video config data to websocket: {e}")
+        await websocket.close()
+        return
+
+    try:
+        while True:
+            # read requests from client
+            msg = await websocket.receive_json()
+            print(f"Received message from websocket: {msg}")
+            # validate message
+            msg = WSVideoConfigMsg.model_validate(msg)
+            # perform operations on video config
+            if msg.action == "save":
+                r = vc_state.save()
+            elif msg.action == "reset":
+                r = vc_state.reset()
+            elif msg.action == "update":
+                # update with the operation and parameters only
+                r = vc_state.update(**msg.model_dump(exclude={"action"}))
+            await websocket.send_json(r.model_dump(mode="json"))
+    except WebSocketDisconnect:
+        print(f"Websocket {websocket} for video_config_id {id} disconnected.")
+        await websocket.close()
+    except Exception as e:
+        print(f"Websocket error: {e}")
+    finally:
+        await websocket.close()
