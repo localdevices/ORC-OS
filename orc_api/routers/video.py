@@ -626,5 +626,5 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
         await websocket.close()
     except Exception as e:
         print(f"Websocket error: {e}")
-    finally:
-        await websocket.close()
+    # finally:
+    #     await websocket.close()

@@ -71,6 +71,18 @@ class CameraConfigBase(BaseModel):
         """Return the camera configuration as pyorc camera config object."""
         return pyorcCameraConfig(**self.data.model_dump())
 
+    def patch_post(self, db):
+        """Patch or post the camera configuration depending on whether an ID is set."""
+        # first validate as Update
+        camera_config = CameraConfigUpdate.model_validate(self)
+        cc_dict = camera_config.model_dump(exclude_none=True, include={"name", "data"})
+        if camera_config.id is None:
+            new_cc = CameraConfig(**cc_dict)
+            new_cc = crud.camera_config.add(db=db, camera_config=new_cc)
+        else:
+            new_cc = crud.camera_config.update(db=db, id=camera_config.id, camera_config=cc_dict)
+        return CameraConfigResponse.model_validate(new_cc)
+
 
 class CameraConfigRemote(CameraConfigBase, RemoteModel):
     """Model for camera configuration with remote fields included."""
@@ -267,18 +279,6 @@ class CameraConfigUpdate(CameraConfigInteraction):
             if instance.gcps.crs is not None:
                 instance.data.crs = instance.gcps.crs
         return instance
-
-    def patch_post(self, db):
-        """Patch or post the camera configuration depending on whether an ID is set."""
-        # first validate as Update
-        camera_config = CameraConfigUpdate.model_validate(self)
-        cc_dict = camera_config.model_dump(exclude_none=True, include={"name", "data"})
-        if camera_config.id is None:
-            new_cc = CameraConfig(**cc_dict)
-            new_cc = crud.camera_config.add(db=db, camera_config=new_cc)
-        else:
-            new_cc = crud.camera_config.update(db=db, id=camera_config.id, camera_config=cc_dict)
-        return CameraConfigResponse.model_validate(new_cc)
 
 
 class GCPs(BaseModel):

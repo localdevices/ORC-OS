@@ -129,6 +129,18 @@ class RecipeBase(BaseModel):
     data: Optional[dict] = Field(default=None, description="Recipe data")
     model_config = ConfigDict(from_attributes=True)
 
+    def patch_post(self, db):
+        """Patch or post instance dependent on whether an ID is already set or not."""
+        # first validate as simplified recipe
+        recipe = RecipeRemote.model_validate(self)
+        recipe_dict = recipe.model_dump(exclude_none=True, include={"name", "data"})
+        if recipe.id is None:
+            recipe_db = Recipe(**recipe_dict)
+            recipe_db = crud.recipe.add(db=db, recipe=recipe_db)
+        else:
+            recipe_db = crud.recipe.update(db=db, id=recipe.id, recipe=recipe_dict)
+        return RecipeResponse.model_validate(recipe_db)
+
 
 class RecipeRemote(RecipeBase, RemoteModel):
     """Model for a recipe with remote fields included."""
@@ -385,18 +397,6 @@ class RecipeUpdate(RecipeRemote):
             f["s2n_thres"] = getattr(instance, "wl_s2n_thres", 3.0)
         instance.data = data.model_dump()
         return instance
-
-    def patch_post(self, db):
-        """Patch or post instance dependent on whether an ID is already set or not."""
-        # first validate as simplified recipe
-        recipe = RecipeRemote.model_validate(self)
-        recipe_dict = recipe.model_dump(exclude_none=True, include={"name", "data"})
-        if recipe.id is None:
-            recipe_db = Recipe(**recipe_dict)
-            recipe_db = crud.recipe.add(db=db, recipe=recipe_db)
-        else:
-            recipe_db = crud.recipe.update(db=db, id=recipe.id, recipe=recipe_dict)
-        return RecipeResponse.model_validate(recipe_db)
 
 
 class RecipeCreate(RecipeResponse):

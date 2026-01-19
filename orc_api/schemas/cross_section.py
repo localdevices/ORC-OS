@@ -66,6 +66,17 @@ class CrossSectionBase(BaseModel):
         """Return the coordinate reference system of the cross-section."""
         return self.gdf.crs
 
+    def patch_post(self, db):
+        """Patch or post the cross section depending on whether an ID is set."""
+        # first validate as Update
+        cs_dict = self.model_dump(exclude_none=True, include={"name", "timestamp", "features"})
+        if self.id is None:
+            cs_db = CrossSection(**cs_dict)
+            cs_db = crud.cross_section.add(db=db, cross_section=cs_db)
+        else:
+            cs_db = crud.cross_section.update(db=db, id=self.id, cross_section=cs_dict)
+        return CrossSectionResponse.model_validate(cs_db)
+
 
 class CrossSectionResponse(CrossSectionBase, RemoteModel):
     """Response model for a cross-section."""
@@ -96,17 +107,6 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             )
             return CrossSectionResponse.model_validate(r)
         return None
-
-    def patch_post(self, db):
-        """Patch or post the cross section depending on whether an ID is set."""
-        # first validate as Update
-        cs_dict = self.model_dump(exclude_none=True, include={"name", "timestamp", "features"})
-        if self.id is None:
-            cs_db = CrossSection(**cs_dict)
-            cs_db = crud.cross_section.add(db=db, cross_section=cs_db)
-        else:
-            cs_db = crud.cross_section.update(db=db, id=self.id, cross_section=cs_dict)
-        return CrossSectionResponse.model_validate(cs_db)
 
 
 class CrossSectionResponseCameraConfig(CrossSectionResponse):

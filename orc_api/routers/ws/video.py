@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from pyorc import CameraConfig
 
 from orc_api import UPLOAD_DIRECTORY
+from orc_api.database import get_session
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse
 from orc_api.schemas.recipe import RecipeResponse
 from orc_api.schemas.video import VideoResponse
@@ -57,7 +58,13 @@ class WSVideoState(BaseModel):
 
     def save(self):
         """Save current state to database."""
+        video_config = self.video.video_config
+        if video_config is None:
+            raise HTTPException(status_code=400, detail="No video config available.")
+        with get_session() as db:
+            self.video.video_config = video_config.patch_post(db=db)
         self.saved = True
+        return WSVideoResponse(success=True, data=self.video.video_config.model_dump())
         # TODO: save to database
 
     def reset_video_config(self, name: Optional[str] = None):
