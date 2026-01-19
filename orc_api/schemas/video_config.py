@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING, Optional
 
 import geopandas as gpd
 import numpy as np
+from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, conlist, model_validator
 from sqlalchemy.orm import Session
 
 from orc_api import crud
-from orc_api.db import SyncStatus
+from orc_api.db import SyncStatus, VideoConfig
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.callback_url import CallbackUrlResponse
 from orc_api.schemas.camera_config import CameraConfigResponse, CameraConfigUpdate
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 
 
 # for all functions here, get the request object
-def rodrigues_to_matrix(rvec):
+def _rodrigues_to_matrix(rvec):
     """Convert rotation vector to a rotation matrix using Rodrigues' formula."""
     # Ensure rvec is a NumPy array
     rvec = np.asarray(rvec, dtype=np.float64)
@@ -50,7 +51,7 @@ def _rotate_translate_cross_section(cross_section, rvec, tvec):
     tvec = np.array(tvec, dtype=np.float64)
 
     # Convert rotation vector to rotation matrix using Rodrigues' formula
-    rotation_matrix = rodrigues_to_matrix(rvec)
+    rotation_matrix = _rodrigues_to_matrix(rvec)
     # Transform the features
     gdf = copy.deepcopy(cross_section.gdf)
     geoms = gdf.geometry
@@ -288,6 +289,60 @@ class VideoConfigResponse(VideoConfigRemote):
             )
         video_config = VideoConfigResponse.model_validate(r)
         return video_config
+
+    def patch_post_children(self, db: Session):
+        """Patch or post children of this instance."""
+        models = ["recipe", "camera_config", "cross_section", "cross_section_wl"]
+        for model in models:
+            instance = getattr(self, model)
+            if instance is not None:
+                if instance.name is None:
+                    # give the same name as parent
+                    instance.name = self.name
+                setattr(self, model, instance.patch_post(db=db))
+
+    def get_patch_post_dict(self):
+        """Get dictionary of fields for patching or posting children."""
+        video_config = VideoConfigResponse.model_validate(
+            self.model_dump(
+                exclude_none=True,
+                exclude={"camera_config", "recipe", "cross_section", "cross_section_wl"},
+            )
+        )
+        return {
+            "name": video_config.name,
+            "cross_section_id": video_config.cross_section_id,
+            "cross_section_wl_id": video_config.cross_section_wl_id,
+            "recipe_id": video_config.recipe_id,
+            "camera_config_id": video_config.camera_config_id,
+            "sample_video_id": video_config.sample_video_id,
+            "sync_status": video_config.sync_status,
+        }
+
+    def patch_post(self, db: Session):
+        """Save new instance to database including underlying recipe, camera config and cross sections if needed."""
+        try:
+            # first update or save underlying models
+            self.patch_post_children(db=db)
+            # attach ids, these are the only things stored
+            self.camera_config_id = self.camera_config.id if self.camera_config else None
+            self.recipe_id = self.recipe.id if self.recipe else None
+            self.cross_section_id = self.cross_section.id if self.cross_section else None
+            self.cross_section_wl_id = self.cross_section_wl.id if self.cross_section_wl else None
+            patch_post_dict = self.get_patch_post_dict()
+            if self.id is None:
+                # record does not exist, create new
+                # convert into record
+                video_config_rec = VideoConfig(**patch_post_dict)
+                video_config = crud.video_config.add(db=db, video_config=video_config_rec)
+            else:
+                # only patch existing record
+                video_config = crud.video_config.update(id=self.id, db=db, video_config=patch_post_dict)
+            # validate before returning so that we can catch problems
+            video_config = VideoConfigResponse.model_validate(video_config)
+            return video_config
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 class VideoConfigUpdate(VideoConfigResponse):

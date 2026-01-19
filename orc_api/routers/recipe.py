@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 # Directory to save uploaded files
 from orc_api import crud
 from orc_api.database import get_db
-from orc_api.db import Recipe
 from orc_api.schemas.recipe import RecipeRemote, RecipeResponse, RecipeUpdate
 
 router: APIRouter = APIRouter(prefix="/recipe", tags=["recipe"])
@@ -65,11 +64,10 @@ async def download_recipe(id: int, db: Session = Depends(get_db)):
 @router.patch("/{id}/", status_code=200, response_model=RecipeResponse)
 async def patch_recipe(id: int, recipe: RecipeRemote, db: Session = Depends(get_db)):
     """Update a recipe in the database."""
-    update_recipe = recipe.model_dump(
-        exclude_none=True, exclude={"id", "start_frame", "end_frame", "freq", "resolution", "velocimetry"}
-    )
-    recipe = crud.recipe.update(db=db, id=id, recipe=update_recipe)
-    return recipe
+    try:
+        return recipe.patch_post(db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error updating recipe: {e}")
 
 
 @router.post("/empty/", response_model=RecipeResponse, status_code=200)
@@ -83,11 +81,10 @@ async def empty_recipe():
 @router.post("/", response_model=RecipeResponse, status_code=201)
 async def create_recipe(recipe: RecipeResponse, db: Session = Depends(get_db)):
     """Create a new recipe and store it in the database."""
-    # exclude fields that are already in the dict structure of the recipe
-    recipe_ready_for_db = RecipeRemote(**recipe.model_dump())
-    new_recipe_rec = Recipe(**recipe_ready_for_db.model_dump(exclude_none=True, exclude={"id"}, exclude_unset=True))
-    recipe_rec = crud.recipe.add(db=db, recipe=new_recipe_rec)
-    return recipe_rec
+    try:
+        return recipe.patch_post(db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating recipe: {e}")
 
 
 @router.post("/update/", response_model=RecipeUpdate, status_code=201)

@@ -37,6 +37,7 @@ def mock_cross_section():
 def test_get_patch_post_cross_section(auth_client, video_config_dict, db_session):
     # first add a complete video config
     r = auth_client.post("/api/video_config/", json=video_config_dict)
+    assert r.status_code == 201
 
     # now we can test cross section routes
     r = auth_client.get("/api/cross_section/")  # this should give list of all cross sections

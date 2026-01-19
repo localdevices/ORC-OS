@@ -70,9 +70,10 @@ async def upload_camera_config(
 )
 async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Update a camera config in the database."""
-    update_cam_config = camera_config.model_dump(exclude_none=True, include={"name", "data"})
-    camera_config = crud.camera_config.update(db=db, id=id, camera_config=update_cam_config)
-    return camera_config
+    try:
+        return camera_config.patch_post(db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error updating camera config: {e}")
 
 
 @router.post(
@@ -80,13 +81,12 @@ async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Se
 )
 async def post_camera_config(camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Post a new camera configuration."""
-    # Create a new device record if none exists, only include the name and data fields,
+    # Create a new camera config record if none exists, only include the name and data fields,
     # all others are only for front end
-    new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, include={"name", "data"}))
-    db.add(new_camera_config)
-    db.commit()
-    db.refresh(new_camera_config)
-    return new_camera_config
+    try:
+        return camera_config.patch_post(db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating camera config: {e}")
 
 
 @router.post("/update/", response_model=CameraConfigUpdate, status_code=201)

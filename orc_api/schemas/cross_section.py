@@ -11,6 +11,7 @@ from pyorc.cli.cli_utils import read_shape_as_gdf
 from sqlalchemy.orm import Session
 
 from orc_api import crud
+from orc_api.db import CrossSection
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.camera_config import CameraConfigResponse
 
@@ -95,6 +96,17 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             )
             return CrossSectionResponse.model_validate(r)
         return None
+
+    def patch_post(self, db):
+        """Patch or post the cross section depending on whether an ID is set."""
+        # first validate as Update
+        cs_dict = self.model_dump(exclude_none=True, include={"name", "timestamp", "features"})
+        if self.id is None:
+            cs_db = CrossSection(**cs_dict)
+            cs_db = crud.cross_section.add(db=db, cross_section=cs_db)
+        else:
+            cs_db = crud.cross_section.update(db=db, id=self.id, cross_section=cs_dict)
+        return CrossSectionResponse.model_validate(cs_db)
 
 
 class CrossSectionResponseCameraConfig(CrossSectionResponse):

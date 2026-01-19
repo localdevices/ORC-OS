@@ -39,7 +39,12 @@ class WSVideoMsg(BaseModel):
 
 
 class WSVideoState(BaseModel):
-    """WebSocket state for current video config."""
+    """WebSocket state for current video config.
+
+    This state gets updated with each message received from the client.
+    It is used during the Video Configuration process on the web front end.
+
+    """
 
     video: VideoResponse
     saved: bool = False
@@ -57,7 +62,6 @@ class WSVideoState(BaseModel):
 
     def reset_video_config(self, name: Optional[str] = None):
         """Reset state to default."""
-        # TODO: implement reset
         if self.video.video_config_id is not None:
             # get the name from the original config
             name = self.video.video_config.name
