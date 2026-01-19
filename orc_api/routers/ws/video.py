@@ -89,7 +89,6 @@ class WSVideoState(BaseModel):
         self.saved = False
         return WSVideoResponse(
             success=True,
-            # video={"video_config": self.video.video_config.model_dump()},
             video=self.video.model_dump(),
             saved=self.saved,
         )
@@ -143,6 +142,10 @@ class WSVideoState(BaseModel):
         )
         self.video.video_config.camera_config = new_cc
         return new_cc
+
+    def set_rotation(self, op, **params):
+        """Set rotation of camera config."""
+        raise NotImplementedError
 
     def get_from_cam_config(self, op, **params):
         """Get output from a CameraConfig operation."""

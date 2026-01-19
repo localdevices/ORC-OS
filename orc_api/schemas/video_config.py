@@ -2,7 +2,7 @@
 
 import copy
 import json
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 import geopandas as gpd
 import numpy as np
@@ -350,7 +350,9 @@ class VideoConfigUpdate(VideoConfigResponse):
 
     # override the camera config and recipe models by update models
     name: Optional[str] = Field(default=None, description="Named description of the video configuration.")
-    camera_config: Optional[CameraConfigUpdate] = Field(
+    camera_config: Optional[Union[CameraConfigUpdate, CameraConfigResponse]] = Field(
         default=None, description="Associated CameraConfig object (if available)."
     )
-    recipe: Optional[RecipeUpdate] = Field(None, description="Associated Recipe object (if available).")
+    recipe: Optional[Union[RecipeUpdate, RecipeResponse]] = Field(
+        None, description="Associated Recipe object (if available)."
+    )

@@ -57,7 +57,7 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
     webSocketInstances[connectionId] = webSocket;
 
     // add a method to send json messages
-    webSocket.sendJson = (msg) => {
+    webSocket.sendJson = async (msg) => {
       if (webSocket.readyState !== WebSocket.OPEN) throw new Error(
         `WebSocket is not open (readyState = ${webSocket.readyState})`
       );

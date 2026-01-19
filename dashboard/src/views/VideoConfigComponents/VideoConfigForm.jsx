@@ -69,7 +69,7 @@ const VideoConfigForm = (
   const handleFormSubmit = async (event) => {
     setIsSaving(true);
     event.preventDefault();
-    // r = ws.send_json({"action": "save"}).then(function (data) {setIsSaving(False)});
+    // TODO: fix this ws.sendJson({"action": "save"}).then(setIsSaving(false));
 
     // collect data from all fields
 
