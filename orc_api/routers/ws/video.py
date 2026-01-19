@@ -64,7 +64,7 @@ class WSVideoState(BaseModel):
         with get_session() as db:
             self.video.video_config = video_config.patch_post(db=db)
         self.saved = True
-        return WSVideoResponse(success=True, data=self.video.video_config.model_dump())
+        return WSVideoResponse(success=True, data=self.video.video_config.model_dump(), saved=self.saved)
         # TODO: save to database
 
     def reset_video_config(self, name: Optional[str] = None):
@@ -87,7 +87,7 @@ class WSVideoState(BaseModel):
             vc.camera_config = CameraConfigResponse(name=vc.name, data={"height": height, "width": width})
         self.video.video_config = vc
         self.saved = False
-        return WSVideoResponse(success=True, data=vc.model_dump())
+        return WSVideoResponse(success=True, data=vc.model_dump(), saved=self.saved)
 
     def update_video_config(self, op: str, params: Optional[Dict] = None) -> Optional[Any]:
         """Execute operation for updating, passing optional parameters.
@@ -126,7 +126,7 @@ class WSVideoState(BaseModel):
             # create ws response instance
             return WSVideoResponse(success=True, data=response.model_dump())
         except Exception as e:
-            return WSVideoResponse(success=False, error=str(e))
+            return WSVideoResponse(success=False, error=str(e), saved=self.saved)
 
     def update_cam_config(self, op, **params):
         """Update camera config following an operation."""
@@ -163,5 +163,6 @@ class WSVideoResponse(BaseModel):
     """WebSocket response model."""
 
     success: bool
+    saved: bool = False
     data: Optional[Dict] = None
     error: Optional[str] = None

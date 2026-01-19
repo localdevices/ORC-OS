@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import api from "../api/api.js";
+import api, {createWebSocketConnection} from "../api/api.js";
 import {run_video, patchVideo} from "../utils/apiCalls/video.jsx"
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
@@ -62,9 +62,7 @@ const VideoConfig = () => {
         )
       }
     }
-
     setCameraConfigInstance(cameraConfigInstance);
-
   }
 
   // Fetch video metadata and existing configs when the component is mounted
@@ -74,34 +72,36 @@ const VideoConfig = () => {
         .then((response) => {
           const updatedFrameCount = response.data;
           setFrameCount(updatedFrameCount);
-          api.get(`/video/${videoId}/`)
-            .then((response) => {
-              setVideo(response.data);
-              if (response.data.video_config !== null) {
-                setVideoConfig({
-                  id: response.data.video_config.id,
-                  name: response.data.video_config.name,
-                  sync_status: response.data.video_config.sync_status,
-                  sample_video_id: response.data.video_config.sample_video_id
-                })
-                if (response.data.video_config.recipe !== null) {
-                  setRecipe(response.data.video_config.recipe);
-                }
-                if (response.data.video_config.camera_config) {
-                  setCameraConfig(response.data.video_config.camera_config);
-                }
-                if (response.data.video_config.cross_section) {
-                  setCSDischarge(response.data.video_config.cross_section)
-                }
-                if (response.data.video_config.cross_section_wl) {
-                  setCSWaterLevel(response.data.video_config.cross_section_wl)
-                }
-              } else {
-                createNewRecipe(updatedFrameCount);  // if the recipe exists, it will be overwritten later
-                createCameraConfig();  // if cam config exists, it will be overwritten later
-              }
-            })
-            .catch(err => console.error("Error fetching video data:", err))
+          // open websocket connection with video with video_config instance
+          const ws = createWebSocketConnection(`wsVideo_${videoId}`,`/video/${videoId}/video_ws/`, callbackVideoStates);
+          // api.get(`/video/${videoId}/`)
+          //   .then((response) => {
+          //     setVideo(response.data);
+          //     if (response.data.video_config !== null) {
+          //       setVideoConfig({
+          //         id: response.data.video_config.id,
+          //         name: response.data.video_config.name,
+          //         sync_status: response.data.video_config.sync_status,
+          //         sample_video_id: response.data.video_config.sample_video_id
+          //       })
+          //       if (response.data.video_config.recipe !== null) {
+          //         setRecipe(response.data.video_config.recipe);
+          //       }
+          //       if (response.data.video_config.camera_config) {
+          //         setCameraConfig(response.data.video_config.camera_config);
+          //       }
+          //       if (response.data.video_config.cross_section) {
+          //         setCSDischarge(response.data.video_config.cross_section)
+          //       }
+          //       if (response.data.video_config.cross_section_wl) {
+          //         setCSWaterLevel(response.data.video_config.cross_section_wl)
+          //       }
+          //     } else {
+          //       createNewRecipe(updatedFrameCount);  // if the recipe exists, it will be overwritten later
+          //       createCameraConfig();  // if cam config exists, it will be overwritten later
+          //     }
+          //   })
+          //   .catch(err => console.error("Error fetching video data:", err))
         })
         .catch((err) => console.error("Error fetching frame count:", err))
         .finally(() => {
@@ -152,6 +152,22 @@ const VideoConfig = () => {
 
   }, [cameraConfig, CSWaterLevel, CSDischarge])
 
+  const callbackVideoStates = (wsResponse) => {
+    // define what should happen with wsResponse
+    // report save state
+    setSave(wsResponse.saved);
+    // figure out what was returned, video, video_config, recipe, camera_config, cross_section, cross_section_wl
+    if (wsResponse.video) {
+      setVideo(wsResponse.video);
+    }
+    if (wsResponse.video_config) {
+      setVideoConfig(wsResponse.video_config);
+    }
+    if (wsResponse.recipe) {
+      setRecipe(wsResponse.recipe);
+    }
+
+  }
 
   const createCameraConfig = () => {
     api.get(`/camera_config/empty/${videoId}`)
