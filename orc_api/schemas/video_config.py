@@ -349,6 +349,7 @@ class VideoConfigUpdate(VideoConfigResponse):
     """Patch schema for VideoConfig."""
 
     # override the camera config and recipe models by update models
+    name: Optional[str] = Field(default=None, description="Named description of the video configuration.")
     camera_config: Optional[CameraConfigUpdate] = Field(
         default=None, description="Associated CameraConfig object (if available)."
     )

@@ -616,7 +616,7 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
             if msg.action == "save":
                 r = video_state.save()
             elif msg.action == "reset_video_config":
-                r = video_state.reset_video_config(name=msg.params["name"])
+                r = video_state.reset_video_config()
             elif msg.action == "update_video_config":
                 # update with the operation and parameters only
                 r = video_state.update_video_config(**msg.model_dump(exclude={"action"}))

@@ -2,7 +2,6 @@
 
 from typing import Any, Dict, Literal, Optional
 
-from fastapi import HTTPException
 from pydantic import BaseModel
 from pyorc import CameraConfig
 
@@ -11,7 +10,7 @@ from orc_api.database import get_session
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse
 from orc_api.schemas.recipe import RecipeResponse
 from orc_api.schemas.video import VideoResponse
-from orc_api.schemas.video_config import VideoConfigResponse
+from orc_api.schemas.video_config import VideoConfigUpdate
 
 
 class WSVideoMsg(BaseModel):
@@ -56,27 +55,28 @@ class WSVideoState(BaseModel):
     def __repr__(self):
         return self.__str__()
 
-    def save(self):
+    def save(self, name=None):
         """Save current state to database."""
         video_config = self.video.video_config
         if video_config is None:
-            raise HTTPException(status_code=400, detail="No video config available.")
+            return WSVideoResponse(success=False, error="No video config to save. Make a new config first.")
+        if name is not None:
+            video_config.name = name
         with get_session() as db:
             self.video.video_config = video_config.patch_post(db=db)
         self.saved = True
-        return WSVideoResponse(success=True, data=self.video.video_config.model_dump(), saved=self.saved)
-        # TODO: save to database
+        return WSVideoResponse(
+            success=True,
+            video={"video_config": self.video.video_config.model_dump()},  # return only video_config
+            saved=self.saved,
+        )
 
     def reset_video_config(self, name: Optional[str] = None):
         """Reset state to default."""
         if self.video.video_config_id is not None:
             # get the name from the original config
             name = self.video.video_config.name
-        if name is None:
-            raise HTTPException(
-                status_code=400, detail='For a new video config, "name" must be provided as query param.'
-            )
-        vc = VideoConfigResponse(name=name)
+        vc = VideoConfigUpdate(name=name)
         # check if recipe is None, if so make a default recipe
         if vc.recipe is None:
             frame_count = self.video.frame_count(base_path=UPLOAD_DIRECTORY)
@@ -87,7 +87,9 @@ class WSVideoState(BaseModel):
             vc.camera_config = CameraConfigResponse(name=vc.name, data={"height": height, "width": width})
         self.video.video_config = vc
         self.saved = False
-        return WSVideoResponse(success=True, data=vc.model_dump(), saved=self.saved)
+        return WSVideoResponse(
+            success=True, video={"video_config": self.video.video_config.model_dump()}, saved=self.saved
+        )
 
     def update_video_config(self, op: str, params: Optional[Dict] = None) -> Optional[Any]:
         """Execute operation for updating, passing optional parameters.
@@ -124,7 +126,7 @@ class WSVideoState(BaseModel):
             response = getattr(self, op)(**params)
             self.saved = False
             # create ws response instance
-            return WSVideoResponse(success=True, data=response.model_dump())
+            return WSVideoResponse(success=True, video=response)
         except Exception as e:
             return WSVideoResponse(success=False, error=str(e), saved=self.saved)
 
@@ -156,7 +158,14 @@ class WSVideoState(BaseModel):
             name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
         )
         self.video.video_config.camera_config = new_cc
-        return new_cc
+        return {
+            "video_config": {
+                "camera_config": {
+                    "bbox": new_cc.bbox,
+                    "bbox_camera": new_cc.bbox_camera,
+                }
+            }
+        }
 
 
 class WSVideoResponse(BaseModel):
@@ -164,5 +173,5 @@ class WSVideoResponse(BaseModel):
 
     success: bool
     saved: bool = False
-    data: Optional[Dict] = None
+    video: Optional[Dict] = None  # contains either full video, or only those parts of the video structure to update
     error: Optional[str] = None
