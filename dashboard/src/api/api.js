@@ -56,6 +56,17 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
     const webSocket = new WebSocket(socketUrl);
     webSocketInstances[connectionId] = webSocket;
 
+    // add a method to send json messages
+    webSocket.sendJson = (msg) => {
+      if (webSocket.readyState !== WebSocket.OPEN) throw new Error(
+        `WebSocket is not open (readyState = ${webSocket.readyState})`
+      );
+      try {
+        webSocket.send(json ? JSON.stringify(msg) : msg);
+      } catch (e) {
+        console.error("WebSocket payload or sending error:", e);
+      }
+    }
     // Event: WebSocket successfully opened
     webSocket.onopen = () => {
       // uncomment below to debug
@@ -70,7 +81,7 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
         msg = json ? JSON.parse(event.data) : event.data;
         // uncomment below to debug
         // console.log(`Message on connection Id "${connectionId}":`, msg);
-        if (onMessageCallback) onMessageCallback(msg);
+        if (onMessageCallback) onMessageCallback(msg, webSocket);
       } catch (e) {
         console.error("WS parsing error:", e);
       }
@@ -92,6 +103,7 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
       console.error(`WebSocket error on connection ID "${connectionId}":`, error);
       webSocket.close();
     };
+
     return webSocket;
   };
   return connect()

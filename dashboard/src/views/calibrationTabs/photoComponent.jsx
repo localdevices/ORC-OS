@@ -69,6 +69,7 @@ const PhotoComponent = (
   useEffect(() => {
     // check if image and dimensions are entirely intialized
     if (checkImageReady()) {
+      // all cam config info is present
       if (cameraConfig && cameraConfig?.bbox_camera && cameraConfig?.bbox_camera !== null) {
         // update the polygon points with the cameraConfig.bbox_image points
         const newBboxPoints = cameraConfig.bbox_camera.map(p => {
@@ -78,9 +79,11 @@ const PhotoComponent = (
         })
         setBBoxPolygon(newBboxPoints);
       }
+      // only gcps are present
       if (cameraConfig && cameraConfig?.gcps?.control_points) {
         updateFittedPoints();
         updateDots();
+      // nothing is present
       } else {
         setDots({});
         setFittedPoints([]);
@@ -190,8 +193,8 @@ const PhotoComponent = (
       y: start.y,
     };
     const endPoint = {
-      x: end.x, // (end.col / imgDims.width) * photoBbox.width,
-      y: end.y // (end.row / imgDims.height) * photoBbox.height,
+      x: end.x,
+      y: end.y
     };
 
     return { start: startPoint, end: endPoint };

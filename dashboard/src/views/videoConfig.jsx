@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api, {createWebSocketConnection} from "../api/api.js";
-import {run_video, patchVideo} from "../utils/apiCalls/video.jsx"
+import {run_video} from "../utils/apiCalls/video.jsx";
+import {deepMerge} from "../utils/deepMerge.js";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
@@ -152,19 +153,50 @@ const VideoConfig = () => {
 
   }, [cameraConfig, CSWaterLevel, CSDischarge])
 
-  const callbackVideoStates = (wsResponse) => {
-    // define what should happen with wsResponse
+  const callbackVideoStates = (wsResponse, ws) => {
+    // define what should happen with wsResponse once onmessage passes by
     // report save state
-    setSave(wsResponse.saved);
+    console.log("wsResponse received!", wsResponse);
+    if (wsResponse.saved !== undefined) {
+      setSave(wsResponse.saved);
+    }
     // figure out what was returned, video, video_config, recipe, camera_config, cross_section, cross_section_wl
     if (wsResponse.video) {
-      setVideo(wsResponse.video);
+      console.log("video received!", wsResponse.video);
+      // set and/or patch entire video
+      const patchVideo = deepMerge(video, wsResponse.video);
+      setVideo(patchVideo);
     }
-    if (wsResponse.video_config) {
-      setVideoConfig(wsResponse.video_config);
-    }
-    if (wsResponse.recipe) {
-      setRecipe(wsResponse.recipe);
+    console.log(wsResponse.video.video_config)
+    if (wsResponse.video.video_config) {
+      console.log("video_config received!");
+      const patchVideoConfig = deepMerge(videoConfig, wsResponse.video.video_config);
+      setVideoConfig(patchVideoConfig);
+      // check subcomponents nested
+      if (patchVideoConfig.recipe) {
+        const patchRecipe = deepMerge(recipe, patchVideoConfig.recipe);
+        console.log("patchRecipe", patchRecipe)
+        setRecipe(patchRecipe);
+      }
+      if (patchVideoConfig.camera_config) {
+        const patchCameraConfig = deepMerge(cameraConfig, patchVideoConfig.camera_config);
+        console.log("patchCameraConfig", patchCameraConfig)
+        setCameraConfig(patchCameraConfig);
+      }
+      if (patchVideoConfig.cross_section) {
+        const patchCSDischarge = deepMerge(CSDischarge, patchVideoConfig.cross_section);
+        setCSDischarge(patchCSDischarge);
+      }
+      if (patchVideoConfig.cross_section_wl) {
+        const patchCSWaterLevel = deepMerge(CSWaterLevel, patchVideoConfig.cross_section_wl);
+        setCSWaterLevel(patchCSWaterLevel);
+      }
+    } else {
+      // check if there is no video_config set, if so a new one must be created
+      if (videoConfig === null) {
+        // a new recipe and camera config are needed, reset states to create new ones
+        ws.sendJson({"action": "reset_video_config"})
+      }
     }
 
   }
