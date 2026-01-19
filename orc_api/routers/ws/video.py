@@ -88,7 +88,10 @@ class WSVideoState(BaseModel):
         self.video.video_config = vc
         self.saved = False
         return WSVideoResponse(
-            success=True, video={"video_config": self.video.video_config.model_dump()}, saved=self.saved
+            success=True,
+            # video={"video_config": self.video.video_config.model_dump()},
+            video=self.video.model_dump(),
+            saved=self.saved,
         )
 
     def update_video_config(self, op: str, params: Optional[Dict] = None) -> Optional[Any]:

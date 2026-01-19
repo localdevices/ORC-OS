@@ -17,6 +17,7 @@ import {useMessage} from "../messageContext.jsx";
 
 const VideoConfig = () => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
+  const hasRequestedResetRef = useRef(false);
   const [video, setVideo] = useState(null); // Video metadata
   const [recipe, setRecipe] = useState(null); // Video metadata
   const [cameraConfig, setCameraConfigInstance] = useState(null); // Video metadata
@@ -165,22 +166,21 @@ const VideoConfig = () => {
       console.log("video received!", wsResponse.video);
       // set and/or patch entire video
       const patchVideo = deepMerge(video, wsResponse.video);
+      console.log("patchVideo:", patchVideo);
       setVideo(patchVideo);
     }
     console.log(wsResponse.video.video_config)
-    if (wsResponse.video.video_config) {
-      console.log("video_config received!");
+    if (wsResponse.video?.video_config) {
       const patchVideoConfig = deepMerge(videoConfig, wsResponse.video.video_config);
       setVideoConfig(patchVideoConfig);
+      hasRequestedResetRef.current = false;
       // check subcomponents nested
       if (patchVideoConfig.recipe) {
         const patchRecipe = deepMerge(recipe, patchVideoConfig.recipe);
-        console.log("patchRecipe", patchRecipe)
         setRecipe(patchRecipe);
       }
       if (patchVideoConfig.camera_config) {
         const patchCameraConfig = deepMerge(cameraConfig, patchVideoConfig.camera_config);
-        console.log("patchCameraConfig", patchCameraConfig)
         setCameraConfig(patchCameraConfig);
       }
       if (patchVideoConfig.cross_section) {
@@ -193,10 +193,13 @@ const VideoConfig = () => {
       }
     } else {
       // check if there is no video_config set, if so a new one must be created
-      if (videoConfig === null) {
+      if (!hasRequestedResetRef.current && ws) {
         // a new recipe and camera config are needed, reset states to create new ones
+        hasRequestedResetRef.current = true;
         ws.sendJson({"action": "reset_video_config"})
+        console.log("reset_video_config sent!")
       }
+      console.log("VIDEO AT END: ", video)
     }
 
   }
