@@ -36,6 +36,5 @@ export const deepMerge = (target, patch) => {
       result[key] = patchValue;
     }
   }
-
   return result;
 };

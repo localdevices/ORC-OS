@@ -132,6 +132,13 @@ class VideoResponse(VideoBase, RemoteModel):
 
     def dims(self, base_path: str) -> tuple[int, int]:
         """Get dimensions of video file."""
+        if (
+            self.video_config
+            and self.video_config.camera_config
+            and self.video_config.camera_config.rotation in [90, 270]
+        ):
+            # flip the dims
+            return tuple(reversed(get_height_width(self.get_video_file(base_path=base_path))))
         return get_height_width(self.get_video_file(base_path=base_path))
 
     def frame_count(self, base_path: str) -> int:

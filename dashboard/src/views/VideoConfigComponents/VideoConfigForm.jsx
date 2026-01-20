@@ -15,7 +15,8 @@ const VideoConfigForm = (
     setCSDischarge,
     setCSWaterLevel,
     setSave,
-    setMessageInfo
+    setMessageInfo,
+    ws
   }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -56,13 +57,15 @@ const VideoConfigForm = (
   const handleRotateChange = async (event) => {
     const value = event.target.value === "0" ? null : parseInt(event.target.value);
     // set the rotation correctly
-    const updatedCameraConfig = {
-      ...cameraConfig,
-      rotation: value,
-      height: cameraConfig.height,
-      width: cameraConfig.width,
-    };
-    setCameraConfig(updatedCameraConfig);
+    ws.sendJson({"action": "update_video_config", "op": "set_rotation", "params": {"rotation": value}})
+
+    // const updatedCameraConfig = {
+    //   ...cameraConfig,
+    //   rotation: value,
+    //   height: cameraConfig.height,
+    //   width: cameraConfig.width,
+    // };
+    // setCameraConfig(updatedCameraConfig);
     // set the rotation correctly
   }
 
@@ -311,6 +314,7 @@ VideoConfigForm.propTypes = {
   CSDischarge: PropTypes.object,
   CSWaterLevel: PropTypes.object,
   setMessageInfo: PropTypes.func,
+  ws: PropTypes.object
 };
 
 export default VideoConfigForm;

@@ -18,6 +18,7 @@ import {useMessage} from "../messageContext.jsx";
 const VideoConfig = () => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
   const hasRequestedResetRef = useRef(false);
+  const ws = useRef(null);
   const [video, setVideo] = useState(null); // Video metadata
   const [recipe, setRecipe] = useState(null); // Video metadata
   const [cameraConfig, setCameraConfigInstance] = useState(null); // Video metadata
@@ -75,7 +76,8 @@ const VideoConfig = () => {
           const updatedFrameCount = response.data;
           setFrameCount(updatedFrameCount);
           // open websocket connection with video with video_config instance
-          const ws = createWebSocketConnection(`wsVideo_${videoId}`,`/video/${videoId}/video_ws/`, callbackVideoStates);
+          const wsCur = createWebSocketConnection(`wsVideo_${videoId}`,`/video/${videoId}/video_ws/`, callbackVideoStates);
+          ws.current = wsCur;
           // api.get(`/video/${videoId}/`)
           //   .then((response) => {
           //     setVideo(response.data);
@@ -125,19 +127,19 @@ const VideoConfig = () => {
     setSave(true);
   }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
 
-  useEffect(() => {
-    // check if the height and width of camera config must be adapted to a new rotation
-    if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
-      // set state to new
-      rotateState.current = cameraConfig.rotation;
-      const newConfig = {
-        ...cameraConfig,
-        height: imgDims.height,
-        width: imgDims.width,
-      }
-      setCameraConfig(newConfig)
-    }
-  }, [imgDims])
+  // useEffect(() => {
+  //   // check if the height and width of camera config must be adapted to a new rotation
+  //   if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
+  //     // set state to new
+  //     rotateState.current = cameraConfig.rotation;
+  //     const newConfig = {
+  //       ...cameraConfig,
+  //       height: imgDims.height,
+  //       width: imgDims.width,
+  //     }
+  //     setCameraConfig(newConfig)
+  //   }
+  // }, [imgDims])
 
   // if any cross-section is set, make sure that the CS camera perspective is only provided when lens parameters are
   // complete
@@ -165,9 +167,13 @@ const VideoConfig = () => {
     if (wsResponse.video) {
       console.log("video received!", wsResponse.video);
       // set and/or patch entire video
+      console.log("combine with existing video:", video);
       const patchVideo = deepMerge(video, wsResponse.video);
-      console.log("patchVideo:", patchVideo);
-      setVideo(patchVideo);
+      setVideo(prevVideo => {
+        const patchVideo = deepMerge(prevVideo, wsResponse.video);
+        console.log("patchVideo:", patchVideo);
+        return patchVideo
+      });
     }
     console.log(wsResponse.video.video_config)
     if (wsResponse.video?.video_config) {
@@ -197,11 +203,8 @@ const VideoConfig = () => {
         // a new recipe and camera config are needed, reset states to create new ones
         hasRequestedResetRef.current = true;
         ws.sendJson({"action": "reset_video_config"})
-        console.log("reset_video_config sent!")
       }
-      console.log("VIDEO AT END: ", video)
     }
-
   }
 
   const createCameraConfig = () => {
@@ -547,6 +550,7 @@ const VideoConfig = () => {
                       setCSWaterLevel={setCSWaterLevel}
                       setSave={setSave}
                       setMessageInfo={setMessageInfo}
+                      ws={ws.current}
                     />
                   </div>
 

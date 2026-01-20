@@ -7,7 +7,7 @@ from pyorc import CameraConfig
 
 from orc_api import UPLOAD_DIRECTORY
 from orc_api.database import get_session
-from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse
+from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse, CameraConfigUpdate
 from orc_api.schemas.recipe import RecipeResponse
 from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigUpdate
@@ -50,7 +50,7 @@ class WSVideoState(BaseModel):
     saved: bool = False
 
     def __str__(self):
-        return f"{self.vc} - saved: {self.saved}"
+        return f"{self.video} - saved: {self.saved}"
 
     def __repr__(self):
         return self.__str__()
@@ -143,9 +143,27 @@ class WSVideoState(BaseModel):
         self.video.video_config.camera_config = new_cc
         return new_cc
 
-    def set_rotation(self, op, **params):
+    def set_rotation(self, **params):
         """Set rotation of camera config."""
-        raise NotImplementedError
+        if "rotation" not in params:
+            return WSVideoResponse(success=False, error='Missing "rotation" parameter.')
+        self.video.video_config.camera_config.rotation = params["rotation"]
+        # get new height/width from rotation
+        self.video.video_config.camera_config.height, self.video.video_config.camera_config.width = self.video.dims(
+            base_path=UPLOAD_DIRECTORY
+        )
+        # reset .data field
+        self.video.video_config.camera_config = CameraConfigUpdate.model_validate(self.video.video_config.camera_config)
+        return {
+            "video_config": {
+                "camera_config": {
+                    "height": self.video.video_config.camera_config.height,
+                    "width": self.video.video_config.camera_config.width,
+                    "rotation": self.video.video_config.camera_config.rotation,
+                    "data": self.video.video_config.camera_config.data.model_dump(),
+                }
+            }
+        }
 
     def get_from_cam_config(self, op, **params):
         """Get output from a CameraConfig operation."""

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+from pyorc import sample_data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -230,10 +231,16 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
     assert all([rec["sync_status"] == 5 for rec in response.json()])
 
 
-def test_video_websocket(auth_client, video_config_dict):
+def test_video_websocket(auth_client, video_config_dict, monkeypatch):
+    upload_dir = os.path.split(sample_data.get_hommerich_dataset())[0]
+    monkeypatch.setattr("orc_api.routers.video.UPLOAD_DIRECTORY", upload_dir)
+    monkeypatch.setattr("orc_api.UPLOAD_DIRECTORY", upload_dir)
+
     # add a video
     db_session = next(get_db_override())
-    video1 = models.Video(timestamp=datetime.now(), status=models.video.VideoStatus.NEW)  # code 1
+    video1 = models.Video(
+        timestamp=datetime.now(), status=models.video.VideoStatus.NEW, file=sample_data.get_hommerich_dataset()
+    )  # code 1
     db_session.add_all([video1])
     db_session.commit()
     db_session.refresh(video1)
@@ -251,4 +258,8 @@ def test_video_websocket(auth_client, video_config_dict):
     msg = {"op": "rotate_translate_bbox", "params": {"angle": 1.2}}
     vs_c.update_video_config(**msg)
     assert vs_c.video.video_config.camera_config.bbox != vs.video.video_config.camera_config.bbox
+    msg = {"op": "set_rotation", "params": {"rotation": 90}}
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.height == vs.video.video_config.camera_config.width
+    # do a rotation on the camera config
     print(vs.video)
