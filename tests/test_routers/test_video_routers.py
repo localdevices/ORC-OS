@@ -1,3 +1,4 @@
+import copy
 import os
 from datetime import datetime, timedelta
 
@@ -13,6 +14,9 @@ from orc_api import db as models
 from orc_api.database import get_db
 from orc_api.db import Base
 from orc_api.main import app
+from orc_api.routers.ws.video import WSVideoState
+from orc_api.schemas.video import VideoResponse
+from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -224,3 +228,27 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
     assert response.status_code == 200
     # call should return a list of dicts with each dict having "sync_status": 5 (queued)
     assert all([rec["sync_status"] == 5 for rec in response.json()])
+
+
+def test_video_websocket(auth_client, video_config_dict):
+    # add a video
+    db_session = next(get_db_override())
+    video1 = models.Video(timestamp=datetime.now(), status=models.video.VideoStatus.NEW)  # code 1
+    db_session.add_all([video1])
+    db_session.commit()
+    db_session.refresh(video1)
+    # add the video to video_config_dict
+    video_config_dict["sample_video_id"] = video1.id
+    response = auth_client.post("/api/video_config/", json=video_config_dict)
+    # attach video_config to video1
+    video_config_stored = VideoConfigResponse.model_validate(response.json())
+    video1.video_config_id = video_config_stored.id
+    db_session.commit()
+    db_session.refresh(video1)
+    # make a web socket item
+    vs = WSVideoState(video=VideoResponse.model_validate(video1), saved=True)
+    vs_c = copy.deepcopy(vs)
+    msg = {"op": "rotate_translate_bbox", "params": {"angle": 1.2}}
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.bbox != vs.video.video_config.camera_config.bbox
+    print(vs.video)
