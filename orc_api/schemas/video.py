@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from orc_api import crud, timeout_before_shutdown
 from orc_api import db as models
 from orc_api.database import get_session
+from orc_api.db import Video
 from orc_api.log import add_filehandler, logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
@@ -129,6 +130,19 @@ class VideoResponse(VideoBase, RemoteModel):
             return False, "Video already in process or queued for processing."
         # check if all run components are available
         return self.allowed_to_run
+
+    def patch_post(self, db):
+        """Patch or post instance dependent on whether an ID is already set or not."""
+        video_dict = self.model_dump(
+            exclude_none=True,
+            include={"timestamp", "file", "image", "thumbnail", "status", "time_series_id", "video_config_id"},
+        )
+        if self.id is None:
+            video_db = Video(**video_dict)
+            video_db = crud.video.add(db=db, video=video_db)
+        else:
+            video_db = crud.video.update(db=db, id=self.id, video=video_dict)
+        return VideoResponse.model_validate(video_db)
 
     def dims(self, base_path: str) -> tuple[int, int]:
         """Get dimensions of video file."""

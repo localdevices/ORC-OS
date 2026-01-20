@@ -317,6 +317,7 @@ class VideoConfigResponse(VideoConfigRemote):
             "camera_config_id": video_config.camera_config_id,
             "sample_video_id": video_config.sample_video_id,
             "sync_status": video_config.sync_status,
+            "remote_id": video_config.remote_id,
         }
 
     def patch_post(self, db: Session):

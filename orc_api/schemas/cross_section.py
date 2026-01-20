@@ -69,7 +69,9 @@ class CrossSectionBase(BaseModel):
     def patch_post(self, db):
         """Patch or post the cross section depending on whether an ID is set."""
         # first validate as Update
-        cs_dict = self.model_dump(exclude_none=True, include={"name", "timestamp", "features"})
+        cs_dict = self.model_dump(
+            exclude_none=True, include={"name", "timestamp", "features", "remote_id", "sync_status"}
+        )
         if self.id is None:
             cs_db = CrossSection(**cs_dict)
             cs_db = crud.cross_section.add(db=db, cross_section=cs_db)

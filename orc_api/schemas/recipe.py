@@ -133,7 +133,7 @@ class RecipeBase(BaseModel):
         """Patch or post instance dependent on whether an ID is already set or not."""
         # first validate as simplified recipe
         recipe = RecipeRemote.model_validate(self)
-        recipe_dict = recipe.model_dump(exclude_none=True, include={"name", "data"})
+        recipe_dict = recipe.model_dump(exclude_none=True, include={"name", "data", "remote_id", "sync_status"})
         if recipe.id is None:
             recipe_db = Recipe(**recipe_dict)
             recipe_db = crud.recipe.add(db=db, recipe=recipe_db)

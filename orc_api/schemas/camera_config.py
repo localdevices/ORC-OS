@@ -75,7 +75,7 @@ class CameraConfigBase(BaseModel):
         """Patch or post the camera configuration depending on whether an ID is set."""
         # first validate as Update
         camera_config = CameraConfigUpdate.model_validate(self)
-        cc_dict = camera_config.model_dump(exclude_none=True, include={"name", "data"})
+        cc_dict = camera_config.model_dump(exclude_none=True, include={"name", "data", "remote_id", "sync_status"})
         if camera_config.id is None:
             new_cc = CameraConfig(**cc_dict)
             new_cc = crud.camera_config.add(db=db, camera_config=new_cc)
