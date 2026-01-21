@@ -624,8 +624,10 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
             await websocket.send_json(r.model_dump(mode="json"))
     except WebSocketDisconnect:
         print(f"Websocket {websocket} for video_config_id {id} disconnected.")
-        await websocket.close()
+        conn_manager.disconnect(websocket)
+        # await websocket.close()
     except Exception as e:
         print(f"Websocket error: {e}")
+        conn_manager.disconnect(websocket)
     # finally:
     #     await websocket.close()

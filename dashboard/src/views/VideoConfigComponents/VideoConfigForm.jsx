@@ -1,5 +1,5 @@
-import api from "../../api/api.js";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
+import {useDebouncedWsSender} from "../../api/api.js";
 
 const VideoConfigForm = (
   {
@@ -24,6 +24,23 @@ const VideoConfigForm = (
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // create a delayed websocket sender for this component
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
+  //
+  // useEffect(() => {
+  //   // Create debounced function once
+  //   let timeout;
+  //   sendUpdateDebouncedRef.current = ({ msg }) => {
+  //     clearTimeout(timeout);
+  //     timeout = setTimeout(() => {
+  //       ws.sendJson(msg);
+  //     }, 400); // wait 400 ms before sending
+  //   };
+  //
+  //   // Cleanup on unmount
+  //   return () => clearTimeout(timeout);
+  // }, [ws]); // if ws is stable, this runs only once
+
   useEffect(() => {
     if (selectedVideoConfig) {
       setFormData({
@@ -45,13 +62,23 @@ const VideoConfigForm = (
 
 
   const handleInputChange = async (event) => {
-    const {name, value, type} = event.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: value
+    const { name, value } = event.target;
+    // update local state immediately so UI is snappy
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    const msg = {
+      "action": "update_video_config",
+      "op": "set_field",
+      "params": {"video_patch": {"video_config": {[name]: value}}}
     }
-    setFormData(updatedFormData);
-    setSave(true);
+    // send change off to backend
+    sendDebouncedMsg(msg);
+    // // schedule ws update
+    // if (sendUpdateDebouncedRef.current) {
+    //   sendUpdateDebouncedRef.current({ msg });
+    // }
   }
 
   const handleRotateChange = async (event) => {
@@ -64,9 +91,7 @@ const VideoConfigForm = (
     setIsSaving(true);
     event.preventDefault();
     try {
-      console.log("FORMDATA VID-CONFIG: ", formData);
       ws.sendJson({"action": "save", "params": {"name": formData.name}});
-      // TODO: fix this ws.sendJson({"action": "save"}).then(setIsSaving(false));
 
     // collect data from all fields
 
@@ -148,22 +173,20 @@ const VideoConfigForm = (
     } catch (err) {
       setMessageInfo('error', `Error while storing video config ${err.response.data.detail}`);
     } finally {
-      try {
-        // now also update the video where needed
-        video.video_config_id = response.data.id;
-        // and store this in the database
-        await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
+      // try {
+      //   // now also update the video where needed
+      //   video.video_config_id = response.data.id;
+      //   // and store this in the database
+      //   await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
         // ensure saving is set to false (only when successful
-        setSave(false);
-      } catch (err) {
-        console.log(`Failed to set video config id for video ${video.id} due to ${err}`);
-      } finally {
+        // setSave(false);
+      // } catch (err) {
+      //   console.log(`Failed to set video config id for video ${video.id} due to ${err}`);
+      // } finally {
         // ensure the view port is opened for edits in all cases
         setIsSaving(false);
       }
-
     }
-  };
 
 
   return (
@@ -199,7 +222,7 @@ const VideoConfigForm = (
               type="radio"
               id="modePerspective"
               name="videoMode"
-              onChange={handleInputChange}
+              // onChange={handleInputChange}
               value="perspective"
               required
               checked={true}
@@ -212,7 +235,7 @@ const VideoConfigForm = (
               type="radio"
               id="modeHomography"
               name="videoMode"
-              onChange={handleInputChange}
+              // onChange={handleInputChange}
               value="homography"
               required
               disabled={true}
@@ -226,7 +249,7 @@ const VideoConfigForm = (
               type="radio"
               id="modeDrone"
               name="videoMode"
-              onChange={handleInputChange}
+              // onChange={handleInputChange}
               value="nadirDrone"
               required
               disabled={true}

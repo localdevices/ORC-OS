@@ -1,11 +1,12 @@
 import axios from 'axios'
+import { useEffect, useRef} from "react";
+import {createDebounce} from "../utils/helpers.jsx";
 
 const API_BASE = import.meta.env.VITE_ORC_API_BASE ?? '/api';
 const API_DIRECT = import.meta.env.VITE_ORC_API_DIRECT ?? '/api';  // only in dev mode
 
 const api = axios.create({
    baseURL: API_BASE,
-   // baseURL: `http://localhost:5000`,
    withCredentials: true
 });
 
@@ -107,4 +108,54 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
     return webSocket;
   };
   return connect()
+};
+
+// gracefully close a connection from list of connection
+export const closeWebSocketConnection = (connectionId, code = 1000, reason = 'Intentional close') => {
+  const ws = webSocketInstances[connectionId];
+  if (!ws) {
+    return;
+  }
+
+  // Prevent the onclose handler from attempting to reconnect
+  ws.onclose = null;
+
+  try {
+    ws.close(code, reason);
+  } catch (e) {
+    console.error(`Error while closing WebSocket "${connectionId}":`, e);
+  }
+  delete webSocketInstances[connectionId];
+};
+
+// a debounced message sender for web sockets
+
+// Generic debounced WebSocket sender
+export const useDebouncedWsSender = (ws, delayMs = 400) => {
+  const sendRef = useRef(null);
+
+  useEffect(() => {
+    if (!ws) {
+      sendRef.current = null;
+      return undefined;
+    }
+
+    const debounced = createDebounce((msg) => {
+      ws.sendJson(msg);
+    }, delayMs);
+
+    sendRef.current = debounced;
+
+    return () => {
+      debounced.cancel && debounced.cancel();
+      sendRef.current = null;
+    };
+  }, [ws, delayMs]);
+
+  // Stable function to call from event handlers
+  return (msg) => {
+    if (sendRef.current) {
+      sendRef.current(msg);
+    }
+  };
 };

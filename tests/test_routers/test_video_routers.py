@@ -261,5 +261,12 @@ def test_video_websocket(auth_client, video_config_dict, monkeypatch):
     msg = {"op": "set_rotation", "params": {"rotation": 90}}
     vs_c.update_video_config(**msg)
     assert vs_c.video.video_config.camera_config.height == vs.video.video_config.camera_config.width
+    msg = {
+        "op": "set_field",
+        "params": {"video_patch": {"video_config": {"camera_config": {"name": "alternative_name"}}}},
+    }
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.name == "alternative_name"
+
     # do a rotation on the camera config
     print(vs.video)

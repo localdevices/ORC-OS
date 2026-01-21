@@ -9,7 +9,7 @@ from orc_api import UPLOAD_DIRECTORY
 from orc_api.database import get_session
 from orc_api.db.base import SyncStatus
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse, CameraConfigUpdate
-from orc_api.schemas.recipe import RecipeResponse
+from orc_api.schemas.recipe import RecipeResponse, RecipeUpdate
 from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigUpdate
 
@@ -203,6 +203,62 @@ class WSVideoState(BaseModel):
     def set_bbox_from_width_length(self, **params):
         """Set bounding box from width and length."""
         return self.update_cam_config("set_bbox_from_width_length", **params)
+
+    def set_field(self, video_patch: Optional[Dict] = None, update=True) -> Dict:
+        """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
+
+        Parameters
+        ----------
+        video_patch : dict, optional
+            content of video to be updated in dictionary format, following the structure of the video model.
+        update : bool, optional
+            If set, CameraConfig and Recipe will be converted into CameraConfigUpdate and RecipeUpdate instances
+            whereby fields are updated from the `data` property of the CameraConfigResponse and RecipeResponse
+            instances.
+
+        """
+        if video_patch is None:
+            return {}
+
+        def update_nested(obj, patch: Dict):
+            """Recursively update nested pydantic model fields from a dictionary."""
+            for key, value in patch.items():
+                if isinstance(value, dict) and hasattr(obj, key):
+                    # If value is a dict and the attribute exists, recurse into it
+                    nested_obj = getattr(obj, key)
+                    if nested_obj is not None:
+                        update_nested(nested_obj, value)
+                    else:
+                        # If nested object is None, set the dict directly
+                        setattr(obj, key, value)
+                else:
+                    # Leaf value - set it directly
+                    setattr(obj, key, value)
+
+        update_nested(self.video, video_patch)
+        # set to Response or Update instances if update=False/True
+        if update:
+            self.video.video_config.camera_config = CameraConfigUpdate.model_validate(
+                self.video.video_config.camera_config
+            )
+            self.video.video_config.recipe = RecipeUpdate.model_validate(self.video.video_config.recipe)
+        else:
+            self.video.video_config.camera_config = CameraConfigResponse.model_validate(
+                self.video.video_config.camera_config
+            )
+            self.video.video_config.recipe = RecipeResponse.model_validate(self.video.video_config.recipe)
+        return self.video.model_dump()
+
+        # def update_nested(obj, path, value):
+        #     for key in path[:-1]:
+        #         obj = getattr(obj, key)
+        #     setattr(obj, path[-1], value)
+        #
+        # for field_path, value in video_patch.items():
+        #     if isinstance(field_path, str):
+        #         field_path = [field_path]
+        #     update_nested(self.video, field_path, value)
+        #
 
     def rotate_translate_bbox(self, **params):
         """Resizes bbox according to params."""

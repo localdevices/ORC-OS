@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import api, {createWebSocketConnection} from "../api/api.js";
+import api, {createWebSocketConnection, closeWebSocketConnection} from "../api/api.js";
 import {run_video} from "../utils/apiCalls/video.jsx";
 import {deepMerge} from "../utils/deepMerge.js";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
@@ -19,6 +19,7 @@ const VideoConfig = () => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
   const hasRequestedResetRef = useRef(false);
   const ws = useRef(null);
+  const wsConnectionIdRef = useRef(null);
   const [video, setVideo] = useState(null); // Video metadata
   const [recipe, setRecipe] = useState(null); // Video metadata
   const [cameraConfig, setCameraConfigInstance] = useState(null); // Video metadata
@@ -38,9 +39,11 @@ const VideoConfig = () => {
   const [save, setSave] = useState(true);
   const [frameCount, setFrameCount] = useState(0);
 
-  const setCameraConfig = (newConfig) => {
-    const cameraConfigInstance = {
-      ...newConfig,
+  // Helper to add instance methods to a camera config object
+  const enhanceCameraConfig = (config) => {
+    if (config == null) return config; // allow null to pass through
+    return {
+      ...config,
       isCalibrated: function () {
         return (
           this.f !== null &&
@@ -48,25 +51,67 @@ const VideoConfig = () => {
           this.k2 !== null &&
           this.camera_position !== null &&
           this.camera_rotation !== null
-        )
+        );
       },
       isPoseReady: function () {
         // check if camera config is ready for doing the camera pose
         return (
           this.name !== null &&
           this.id !== null
-        )
+        );
       },
       isReadyForProcessing: function () {
         return (
           this.isCalibrated() &&
           this.isPoseReady() &&
           this.bbox !== null
-        )
-      }
+        );
+      },
+    };
+  };
+
+  // Wrapper that behaves like a normal React setState setter
+  const setCameraConfig = (update) => {
+    if (typeof update === "function") {
+      // Functional updater form: setCameraConfig(prev => next)
+      setCameraConfigInstance((prev) => {
+        const next = update(prev);
+        return enhanceCameraConfig(next);
+      });
+    } else {
+      // Direct value form: setCameraConfig(nextValue)
+      setCameraConfigInstance(enhanceCameraConfig(update));
     }
-    setCameraConfigInstance(cameraConfigInstance);
-  }
+  };
+  // const setCameraConfig = (newConfig) => {
+  //   const cameraConfigInstance = {
+  //     ...newConfig,
+  //     isCalibrated: function () {
+  //       return (
+  //         this.f !== null &&
+  //         this.k1 !== null &&
+  //         this.k2 !== null &&
+  //         this.camera_position !== null &&
+  //         this.camera_rotation !== null
+  //       )
+  //     },
+  //     isPoseReady: function () {
+  //       // check if camera config is ready for doing the camera pose
+  //       return (
+  //         this.name !== null &&
+  //         this.id !== null
+  //       )
+  //     },
+  //     isReadyForProcessing: function () {
+  //       return (
+  //         this.isCalibrated() &&
+  //         this.isPoseReady() &&
+  //         this.bbox !== null
+  //       )
+  //     }
+  //   }
+  //   setCameraConfigInstance(cameraConfigInstance);
+  // }
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
@@ -75,8 +120,14 @@ const VideoConfig = () => {
         .then((response) => {
           const updatedFrameCount = response.data;
           setFrameCount(updatedFrameCount);
+          const connectionId = `wsVideo_${videoId}`
+          wsConnectionIdRef.current = connectionId
           // open websocket connection with video with video_config instance
-          const wsCur = createWebSocketConnection(`wsVideo_${videoId}`,`/video/${videoId}/video_ws/`, callbackVideoStates);
+          const wsCur = createWebSocketConnection(
+            connectionId,
+            `/video/${videoId}/video_ws/`,
+            callbackVideoStates
+          );
           ws.current = wsCur;
           // api.get(`/video/${videoId}/`)
           //   .then((response) => {
@@ -109,10 +160,23 @@ const VideoConfig = () => {
         })
         .catch((err) => console.error("Error fetching frame count:", err))
         .finally(() => {
-          setSave(false)
+          // setSave(false)
         });
     };
     fetchFrameCountAndVideo(videoId).then(r => {return r});
+
+    // cleanup when videoId change or component unmounts
+    return () => {
+      if (wsConnectionIdRef.current) {
+        closeWebSocketConnection(
+          wsConnectionIdRef.current,
+          1000,
+          "Navigating away from VideoConfig view"
+        );
+        wsConnectionIdRef.current = null;
+        ws.current = null;
+      }
+    }
   }, [videoId]);
 
   useEffect(() => {
@@ -122,10 +186,10 @@ const VideoConfig = () => {
     }
   }, [widgets])
 
-  useEffect(() => {
-    // ensure the user can save if any of the video config items changes
-    setSave(true);
-  }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
+  // useEffect(() => {
+  //   // ensure the user can save if any of the video config items changes
+  //   setSave(true);
+  // }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
 
   // useEffect(() => {
   //   // check if the height and width of camera config must be adapted to a new rotation
@@ -159,49 +223,50 @@ const VideoConfig = () => {
   const callbackVideoStates = (wsResponse, ws) => {
     // define what should happen with wsResponse once onmessage passes by
     // report save state
-    console.log("wsResponse received!", wsResponse);
     if (wsResponse.saved !== undefined) {
-      setSave(wsResponse.saved);
+      setSave(!wsResponse.saved);
     }
     // figure out what was returned, video, video_config, recipe, camera_config, cross_section, cross_section_wl
     if (wsResponse.video) {
-      console.log("video received!", wsResponse.video);
+      // console.log("video received!", wsResponse.video);
       // set and/or patch entire video
-      console.log("combine with existing video:", video);
-      const patchVideo = deepMerge(video, wsResponse.video);
-      setVideo(prevVideo => {
-        const patchVideo = deepMerge(prevVideo, wsResponse.video);
-        console.log("patchVideo:", patchVideo);
-        return patchVideo
-      });
+      setVideo(prevVideo =>
+        // console.log("combine with existing video:", prevVideo);
+        deepMerge(prevVideo, wsResponse.video)
+      );
     }
-    console.log(wsResponse.video.video_config)
     if (wsResponse.video?.video_config) {
-      const patchVideoConfig = deepMerge(videoConfig, wsResponse.video.video_config);
-      setVideoConfig(patchVideoConfig);
+      const patchVideoConfig = wsResponse.video.video_config;
+      setVideoConfig(prevVideoConfig => {
+        // console.log("Patching video config:", prevVideoConfig, patchVideoConfig)
+        const merged = deepMerge(prevVideoConfig, wsResponse.video.video_config)
+        // console.log("video config update", prevVideoConfig, patchVideoConfig, merged);
+        return merged;
+      });
       hasRequestedResetRef.current = false;
       // check subcomponents nested
       if (patchVideoConfig.recipe) {
-        const patchRecipe = deepMerge(recipe, patchVideoConfig.recipe);
-        setRecipe(patchRecipe);
+        setRecipe(prevRecipe => deepMerge(prevRecipe, patchVideoConfig.recipe));
       }
       if (patchVideoConfig.camera_config) {
-        const patchCameraConfig = deepMerge(cameraConfig, patchVideoConfig.camera_config);
-        setCameraConfig(patchCameraConfig);
+        setCameraConfig(prevCameraConfig => {
+          const merged = deepMerge(prevCameraConfig, wsResponse.video.video_config.camera_config)
+          // console.log("camconfig update", prevCameraConfig, wsResponse.video.video_config.camera_config, merged);
+          return merged;
+        });
       }
       if (patchVideoConfig.cross_section) {
-        const patchCSDischarge = deepMerge(CSDischarge, patchVideoConfig.cross_section);
-        setCSDischarge(patchCSDischarge);
+        setCSDischarge(prevCSDischarge => deepMerge(prevCSDischarge, patchVideoConfig.cross_section));
       }
       if (patchVideoConfig.cross_section_wl) {
-        const patchCSWaterLevel = deepMerge(CSWaterLevel, patchVideoConfig.cross_section_wl);
-        setCSWaterLevel(patchCSWaterLevel);
+        setCSWaterLevel(prevCSWaterLevel => deepMerge(prevCSWaterLevel, patchVideoConfig.cross_section_wl));
       }
     } else {
       // check if there is no video_config set, if so a new one must be created
       if (!hasRequestedResetRef.current && ws) {
         // a new recipe and camera config are needed, reset states to create new ones
         hasRequestedResetRef.current = true;
+        console.log("RESETTING video config");
         ws.sendJson({"action": "reset_video_config"})
       }
     }
@@ -559,6 +624,7 @@ const VideoConfig = () => {
                       selectedCameraConfig={cameraConfig}
                       setSelectedCameraConfig={setCameraConfig}
                       setMessageInfo={setMessageInfo}
+                      ws={ws.current}
                     />
                   )}
 

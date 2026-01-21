@@ -1,4 +1,16 @@
 
+// Simple debounce utility returning a stable debounced function
+export const createDebounce = (callback, delay) => {
+  let timeout;
+  const debounced = (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => callback(...args), delay);
+  };
+  // return a cancel function to clear the timeout
+  debounced.cancel = () => clearTimeout(timeout);
+  return debounced;
+};
+
 // make some colors
 export const rainbowColors = Array.from({length: 10}, (_, i) => {
   const hue = (i / 10) * 360; // Distributes hues evenly across 360 degrees
