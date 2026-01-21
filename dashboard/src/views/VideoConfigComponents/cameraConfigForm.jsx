@@ -1,5 +1,5 @@
-import api, {useDebouncedWsSender} from "../../api/api.js";
-import React, {useEffect, useRef, useState} from "react";
+import {useDebouncedWsSender} from "../../api/api.js";
+import React, {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 

@@ -22,8 +22,8 @@ warnings.simplefilter("always", DeprecationWarning)
 class GCPData(BaseModel):
     """GCP data model."""
 
-    src: Optional[List[List[float]]] = Field(default=None, description="GCP source points.")
-    dst: Optional[List[List[float]]] = Field(default=None, description="GCP destination points.")
+    src: Optional[List[List[Optional[float]]]] = Field(default=None, description="GCP source points.")
+    dst: Optional[List[List[Optional[float]]]] = Field(default=None, description="GCP destination points.")
     crs: Optional[Union[str, int]] = Field(default=None, description="Coordinate Reference System of the GCPs.")
     h_ref: Optional[float] = Field(default=None, description="Reference height of water level in local datum.")
     z_0: Optional[float] = Field(default=None, description="Reference height of water level in GCP datum.")
@@ -267,6 +267,8 @@ class CameraConfigUpdate(CameraConfigInteraction):
         # handle the control points
         if instance.gcps:
             if instance.gcps.control_points:
+                # validate the control points
+                instance.gcps = ControlPointSet.model_validate(instance.gcps.model_dump())
                 # parse to src / dst
                 src, dst = instance.gcps.parse()
                 # only parse if serc and dst are not None

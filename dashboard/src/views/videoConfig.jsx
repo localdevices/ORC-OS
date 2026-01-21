@@ -251,7 +251,7 @@ const VideoConfig = () => {
       if (patchVideoConfig.camera_config) {
         setCameraConfig(prevCameraConfig => {
           const merged = deepMerge(prevCameraConfig, wsResponse.video.video_config.camera_config)
-          // console.log("camconfig update", prevCameraConfig, wsResponse.video.video_config.camera_config, merged);
+          console.log("camconfig update", prevCameraConfig, wsResponse.video.video_config.camera_config, merged);
           return merged;
         });
       }
@@ -656,6 +656,7 @@ const VideoConfig = () => {
                       setWidgets={setWidgets}
                       setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
+                      ws={ws.current}
                     />
                   )}
                   {activeTab === 'recipe' &&

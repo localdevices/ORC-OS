@@ -2,8 +2,7 @@ import api from "../../api/api.js";
 import React, {useEffect, useState, useRef} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
-import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
-import {createCustomMarker} from "../../utils/leafletUtils.js";
+import {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors, areControlPointsEqual} from "../../utils/helpers.jsx";
 import XYZWidget from "../calibrationTabs/XyzWidget.jsx";
 import {fitGcps} from "../../utils/apiCalls/videoConfig.jsx";
@@ -20,7 +19,8 @@ const PoseDetails = (
     setCSWaterLevel,
     setWidgets,
     setSelectedWidgetId,
-    setMessageInfo
+    setMessageInfo,
+    ws
   }) => {
 
   const [fileFormData, setFileFormData] = useState({
@@ -28,6 +28,7 @@ const PoseDetails = (
   });
   // loading state for validation button
   const [isLoading, setIsLoading] = useState(false);
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   useEffect(() => {
     // if file is set, try to load and set it
@@ -61,15 +62,15 @@ const PoseDetails = (
 
 
   const addWidget = () => {
-    const newConfig = {
-      ...cameraConfig,
+    // any fields dependent on calibration should be reset to null
+    const updateCameraConfig = {
       gcps: {
         ...cameraConfig.gcps,
         z_0: null,
         h_ref: null,
         control_points: [
           ...(cameraConfig.gcps?.control_points || []),
-          { x: '', y: '', z: '', row: '', col: '' }
+          { x: null, y: null, z: null, row: null, col: null }
         ], // reset any pose dependent parameters
         // automatically select the newly created widget for editing
       },
@@ -81,15 +82,42 @@ const PoseDetails = (
       bbox_camera: [],
       bbox: []
     }
-    setSelectedWidgetId(newConfig.gcps.control_points.length);
-    setCameraConfig(newConfig);
+    const videoPatch = {video_config: {camera_config: updateCameraConfig}};
+
+    // const newConfig = {
+    //   ...cameraConfig,
+    //   gcps: {
+    //     ...cameraConfig.gcps,
+    //     z_0: null,
+    //     h_ref: null,
+    //     control_points: [
+    //       ...(cameraConfig.gcps?.control_points || []),
+    //       { x: '', y: '', z: '', row: '', col: '' }
+    //     ], // reset any pose dependent parameters
+    //     // automatically select the newly created widget for editing
+    //   },
+    //   camera_position: null,
+    //   camera_rotation: null,
+    //   f: null,
+    //   k1: null,
+    //   k2: null,
+    //   bbox_camera: [],
+    //   bbox: []
+    // }
+    setSelectedWidgetId(updateCameraConfig.gcps.control_points.length);
+    // send off to back end
+    sendDebouncedMsg({
+      action: 'update_video_config',
+      op: 'set_field',
+      params: {video_patch: videoPatch},
+    });
+    // setCameraConfig(newConfig);
     // ensure user can set a new widget when clicking on add gcp
   };
 
   const deleteWidget = (id) => {
     // remove control point from the list of control points
-    const newConfig = {
-      ...cameraConfig,
+    const updateCameraConfig = {
       gcps: {
         ...cameraConfig.gcps,
         z_0: null,
@@ -103,11 +131,40 @@ const PoseDetails = (
       k2: null,
       bbox_camera: [],
       bbox: []
-
     }
-    setCameraConfig(newConfig);
-    setCSDischarge({});
-    setCSWaterLevel({});
+    const videoPatch = {video_config: {
+      camera_config: updateCameraConfig,
+        cross_section: null,
+        cross_section_wl: null
+    }};
+
+    // const newConfig = {
+    //   ...cameraConfig,
+    //   gcps: {
+    //     ...cameraConfig.gcps,
+    //     z_0: null,
+    //     h_ref: null,
+    //     control_points: cameraConfig.gcps.control_points.filter((gcp, index) => index + 1 !== id)
+    //   }, // reset any pose dependent parameters
+    //   camera_position: null,
+    //   camera_rotation: null,
+    //   f: null,
+    //   k1: null,
+    //   k2: null,
+    //   bbox_camera: [],
+    //   bbox: []
+    //
+    // }
+    // send off to back end
+    sendDebouncedMsg({
+      action: 'update_video_config',
+      op: 'set_field',
+      params: {video_patch: videoPatch},
+    });
+    //
+    // setCameraConfig(newConfig);
+    // setCSDischarge({});
+    // setCSWaterLevel({});
   };
 
 

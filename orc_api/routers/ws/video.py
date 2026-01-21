@@ -239,9 +239,11 @@ class WSVideoState(BaseModel):
         # set to Response or Update instances if update=False/True
         if update:
             self.video.video_config.camera_config = CameraConfigUpdate.model_validate(
-                self.video.video_config.camera_config
+                self.video.video_config.camera_config  # .model_dump(exclude={"data"})
             )
-            self.video.video_config.recipe = RecipeUpdate.model_validate(self.video.video_config.recipe)
+            self.video.video_config.recipe = RecipeUpdate.model_validate(
+                self.video.video_config.recipe.model_dump(exclude="data")
+            )
         else:
             self.video.video_config.camera_config = CameraConfigResponse.model_validate(
                 self.video.video_config.camera_config
