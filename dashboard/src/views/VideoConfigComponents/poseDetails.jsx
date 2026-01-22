@@ -176,12 +176,23 @@ const PoseDetails = (
       // Additional steps after successful file load
       // if a crs is found, set it on cameraConfig.gcps.crs
       if (GcpData) {
-        const newConfig = {
-          ...cameraConfig,
+        // const newConfig = {
+        //   ...cameraConfig,
+        //   gcps: GcpData,
+        //
+        // }
+        // setCameraConfig(newConfig);
+        const updateCameraConfig = {
           gcps: GcpData,
-
         }
-        setCameraConfig(newConfig);
+        const videoPatch = {video_config: {
+            camera_config: updateCameraConfig,
+          }};
+        ws.sendJson({
+          action: 'update_video_config',
+          op: 'set_field',
+          params: {video_patch: videoPatch}
+        })
       }
     } catch (error) {
       console.log("File loading not successful, do nothing...", error);
@@ -222,15 +233,35 @@ const PoseDetails = (
 
   const handleCrsChange = async (event) => {
     const {value} = event.target;
-    const newConfig = {
-      ...cameraConfig,
+    // const newConfig = {
+    //   ...cameraConfig,
+    //   gcps: {
+    //     ...cameraConfig.gcps,
+    //     crs: !isNaN(value) ? parseInt(value) : value
+    //   }
+    //
+    // }
+    // setCameraConfig(newConfig);
+    const updateCameraConfig = {
       gcps: {
         ...cameraConfig.gcps,
         crs: !isNaN(value) ? parseInt(value) : value
       }
-
     }
-    setCameraConfig(newConfig);
+    setCameraConfig(prevCameraConfig => ({
+      ...prevCameraConfig,
+      ...updateCameraConfig
+    }))
+    const videoPatch = {video_config: {
+        camera_config: updateCameraConfig,
+      }};
+
+    // send off to back end
+    sendDebouncedMsg({
+      action: 'update_video_config',
+      op: 'set_field',
+      params: {video_patch: videoPatch},
+    });
   }
 
   const handleFileChange = async (event) => {
@@ -260,16 +291,34 @@ const PoseDetails = (
         })
       );
       // set fields in cameraConfig
-      const newConfig = {
-        ...cameraConfig,
+      // const newConfig = {
+      //   ...cameraConfig,
+      //   camera_position: GcpFit.camera_position,
+      //   camera_rotation: GcpFit.camera_rotation,
+      //   f: GcpFit.f,
+      //   k1: GcpFit.k1,
+      //   k2: GcpFit.k2,
+      //
+      // }
+      const updateCameraConfig = {
         camera_position: GcpFit.camera_position,
         camera_rotation: GcpFit.camera_rotation,
         f: GcpFit.f,
         k1: GcpFit.k1,
         k2: GcpFit.k2,
-
       }
-      setCameraConfig(newConfig);
+      const videoPatch = {video_config: {
+          camera_config: updateCameraConfig,
+        }};
+
+      // send off to back end
+      sendDebouncedMsg({
+        action: 'update_video_config',
+        op: 'set_field',
+        params: {video_patch: videoPatch},
+      });
+
+      // setCameraConfig(newConfig);
     } catch (error) {
       setMessageInfo('error', `Failed to fit GCPs: ${error.response.data.detail || error.message}`);
 

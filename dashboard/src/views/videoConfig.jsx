@@ -255,7 +255,7 @@ const VideoConfig = () => {
       if (patchVideoConfig.camera_config) {
         setCameraConfig(prevCameraConfig => {
           const merged = deepMerge(prevCameraConfig, wsResponse.video.video_config.camera_config)
-          console.log("camconfig update", prevCameraConfig, wsResponse.video.video_config.camera_config, merged);
+          console.log("camconfig update", merged);
           return merged;
         });
       }
