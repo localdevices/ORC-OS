@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import api, {createWebSocketConnection, closeWebSocketConnection} from "../api/api.js";
+import api, {createWebSocketConnection, closeWebSocketConnection, useDebouncedWsSender} from "../api/api.js";
 import {run_video} from "../utils/apiCalls/video.jsx";
 import {deepMerge} from "../utils/deepMerge.js";
+import {toNumberOrNull} from "../utils/helpers.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
 import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
@@ -38,6 +39,9 @@ const VideoConfig = () => {
   const [imgDims, setImgDims] = useState(null);
   const [save, setSave] = useState(true);
   const [frameCount, setFrameCount] = useState(0);
+
+  // allow for sending debounced msgs
+  const sendDebouncedMsg = useDebouncedWsSender(ws.current, 400);
 
   // Helper to add instance methods to a camera config object
   const enhanceCameraConfig = (config) => {
@@ -380,53 +384,106 @@ const VideoConfig = () => {
     await run_video(video, setMessageInfo);
   };
 
-  const updateWidget = (id, updatedCoordinates) => {
+  // const updateWidget = (id, updatedCoordinates) => {
+  //   setWidgets((prevWidgets) => {
+  //     const newWidgets = prevWidgets.map((widget) =>
+  //       widget.id === id
+  //         ? {
+  //           ...widget,
+  //           coordinates: {
+  //             ...updatedCoordinates,
+  //             x: parseFloat(updatedCoordinates.x) || null,
+  //             y: parseFloat(updatedCoordinates.y) || null,
+  //             z: parseFloat(updatedCoordinates.z) || null,
+  //             row: parseFloat(updatedCoordinates.row) || null,
+  //             col: parseFloat(updatedCoordinates.col) || null,
+  //
+  //           }
+  //         } : widget
+  //     );
+  //
+  //     // Update cameraConfig with new coordinates
+  //     const newConfig = {
+  //       ...cameraConfig,
+  //       gcps: {
+  //         ...cameraConfig.gcps,
+  //         z_0: null,
+  //         h_ref: null,
+  //         control_points: newWidgets.map(widget => widget.coordinates)
+  //       },
+  //       camera_position: null,
+  //       camera_rotation: null,
+  //       f: null,
+  //       k1: null,
+  //       k2: null,
+  //       bbox_camera: [],
+  //       bbox: [],
+  //       data: {
+  //         ...cameraConfig.data,
+  //         bbox: null
+  //       }
+  //
+  //     }
+  //     setCameraConfig(newConfig);
+  //     setCSDischarge({});
+  //     setCSWaterLevel({});
+  //     // also remove selected cross-sections
+  //     return newWidgets;
+  //   });
+  // };
+
+
+  const updateWidget = (id, coordinates) => {
+    console.log(id, coordinates)
+    // first update widget fields for snappy UI response
     setWidgets((prevWidgets) => {
       const newWidgets = prevWidgets.map((widget) =>
         widget.id === id
           ? {
             ...widget,
             coordinates: {
-              ...updatedCoordinates,
-              x: parseFloat(updatedCoordinates.x) || null,
-              y: parseFloat(updatedCoordinates.y) || null,
-              z: parseFloat(updatedCoordinates.z) || null,
-              row: parseFloat(updatedCoordinates.row) || null,
-              col: parseFloat(updatedCoordinates.col) || null,
+              ...coordinates,
+              x: toNumberOrNull(coordinates.x),
+              y: toNumberOrNull(coordinates.y),
+              z: toNumberOrNull(coordinates.z),
+              row: toNumberOrNull(coordinates.row),
+              col: toNumberOrNull(coordinates.col)
 
             }
           } : widget
-      );
-
-      // Update cameraConfig with new coordinates
-      const newConfig = {
-        ...cameraConfig,
-        gcps: {
-          ...cameraConfig.gcps,
-          z_0: null,
-          h_ref: null,
-          control_points: newWidgets.map(widget => widget.coordinates)
-        },
-        camera_position: null,
-        camera_rotation: null,
-        f: null,
-        k1: null,
-        k2: null,
-        bbox_camera: [],
-        bbox: [],
-        data: {
-          ...cameraConfig.data,
-          bbox: null
-        }
-
-      }
-      setCameraConfig(newConfig);
-      setCSDischarge({});
-      setCSWaterLevel({});
-      // also remove selected cross-sections
+      )
       return newWidgets;
+    })
+    // make sure coords are numeric
+    const numericCoords = {
+      x: toNumberOrNull(coordinates.x),
+      y: toNumberOrNull(coordinates.y),
+      z: toNumberOrNull(coordinates.z),
+      row: toNumberOrNull(coordinates.row),
+      col: toNumberOrNull(coordinates.col),
+    };
+    const updateCameraConfig = {
+      gcps: {
+        ...cameraConfig.gcps,
+        control_points: cameraConfig.gcps.control_points.map((gcp, index) =>
+          index + 1 === id ? {...gcp, ...numericCoords} : gcp
+        )
+      },
+    }
+    const videoPatch = {video_config: {
+        camera_config: updateCameraConfig,
+        cross_section: null,  // reset any pose dependent parameters
+        cross_section_wl: null
+      }};
+    // send off to back end
+    sendDebouncedMsg({
+      action: 'update_video_config',
+      op: 'set_field',
+      params: {video_patch: videoPatch},
     });
-  };
+    // update the camera config. This in turn should update the widget structure
+  }
+
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);

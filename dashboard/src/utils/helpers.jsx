@@ -60,3 +60,11 @@ export const areControlPointsEqual = (arr1, arr2) => {
       obj1.col === obj2.col;
   });
 };
+
+
+// Helper: parse numbers but keep 0 as a valid value
+export const toNumberOrNull = (value) => {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = parseFloat(value);
+  return Number.isNaN(n) ? null : n;
+};

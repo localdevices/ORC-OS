@@ -30,6 +30,7 @@ const PoseDetails = (
   const [isLoading, setIsLoading] = useState(false);
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
+
   useEffect(() => {
     // if file is set, try to load and set it
     if (fileFormData.file) {
@@ -37,6 +38,13 @@ const PoseDetails = (
       // setFileFormData({})
     }
   }, [fileFormData]);
+
+  useEffect(() => {
+    if (cameraConfig?.gcps?.control_points) {
+      refreshWidgets();
+
+    }
+  }, [cameraConfig?.gcps?.control_points]);
 
   const refreshWidgets = () => {
     const controlPoints = cameraConfig?.gcps?.control_points;
@@ -50,16 +58,7 @@ const PoseDetails = (
     })
     setWidgets(newWidgets);
     // setSelectedWidgetId(nextId);
-
   }
-
-  useEffect(() => {
-    if (cameraConfig?.gcps?.control_points) {
-      refreshWidgets();
-
-    }
-  }, [cameraConfig?.gcps?.control_points]);
-
 
   const addWidget = () => {
     // any fields dependent on calibration should be reset to null
