@@ -28,6 +28,7 @@ const PoseDetails = (
   });
   // loading state for validation button
   const [isLoading, setIsLoading] = useState(false);
+  const [fitPoseData, setFitPoseData] = useState(null);
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
 
@@ -274,7 +275,19 @@ const PoseDetails = (
     setIsLoading(true);  // show loading spinner
     try {
       const GcpFit = await fitGcps(imgDims, cameraConfig.gcps, setMessageInfo)
-      const {src_est, dst_est} = GcpFit;
+      const {src_est, dst_est, error} = GcpFit;
+      const err_round = Math.round(error * 1000) / 1000;
+      console.log(src_est, dst_est, error);
+      if (err_round > 0.1) {
+        setFitPoseData({
+          status: 'warning',
+          message: `GCPs successfully fitted, but with a large average error: ${err_round} m.`
+        });
+      } else {
+        setFitPoseData({
+          status: 'success',
+          message: `GCPs successfully fitted to image, average error: ${err_round} m.`});
+      }
       // Map the fitted coordinates back to the widgets
       setWidgets((prevWidgets) =>
         prevWidgets.map((widget, index) => {
@@ -344,50 +357,63 @@ const PoseDetails = (
   };
 
   return (
-  <div className='container tab'>
-    {isLoading && (
-      <div className="spinner-viewport">
-        <div className="spinner" />
-        <div>Fitting pose...</div>
-      </div>
-    )}
+    <div className='container tab'>
+      {isLoading && (
+        <div className="spinner-viewport">
+          <div className="spinner" />
+          <div>Fitting pose...</div>
+        </div>
+      )}
 
-    {/*<div className='container' style={{marginTop: '5px', overflow: 'auto'}}>*/}
-        <h5>Control points</h5>
-        <label htmlFor='addWidget' className='form-label'>
-          Add and provide x, y, z control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
-        </label>
-        <div className="flex-container">
-          <div className='mb-3 mt-3'>
-            <label htmlFor='crs' className='form-label small'>
-              Add single GCP
-            </label>
-            <div>
-              <button onClick={addWidget} style={{"margin": "0"}} id="addWidget" className="btn">Click to add</button>
-            </div>
-          </div>
+      {/*<div className='container' style={{marginTop: '5px', overflow: 'auto'}}>*/}
+      <h5>Control points</h5>
+      <label htmlFor='addWidget' className='form-label'>
+        Add and provide x, y, z control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
+      </label>
+      <div className="flex-container row">
+        <div className="flex-container no-padding">
           {/*onSubmit={handleSubmit}*/}
           {/*<form>   */}
-            <div className='mb-3 mt-3'>
-              <label htmlFor='file' className='form-label small'>
-                CSV or GeoJSON with x, y, z
-              </label>
-              <input type='file' className='form-control' id='file' name='file'
-                 accept=".geojson,.csv" onChange={handleFileChange} required/>
-            </div>
+          <div className='mb-2 mt-0'>
+            <label htmlFor='file' className='form-label small'>
+              CSV or GeoJSON with x, y, z
+            </label>
+            <input type='file' className='form-control' id='file' name='file'
+                   accept=".geojson,.csv" onChange={handleFileChange} required/>
+          </div>
           {/*</form>*/}
-          <div className='mb-3 mt-3'>
+          <div className='mb-2 mt-0'>
             <label htmlFor='crs' className='form-label small'>
               Coordinate reference system (only for GPS)
             </label>
             <input type='number' className='form-control' id='crs' name='crs' onChange={handleCrsChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
           </div>
         </div>
-        <button
-          onClick={handleFitGcps}
-          className="btn"
-          disabled={!validateWidgets()}
-        >Validate</button>
+        <div className="flex-container no-padding">
+      <div className='mb-2 mt-0'>
+        <label htmlFor='crs' className='form-label small'>
+          Add single GCP and validate by fitting pose
+        </label>
+        <div>
+          <button onClick={addWidget} style={{"margin": "0"}} id="addWidget" className="btn">Click to add GCP</button>
+          <button
+            onClick={handleFitGcps}
+            className="btn"
+            disabled={!validateWidgets()}
+          >Validate</button>
+          {fitPoseData && (
+            fitPoseData.status === 'success' ? (
+              <i className="text-success">{fitPoseData.message}</i>
+            ) : (
+              <i className="text-danger">{fitPoseData.message}</i>
+            )
+            )}
+        </div>
+        </div>
+      </div>
+      </div>
+
+
 
       {/*</div>*/}
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>

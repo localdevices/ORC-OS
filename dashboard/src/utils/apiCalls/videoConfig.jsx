@@ -8,16 +8,19 @@ export const fitGcps = async (imgDims, gcps, setMessageInfo) => {
       "width": imgDims.width,
     });
     // Extract `src_est` and `dst_est` from API response
-    const { error } = response.data;
-
-    const err_round = Math.round(error * 1000) / 1000;
-    if (err_round > 0.1) {
-      setMessageInfo('warning', `GCPs successfully fitted, but with a large average error: ${err_round} m.`);
-    }
-    setMessageInfo('success', `GCPs successfully fitted to image, average error: ${err_round} m.`);
+    // const { error } = response.data;
+    //
+    // const err_round = Math.round(error * 1000) / 1000;
+    // if (err_round > 0.1) {
+    //   setMessageInfo('warning', `GCPs successfully fitted, but with a large average error: ${err_round} m.`);
+    // }
+    // setMessageInfo('success', `GCPs successfully fitted to image, average error: ${err_round} m.`);
+    console.log(response.data);
     return response.data;
+
   } catch (error) {
-    setMessageInfo('error', 'Failed to send coordinates:' + error.response.data.detail);
+    // setMessageInfo('error', 'Failed to send coordinates:' + error.response.data.detail);
+    console.error(error.response.data.detail);
     return;
   }
 };
