@@ -45,9 +45,10 @@ const ControlPanel = ({ onRotateLeft, onRotateRight, onBoundingBox, onMove, came
           setMessageInfo("warning", `The set water level is ${Math.abs(zDiff).toFixed(2)} above the average height of the control points suggesting all control points are submerged. Is this correct?`)
         } else if (zDiff > 20) {
           setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
-        } else {
-          setMessageInfo("success", `Your camera calibration is now set. You can continue drawing a bounding box in the Image View`)
         }
+        // else {
+        //   setMessageInfo("success", `Your camera calibration is now set. You can continue drawing a bounding box in the Image View`)
+        // }
       }
     }
     return true;

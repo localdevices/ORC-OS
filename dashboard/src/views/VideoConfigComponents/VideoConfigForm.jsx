@@ -169,9 +169,9 @@ const VideoConfigForm = (
     //         sync_status: response.data.recipe.sync_status
     //     });
     //   }
-      setMessageInfo('success', 'Video config stored successfully');
+    //   setMessageInfo('success', 'Video config stored successfully');
     } catch (err) {
-      setMessageInfo('error', `Error while storing video config ${err.response.data.detail}`);
+      console.error('Error storing video config:', err.response.data.detail);
     } finally {
       // try {
       //   // now also update the video where needed
@@ -187,7 +187,6 @@ const VideoConfigForm = (
         setIsSaving(false);
       }
     }
-
 
   return (
     <div className='container tab'>

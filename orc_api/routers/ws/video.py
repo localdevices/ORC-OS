@@ -1,5 +1,6 @@
 """WebSocket video config interactive operations."""
 
+import traceback
 from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel
@@ -64,44 +65,48 @@ class WSVideoState(BaseModel):
 
     def save(self, name=None):
         """Save current state to database."""
-        video_config = self.video.video_config
-        if video_config is None:
-            return WSVideoResponse(success=False, message="No video config to save. Make a new config first.")
-        if name is not None:
-            video_config.name = name
-        if video_config.name is None:
-            return WSVideoResponse(success=False, message="No name provided for video config, and no name set yet.")
-        # also check subcomponents for name values, inherit from parent if not set
-        attrs = ["recipe", "camera_config", "cross_section", "cross_section_wl"]
-        for attr in attrs:
-            self._inherit_name(attr=attr)
-        if video_config.sample_video_id is None:
-            video_config.sample_video_id = self.video.id
-        if video_config.sync_status != SyncStatus.LOCAL:
-            # set sync status to updated, so that it is clear it must be (re)synced
-            video_config.sync_status = SyncStatus.UPDATED
-            if video_config.recipe is not None:
-                video_config.recipe.sync_status = SyncStatus.UPDATED
-            if video_config.camera_config is not None:
-                video_config.camera_config.sync_status = SyncStatus.UPDATED
-            if video_config.cross_section is not None:
-                video_config.cross_section.sync_status = SyncStatus.UPDATED
-            if video_config.cross_section_wl is not None:
-                video_config.cross_section_wl.sync_status = SyncStatus.UPDATED
-        with get_session() as db:
-            self.video.video_config = video_config.patch_post(db=db)
-            # check if video has a video_config. If not set to current
-            if self.video.video_config_id is None:
-                self.video.video_config_id = self.video.video_config.id
-            self.video = self.video.patch_post(db=db)
+        try:
+            video_config = self.video.video_config
+            if video_config is None:
+                return WSVideoResponse(success=False, message="No video config to save. Make a new config first.")
+            if name is not None:
+                video_config.name = name
+            if video_config.name is None:
+                return WSVideoResponse(success=False, message="No name provided for video config, and no name set yet.")
+            # also check subcomponents for name values, inherit from parent if not set
+            attrs = ["recipe", "camera_config", "cross_section", "cross_section_wl"]
+            for attr in attrs:
+                self._inherit_name(attr=attr)
+            if video_config.sample_video_id is None:
+                video_config.sample_video_id = self.video.id
+            if video_config.sync_status != SyncStatus.LOCAL:
+                # set sync status to updated, so that it is clear it must be (re)synced
+                video_config.sync_status = SyncStatus.UPDATED
+                if video_config.recipe is not None:
+                    video_config.recipe.sync_status = SyncStatus.UPDATED
+                if video_config.camera_config is not None:
+                    video_config.camera_config.sync_status = SyncStatus.UPDATED
+                if video_config.cross_section is not None:
+                    video_config.cross_section.sync_status = SyncStatus.UPDATED
+                if video_config.cross_section_wl is not None:
+                    video_config.cross_section_wl.sync_status = SyncStatus.UPDATED
+            with get_session() as db:
+                self.video.video_config = video_config.patch_post(db=db)
+                # check if video has a video_config. If not set to current
+                if self.video.video_config_id is None:
+                    self.video.video_config_id = self.video.video_config.id
+                self.video = self.video.patch_post(db=db)
 
-        self.saved = True
-        return WSVideoResponse(
-            success=True,
-            video={"video_config": self.video.video_config.model_dump()},  # return only video_config
-            saved=self.saved,
-            message="Video config saved successfully",
-        )
+            self.saved = True
+            return WSVideoResponse(
+                success=True,
+                video={"video_config": self.video.video_config.model_dump()},  # return only video_config
+                saved=self.saved,
+                message="Video configuration saved successfully",
+            )
+        except Exception as e:
+            traceback.print_exc()
+            return WSVideoResponse(success=False, message=str(e))
 
     def reset_video_config(self, name: Optional[str] = None):
         """Reset state to default."""

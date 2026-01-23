@@ -90,7 +90,7 @@ class CameraConfigRemote(CameraConfigBase, RemoteModel):
     pass
 
 
-class CameraConfigInteraction(CameraConfigBase):
+class CameraConfigInteraction(CameraConfigRemote):
     """Response model for camera configuration."""
 
     id: Optional[int] = Field(default=None, description="CameraConfig ID")

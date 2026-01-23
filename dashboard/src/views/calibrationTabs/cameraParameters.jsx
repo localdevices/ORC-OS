@@ -1,7 +1,8 @@
 import {useEffect, useState} from 'react';
 import PropTypes from "prop-types";
+import {useDebouncedWsSender} from "../../api/api.js";
 
-const CameraParameters = ({cameraConfig, setCameraConfig}) => {
+const CameraParameters = ({cameraConfig, setCameraConfig, ws}) => {
   const [camLocationAuto, setCamLocationAuto] = useState(false);
   const [camRotationAuto, setCamRotationAuto] = useState(false);
   const [camLensAuto, setCamLensAuto] = useState(false);
@@ -16,6 +17,7 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
     camK1: '',
     camK2: ''
   });
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   useEffect(() => {
     if (cameraConfig) {
@@ -48,44 +50,57 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
 
   }, [cameraConfig]);
 
-  const updateCameraRotation = (index, value) => {
+  const updateCamConfig = async (updatedFields) => {
+    setCameraConfig({
+      ...cameraConfig,
+      ...updatedFields
+    });
+    const videoPatch = {video_config: {camera_config: updatedFields}};
+    const msg = {
+      action: "update_video_config",
+      op: "set_field",
+      params: {
+        video_patch: videoPatch
+      }
+    }
+    sendDebouncedMsg(msg)
+
+  }
+
+  const updateCameraRotation = async (index, value) => {
+    let cameraRotation;
     if (!cameraConfig?.camera_rotation) {
       // first set a zeros array
-      setCameraConfig({
-        ...cameraConfig,
-        camera_rotation: [0, 0, 0]
-      });
+      cameraRotation = [0, 0, 0];
+    } else {
+      cameraRotation = cameraConfig.camera_rotation;
     }
-    // Use a timeout to let the state update take effect before proceeding
-    setTimeout(() => {
-      const newConfig = {
-        ...cameraConfig,
-        camera_rotation: cameraConfig.camera_rotation.map((item, i) =>
-          i === index ? value : item
-        ),
-      }
-      setCameraConfig(newConfig);
-    }, 0);
+    const newRotation = cameraRotation.map((item, i) => i === index ? value : item)
+    const updatedFields = {camera_rotation: newRotation}
+    await updateCamConfig(updatedFields)
   }
 
   const updateCameraPosition = (index, value) => {
+    console.log("UPDATE CAM POS", index, value)
+    let cameraPosition;
     if (!cameraConfig?.camera_position) {
       // first set a zeros array
-      setCameraConfig({
-        ...cameraConfig,
-        camera_position: [0, 0, 0]
-      });
+      cameraPosition = [0, 0, 0]
+    } else {
+      cameraPosition = cameraConfig.camera_position;
     }
-    // Use a timeout to let the state update take effect before proceeding
-    setTimeout(() => {
-      const newConfig = {
-        ...cameraConfig,
-        camera_position: cameraConfig.camera_position.map((item, i) =>
-          i === index ? value : item
-        )
-      }
-      setCameraConfig(newConfig);
-    }, 0);
+    const newPosition = cameraPosition.map((item, i) => i === index ? value : item)
+    const updatedFields = {camera_position: newPosition}
+    updateCamConfig(updatedFields)
+  }
+
+  const updateLensPars = async (event) => {
+    const {name, value} = event.target;
+    console.log("UPDATE LENS PARS", name, value)
+    const fieldName = name.replace(/^cam/, '').toLowerCase();
+    const parsedValue = parseFloat(value);
+    const updatedFields = {[fieldName]: parsedValue};
+    await updateCamConfig(updatedFields);
   }
 
   return (
@@ -232,12 +247,7 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
               name="camF"
               disabled={camLensAuto}
               value={formData.camF}
-              onChange={(e) => setCameraConfig({
-                ...cameraConfig,
-                f: parseFloat(e.target.value)
-              })}
-              // onChange={handleInputChange}
-              // placeholder="distance from origin [m]"
+              onChange={updateLensPars}
             />
           </div>
           <div className="input-group mb-2">
@@ -248,13 +258,10 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
               type="text"
               className="form-control"
               id="camK1"
+              name="camK1"
               disabled={camLensAuto}
               value={formData.camK1}
-              onChange={(e) => setCameraConfig({
-                ...cameraConfig,
-                k1: parseFloat(e.target.value)
-              })}
-              // placeholder="distance from origin [m]"
+              onChange={updateLensPars}
             />
           </div>
           <div className="input-group mb-2">
@@ -265,13 +272,10 @@ const CameraParameters = ({cameraConfig, setCameraConfig}) => {
               type="text"
               className="form-control"
               id="camK2"
+              name="camK2"
               disabled={camLensAuto}
               value={formData.camK2}
-              onChange={(e) => setCameraConfig({
-                ...cameraConfig,
-                k2: parseFloat(e.target.value)
-              })}
-              // placeholder="distance from origin [m]"
+              onChange={updateLensPars}
             />
           </div>
         </div>

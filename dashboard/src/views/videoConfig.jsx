@@ -259,19 +259,21 @@ const VideoConfig = () => {
       });
       // check subcomponents nested
       if (patchVideoConfig.recipe) {
-        setRecipe(prevRecipe => deepMerge(prevRecipe, patchVideoConfig.recipe));
+
+        setRecipe(prevRecipe => {
+          const merged = deepMerge(prevRecipe, patchVideoConfig.recipe);
+          return merged;
+        });
       }
       if (patchVideoConfig.camera_config) {
         setCameraConfig(prevCameraConfig => {
           const merged = deepMerge(prevCameraConfig, wsResponse.video.video_config.camera_config)
-          console.log("Cam config update", merged);
           return merged;
         });
       }
       if (patchVideoConfig.cross_section) {
         setCSDischarge(prevCSDischarge => {
           const merged = deepMerge(prevCSDischarge, patchVideoConfig.cross_section)
-          console.log("CSDischarge update", merged);
           return merged
         });
       }
@@ -452,7 +454,6 @@ const VideoConfig = () => {
   //   });
   // };
 
-
   const updateWidget = (id, coordinates) => {
     console.log(id, coordinates)
     // first update widget fields for snappy UI response
@@ -577,6 +578,7 @@ const VideoConfig = () => {
           <CameraParameters
             cameraConfig={cameraConfig}
             setCameraConfig={setCameraConfig}
+            ws={ws.current}
           />
         </div>
         <div className="flex-container column no-padding">
@@ -746,6 +748,7 @@ const VideoConfig = () => {
                         setMessageInfo={setMessageInfo}
                         CSWaterLevel={CSWaterLevel}
                         CSDischarge={CSDischarge}
+                        ws={ws.current}
                       />
                     )}
                 </div>
