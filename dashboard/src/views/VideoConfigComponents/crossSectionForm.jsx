@@ -1,6 +1,8 @@
 import api from "../../api/api.js";
 import {useEffect, useState} from "react";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
+import {useDebouncedWsSender} from "../../api/api.js";
+
 import PropTypes   from "prop-types";
 const CrossSectionForm = (
   {
@@ -10,7 +12,8 @@ const CrossSectionForm = (
     setCameraConfig,
     setCSDischarge,
     setCSWaterLevel,
-    setMessageInfo
+    setMessageInfo,
+    ws
   }
 ) => {
   // form data as the user sees it on the screen
@@ -20,6 +23,7 @@ const CrossSectionForm = (
   });
 
   const [availableCrossSections, setAvailableCrossSections] = useState([]);
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   const fetchCrossSections = async () => {
     try {
@@ -41,24 +45,34 @@ const CrossSectionForm = (
     const {value, name} = event.target;
     const nameCapitalize = name.charAt(0).toUpperCase() + name.slice(1);
     if (value) {
-      try {
-        const response = await api.post(
-          `cross_section/${value}/camera_config/?${new Date().getTime()}`,
-          cameraConfig
-        );
-        if (!response.data.within_image) {
-          setMessageInfo('error', `${nameCapitalize} cross section is not within the image`)
-        } else if (response.data.distance_camera > 1000) {
-          setMessageInfo('error', `${nameCapitalize} cross section is too far away from the camera (> 1000 m.)`)
-        } else {
-          setter(response.data);
-          console.log(response.data);
-          setMessageInfo('success', `Successfully set ${name} cross section to ID ${value}`)
-        }
-      } catch (error) {
-        console.log(error);
-        setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.response.data.detail || error.message}`)
+      // try {
+      const msg = {
+        "action": "update_video_config",
+        "op": "update_cross_section",
+        "params": name === "discharge"
+          ? {"cross_section_id": parseInt(value)}
+          : {"cross_section_wl_id": parseInt(value)}
       }
+      sendDebouncedMsg(msg)
+
+      //   const response = await api.post(
+      //     `cross_section/${value}/camera_config/?${new Date().getTime()}`,
+      //     cameraConfig
+      //   );
+      //   if (!response.data.within_image) {
+      //     setMessageInfo('error', `${nameCapitalize} cross section is not within the image`)
+      //   } else if (response.data.distance_camera > 1000) {
+      //     setMessageInfo('error', `${nameCapitalize} cross section is too far away from the camera (> 1000 m.)`)
+      //   } else {
+      //     // TODO: replace by ws.sendJson call
+      //     setter(response.data);
+      //     console.log(response.data);
+      //     setMessageInfo('success', `Successfully set ${name} cross section to ID ${value}`)
+      //   }
+      // } catch (error) {
+      //   console.log(error);
+      //   setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.response.data.detail || error.message}`)
+      // }
     } else {
       setter({});
       setMessageInfo('success', `Successfully removed ${name} cross section`)
@@ -81,16 +95,33 @@ const CrossSectionForm = (
       h_ref = inputValue === '' ? cameraConfig.gcps.z_0 : parseFloat(value);
       z_0 = cameraConfig.gcps.z_0 ?? null;
     }
-    const newConfig = {
-      ...cameraConfig,
+    const updateCameraConfig = {
       gcps: {
         ...cameraConfig.gcps,
         z_0: z_0,
         h_ref: h_ref
-
+      }
+    }
+    // update immediately for snappy UI
+    const newConfig = (prevConfig) => {
+      return {
+        ...prevConfig,
+        ...updateCameraConfig
       }
     }
     setCameraConfig(newConfig);
+    // send update to back end
+    const videoPatch = {video_config: {
+        camera_config: updateCameraConfig,
+      }};
+
+    // send off to back end
+    sendDebouncedMsg({
+      action: 'update_video_config',
+      op: 'set_field',
+      params: {video_patch: videoPatch},
+    });
+
   }
 
   const handleInputChange = (event) => {

@@ -208,7 +208,8 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBo
   const options = {
     // responsive: true,
     aspectRatio: 1,
-    maintainAspectRatio: true,
+    // maintainAspectRatio: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         title: {
@@ -253,7 +254,12 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBo
 
   }
   return (
-    <div style={{ minHeight: "200px", overflowY: "auto"}}>
+    // <div style={{ minHeight: "200px", overflowY: "auto"}}>
+    <div style={{
+      width: "100%",
+      // maxWidth: "600px",
+      aspectRatio: "1 / 1",
+      overflowY: "auto"}}>
       <Chart
         type="scatter"
         key={Math.random()}

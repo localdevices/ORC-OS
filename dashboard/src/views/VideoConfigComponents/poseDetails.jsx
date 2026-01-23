@@ -1,9 +1,9 @@
 import api from "../../api/api.js";
-import React, {useEffect, useState, useRef} from "react";
+import React, {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import {useDebouncedWsSender} from "../../api/api.js";
-import {rainbowColors, areControlPointsEqual} from "../../utils/helpers.jsx";
+import {rainbowColors} from "../../utils/helpers.jsx";
 import XYZWidget from "../calibrationTabs/XyzWidget.jsx";
 import {fitGcps} from "../../utils/apiCalls/videoConfig.jsx";
 

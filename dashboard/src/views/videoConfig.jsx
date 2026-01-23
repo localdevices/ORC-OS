@@ -130,7 +130,9 @@ const VideoConfig = () => {
           const wsCur = createWebSocketConnection(
             connectionId,
             `/video/${videoId}/video_ws/`,
-            callbackVideoStates
+            callbackVideoStates,
+            true,
+            setMessageInfo,
           );
           ws.current = wsCur;
           // api.get(`/video/${videoId}/`)
@@ -224,9 +226,16 @@ const VideoConfig = () => {
 
   }, [cameraConfig, CSWaterLevel, CSDischarge])
 
-  const callbackVideoStates = (wsResponse, ws) => {
+  const callbackVideoStates = (wsResponse, ws, setMessageInfo) => {
     // define what should happen with wsResponse once onmessage passes by
     // report save state
+    console.log("wsResponse:", wsResponse);
+    console.log()
+    if (!wsResponse.success && wsResponse.success !== undefined) {
+      console.error("Error in wsResponse:", wsResponse);
+      setMessageInfo("error", wsResponse.message);
+      return
+    }
     if (wsResponse.saved !== undefined) {
       setSave(!wsResponse.saved);
     }
@@ -240,6 +249,7 @@ const VideoConfig = () => {
       );
     }
     if (wsResponse.video?.video_config) {
+      hasRequestedResetRef.current = false;
       const patchVideoConfig = wsResponse.video.video_config;
       setVideoConfig(prevVideoConfig => {
         // console.log("Patching video config:", prevVideoConfig, patchVideoConfig)
@@ -247,7 +257,6 @@ const VideoConfig = () => {
         // console.log("video config update", prevVideoConfig, patchVideoConfig, merged);
         return merged;
       });
-      hasRequestedResetRef.current = false;
       // check subcomponents nested
       if (patchVideoConfig.recipe) {
         setRecipe(prevRecipe => deepMerge(prevRecipe, patchVideoConfig.recipe));
@@ -255,12 +264,16 @@ const VideoConfig = () => {
       if (patchVideoConfig.camera_config) {
         setCameraConfig(prevCameraConfig => {
           const merged = deepMerge(prevCameraConfig, wsResponse.video.video_config.camera_config)
-          console.log("camconfig update", merged);
+          console.log("Cam config update", merged);
           return merged;
         });
       }
       if (patchVideoConfig.cross_section) {
-        setCSDischarge(prevCSDischarge => deepMerge(prevCSDischarge, patchVideoConfig.cross_section));
+        setCSDischarge(prevCSDischarge => {
+          const merged = deepMerge(prevCSDischarge, patchVideoConfig.cross_section)
+          console.log("CSDischarge update", merged);
+          return merged
+        });
       }
       if (patchVideoConfig.cross_section_wl) {
         setCSWaterLevel(prevCSWaterLevel => deepMerge(prevCSWaterLevel, patchVideoConfig.cross_section_wl));
@@ -269,11 +282,18 @@ const VideoConfig = () => {
       // check if there is no video_config set, if so a new one must be created
       if (!hasRequestedResetRef.current && ws) {
         // a new recipe and camera config are needed, reset states to create new ones
-        hasRequestedResetRef.current = true;
-        console.log("RESETTING video config");
-        ws.sendJson({"action": "reset_video_config"})
+        if (videoConfig === null || videoConfig === undefined) {
+          hasRequestedResetRef.current = true;
+          console.log("RESETTING video config");
+          ws.sendJson({"action": "reset_video_config"})
+        }
       }
     }
+    if (wsResponse.success && wsResponse.message) {
+      setMessageInfo("success", wsResponse.message);
+      return
+    }
+
   }
 
   const createCameraConfig = () => {
@@ -697,6 +717,7 @@ const VideoConfig = () => {
                         setCSDischarge={setCSDischarge}
                         setCSWaterLevel={setCSWaterLevel}
                         setMessageInfo={setMessageInfo}
+                        ws={ws.current}
                       />
                     )
                   }

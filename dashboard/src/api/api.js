@@ -39,7 +39,7 @@ export default api;
 
 let webSocketInstances = {};
 
-export const createWebSocketConnection = (connectionId, url, onMessageCallback, json) => {
+export const createWebSocketConnection = (connectionId, url, onMessageCallback, json, ...callbackArgs) => {
   // Create WebSocket connection
   if (json === undefined) {
     json = true;
@@ -82,7 +82,7 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
         msg = json ? JSON.parse(event.data) : event.data;
         // uncomment below to debug
         // console.log(`Message on connection Id "${connectionId}":`, msg);
-        if (onMessageCallback) onMessageCallback(msg, webSocket);
+        if (onMessageCallback) onMessageCallback(msg, webSocket, ...callbackArgs);
       } catch (e) {
         console.error("WS parsing error:", e);
       }

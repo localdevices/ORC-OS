@@ -5,10 +5,11 @@ from typing import Any, Dict, Literal, Optional
 from pydantic import BaseModel
 from pyorc import CameraConfig
 
-from orc_api import UPLOAD_DIRECTORY
+from orc_api import UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.db.base import SyncStatus
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse, CameraConfigUpdate
+from orc_api.schemas.cross_section import CrossSectionResponseCameraConfig
 from orc_api.schemas.recipe import RecipeResponse, RecipeUpdate
 from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigUpdate
@@ -65,11 +66,11 @@ class WSVideoState(BaseModel):
         """Save current state to database."""
         video_config = self.video.video_config
         if video_config is None:
-            return WSVideoResponse(success=False, error="No video config to save. Make a new config first.")
+            return WSVideoResponse(success=False, message="No video config to save. Make a new config first.")
         if name is not None:
             video_config.name = name
         if video_config.name is None:
-            return WSVideoResponse(success=False, error="No name provided for video config, and no name set yet.")
+            return WSVideoResponse(success=False, message="No name provided for video config, and no name set yet.")
         # also check subcomponents for name values, inherit from parent if not set
         attrs = ["recipe", "camera_config", "cross_section", "cross_section_wl"]
         for attr in attrs:
@@ -99,6 +100,7 @@ class WSVideoState(BaseModel):
             success=True,
             video={"video_config": self.video.video_config.model_dump()},  # return only video_config
             saved=self.saved,
+            message="Video config saved successfully",
         )
 
     def reset_video_config(self, name: Optional[str] = None):
@@ -155,12 +157,62 @@ class WSVideoState(BaseModel):
         if params is None:
             params = {}
         try:
-            response = getattr(self, op)(**params)
+            result = getattr(self, op)(**params)
             self.saved = False
+            if isinstance(result, tuple):
+                if len(result) > 2:
+                    return WSVideoResponse(success=False, message=f"Operation {op} returned more than 2 values.")
+                response, msg = result
+            else:
+                response = result
+                msg = None
+
             # create ws response instance
-            return WSVideoResponse(success=True, video=response)
+            return WSVideoResponse(success=True, video=response, message=msg)
         except Exception as e:
-            return WSVideoResponse(success=False, error=str(e), saved=self.saved)
+            print(f"Exception found: {str(e)}")
+            # traceback.print_exc()
+            return WSVideoResponse(success=False, message=str(e), saved=self.saved)
+
+    def update_cross_section(self, cross_section_id: Optional[int] = None, cross_section_wl_id: Optional[int] = None):
+        """Update cross-section for discharge or water levle using its id."""
+
+        def _get_cs_rec(cs_id: int):
+            with get_session() as db:
+                cs_rec = crud.cross_section.get(db=db, id=cs_id)
+                # add camera config
+            cs_rec.camera_config = self.video.video_config.camera_config
+            cs_rec = CrossSectionResponseCameraConfig.model_validate(cs_rec)
+            # check within image
+            if not cs_rec.within_image:
+                raise ValueError(f"Cross section {cs_id} is not within image bounds.")
+            if cs_rec.distance_camera > 1000:
+                raise ValueError(f"Cross section {cs_id} is too far away from the camera (> 1000 m.)")
+            return cs_rec
+
+        cs_dict = {}
+        msg = ""
+        if cross_section_id is not None:
+            cs_rec = _get_cs_rec(cross_section_id)
+            self.video.video_config.cross_section_id = cross_section_id
+            # also (re)populate cross_section_wl fields
+            self.video.video_config.cross_section = cs_rec
+            cs_dict["cross_section_id"] = cross_section_id
+            cs_dict["cross_section"] = cs_rec
+            msg += f"Discharge cross section updated to {cross_section_id}"
+
+        if cross_section_wl_id is not None:
+            cs_rec = _get_cs_rec(cross_section_wl_id)
+            self.video.video_config.cross_section_wl_id = cross_section_wl_id
+            # also (re)populate cross_section_wl fields
+            self.video.video_config.cross_section_wl = cs_rec
+            cs_dict["cross_section_wl_id"] = cross_section_wl_id
+            cs_dict["cross_section_wl"] = cs_rec
+            if len(msg) > 0:
+                msg += f" and water level cross section updated to {cross_section_wl_id}"
+            else:
+                msg += f"Water level cross section updated to {cross_section_wl_id}"
+        return {"video_config": cs_dict}, msg
 
     def update_cam_config(self, op, **params):
         """Update camera config following an operation."""
@@ -193,7 +245,7 @@ class WSVideoState(BaseModel):
                     "data": self.video.video_config.camera_config.data.model_dump(),
                 }
             }
-        }
+        }, "rotation of video modified"
 
     def get_from_cam_config(self, op, **params):
         """Get output from a CameraConfig operation."""
@@ -202,7 +254,7 @@ class WSVideoState(BaseModel):
 
     def set_bbox_from_width_length(self, **params):
         """Set bounding box from width and length."""
-        return self.update_cam_config("set_bbox_from_width_length", **params)
+        return self.update_cam_config("set_bbox_from_width_length", **params), "bounding box set"
 
     def set_field(self, video_patch: Optional[Dict] = None, update=True) -> Dict:
         """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
@@ -283,7 +335,7 @@ class WSVideoState(BaseModel):
 class WSVideoResponse(BaseModel):
     """WebSocket response model."""
 
-    success: bool
+    success: bool = True
     saved: bool = False
     video: Optional[Dict] = None  # contains either full video, or only those parts of the video structure to update
-    error: Optional[str] = None
+    message: Optional[str] = None
