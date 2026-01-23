@@ -4,6 +4,7 @@ import PhotoComponent from './photoComponent';
 import ControlPanel from './controlPanel';
 import PropTypes from 'prop-types';
 import {useMessage} from "../../messageContext.jsx";
+import {useDebouncedWsSender} from "../../api/api.js";
 
 const VideoTab = (
   {
@@ -20,6 +21,7 @@ const VideoTab = (
     setCameraConfig,
     setSelectedWidgetId,
     setImgDims,
+    ws
   }
 ) => {
   const [dragging, setDragging] = useState(false);
@@ -30,6 +32,7 @@ const VideoTab = (
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
   const [bBoxPolygon, setBBoxPolygon] = useState(null);
   const {setMessageInfo} = useMessage();
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   const handleGCPClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     // Add the new dot to the state with the ID of the associated widget
@@ -49,6 +52,30 @@ const VideoTab = (
     }
   }
 
+  const handleBoundingBoxStart = () => {
+    setBboxSelected(true);
+    const msg = {
+      action: "update_video_config",
+      op: "set_field",
+      params: {
+        video_patch: {
+          video_config: {
+            camera_config: {bbox_camera: null, bbox: null}
+          }
+        }
+      }
+    }
+    sendDebouncedMsg(msg);
+    // setBBoxPolygon(null);
+    // // remove bbox_camera from cameraConfig
+    // const newConfig = {
+    //   ...cameraConfig,
+    //   bbox_camera: null,
+    // };
+    //
+    // setCameraConfig(newConfig);
+  }
+
   const handleBoundingBoxClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     if (clickCount >= 3) return;
     console.log("Adding marker", adjustedX, adjustedY);
@@ -56,7 +83,7 @@ const VideoTab = (
     setBboxMarkers(newMarkers);
     setClickCount(clickCount + 1);
     if (clickCount === 2) {
-      // Draw final marker and reset
+      // Draw final marker and reset after 2 seconds
       setTimeout(() => {
         setBboxSelected(false);
         setBboxMarkers([]);
@@ -70,41 +97,15 @@ const VideoTab = (
     return widgets[(currentIndex + 1) % widgets.length].id;
   };
 
-  const handleRotateLeft = () => {
-    console.log('Rotate left');
-    // Implement bounding box logic
-  };
-
-  const handleRotateRight = () => {
-    console.log('Rotate right');
-    // Implement bounding box logic
-  };
-
-  const handleMove = (direction) => {
-    console.log('Move:', direction);
-    // Implement move logic
-  };
 
   return (
           <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
             {cameraConfig && (
             <ControlPanel
-              onRotateLeft={handleRotateLeft}
-              onRotateRight={handleRotateRight}
-              onBoundingBox={() => {
-                setBboxSelected(true);
-                setBBoxPolygon(null);
-                // remove bbox_camera from cameraConfig
-                const newConfig = {
-                  ...cameraConfig,
-                  bbox_camera: null,
-                };
-
-                setCameraConfig(newConfig);
-              }}
-              onMove={handleMove}
+              onBoundingBox={handleBoundingBoxStart}
               cameraConfig={cameraConfig}
               bboxSelected={bboxSelected}
+              ws={ws}
             />
             )
             }
@@ -139,6 +140,7 @@ const VideoTab = (
                    bboxMarkers={bboxMarkers}
                    handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
                    bboxClickCount={clickCount}
+                   ws={ws}
                  />
             </TransformWrapper>
             <div style={{position: 'sticky', textAlign: 'center', marginTop: '10px', color: '#555' }}>

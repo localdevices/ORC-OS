@@ -560,6 +560,7 @@ const VideoConfig = () => {
                 setCameraConfig={setCameraConfig}
                 setSelectedWidgetId={setSelectedWidgetId}
                 setImgDims={setImgDims}
+                ws={ws.current}
               />
             )}
             {activeView === 'topView' && (

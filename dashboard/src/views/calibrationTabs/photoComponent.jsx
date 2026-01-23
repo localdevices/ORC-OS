@@ -3,7 +3,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 
 import './photoComponent.css';
 import PropTypes from 'prop-types';
-import api from "../../api/api.js";
+import api, {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
 
@@ -27,7 +27,8 @@ const PhotoComponent = (
     setBBoxPolygon,
     bboxMarkers,
     handlePhotoClick,
-    bboxClickCount
+    bboxClickCount,
+    ws
   }) => {
   const [loading, setLoading] = useState(false); // Track the loading state of image
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
@@ -46,7 +47,7 @@ const PhotoComponent = (
 
   // set a mouseDown state for tracking mouse behaviour
   const mouseDownTimeRef = useRef(0);
-
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 100);
 
   const checkImageReady = () => {
     // check if image is loaded, transform wrapper is ready and image dimensions set
@@ -59,26 +60,29 @@ const PhotoComponent = (
     );
   };
 
-  useEffect(() => {
-    // ensure if click count is 3, the camera config is updated with the set bbox
-    if (bboxClickCount === 3) {
-      setCameraConfig(lastResponse.current.data)
-    }
-  }, [bboxClickCount])
+  // useEffect(() => {
+  //   // ensure if click count is 3, the camera config is updated with the set bbox
+  //   if (bboxClickCount === 3) {
+  //     setCameraConfig(lastResponse.current.data)
+  //   }
+  // }, [bboxClickCount])
 
   useEffect(() => {
     // check if image and dimensions are entirely intialized
     if (checkImageReady()) {
+      let newBboxPoints;
       // all cam config info is present
       if (cameraConfig && cameraConfig?.bbox_camera && cameraConfig?.bbox_camera !== null) {
         // update the polygon points with the cameraConfig.bbox_image points
-        const newBboxPoints = cameraConfig.bbox_camera.map(p => {
+        newBboxPoints = cameraConfig.bbox_camera.map(p => {
           const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
           const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
           return {x, y};
         })
-        setBBoxPolygon(newBboxPoints);
+      } else {
+        newBboxPoints = []
       }
+    setBBoxPolygon(newBboxPoints);
       // only gcps are present
       if (cameraConfig && cameraConfig?.gcps?.control_points) {
         updateFittedPoints();
@@ -212,7 +216,7 @@ const PhotoComponent = (
     const clickDuration = Date.now() - mouseDownTimeRef.current;
     // Only consider it a "click" if dragging did not occur and the click was fast enough
     if (clickDuration < 200) {
-      handleMouseClick(event); // Call your existing click logic
+      handleMouseClick(event); // Call click event
     }
   };
 
@@ -249,46 +253,55 @@ const PhotoComponent = (
       // when user has clicked twice, a dynamic polygon should be retrieved from api and plotted.
       // a timeout is necessary to ensure the polygon is only updated once every 0.3 seconds, to prevent too many calls
       // to the api.
-      if (debounceTimeoutRef.current) {
-        // get rid of earlier timeout if it exists
-        clearTimeout(debounceTimeoutRef.current);
-      }
-
-      // also cancel any ongoing api call if it exists
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      // set up a new abort controller for the new request upon mouse move
-      abortControllerRef.current = new AbortController();
-      const abortSignal = abortControllerRef.current.signal;
-
+      // if (debounceTimeoutRef.current) {
+      //   // get rid of earlier timeout if it exists
+      //   clearTimeout(debounceTimeoutRef.current);
+      // }
+      //
+      // // also cancel any ongoing api call if it exists
+      // if (abortControllerRef.current) {
+      //   abortControllerRef.current.abort();
+      // }
+      //
+      // // set up a new abort controller for the new request upon mouse move
+      // abortControllerRef.current = new AbortController();
+      // const abortSignal = abortControllerRef.current.signal;
+      //
       // setup a timeout event with api call
-      var bboxPoints = [];
-      debounceTimeoutRef.current = setTimeout(async () => {
-        // make simple list of lists for API call
-        const points = bboxMarkers.map(p => [p.col, p.row]);
-        points.push([col, row]);
-        const url = "/camera_config/bounding_box/";
-        const response = await api.post(
-          url,
-          {
-            "camera_config": cameraConfig,
-            "points": points,
-          }
-        )
-          .then(response => {
-            lastResponse.current = response;
-            const bbox = response.data.bbox_camera;
-            // set the bbox_camera on the current cameraConfig
-            bboxPoints = bbox.map(p => {
-              const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-              const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
-              return {x, y};
-            })
-            setBBoxPolygon(bboxPoints);
-          })
-      }, 100);
+      const points = bboxMarkers.map(p => [p.col, p.row]);
+      points.push([col, row]);
+      const msg = {
+        action: "update_video_config",
+        op: "set_bbox_from_width_length",
+        params: {
+          points: points
+        }
+      }
+      sendDebouncedMsg(msg);
+      // debounceTimeoutRef.current = setTimeout(async () => {
+      //   // make simple list of lists for API call
+      //   const points = bboxMarkers.map(p => [p.col, p.row]);
+      //   points.push([col, row]);
+      //   const url = "/camera_config/bounding_box/";
+      //   const response = await api.post(
+      //     url,
+      //     {
+      //       "camera_config": cameraConfig,
+      //       "points": points,
+      //     }
+      //   )
+      //     .then(response => {
+      //       lastResponse.current = response;
+      //       const bbox = response.data.bbox_camera;
+      //       // set the bbox_camera on the current cameraConfig
+      //       bboxPoints = bbox.map(p => {
+      //         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+      //         const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
+      //         return {x, y};
+      //       })
+      //       setBBoxPolygon(bboxPoints);
+      //     })
+      // }, 100);
       setLineCoordinates(null);
     }
 

@@ -259,7 +259,8 @@ class WSVideoState(BaseModel):
 
     def set_bbox_from_width_length(self, **params):
         """Set bounding box from width and length."""
-        return self.update_cam_config("set_bbox_from_width_length", **params), "bounding box set"
+        new_cc = self.update_cam_config("set_bbox_from_width_length", **params)
+        return {"video_config": {"camera_config": {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera}}}
 
     def set_field(self, video_patch: Optional[Dict] = None, update=True) -> Dict:
         """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
@@ -307,17 +308,6 @@ class WSVideoState(BaseModel):
             )
             self.video.video_config.recipe = RecipeResponse.model_validate(self.video.video_config.recipe)
         return self.video.model_dump()
-
-        # def update_nested(obj, path, value):
-        #     for key in path[:-1]:
-        #         obj = getattr(obj, key)
-        #     setattr(obj, path[-1], value)
-        #
-        # for field_path, value in video_patch.items():
-        #     if isinstance(field_path, str):
-        #         field_path = [field_path]
-        #     update_nested(self.video, field_path, value)
-        #
 
     def rotate_translate_bbox(self, **params):
         """Resizes bbox according to params."""
