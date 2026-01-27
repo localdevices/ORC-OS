@@ -120,6 +120,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
     water_lines: List[List[List[float]]] = Field(default=[])
     distance_camera: Optional[float] = Field(default=None)
     within_image: Optional[bool] = Field(default=None)
+    bbox_wet: List[List[List[float]]] = Field(default=[])
 
     @model_validator(mode="after")
     def create_perspective_fields(cls, v):
@@ -137,6 +138,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                 z = v.camera_config.obj.h_to_z(h)
                 if z <= np.array(v.obj.z).max() and z >= np.array(v.obj.z).min():
                     v.water_lines = v.get_csl_line(h=h, length=2.0, offset=0.0, camera=True)
+                    v.bbox_wet = v.get_bbox_dry_wet(h=h)
                 else:
                     v.water_lines = []
                 v.wetted_surface = v.get_wetted_surface(h=h, camera=True)
@@ -179,6 +181,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
         for p in pols.geoms:
             if p.area > area:
                 pol = p
+                area = p.area
         if pol is None:
             return []
         return list(map(list, pol.exterior.coords))
@@ -191,6 +194,14 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
         lines = self.obj.get_csl_line(h=h, camera=camera, length=length, offset=offset)
         # convert into list of list of lists (with coordinates)
         return [list(map(list, line.coords)) for line in lines]
+
+    def get_bbox_dry_wet(self, h: float, camera: bool = True, dry: bool = False):
+        """Return the bounding box of the cross section in serializable coordinates."""
+        if self.obj is None:
+            return []
+        # get list of polygons
+        pols = self.obj.get_bbox_dry_wet(h=h, camera=camera, dry=dry)
+        return [list(map(list, pol.exterior.coords)) for pol in pols.geoms]
 
 
 class CrossSectionUpdate(CrossSectionBase):

@@ -19,12 +19,14 @@ const PhotoComponent = (
     imgDims,
     rotate,
     bBoxPolygon,
+    wettedBbox,
     CSDischarge,
     CSWaterLevel,
     dragging,
     setCameraConfig,
     setImgDims,
     setBBoxPolygon,
+    setWettedBbox,
     bboxMarkers,
     handlePhotoClick,
     bboxClickCount,
@@ -123,7 +125,15 @@ const PhotoComponent = (
         setCSWettedSurfacePolygon([]);
       }
     }
-  }, [CSDischarge?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
+    if (
+      checkImageReady() &&
+      // CSDischarge &&
+      CSDischarge?.bbox_wet
+    ) {
+      const newBboxWetPoints = CSDischarge.bbox_wet.map(pol => transformCoords(pol));
+      setWettedBbox(newBboxWetPoints);
+    }
+  }, [CSDischarge, cameraConfig, imgDims, transformState, photoBbox]);
 
   useEffect(() => {
     if (
@@ -564,13 +574,27 @@ const PhotoComponent = (
           zIndex={0}
         />
       )}
+      {/*wetted part of bounding box*/}
+      {transformState && photoBbox && wettedBbox && wettedBbox.length > 0 && wettedBbox.map((line, idx) => (
+        <PolygonDrawer
+          points={line}
+          key={`bbox wet pol ${idx}`}
+          fill={"rgba(75, 192, 130, 0.3)"}
+          stroke={"white"}
+          strokeWidth={2 / transformState.scale}
+          zIndex={1}
+        />
+
+      ))}
+
+      {/*Render the water/land boundary lines*/}
       {transformState && photoBbox && CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (
         <PolygonDrawer
           points={line}
           key={`water line ${idx}`}
           fill={"rgba(75, 130, 192, 0.3)"}
           stroke={"red"}
-          strokeWidth={4}
+          strokeWidth={2 / transformState.scale}
           zIndex={1}
         />
       ))}

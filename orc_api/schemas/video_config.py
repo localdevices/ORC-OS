@@ -283,7 +283,14 @@ class VideoConfigResponse(VideoConfigRemote):
         video_config = VideoConfigResponse.model_validate(
             self.model_dump(
                 exclude_none=True,
-                exclude={"camera_config", "recipe", "cross_section", "cross_section_wl"},
+                exclude={
+                    "camera_config",
+                    "recipe",
+                    "cross_section",
+                    "cross_section_wl",
+                    "cross_section_rt",
+                    "cross_section_wl_rt",
+                },
             )
         )
         return {

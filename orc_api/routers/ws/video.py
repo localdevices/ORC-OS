@@ -226,6 +226,14 @@ class WSVideoState(BaseModel):
         new_cc = CameraConfigResponse(
             name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
         )
+        self.set_field(
+            video_patch={
+                "video_config": {
+                    "camera_config": new_cc,
+                }
+            }
+        )
+
         self.video.video_config.camera_config = new_cc
         return new_cc
 
@@ -259,7 +267,12 @@ class WSVideoState(BaseModel):
     def set_bbox_from_width_length(self, **params):
         """Set bounding box from width and length."""
         new_cc = self.update_cam_config("set_bbox_from_width_length", **params)
-        return {"video_config": {"camera_config": {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera}}}
+        return {
+            "video_config": {
+                "camera_config": {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera},
+                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
+            }
+        }
 
     def set_field(self, video_patch: Optional[Dict] = None, update=True) -> Dict:
         """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
@@ -325,13 +338,22 @@ class WSVideoState(BaseModel):
         new_cc = CameraConfigResponse(
             name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
         )
-        self.video.video_config.camera_config = new_cc
+        # set fields
+        update_cam_config = {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera}
+        self.set_field(
+            video_patch={
+                "video_config": {
+                    "camera_config": new_cc,
+                    # "cross_section": {"camera_config": update_cam_config},
+                    # "cross_section_wl": {"camera_config": update_cam_config},
+                }
+            }
+        )
+        # self.video.video_config.camera_config = new_cc
         return {
             "video_config": {
-                "camera_config": {
-                    "bbox": new_cc.bbox,
-                    "bbox_camera": new_cc.bbox_camera,
-                }
+                "camera_config": update_cam_config,
+                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
             }
         }
 

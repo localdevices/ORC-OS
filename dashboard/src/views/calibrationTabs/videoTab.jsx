@@ -31,6 +31,7 @@ const VideoTab = (
   const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
   const [bBoxPolygon, setBBoxPolygon] = useState(null);
+  const [wettedBbox, setWettedBbox] = useState([]);  // wetted part of bounding box, following CS
   const {setMessageInfo} = useMessage();
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
@@ -55,18 +56,21 @@ const VideoTab = (
   const handleBoundingBoxStart = () => {
     setBboxSelected(true);
     const msg = {
-      action: "update_video_config",
-      op: "set_field",
+      action: 'update_video_config',
+      op: 'set_field',
       params: {
         video_patch: {
           video_config: {
-            camera_config: {bbox_camera: null, bbox: null}
+            camera_config: {bbox_camera: [], bbox: []},
+            cross_section: {bbox_wet: []}
           }
         }
       }
     }
     sendDebouncedMsg(msg);
     // setBBoxPolygon(null);
+    // setWettedBbox(null);
+
     // // remove bbox_camera from cameraConfig
     // const newConfig = {
     //   ...cameraConfig,
@@ -131,12 +135,14 @@ const VideoTab = (
                    imgDims={imgDims}
                    rotate={rotate}
                    bBoxPolygon={bBoxPolygon}
+                   wettedBbox={wettedBbox}
                    CSDischarge={CSDischarge}
                    CSWaterLevel={CSWaterLevel}
                    dragging={dragging}
                    setCameraConfig={setCameraConfig}
                    setImgDims={setImgDims}
                    setBBoxPolygon={setBBoxPolygon}
+                   setWettedBbox={setWettedBbox}
                    bboxMarkers={bboxMarkers}
                    handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
                    bboxClickCount={clickCount}

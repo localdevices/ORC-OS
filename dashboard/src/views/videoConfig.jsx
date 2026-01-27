@@ -273,12 +273,15 @@ const VideoConfig = () => {
       }
       if (patchVideoConfig.cross_section) {
         setCSDischarge(prevCSDischarge => {
-          const merged = deepMerge(prevCSDischarge, patchVideoConfig.cross_section)
+          const merged = deepMerge(prevCSDischarge, wsResponse.video.video_config.cross_section)
           return merged
         });
       }
       if (patchVideoConfig.cross_section_wl) {
-        setCSWaterLevel(prevCSWaterLevel => deepMerge(prevCSWaterLevel, patchVideoConfig.cross_section_wl));
+        setCSWaterLevel(prevCSWaterLevel => {
+          const merged = deepMerge(prevCSWaterLevel, wsResponse.video.video_config.cross_section_wl)
+          return merged
+        });
       }
     } else {
       // check if there is no video_config set, if so a new one must be created

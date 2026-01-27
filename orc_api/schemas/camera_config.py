@@ -108,8 +108,8 @@ class CameraConfigInteraction(CameraConfigRemote):
     gcps: Optional[ControlPointSet] = Field(default=None, description="Control point set model for use in front end.")
     height: Optional[int] = Field(default=None, description="Height of the image in pixels.")
     width: Optional[int] = Field(default=None, description="Height of the image in pixels.")
-    bbox: Optional[List[List[float]]] = Field(default=None, description="Bounding (geographical) box of the AOI.")
-    bbox_camera: Optional[List[List[float]]] = Field(default=None, description="Bounding box (camera) of the AOI.")
+    bbox: List[List[float]] = Field(default=[], description="Bounding (geographical) box of the AOI.")
+    bbox_camera: List[List[float]] = Field(default=[], description="Bounding box (camera) of the AOI.")
 
     @property
     def allowed_to_run(self):
