@@ -161,7 +161,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   // Handle the "Delete" button action
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this video and all media files associated with it?')) {
-      api.delete(`/video/${id}`)
+      api.delete(`/video/${id}/`)
         .then(() => {
           const updatedData = data.filter((video) => video.id !== id); // Remove from state
           setData(updatedData);

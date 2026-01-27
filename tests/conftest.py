@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
+import geopandas as gpd
 import pytest
 import yaml
 from pyorc import CameraConfig, sample_data
@@ -61,9 +62,15 @@ def cam_config(cam_config_file):
 
 
 @pytest.fixture
-def cross_section(cross_section_file):
-    with open(cross_section_file, "r") as f:
-        return json.load(f)
+def cross_section(cross_section_file, cam_config):
+    # first get gdf
+    gdf = gpd.read_file(cross_section_file).to_crs(cam_config["crs"])
+    cross_dict = json.loads(gdf.to_json())
+    # CRS is oddly always missing
+    cross_dict["crs"] = {"type": "name", "properties": {"name": "urn:ogc:def:crs:EPSG::28992"}}
+    return cross_dict
+    # with open(cross_section_file, "r") as f:
+    #     return json.load(f)
 
 
 @pytest.fixture

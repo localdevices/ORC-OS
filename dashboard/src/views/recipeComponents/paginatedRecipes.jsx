@@ -67,7 +67,7 @@ const PaginatedRecipes = ({initialData}) => {
     }
     if (window.confirm(`Are you sure you want to delete ${selectedIds.length} recipes?`)) {
       Promise.all(
-        selectedIds.map((id) => api.delete(`/recipe/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
+        selectedIds.map((id) => api.delete(`/recipe/${id}/`).catch((error) => error)) // Attempt to delete each id and catch errors
       )
         .then(() => {
           // Remove deleted recipes from the state
@@ -88,7 +88,7 @@ const PaginatedRecipes = ({initialData}) => {
   // Handle the "Delete" button action
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this recipe?')) {
-      api.delete(`/recipe/${id}`) // Replace with your API endpoint
+      api.delete(`/recipe/${id}/`) // Replace with your API endpoint
         .then(() => {
           const updatedData = data.filter((recipe) => recipe.id !== id); // Remove from state
           setData(updatedData);

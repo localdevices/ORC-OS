@@ -65,7 +65,7 @@ const PaginatedCrossSections = ({initialData}) => {
     }
     if (window.confirm(`Are you sure you want to delete ${selectedIds.length} cross sections?`)) {
       Promise.all(
-        selectedIds.map((id) => api.delete(`/cross_section/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
+        selectedIds.map((id) => api.delete(`/cross_section/${id}/`).catch((error) => error)) // Attempt to delete each id and catch errors
       )
         .then(() => {
           // Remove deleted recipes from the state
@@ -86,7 +86,7 @@ const PaginatedCrossSections = ({initialData}) => {
   // Handle the "Delete" button action
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this cross section?')) {
-      api.delete(`/cross_section/${id}`) // Replace with your API endpoint
+      api.delete(`/cross_section/${id}/`) // Replace with your API endpoint
         .then(() => {
           const updatedData = data.filter((crossSection) => crossSection.id !== id); // Remove from state
           setData(updatedData);

@@ -134,19 +134,24 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                     if v.camera_config.obj.gcps["h_ref"] is not None:
                         h = v.camera_config.obj.gcps["h_ref"]
 
-                # add the fields for plotting
-                v.bottom_surface = list(
-                    map(
-                        list,
-                        v.obj.get_bottom_surface(
-                            length=0.01, offset=0.0, camera=True, swap_y_coords=False
-                        ).exterior.coords,
-                    )
-                )
-                v.water_lines = v.get_csl_line(h=h, length=2.0, offset=0.0, camera=True)
+                z = v.camera_config.obj.h_to_z(h)
+                if z <= np.array(v.obj.z).max() and z >= np.array(v.obj.z).min():
+                    v.water_lines = v.get_csl_line(h=h, length=2.0, offset=0.0, camera=True)
+                else:
+                    v.water_lines = []
                 v.wetted_surface = v.get_wetted_surface(h=h, camera=True)
                 # also provide the info to determine if the cross section is within the image and not too far off
                 v.within_image = v.obj.within_image
+                if v.within_image:
+                    # add the fields for plotting
+                    v.bottom_surface = list(
+                        map(
+                            list,
+                            v.obj.get_bottom_surface(
+                                length=0.01, offset=0.0, camera=True, swap_y_coords=False
+                            ).exterior.coords,
+                        )
+                    )
                 v.distance_camera = v.obj.distance_camera
                 v.x = v.obj.x.tolist()
                 v.y = v.obj.y.tolist()

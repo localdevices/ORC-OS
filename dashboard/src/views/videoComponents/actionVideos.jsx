@@ -35,7 +35,7 @@ const ActionVideos = (
     }
     if (window.confirm(`Are you sure you want to delete ${selectedIds.length} videos?`)) {
       Promise.all(
-        selectedIds.map((id) => api.delete(`/video/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
+        selectedIds.map((id) => api.delete(`/video/${id}/`).catch((error) => error)) // Attempt to delete each id and catch errors
       )
         .then(() => {
           // Remove deleted videos from the state
