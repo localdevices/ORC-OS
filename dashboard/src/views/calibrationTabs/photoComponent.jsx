@@ -43,6 +43,7 @@ const PhotoComponent = (
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
+  const [CSWaterLines, setCSWaterLines] = useState([]);  // lines at water/land interface
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
 
   // set a mouseDown state for tracking mouse behaviour
@@ -60,6 +61,15 @@ const PhotoComponent = (
     );
   };
 
+  // helper function to transform list of coordinates
+  const transformCoords = (coords) => {
+    return coords.map(p => {
+      const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+      const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+      return {x, y};
+    })
+  }
+
   // useEffect(() => {
   //   // ensure if click count is 3, the camera config is updated with the set bbox
   //   if (bboxClickCount === 3) {
@@ -74,11 +84,7 @@ const PhotoComponent = (
       // all cam config info is present
       if (cameraConfig && cameraConfig?.bbox_camera && cameraConfig?.bbox_camera !== null) {
         // update the polygon points with the cameraConfig.bbox_image points
-        newBboxPoints = cameraConfig.bbox_camera.map(p => {
-          const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-          const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-          return {x, y};
-        })
+        newBboxPoints = transformCoords(cameraConfig.bbox_camera);
       } else {
         newBboxPoints = []
       }
@@ -94,7 +100,6 @@ const PhotoComponent = (
         setBBoxPolygon([]);
       }
     }
-
   }, [cameraConfig, imgDims, transformState, photoBbox]);
 
   useEffect(() => {
@@ -104,19 +109,12 @@ const PhotoComponent = (
       // CSDischarge &&
       CSDischarge?.bottom_surface
     ) {
-      const newCSPolPoints = CSDischarge.bottom_surface.map(p => {
-        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-        return {x, y};
-      })
+      const newCSPolPoints = transformCoords(CSDischarge.bottom_surface);
       setCSDischargePolygon(newCSPolPoints);
-      const newWetPolPoints = CSDischarge.wetted_surface.map(p => {
-        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-        return {x, y};
-      })
+      const newWetPolPoints = transformCoords(CSDischarge.wetted_surface);
       setCSWettedSurfacePolygon(newWetPolPoints);
-
+      const newWaterLines = CSDischarge.water_lines.map(line => transformCoords(line))
+      setCSWaterLines(newWaterLines);
     } else {
       if (CSDischargePolygon.length > 0) {
         setCSDischargePolygon([]);
@@ -566,6 +564,16 @@ const PhotoComponent = (
           zIndex={0}
         />
       )}
+      {transformState && photoBbox && CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (
+        <PolygonDrawer
+          points={line}
+          key={`water line ${idx}`}
+          fill={"rgba(75, 130, 192, 0.3)"}
+          stroke={"red"}
+          strokeWidth={4}
+          zIndex={1}
+        />
+      ))}
 
       {/* Render the dashed line */}
       {lineCoordinates && (

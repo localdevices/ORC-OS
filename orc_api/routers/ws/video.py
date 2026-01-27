@@ -63,6 +63,19 @@ class WSVideoState(BaseModel):
             # set name to same value
             getattr(self.video.video_config, attr).name = self.video.video_config.name
 
+    def _get_cs_rec(self, cs_id: int):
+        with get_session() as db:
+            cs_rec = crud.cross_section.get(db=db, id=cs_id)
+            # add camera config
+        cs_rec.camera_config = self.video.video_config.camera_config
+        cs_rec = CrossSectionResponseCameraConfig.model_validate(cs_rec)
+        # check within image
+        if not cs_rec.within_image:
+            raise ValueError(f"Cross section {cs_id} is not within image bounds.")
+        if cs_rec.distance_camera > 1000:
+            raise ValueError(f"Cross section {cs_id} is too far away from the camera (> 1000 m.)")
+        return cs_rec
+
     def save(self, name=None):
         """Save current state to database."""
         try:
@@ -181,24 +194,10 @@ class WSVideoState(BaseModel):
 
     def update_cross_section(self, cross_section_id: Optional[int] = None, cross_section_wl_id: Optional[int] = None):
         """Update cross-section for discharge or water levle using its id."""
-
-        def _get_cs_rec(cs_id: int):
-            with get_session() as db:
-                cs_rec = crud.cross_section.get(db=db, id=cs_id)
-                # add camera config
-            cs_rec.camera_config = self.video.video_config.camera_config
-            cs_rec = CrossSectionResponseCameraConfig.model_validate(cs_rec)
-            # check within image
-            if not cs_rec.within_image:
-                raise ValueError(f"Cross section {cs_id} is not within image bounds.")
-            if cs_rec.distance_camera > 1000:
-                raise ValueError(f"Cross section {cs_id} is too far away from the camera (> 1000 m.)")
-            return cs_rec
-
         cs_dict = {}
         msg = ""
         if cross_section_id is not None:
-            cs_rec = _get_cs_rec(cross_section_id)
+            cs_rec = self._get_cs_rec(cross_section_id)
             self.video.video_config.cross_section_id = cross_section_id
             # also (re)populate cross_section_wl fields
             self.video.video_config.cross_section = cs_rec
@@ -207,7 +206,7 @@ class WSVideoState(BaseModel):
             msg += f"Discharge cross section updated to {cross_section_id}"
 
         if cross_section_wl_id is not None:
-            cs_rec = _get_cs_rec(cross_section_wl_id)
+            cs_rec = self._get_cs_rec(cross_section_wl_id)
             self.video.video_config.cross_section_wl_id = cross_section_wl_id
             # also (re)populate cross_section_wl fields
             self.video.video_config.cross_section_wl = cs_rec
@@ -296,12 +295,22 @@ class WSVideoState(BaseModel):
         update_nested(self.video, video_patch)
         # set to Response or Update instances if update=False/True
         if update:
-            self.video.video_config.camera_config = CameraConfigUpdate.model_validate(
-                self.video.video_config.camera_config  # .model_dump(exclude={"data"})
+            self.video.video_config.camera_config = CameraConfigResponse.model_validate(
+                CameraConfigUpdate.model_validate(
+                    self.video.video_config.camera_config  # .model_dump(exclude={"data"})
+                )
             )
-            self.video.video_config.recipe = RecipeUpdate.model_validate(
-                self.video.video_config.recipe.model_dump(exclude="data")
+            self.video.video_config.recipe = RecipeResponse.model_validate(
+                RecipeUpdate.model_validate(self.video.video_config.recipe.model_dump(exclude="data"))
             )
+            if self.video.video_config.cross_section_id is not None:
+                cs_rec = self._get_cs_rec(self.video.video_config.cross_section_id)
+                # re-populate cross_section_wl fields, e.g. to update bbox_camera and cross section after h change
+                self.video.video_config.cross_section = cs_rec
+            if self.video.video_config.cross_section_wl_id is not None:
+                cs_rec = self._get_cs_rec(self.video.video_config.cross_section_wl_id)
+                # re-populate cross_section_wl fields, e.g. to update bbox_camera and cross section after h change
+                self.video.video_config.cross_section_wl = cs_rec
         else:
             self.video.video_config.camera_config = CameraConfigResponse.model_validate(
                 self.video.video_config.camera_config

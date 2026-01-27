@@ -117,6 +117,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
     camera_config: Optional[CameraConfigResponse] = Field(default=None)
     bottom_surface: List[List[float]] = Field(default=[])
     wetted_surface: List[List[float]] = Field(default=[])
+    water_lines: List[List[List[float]]] = Field(default=[])
     distance_camera: Optional[float] = Field(default=None)
     within_image: Optional[bool] = Field(default=None)
 
@@ -142,6 +143,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                         ).exterior.coords,
                     )
                 )
+                v.water_lines = v.get_csl_line(h=h, length=2.0, offset=0.0, camera=True)
                 v.wetted_surface = v.get_wetted_surface(h=h, camera=True)
                 # also provide the info to determine if the cross section is within the image and not too far off
                 v.within_image = v.obj.within_image
