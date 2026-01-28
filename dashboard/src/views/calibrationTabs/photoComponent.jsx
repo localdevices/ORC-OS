@@ -579,25 +579,25 @@ const PhotoComponent = (
         <PolygonDrawer
           points={line}
           key={`bbox wet pol ${idx}`}
-          fill={"rgba(75, 192, 130, 0.3)"}
-          stroke={"white"}
+          fill={"rgba(75, 75, 192, 0.3)"}
+          stroke={"rgba(75, 75, 192, 1)"}
           strokeWidth={2 / transformState.scale}
           zIndex={1}
         />
 
       ))}
 
-      {/*Render the water/land boundary lines*/}
-      {transformState && photoBbox && CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (
-        <PolygonDrawer
-          points={line}
-          key={`water line ${idx}`}
-          fill={"rgba(75, 130, 192, 0.3)"}
-          stroke={"red"}
-          strokeWidth={2 / transformState.scale}
-          zIndex={1}
-        />
-      ))}
+      {/*/!*Render the water/land boundary lines*!/*/}
+      {/*{transformState && photoBbox && CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (*/}
+      {/*  <PolygonDrawer*/}
+      {/*    points={line}*/}
+      {/*    key={`water line ${idx}`}*/}
+      {/*    fill={"rgba(75, 130, 192, 0.3)"}*/}
+      {/*    stroke={"red"}*/}
+      {/*    strokeWidth={2 / transformState.scale}*/}
+      {/*    zIndex={1}*/}
+      {/*  />*/}
+      {/*))}*/}
 
       {/* Render the dashed line */}
       {lineCoordinates && (

@@ -12,7 +12,7 @@ from orc_api.db.base import SyncStatus
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse, CameraConfigUpdate
 from orc_api.schemas.cross_section import CrossSectionResponseCameraConfig
 from orc_api.schemas.recipe import RecipeResponse, RecipeUpdate
-from orc_api.schemas.video import VideoResponse
+from orc_api.schemas.video import VideoResponse, VideoUpdate
 from orc_api.schemas.video_config import VideoConfigUpdate
 
 
@@ -63,11 +63,13 @@ class WSVideoState(BaseModel):
             # set name to same value
             getattr(self.video.video_config, attr).name = self.video.video_config.name
 
-    def _get_cs_rec(self, cs_id: int):
+    def _get_cs_rec(self, cs_id: int, camera_config: Optional[CameraConfigResponse] = None):
         with get_session() as db:
             cs_rec = crud.cross_section.get(db=db, id=cs_id)
             # add camera config
-        cs_rec.camera_config = self.video.video_config.camera_config
+        cs_rec.camera_config = CameraConfigResponse.model_validate(
+            camera_config or self.video.video_config.camera_config
+        )
         cs_rec = CrossSectionResponseCameraConfig.model_validate(cs_rec)
         # check within image
         if not cs_rec.within_image:
@@ -305,30 +307,36 @@ class WSVideoState(BaseModel):
                     # Leaf value - set it directly
                     setattr(obj, key, value)
 
-        update_nested(self.video, video_patch)
+        # make ready for updating
+        video_update = VideoUpdate.model_validate(self.video)
+        update_nested(video_update, video_patch)
         # set to Response or Update instances if update=False/True
         if update:
-            self.video.video_config.camera_config = CameraConfigResponse.model_validate(
-                CameraConfigUpdate.model_validate(
-                    self.video.video_config.camera_config  # .model_dump(exclude={"data"})
+            video_update.video_config.camera_config = CameraConfigUpdate.model_validate(
+                video_update.video_config.camera_config.model_dump(exclude={"data"})
+            )
+            video_update.video_config.recipe = RecipeUpdate.model_validate(
+                video_update.video_config.recipe.model_dump(exclude={"data"})
+            )
+            if video_update.video_config.cross_section_id is not None:
+                cs_rec = self._get_cs_rec(
+                    video_update.video_config.cross_section_id, camera_config=video_update.video_config.camera_config
                 )
-            )
-            self.video.video_config.recipe = RecipeResponse.model_validate(
-                RecipeUpdate.model_validate(self.video.video_config.recipe.model_dump(exclude="data"))
-            )
-            if self.video.video_config.cross_section_id is not None:
-                cs_rec = self._get_cs_rec(self.video.video_config.cross_section_id)
                 # re-populate cross_section_wl fields, e.g. to update bbox_camera and cross section after h change
-                self.video.video_config.cross_section = cs_rec
-            if self.video.video_config.cross_section_wl_id is not None:
-                cs_rec = self._get_cs_rec(self.video.video_config.cross_section_wl_id)
+                video_update.video_config.cross_section = cs_rec
+            if video_update.video_config.cross_section_wl_id is not None:
+                cs_rec = self._get_cs_rec(
+                    video_update.video_config.cross_section_wl_id, camera_config=video_update.video_config.camera_config
+                )
                 # re-populate cross_section_wl fields, e.g. to update bbox_camera and cross section after h change
-                self.video.video_config.cross_section_wl = cs_rec
+                video_update.video_config.cross_section_wl = cs_rec
         else:
-            self.video.video_config.camera_config = CameraConfigResponse.model_validate(
-                self.video.video_config.camera_config
+            video_update.video_config.camera_config = CameraConfigUpdate.model_validate(
+                video_update.video_config.camera_config
             )
-            self.video.video_config.recipe = RecipeResponse.model_validate(self.video.video_config.recipe)
+            video_update.video_config.recipe = RecipeUpdate.model_validate(video_update.video_config.recipe)
+        # force video into a response model again
+        self.video = VideoResponse.model_validate(video_update.model_dump())
         return self.video.model_dump()
 
     def rotate_translate_bbox(self, **params):

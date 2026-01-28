@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.database import get_db
-from orc_api.schemas.video_config import VideoConfigResponse, VideoConfigUpdate
+from orc_api.schemas.video_config import VideoConfigResponse
 
 router: APIRouter = APIRouter(prefix="/video_config", tags=["video_config"])
 
@@ -62,10 +62,10 @@ async def delete_video_config_with_deps(id: int, db: Session = Depends(get_db)):
     return
 
 
-@router.post("/", response_model=VideoConfigResponse, status_code=201)
-async def patch_post_video_config(video_config: VideoConfigUpdate, db: Session = Depends(get_db)):
-    """Create a new or update existing video config."""
-    try:
-        return video_config.patch_post(db=db)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @router.post("/", response_model=VideoConfigResponse, status_code=201)
+# async def patch_post_video_config(video_config: VideoConfigUpdate, db: Session = Depends(get_db)):
+#     """Create a new or update existing video config."""
+#     try:
+#         return video_config.patch_post(db=db)
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))

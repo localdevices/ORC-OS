@@ -4,6 +4,7 @@ import warnings
 from typing import List, Optional, Union
 
 import numpy as np
+import shapely.geometry
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pyorc import CameraConfig as pyorcCameraConfig
 from pyorc import cv
@@ -239,30 +240,34 @@ class CameraConfigUpdate(CameraConfigInteraction):
     @model_validator(mode="after")
     def populate_data_from_fields(cls, instance):
         """Populate the camera configuration data where needed."""
-        instance.data.rotation = instance.rotation
-        instance.data.height = instance.height
-        instance.data.width = instance.width
-        if instance.f is not None:
-            camera_matrix = get_cam_mtx(height=instance.data.height, width=instance.data.width, focal_length=instance.f)
-            instance.data.camera_matrix = camera_matrix.tolist()
+        if instance.data is None:
+            data = CameraConfigData(height=instance.height, width=instance.width)
         else:
-            instance.data.camera_matrix = None
+            data = instance.data
+        data.rotation = instance.rotation
+        data.height = instance.height
+        data.width = instance.width
+        if instance.f is not None:
+            camera_matrix = get_cam_mtx(height=data.height, width=data.width, focal_length=instance.f)
+            data.camera_matrix = camera_matrix.tolist()
+        else:
+            data.camera_matrix = None
         dist_coeffs = np.zeros((5, 1), dtype=np.float64)
         if instance.k1 is not None:
             dist_coeffs[0][0] = instance.k1
         if instance.k2 is not None:
             dist_coeffs[1][0] = instance.k2
-        instance.data.dist_coeffs = dist_coeffs.tolist()
+        data.dist_coeffs = dist_coeffs.tolist()
         if instance.camera_position is not None and instance.camera_rotation is not None:
             # prepare the rvec and tvec
             rvec, tvec = cv.pose_world_to_camera(np.array(instance.camera_rotation), np.array(instance.camera_position))
-            instance.data.rvec, instance.data.tvec = (
+            data.rvec, data.tvec = (
                 rvec.tolist(),
                 tvec.tolist(),
             )
         else:
             # if either one is missing, we set everything to None
-            instance.data.rvec, instance.data.tvec = None, None
+            data.rvec, data.tvec = None, None
 
         # handle the control points
         if instance.gcps:
@@ -272,14 +277,19 @@ class CameraConfigUpdate(CameraConfigInteraction):
                 # parse to src / dst
                 src, dst = instance.gcps.parse()
                 # only parse if serc and dst are not None
-                instance.data.gcps = GCPData(
+                data.gcps = GCPData(
                     crs=instance.gcps.crs, src=src, dst=dst, h_ref=instance.gcps.h_ref, z_0=instance.gcps.z_0
                 )
             else:
                 src, dst = None, None
             # also make the crs of the entire camera config equal to the crs of the gcps
             if instance.gcps.crs is not None:
-                instance.data.crs = instance.gcps.crs
+                data.crs = instance.gcps.crs
+        if instance.bbox is not None and len(instance.bbox) > 0:
+            data.bbox = shapely.geometry.Polygon(instance.bbox).wkt
+        else:
+            data.bbox = None
+        instance.data = data
         return instance
 
 

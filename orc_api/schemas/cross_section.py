@@ -126,6 +126,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
     def create_perspective_fields(cls, v):
         """Add fields that allow plotting in camera perspective."""
         # create fields for plotting
+        v.within_image = False  # default, if cm config is available will be updated
         if v.camera_config is not None:
             if pose_info_complete(v.camera_config):
                 # create a cross section object with the camera configuration
@@ -136,7 +137,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                         h = v.camera_config.obj.gcps["h_ref"]
 
                 z = v.camera_config.obj.h_to_z(h)
-                if z <= np.array(v.obj.z).max() and z >= np.array(v.obj.z).min():
+                if z <= np.array(v.obj.z).max() and z > np.array(v.obj.z).min():
                     v.water_lines = v.get_csl_line(h=h, length=2.0, offset=0.0, camera=True)
                     v.bbox_wet = v.get_bbox_dry_wet(h=h)
                 else:
@@ -198,6 +199,11 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
     def get_bbox_dry_wet(self, h: float, camera: bool = True, dry: bool = False):
         """Return the bounding box of the cross section in serializable coordinates."""
         if self.obj is None:
+            return []
+        if not hasattr(self.obj.camera_config, "bbox"):
+            # no bbox set yet, return empty list
+            return []
+        if not self.obj.within_image:
             return []
         # get list of polygons
         pols = self.obj.get_bbox_dry_wet(h=h, camera=camera, dry=dry)

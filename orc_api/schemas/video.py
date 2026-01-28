@@ -21,7 +21,7 @@ from orc_api.db import Video
 from orc_api.log import add_filehandler, logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
-from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse
+from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse, VideoConfigUpdate
 from orc_api.utils.image import get_frame_count, get_height_width
 from orc_api.utils.states import SyncRunStatus, VideoRunStatus, video_run_state
 
@@ -556,6 +556,12 @@ class VideoResponse(VideoBase, RemoteModel):
             # create a new record, happens when optical water level detection has been applied
             ts = crud.time_series.add(session, models.TimeSeries(**update_data))
         self.time_series = TimeSeriesResponse.model_validate(ts)
+
+
+class VideoUpdate(VideoResponse):
+    """Schema for updating video configuration."""
+
+    video_config: Optional[VideoConfigUpdate] = Field(description="Video configuration update.", default=None)
 
 
 class DownloadVideosRequest(BaseModel):
