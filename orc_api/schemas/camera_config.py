@@ -218,7 +218,9 @@ class CameraConfigResponse(CameraConfigInteraction):
             if instance.data.bbox is not None:
                 cc = pyorcCameraConfig(**instance.data.model_dump())
                 instance.bbox = list(map(list, cc.bbox.exterior.coords))
-                instance.bbox_camera = list(map(list, cc.get_bbox(mode="camera", within_image=True).exterior.coords))
+                instance.bbox_camera = list(
+                    map(list, cc.get_bbox(mode="camera", within_image=True, exterior_split=200).exterior.coords)
+                )
         return instance
 
 

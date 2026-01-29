@@ -3,6 +3,7 @@
 import traceback
 from typing import Any, Dict, Literal, Optional
 
+import numpy as np
 from pydantic import BaseModel
 from pyorc import CameraConfig
 
@@ -266,12 +267,58 @@ class WSVideoState(BaseModel):
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
         return getattr(cc, op)(**params)
 
-    def set_bbox_from_width_length(self, **params):
-        """Set bounding box from width and length."""
-        new_cc = self.update_cam_config("set_bbox_from_width_length", **params)
+    def set_bbox(self, op, inplace=True, **params):
+        """Set bbox-related camera config properties."""
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
+        # perform operation
+        if inplace:
+            # operation sets property
+            getattr(cc, op)(**params)
+        else:
+            # operation returns new instance
+            cc = getattr(cc, op)(**params)
+        data = CameraConfigData.model_validate(cc.to_dict_str())
+        new_cc = CameraConfigResponse(
+            name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
+        )
+        # also update cross section for wet_bbox
+        cs = self.video.video_config.cross_section
+        if cs is not None and cs.camera_config is not None:
+            # also update the wetted bbox.
+            cs.camera_config = new_cc
+            # directly obtain z from the cam config
+            z = cc.gcps["z_0"]
+            h = cc.gcps["h_ref"]
+            if z <= np.array(cs.obj.z).max() and z > np.array(cs.obj.z).min():
+                cs.water_lines = cs.get_csl_line(h=h, length=2.0, offset=0.0, camera=True)
+                cs.bbox_wet = cs.get_bbox_dry_wet(h=h)
+            else:
+                cs.water_lines = []
+                cs.bbox_wet = []
+
+        if (
+            self.video.video_config.cross_section_wl is not None
+            and self.video.video_config.cross_section_wl.camera_config is not None
+        ):
+            self.video.video_config.cross_section_wl.camera_config = new_cc
+        self.video.video_config.camera_config = new_cc
+        # new_cc = self.update_cam_config("set_bbox_from_width_length", **params)
         return {
             "video_config": {
                 "camera_config": {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera},
+                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
+            }
+        }
+
+    def set_bbox_from_width_length(self, **params):
+        """Set bounding box from width and length."""
+        self.set_bbox("set_bbox_from_width_length", **params)
+        return {
+            "video_config": {
+                "camera_config": {
+                    "bbox": self.video.video_config.camera_config.bbox,
+                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
+                },
                 "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
             }
         }
@@ -339,28 +386,38 @@ class WSVideoState(BaseModel):
         self.video = VideoResponse.model_validate(video_update.model_dump())
         return self.video.model_dump()
 
-    def rotate_translate_bbox(self, **params):
-        """Resizes bbox according to params."""
-        cc_bbox_trans = self.get_from_cam_config("rotate_translate_bbox", **params)
-        data = CameraConfigData.model_validate(cc_bbox_trans.to_dict_str())
-        new_cc = CameraConfigResponse(
-            name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
-        )
-        # set fields
-        update_cam_config = {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera}
-        self.set_field(
-            video_patch={
-                "video_config": {
-                    "camera_config": new_cc,
-                    # "cross_section": {"camera_config": update_cam_config},
-                    # "cross_section_wl": {"camera_config": update_cam_config},
-                }
-            }
-        )
-        # self.video.video_config.camera_config = new_cc
+    def reset_bbox(self):
+        """Reset bounding box from width and length."""
+        cc = self.video.video_config.camera_config
+        # strip all bbox related things
+        cc.data.bbox = None
+        cc.bbox = []
+        cc.bbox_camera = []
+        self.video.video_config.camera_config = cc
+        if self.video.video_config.cross_section is not None:
+            self.video.video_config.cross_section.camera_config = cc
+            self.video.video_config.cross_section.bbox_wet = []
+        if self.video.video_config.cross_section_wl is not None:
+            self.video.video_config.cross_section_wl.camera_config = cc
         return {
             "video_config": {
-                "camera_config": update_cam_config,
+                "camera_config": {
+                    "bbox": self.video.video_config.camera_config.bbox,
+                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
+                },
+                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
+            }
+        }
+
+    def rotate_translate_bbox(self, **params):
+        """Resizes bbox according to params."""
+        self.set_bbox("rotate_translate_bbox", **params, inplace=False)
+        return {
+            "video_config": {
+                "camera_config": {
+                    "bbox": self.video.video_config.camera_config.bbox,
+                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
+                },
                 "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
             }
         }

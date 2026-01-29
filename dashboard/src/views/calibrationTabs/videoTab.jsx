@@ -57,15 +57,15 @@ const VideoTab = (
     setBboxSelected(true);
     const msg = {
       action: 'update_video_config',
-      op: 'set_field',
-      params: {
-        video_patch: {
-          video_config: {
-            camera_config: {bbox_camera: [], bbox: []},
-            cross_section: {bbox_wet: []}
-          }
-        }
-      }
+      op: 'reset_bbox',
+      // params: {
+      //   video_patch: {
+      //     video_config: {
+      //       camera_config: {bbox_camera: [], bbox: []},
+      //       cross_section: {bbox_wet: []}
+      //     }
+      //   }
+      // }
     }
     sendDebouncedMsg(msg);
     // setBBoxPolygon(null);

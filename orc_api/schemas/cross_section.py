@@ -142,6 +142,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
                     v.bbox_wet = v.get_bbox_dry_wet(h=h)
                 else:
                     v.water_lines = []
+                    v.bbox_wet = []
                 v.wetted_surface = v.get_wetted_surface(h=h, camera=True)
                 # also provide the info to determine if the cross section is within the image and not too far off
                 v.within_image = v.obj.within_image
