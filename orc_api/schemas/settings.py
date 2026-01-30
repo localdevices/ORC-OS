@@ -34,6 +34,9 @@ def get_primary_internal_ip() -> str:
         # dummy connection without packages
         s.connect(("8.8.8.8", 80))
         return s.getsockname()[0]
+    except Exception:
+        # if not connected, return the default localhost address
+        return "127.0.0.1"
     finally:
         s.close()
 
