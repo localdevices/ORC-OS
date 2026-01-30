@@ -56,6 +56,8 @@ const DisplayTimeSeries = () => {
   const [selectedVideoConfigIds, setSelectedVideoConfigIds] = useState(null);
   const [showVideoConfigModal, setShowVideoConfigModal] = useState(false);
   const [allVideoConfigIds, setAllVideoConfigIds] = useState([]);
+  const startDateTimeoutRef = useRef(null); // debouncers for preventing too frequent changes in calendar dates
+  const endDateTimeoutRef = useRef(null);
 
   // Fetch all video config IDs on mount
   useEffect(() => {
@@ -187,6 +189,7 @@ const DisplayTimeSeries = () => {
         return value > (filterFractionVel.value || 0);
       });
     }
+    console.log(filtered, data);
     setFilteredData(filtered);
   }, [data, filterH, filterQ50, filterFractionVel]);
 
@@ -228,16 +231,28 @@ const DisplayTimeSeries = () => {
   };
 
   const setStartDate = (date) => {
-    setDateRange({
-      ...dateRange,
-      startDate: date
-    })
+    if (startDateTimeoutRef.current) {
+      clearTimeout(startDateTimeoutRef.current);
+    }
+    // make a new timeout
+    startDateTimeoutRef.current = setTimeout(() => {
+      setDateRange({
+        ...dateRange,
+        startDate: date
+      })
+    }, 2000)  // delay 1 second to prevent continuous reloading
   }
   const setEndDate = (date) => {
-    setDateRange({
-      ...dateRange,
-      endDate: date
-    })
+    if (endDateTimeoutRef.current) {
+      clearTimeout(endDateTimeoutRef.current);
+    }
+    // make new timeout
+    endDateTimeoutRef.current = setTimeout(() => {
+      setDateRange({
+        ...dateRange,
+        endDate: date
+      })
+    }, 2000)  // delay of one second
   }
   // Handle zoom and load additional data if needed
   const handleZoomComplete = async ({chart}) => {
@@ -288,7 +303,7 @@ const DisplayTimeSeries = () => {
   }
 
   const handleClick = async (event, elements) => {
-    const videoId = data[elements[0].index].video_id;
+    const videoId = filteredData[elements[0].index].video_id;
     // retrieve video, check if it is ready to run
     if (videoId) {
       // retrieve video
@@ -534,6 +549,8 @@ const DisplayTimeSeries = () => {
   } : {
     responsive: true,
     maintainAspectRatio: false,
+    onClick: handleClick,
+
     plugins: {
       zoom: {
         pan: {
@@ -559,7 +576,19 @@ const DisplayTimeSeries = () => {
       tooltip: {
         displayColors: false,
         callbacks: {
-          title: () => '',
+          title: (tooltipItems) => {
+            const ts = filteredData[tooltipItems[0].dataIndex];
+            // when panning, current time series may disappear from data
+            if (ts) {
+              let title = `${ts.timestamp}: ${tooltipItems[0].label}`;
+              if (ts.video_id) {
+                title += `\nClick to edit analysis of video ${ts.video_id}`;
+              }
+              return title
+            }
+          },
+
+          // title: (context) => `test ${context.parsed.timestamp}`,
           label: (context) => {
             const h = context.parsed.x.toFixed(2);
             const q = context.parsed.y.toFixed(3);
@@ -699,11 +728,6 @@ const DisplayTimeSeries = () => {
                     </div>
                   );
                 }}
-                // renderThumb={(props, state) => (
-                //   <div {...props} className={!filterQ50.enabled ? 'thumb thumb-disabled' : 'thumb'}>
-                //     <div className="thumb-value">{state.valueNow}</div>
-                //   </div>
-                // )}
                 onAfterChange={handlefilterQ50Change}
               />
             </div>
@@ -741,11 +765,6 @@ const DisplayTimeSeries = () => {
                     </div>
                   );
                 }}
-                // renderThumb={(props, state) => (
-                //   <div {...props} className={!filterFractionVel.enabled ? 'thumb thumb-disabled' : 'thumb'}>
-                //     <div className="thumb-value">{state.valueNow}</div>
-                //   </div>
-                // )}
                 onAfterChange={handlefilterFracChange}
               />
             </div>
@@ -773,7 +792,6 @@ const DisplayTimeSeries = () => {
                   ` (${selectedVideoConfigIds.length} selected)`}
               </button>
             </div>
-
             <FilterDates
                 startDate={dateRange.startDate}
                 endDate={dateRange.endDate}
