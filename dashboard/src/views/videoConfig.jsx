@@ -523,7 +523,7 @@ const VideoConfig = () => {
       <h2>Video Configuration {video ? (video.id + ": " + video.timestamp) : (<p>Loading video...</p>)}</h2>
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
-          <div className="flex-container column" style={{height: "100%"}}>
+          <div className="flex-container column" style={{height: "calc(100vh - 200px)", minHeight: "600px"}}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
               <h5 style={{margin: 0}}>Image view</h5>
             </div>
@@ -579,14 +579,14 @@ const VideoConfig = () => {
             )}
 
           </div>
-          <CameraParameters
-            cameraConfig={cameraConfig}
-            setCameraConfig={setCameraConfig}
-            ws={ws.current}
-          />
+          {/*<CameraParameters*/}
+          {/*  cameraConfig={cameraConfig}*/}
+          {/*  setCameraConfig={setCameraConfig}*/}
+          {/*  ws={ws.current}*/}
+          {/*/>*/}
         </div>
         <div className="flex-container column no-padding">
-          <div className="flex-container column" style={{"height": "60%"}}>
+          <div className="flex-container column" style={{"height": "calc(100vh - 496px)"}}>
             <div className="tabbed-form-container">
               <div className="tabs-header">
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
@@ -740,6 +740,7 @@ const VideoConfig = () => {
                       setWidgets={setWidgets}
                       setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
+                      selectedVideo={video}
                       ws={ws.current}
                     />
                   )}

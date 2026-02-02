@@ -151,7 +151,7 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
           title="Move bounding box upstream"
           disabled={!validateBboxSet()}
         >
-          <MdArrowUpward size={20} />
+          <MdArrowDownward size={20} />
         </button>
         <button
           className="button-styles"
@@ -159,7 +159,7 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
           title="Move bounding box downstream"
           disabled={!validateBboxSet()}
         >
-          <MdArrowDownward size={20} />
+          <MdArrowUpward size={20} />
         </button>
         <button
           className="button-styles"

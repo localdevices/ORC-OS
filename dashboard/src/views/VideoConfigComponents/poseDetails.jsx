@@ -5,6 +5,7 @@ import '../cameraAim.scss'
 import {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 import XYZWidget from "../calibrationTabs/XyzWidget.jsx";
+import CameraParametersModal from "../calibrationTabs/cameraParameters.jsx";
 import {fitGcps} from "../../utils/apiCalls/videoConfig.jsx";
 
 const PoseDetails = (
@@ -20,6 +21,7 @@ const PoseDetails = (
     setWidgets,
     setSelectedWidgetId,
     setMessageInfo,
+    selectedVideo,
     ws
   }) => {
 
@@ -29,6 +31,7 @@ const PoseDetails = (
   // loading state for validation button
   const [isLoading, setIsLoading] = useState(false);
   const [fitPoseData, setFitPoseData] = useState(null);
+  const [showCamParamsModal, setShowCamParamsModal] = useState(false);
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
 
@@ -401,6 +404,9 @@ const PoseDetails = (
             className="btn"
             disabled={!validateWidgets()}
           >Validate</button>
+          <button type='submit' className='btn bg-primary' onClick={() => {setShowCamParamsModal(true)}} style={{marginRight: '10px'}}>
+            Camera parameters
+          </button>
           {fitPoseData && (
             fitPoseData.status === 'success' ? (
               <i className="text-success">{fitPoseData.message}</i>
@@ -445,10 +451,18 @@ const PoseDetails = (
               selectedWidgetId={selectedWidgetId}
               setSelectedWidgetId={setSelectedWidgetId}
               rowColor={widget.color}
-          />
-            // </div>
+            />
+          ))}
+          {showCamParamsModal && (
+            <CameraParametersModal
+              setShowModal={setShowCamParamsModal}
+              cameraConfig={cameraConfig}
+              setCameraConfig={setCameraConfig}
+              selectedVideo={selectedVideo}
+              ws={ws}
+            />
+          )}
 
-            ))}
           </tbody>
         </table>
       </div>

@@ -135,24 +135,26 @@ class VideoConfigBase(BaseModel):
 
     @computed_field
     @property
-    def cross_section_rt(self) -> CrossSectionResponseCameraConfig:
+    def cross_section_rt(self) -> Optional[CrossSectionResponseCameraConfig]:
         """Transform the cross_section.features by applying rotation (rvec) and translation (tvec).
 
         Returns CrossSectionResponse with transformed features.
         """
         if not self.cross_section or not hasattr(self.cross_section, "features"):
-            raise ValueError("cross_section or its features are not defined.")
+            return None
+            # raise ValueError("cross_section or its features are not defined.")
         return _rotate_translate_cross_section(self.cross_section, self.rvec, self.tvec)
 
     @computed_field
     @property
-    def cross_section_wl_rt(self) -> CrossSectionResponseCameraConfig:
+    def cross_section_wl_rt(self) -> Optional[CrossSectionResponseCameraConfig]:
         """Transform the cross_section.features by applying rotation (rvec) and translation (tvec).
 
         Returns CrossSectionResponse with transformed features.
         """
         if not self.cross_section_wl or not hasattr(self.cross_section_wl, "features"):
-            raise ValueError("cross_section_wl or its features are not defined.")
+            return None
+            # raise ValueError("cross_section_wl or its features are not defined.")
         return _rotate_translate_cross_section(self.cross_section_wl, self.rvec_wl, self.tvec_wl)
 
     @property

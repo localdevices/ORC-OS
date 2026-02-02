@@ -4,6 +4,7 @@ import asyncio
 import io
 import mimetypes
 import os
+import traceback  # only used in DEV_MODE
 from datetime import datetime
 from typing import List, Optional, Union
 from zipfile import ZIP_DEFLATED
@@ -26,7 +27,7 @@ from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
 
 # Directory to save uploaded files
-from orc_api import UPLOAD_DIRECTORY, crud
+from orc_api import DEV_MODE, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_db
 from orc_api.db import SyncStatus, Video, VideoStatus
 from orc_api.log import logger
@@ -601,6 +602,8 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
 
     except Exception as e:
         await websocket.send_json({"error": str(e)})
+        if DEV_MODE:
+            traceback.print_exc()
         print(f"Error sending video config data to websocket: {e}")
         await websocket.close()
         return
@@ -627,6 +630,8 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
         conn_manager.disconnect(websocket)
         # await websocket.close()
     except Exception as e:
+        if DEV_MODE:
+            traceback.print_exc()
         print(f"Websocket error: {e}")
         conn_manager.disconnect(websocket)
     # finally:

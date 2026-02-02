@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import BaseModel
 from pyorc import CameraConfig
 
-from orc_api import UPLOAD_DIRECTORY, crud
+from orc_api import DEV_MODE, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.db.base import SyncStatus
 from orc_api.schemas.camera_config import CameraConfigData, CameraConfigResponse, CameraConfigUpdate
@@ -58,6 +58,24 @@ class WSVideoState(BaseModel):
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def submodel_bbox(self):
+        """Return dict with submodel, typical for changing a parameter that alters the bbox and/or projected bbox."""
+        model_dict = {
+            "video_config": {
+                "camera_config": {
+                    "bbox": self.video.video_config.camera_config.bbox,
+                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
+                }
+            }
+        }
+        if self.video.video_config.cross_section is not None:
+            if self.video.video_config.cross_section.bbox_wet is not None:
+                model_dict["video_config"]["cross_section"] = self.video.video_config.cross_section.bbox_wet
+            else:
+                model_dict["video_config"]["cross_section"] = []
+        return model_dict
 
     def _inherit_name(self, attr):
         if getattr(self.video.video_config, attr) is not None and getattr(self.video.video_config, attr).name is None:
@@ -191,8 +209,8 @@ class WSVideoState(BaseModel):
             # create ws response instance
             return WSVideoResponse(success=True, video=response, message=msg)
         except Exception as e:
-            print(f"Exception found: {str(e)}")
-            # traceback.print_exc()
+            if DEV_MODE:
+                traceback.print_exc()
             return WSVideoResponse(success=False, message=str(e), saved=self.saved)
 
     def update_cross_section(self, cross_section_id: Optional[int] = None, cross_section_wl_id: Optional[int] = None):
@@ -303,25 +321,12 @@ class WSVideoState(BaseModel):
             self.video.video_config.cross_section_wl.camera_config = new_cc
         self.video.video_config.camera_config = new_cc
         # new_cc = self.update_cam_config("set_bbox_from_width_length", **params)
-        return {
-            "video_config": {
-                "camera_config": {"bbox": new_cc.bbox, "bbox_camera": new_cc.bbox_camera},
-                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
-            }
-        }
+        return self.submodel_bbox
 
     def set_bbox_from_width_length(self, **params):
         """Set bounding box from width and length."""
         self.set_bbox("set_bbox_from_width_length", **params)
-        return {
-            "video_config": {
-                "camera_config": {
-                    "bbox": self.video.video_config.camera_config.bbox,
-                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
-                },
-                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
-            }
-        }
+        return self.submodel_bbox
 
     def set_field(self, video_patch: Optional[Dict] = None, update=True) -> Dict:
         """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
@@ -399,28 +404,12 @@ class WSVideoState(BaseModel):
             self.video.video_config.cross_section.bbox_wet = []
         if self.video.video_config.cross_section_wl is not None:
             self.video.video_config.cross_section_wl.camera_config = cc
-        return {
-            "video_config": {
-                "camera_config": {
-                    "bbox": self.video.video_config.camera_config.bbox,
-                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
-                },
-                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
-            }
-        }
+        return self.submodel_bbox
 
     def rotate_translate_bbox(self, **params):
         """Resizes bbox according to params."""
         self.set_bbox("rotate_translate_bbox", **params, inplace=False)
-        return {
-            "video_config": {
-                "camera_config": {
-                    "bbox": self.video.video_config.camera_config.bbox,
-                    "bbox_camera": self.video.video_config.camera_config.bbox_camera,
-                },
-                "cross_section": {"bbox_wet": self.video.video_config.cross_section.bbox_wet},
-            }
-        }
+        return self.submodel_bbox
 
 
 class WSVideoResponse(BaseModel):
