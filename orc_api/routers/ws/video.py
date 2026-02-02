@@ -72,9 +72,11 @@ class WSVideoState(BaseModel):
         }
         if self.video.video_config.cross_section is not None:
             if self.video.video_config.cross_section.bbox_wet is not None:
-                model_dict["video_config"]["cross_section"] = self.video.video_config.cross_section.bbox_wet
+                model_dict["video_config"]["cross_section"] = {
+                    "bbox_wet": self.video.video_config.cross_section.bbox_wet
+                }
             else:
-                model_dict["video_config"]["cross_section"] = []
+                model_dict["video_config"]["cross_section"] = {"bbox_wet": []}
         return model_dict
 
     def _inherit_name(self, attr):
@@ -313,7 +315,7 @@ class WSVideoState(BaseModel):
             else:
                 cs.water_lines = []
                 cs.bbox_wet = []
-
+            self.video.video_config.cross_section = cs
         if (
             self.video.video_config.cross_section_wl is not None
             and self.video.video_config.cross_section_wl.camera_config is not None
