@@ -271,15 +271,17 @@ const VideoConfig = () => {
           return merged;
         });
       }
-      if (patchVideoConfig.cross_section) {
+      if ('cross_section' in patchVideoConfig) {
         setCSDischarge(prevCSDischarge => {
           const merged = deepMerge(prevCSDischarge, wsResponse.video.video_config.cross_section)
+          console.log("CROSS SECTION", merged);
           return merged
         });
       }
-      if (patchVideoConfig.cross_section_wl) {
+      if ('cross_section_wl' in patchVideoConfig) {
         setCSWaterLevel(prevCSWaterLevel => {
           const merged = deepMerge(prevCSWaterLevel, wsResponse.video.video_config.cross_section_wl)
+
           return merged
         });
       }

@@ -44,14 +44,15 @@ const CrossSectionForm = (
   const handleCS = async (event, setter) => {
     const {value, name} = event.target;
     const nameCapitalize = name.charAt(0).toUpperCase() + name.slice(1);
-    if (value) {
+    console.log(value);
+    // if (value) {
       // try {
-      const msg = {
-        "action": "update_video_config",
-        "op": "update_cross_section",
-        "params": name === "discharge"
-          ? {"cross_section_id": parseInt(value)}
-          : {"cross_section_wl_id": parseInt(value)}
+    const msg = {
+      "action": "update_video_config",
+      "op": "update_cross_section",
+      "params": name === "discharge"
+        ? {"cross_section_id": value ? parseInt(value) : 0}
+        : {"cross_section_wl_id": value ? parseInt(value) : 0}
       }
       sendDebouncedMsg(msg)
 
@@ -73,10 +74,10 @@ const CrossSectionForm = (
       //   console.log(error);
       //   setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.response.data.detail || error.message}`)
       // }
-    } else {
-      setter({});
-      setMessageInfo('success', `Successfully removed ${name} cross section`)
-    }
+    // } else {
+    //   setter({});
+    //   setMessageInfo('success', `Successfully removed ${name} cross section`)
+    // }
   }
 
   const handleWaterLevelChange = async (event) => {
@@ -121,7 +122,6 @@ const CrossSectionForm = (
       op: 'set_field',
       params: {video_patch: videoPatch},
     });
-
   }
 
   const handleInputChange = (event) => {
@@ -263,7 +263,7 @@ const CrossSectionForm = (
             name="discharge"
             callbackFunc={(event) => handleCS(event, setCSDischarge)}
             data={availableCrossSections}
-            value={CSDischarge.id}
+            value={CSDischarge?.id}
             disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
           />
         </div>
@@ -274,7 +274,7 @@ const CrossSectionForm = (
             name="water level"
             callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
             data={availableCrossSections}
-            value={CSWaterLevel.id}
+            value={CSWaterLevel?.id}
             disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
           />
         </div>

@@ -60,7 +60,7 @@ class WSVideoState(BaseModel):
         return self.__str__()
 
     @property
-    def submodel_bbox(self):
+    def submodel_bbox(self) -> Dict:
         """Return dict with submodel, typical for changing a parameter that alters the bbox and/or projected bbox."""
         model_dict = {
             "video_config": {
@@ -216,29 +216,49 @@ class WSVideoState(BaseModel):
             return WSVideoResponse(success=False, message=str(e), saved=self.saved)
 
     def update_cross_section(self, cross_section_id: Optional[int] = None, cross_section_wl_id: Optional[int] = None):
-        """Update cross-section for discharge or water levle using its id."""
+        """Update cross-section for discharge or water level using its id."""
         cs_dict = {}
         msg = ""
         if cross_section_id is not None:
-            cs_rec = self._get_cs_rec(cross_section_id)
-            self.video.video_config.cross_section_id = cross_section_id
-            # also (re)populate cross_section_wl fields
-            self.video.video_config.cross_section = cs_rec
-            cs_dict["cross_section_id"] = cross_section_id
-            cs_dict["cross_section"] = cs_rec
-            msg += f"Discharge cross section updated to {cross_section_id}"
+            # special case if id is zero, then set to null
+            if cross_section_id == 0:
+                self.video.video_config.cross_section = None
+                self.video.video_config.cross_section_id = None
+                cs_dict["cross_section_id"] = None
+                cs_dict["cross_section"] = None
+                msg += "Discharge cross section set to None"
+            else:
+                cs_rec = self._get_cs_rec(cross_section_id)
+                self.video.video_config.cross_section_id = cross_section_id
+                # also (re)populate cross_section_wl fields
+                self.video.video_config.cross_section = cs_rec
+                cs_dict["cross_section_id"] = cross_section_id
+                cs_dict["cross_section"] = cs_rec
+                msg += f"Discharge cross section updated to {cross_section_id}"
 
         if cross_section_wl_id is not None:
-            cs_rec = self._get_cs_rec(cross_section_wl_id)
-            self.video.video_config.cross_section_wl_id = cross_section_wl_id
-            # also (re)populate cross_section_wl fields
-            self.video.video_config.cross_section_wl = cs_rec
-            cs_dict["cross_section_wl_id"] = cross_section_wl_id
-            cs_dict["cross_section_wl"] = cs_rec
-            if len(msg) > 0:
-                msg += f" and water level cross section updated to {cross_section_wl_id}"
+            # special case of zero
+            if cross_section_wl_id == 0:
+                self.video.video_config.cross_section_wl_id = None
+                self.video.video_config.cross_section_wl = None
+                cs_dict["cross_section_wl_id"] = None
+                cs_dict["cross_section_wl"] = None
+
+                if len(msg) > 0:
+                    msg += " and water level cross section set to None"
+                else:
+                    msg += "Water level cross section set to None"
             else:
-                msg += f"Water level cross section updated to {cross_section_wl_id}"
+                cs_rec = self._get_cs_rec(cross_section_wl_id)
+                self.video.video_config.cross_section_wl_id = cross_section_wl_id
+                # also (re)populate cross_section_wl fields
+                self.video.video_config.cross_section_wl = cs_rec
+                cs_dict["cross_section_wl_id"] = cross_section_wl_id
+                cs_dict["cross_section_wl"] = cs_rec
+                if len(msg) > 0:
+                    msg += f" and water level cross section updated to {cross_section_wl_id}"
+                else:
+                    msg += f"Water level cross section updated to {cross_section_wl_id}"
         return {"video_config": cs_dict}, msg
 
     def update_cam_config(self, op, **params):
