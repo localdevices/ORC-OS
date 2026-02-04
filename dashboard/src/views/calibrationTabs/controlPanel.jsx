@@ -55,7 +55,7 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
         } else if (zDiff > 20) {
           setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
         } else {
-          setMessageInfo("success", "Validated set water level")
+           setMessageInfo("success", "")
         }
       }
     }

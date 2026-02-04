@@ -130,7 +130,7 @@ class CameraConfigInteraction(CameraConfigRemote):
             return False
 
         # Check if bounding box is set
-        if self.bbox is None:
+        if self.bbox is None or len(self.bbox) == 0:
             return False
 
         return True
