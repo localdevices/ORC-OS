@@ -18,9 +18,12 @@ const VideoTab = (
     rotate,
     CSDischarge,
     CSWaterLevel,
+    bboxSelected,
     setCameraConfig,
     setSelectedWidgetId,
     setImgDims,
+    setBboxSelected,
+    handleBboxStart,
     ws
   }
 ) => {
@@ -28,7 +31,6 @@ const VideoTab = (
   const [scale, setScale] = useState(1);
   const [bboxMarkers, setBboxMarkers] = useState([]);
   const [clickCount, setClickCount] = useState(0);
-  const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
   const [bBoxPolygon, setBBoxPolygon] = useState(null);
   const [wettedBbox, setWettedBbox] = useState([]);  // wetted part of bounding box, following CS
@@ -53,32 +55,6 @@ const VideoTab = (
     }
   }
 
-  const handleBoundingBoxStart = () => {
-    setBboxSelected(true);
-    const msg = {
-      action: 'update_video_config',
-      op: 'reset_bbox',
-      // params: {
-      //   video_patch: {
-      //     video_config: {
-      //       camera_config: {bbox_camera: [], bbox: []},
-      //       cross_section: {bbox_wet: []}
-      //     }
-      //   }
-      // }
-    }
-    sendDebouncedMsg(msg);
-    // setBBoxPolygon(null);
-    // setWettedBbox(null);
-
-    // // remove bbox_camera from cameraConfig
-    // const newConfig = {
-    //   ...cameraConfig,
-    //   bbox_camera: null,
-    // };
-    //
-    // setCameraConfig(newConfig);
-  }
 
   const handleBoundingBoxClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     if (clickCount >= 3) return;
@@ -106,13 +82,22 @@ const VideoTab = (
           <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
             {cameraConfig && (
             <ControlPanel
-              onBoundingBox={handleBoundingBoxStart}
+              onBoundingBox={handleBboxStart}
               cameraConfig={cameraConfig}
               bboxSelected={bboxSelected}
               ws={ws}
             />
             )
             }
+            <div style={{position: 'sticky', textAlign: 'center', marginBottom: '10px', color: '#555' }}>
+              {bboxSelected ? (
+                "First click left bank, then right bank, then expand up and downstream"
+              ) : (
+                "Zoom and pan with your mouse. Click on the photo to select row/column"
+              )
+              }
+            </div>
+
 
             <TransformWrapper
                pinchEnabled={true}
@@ -149,9 +134,6 @@ const VideoTab = (
                    ws={ws}
                  />
             </TransformWrapper>
-            <div style={{position: 'sticky', textAlign: 'center', marginTop: '10px', color: '#555' }}>
-              Zoom and pan with your mouse. Click on the photo to select row/column
-            </div>
 {/*       <h2>Current Coordinates:</h2> */}
 {/*       <pre>{JSON.stringify(widgets, null, 2)}</pre> */}
     </div>

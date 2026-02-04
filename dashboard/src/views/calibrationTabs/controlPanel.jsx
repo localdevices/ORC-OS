@@ -19,7 +19,6 @@ import {useMessage} from "../../messageContext.jsx";
 import {useDebouncedWsSender} from "../../api/api.js";
 
 
-
 const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
   const prevCameraConfig = useRef(cameraConfig);
   // allow for setting messages
@@ -55,6 +54,8 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
           setMessageInfo("warning", `The set water level is ${Math.abs(zDiff).toFixed(2)} above the average height of the control points suggesting all control points are submerged. Is this correct?`)
         } else if (zDiff > 20) {
           setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
+        } else {
+          setMessageInfo("success", "Validated set water level")
         }
       }
     }

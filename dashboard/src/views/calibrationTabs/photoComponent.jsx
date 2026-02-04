@@ -252,7 +252,7 @@ const PhotoComponent = (
 
     const row = Math.round(normalizedY * imgDims.height * 100) / 100;
     const col = Math.round(normalizedX * imgDims.width * 100) / 100;
-
+    // console.log(row, col)
     setHoverCoordinates({ row, col });
     if (bboxClickCount === 1) {
       // a line should only be plotted dynamically when the user has already clicked once for a bounding box
@@ -645,8 +645,8 @@ const PhotoComponent = (
         <div
           style={{
             position: 'absolute',
-            top: "10px",
-            left: "10px",
+            top: "40px",
+            left: "5px",
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             color: 'white',
             padding: '5px 10px',

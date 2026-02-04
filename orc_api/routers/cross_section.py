@@ -5,9 +5,12 @@ import json
 from typing import List
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from pyorc.api.cross_section import _fit_line
+from shapely.geometry import Point
 from sqlalchemy.orm import Session
 
 # Directory to save uploaded files
@@ -31,6 +34,25 @@ def get_record(db: Session, id: int):
     if not cs:
         raise HTTPException(status_code=404, detail="Cross section not found.")
     return cs
+
+
+def linearize_points(gdf):
+    """Straighten points in GeoDataFrame along average line with nearest snapping."""
+    centroid, direction, angle = _fit_line(gdf.geometry.x, gdf.geometry.y)
+    # Project each point onto the line closest-distance
+    coords = np.column_stack([gdf.geometry.x, gdf.geometry.y])
+    coords_centered = coords - centroid
+
+    # Project onto the line direction
+    projections = np.dot(coords_centered, direction)
+
+    # Calculate new coordinates on the line
+    new_x = centroid[0] + projections * direction[0]
+    new_y = centroid[1] + projections * direction[1]
+    new_geometries = [Point(_x, _y, _z) for _x, _y, _z in zip(new_x, new_y, gdf.geometry.z)]
+    # Create new geometries with Z preserved
+    gdf.geometry = new_geometries
+    return gdf
 
 
 @router.delete("/{id}/", status_code=204, response_model=None)
@@ -169,9 +191,7 @@ async def update_cs(cs: CrossSectionUpdate):
 
 
 @router.post("/from_geojson/", response_model=CrossSectionCreate, status_code=201)
-async def upload_cs_geojson(
-    file: UploadFile,
-):
+async def upload_cs_geojson(file: UploadFile, linearize: bool = Form(False)):
     """Read a cross section file and return cross-section details to the front end in-memory.
 
     This does not store data in the database.
@@ -179,10 +199,22 @@ async def upload_cs_geojson(
     cs_body = file.file.read()
     try:
         cs = json.loads(cs_body)
-
+        if "crs" in cs:
+            crs = cs["crs"]
+        else:
+            crs = None
+        # extract crs
+        file.file.seek(0)
+        gdf = gpd.read_file(file.file)
     except Exception:
         raise HTTPException(status_code=400, detail="File is not a properly formatted JSON file")
     try:
+        if linearize:
+            gdf = linearize_points(gdf)
+        cs = json.loads(gdf.to_json())
+        if crs is not None:
+            # add the crs, this gets lost in translation
+            cs["crs"] = crs
         cs = CrossSectionCreate(features=cs)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -192,6 +224,7 @@ async def upload_cs_geojson(
 @router.post("/from_csv/", response_model=CrossSectionCreate, status_code=201)
 async def upload_cs_csv(
     file: UploadFile,
+    linearize: bool = False,
 ):
     """Read a recipe file and return cross-section details to the front end in-memory.
 
@@ -210,6 +243,8 @@ async def upload_cs_csv(
         # parse to gdf
         geometry = gpd.points_from_xy(df["x"], df["y"], df["z"])
         gdf = gpd.GeoDataFrame(df, geometry=geometry)
+        if linearize:
+            gdf = linearize_points(gdf)
         # turn into json
         cs = json.loads(gdf.to_json())
         try:

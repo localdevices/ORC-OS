@@ -67,6 +67,7 @@ class WSVideoState(BaseModel):
                 "camera_config": {
                     "bbox": self.video.video_config.camera_config.bbox,
                     "bbox_camera": self.video.video_config.camera_config.bbox_camera,
+                    "gcps": self.video.video_config.camera_config.gcps,
                 }
             }
         }
@@ -261,6 +262,23 @@ class WSVideoState(BaseModel):
                     msg += f"Water level cross section updated to {cross_section_wl_id}"
         return {"video_config": cs_dict}, msg
 
+    def update_water_level(self, z_0=None, h_ref=None):
+        """Update water levels in camera config, removing fields that cannot be resolved without water level."""
+        cam_config = self.video.video_config.camera_config
+        if z_0 is None:
+            # h_ref cannot exist when z_0 does not exist
+            h_ref = None
+            cam_config.data.bbox = None
+            self.video.video_config.cross_section = None
+            self.video.video_config.cross_section_id = None
+            self.video.video_config.cross_section_wl = None
+            self.video.video_config.cross_section_wl_id = None
+        cam_config.data.gcps.h_ref = h_ref
+        cam_config.data.gcps.z_0 = z_0
+        self.video.video_config.camera_config = cam_config
+        # create new camera config from data, with set bboxes with new z_0
+        return self.set_bbox()
+
     def update_cam_config(self, op, **params):
         """Update camera config following an operation."""
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
@@ -307,16 +325,17 @@ class WSVideoState(BaseModel):
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
         return getattr(cc, op)(**params)
 
-    def set_bbox(self, op, inplace=True, **params):
+    def set_bbox(self, op=None, inplace=True, **params):
         """Set bbox-related camera config properties."""
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
         # perform operation
-        if inplace:
-            # operation sets property
-            getattr(cc, op)(**params)
-        else:
-            # operation returns new instance
-            cc = getattr(cc, op)(**params)
+        if op is not None:
+            if inplace:
+                # operation sets property
+                getattr(cc, op)(**params)
+            else:
+                # operation returns new instance
+                cc = getattr(cc, op)(**params)
         data = CameraConfigData.model_validate(cc.to_dict_str())
         new_cc = CameraConfigResponse(
             name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data

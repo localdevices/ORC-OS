@@ -110,6 +110,9 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             return CrossSectionResponse.model_validate(r)
         return None
 
+    def get_linearized(self):
+        """Return a linearized version of the cross section."""
+
 
 class CrossSectionResponseCameraConfig(CrossSectionResponse):
     """Response model for a cross-section with camera configuration."""

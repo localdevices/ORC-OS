@@ -1,29 +1,33 @@
 import api from "../../api/api.js";
-import {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 import {useDebouncedWsSender} from "../../api/api.js";
-
+import CrossSectionUploadModal from "./crossSectionUploadModal.jsx";
 import PropTypes   from "prop-types";
+
 const CrossSectionForm = (
   {
     cameraConfig,
     CSDischarge,
     CSWaterLevel,
+    bboxSelected,
     setCameraConfig,
     setCSDischarge,
     setCSWaterLevel,
+    setBboxSelected,
+    handleBboxStart,
     setMessageInfo,
     ws
   }
 ) => {
-  // form data as the user sees it on the screen
-  const [formData, setFormData] = useState({
-    name: '',
-    file: null
-  });
 
   const [availableCrossSections, setAvailableCrossSections] = useState([]);
+  const [showCrossSectionUploadModal, setShowCrossSectionUploadModal] = useState(false);
+  const prevCameraConfig = useRef(cameraConfig);
+
+
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
+
 
   const fetchCrossSections = async () => {
     try {
@@ -80,6 +84,39 @@ const CrossSectionForm = (
     // }
   }
 
+  const validateBboxReady = () => {
+    // check if all fields are complete for defining a bounding box
+    const fieldsComplete = (
+      cameraConfig?.gcps?.z_0 &&
+      cameraConfig?.f && cameraConfig?.k1 &&
+      cameraConfig?.k2 &&
+      cameraConfig?.camera_rotation &&
+      cameraConfig?.camera_position
+    );
+
+    if (!fieldsComplete) {
+      return false;
+    }
+    if (prevCameraConfig.current !== cameraConfig) {
+      prevCameraConfig.current = cameraConfig;
+      // check if water level values are realistic
+      if (cameraConfig?.gcps?.control_points?.length > 0) {
+        const avgZ = cameraConfig.gcps.control_points.reduce((sum, point) => sum + point.z, 0) /
+          cameraConfig.gcps.control_points.length;
+        const zDiff = (avgZ - cameraConfig?.gcps?.z_0);
+        if (zDiff < 0) {
+          setMessageInfo("warning", `The set water level is ${Math.abs(zDiff).toFixed(2)} above the average height of the control points suggesting all control points are submerged. Is this correct?`)
+        } else if (zDiff > 20) {
+          setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
+        } else {
+          setMessageInfo("success", "Validated set water level")
+        }
+      }
+    }
+    return true;
+  }
+
+
   const handleWaterLevelChange = async (event) => {
     const {name, value} = event.target;
     let z_0, h_ref;
@@ -119,17 +156,8 @@ const CrossSectionForm = (
     // send off to back end
     sendDebouncedMsg({
       action: 'update_video_config',
-      op: 'set_field',
-      params: {video_patch: videoPatch},
-    });
-  }
-
-  const handleInputChange = (event) => {
-    const value = event.target.type === 'file' ? event.target.files[0] : event.target.value;
-
-    setFormData({
-      ...formData,
-      [event.target.name]: value
+      op: 'update_water_level',
+      params: {z_0: z_0, h_ref: h_ref},
     });
   }
 
@@ -139,96 +167,11 @@ const CrossSectionForm = (
     return cameraConfig?.gcps?.z_0;
   }
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    try {
-      const crossSectionData = await loadFile();
-      // Additional steps after successful file load
-      console.log("processing cross section data...")
-      if (formData.name) {
-        const updatedFormSubmitData = {
-          name: formData.name,
-          features: crossSectionData.features,
-        };
-        await api.post('/cross_section/', updatedFormSubmitData);
-        setMessageInfo('success', 'Successfully created cross section');
-        // refresh the cross section data
-        fetchCrossSections();
-
-      }
-    } catch (error) {
-      console.log("File loading not successful, do nothing...", error);
-    }
-  }
-
-  const loadFile = async () => {
-    try {
-
-      if (!formData.file) {
-        setMessageInfo('error', 'Please select a file');
-        return;
-      }
-
-      const fileFormData = new FormData();
-      fileFormData.append("file", formData.file);
-
-      try {
-        const response = await api.post(
-          '/cross_section/from_csv/',
-          fileFormData,
-          {headers: {"Content-Type": "multipart/form-data"}}
-        );
-        setMessageInfo('success', 'Successfully uploaded CSV file');
-        return response.data;
-      } catch (csvError) {
-        try {
-          const geoJsonResponse = await api.post(
-            '/cross_section/from_geojson/',
-            fileFormData,
-            {headers: {"Content-Type": "multipart/form-data"}}
-          );
-
-          setMessageInfo('success', 'Successfully uploaded GeoJSON file');
-          return geoJsonResponse.data;
-        } catch (geoJsonError) {
-          throw new Error(`Failed to parse file as CSV (${csvError.response.data.detail}) or as GeoJSON (${geoJsonError.response.data.detail})`);
-        }
-      }
-    } catch (error) {
-      console.error("Error occurred during file upload:", error);
-      setMessageInfo('error', `Error: ${error.response?.data?.detail || error.message}`);
-      throw error;  // error outside this function
-    }
-  }
 
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
-      <div className='container tab'>
-        <h5>Upload new cross sections</h5>
-        <form onSubmit={handleSubmit}>
-        <div className='mb-3 mt-3'>
-            <label htmlFor='name' className='form-label'>
-              Name of cross section
-            </label>
-            <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required/>
-
-          </div>
-          <div className='mb-3 mt-3'>
-            <label htmlFor='file' className='form-label'>
-              Choose file (.csv with X, Y, Z, or GeoJSON)
-            </label>
-            <input type='file' className='form-control' id='file' name='file'
-                   accept=".geojson,.csv" onChange={handleInputChange} required/>
-          </div>
-
-          <button type='submit' className='btn'>
-            Upload
-          </button>
-        </form>
-      </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        <h5>Select discharge cross section</h5>
-
+        <h5>Set water levels</h5>
         <div className='mb-3 mt-3'>
           <label htmlFor='z_0' className='form-label small'>
             Water level in GCP coordinate system [m]
@@ -256,6 +199,26 @@ const CrossSectionForm = (
             disabled={!validatez0()}
           />
         </div>
+        <span
+          title={validateBboxReady(cameraConfig, setMessageInfo) ? "Draw Bounding Box" : "you must set water levels first"}
+          className="d-inline-block"
+          data-bs-toggle="tooltip"
+        >
+        <button
+          className='btn'
+          onClick={() => handleBboxStart()}
+          disabled={!validateBboxReady(cameraConfig, setMessageInfo)}
+        >
+          Draw bounding box
+        </button>
+          </span>
+
+      </div>
+      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+        <h5>Cross sections</h5>
+        <button className='btn' onClick={() => setShowCrossSectionUploadModal(true)}>
+          Upload new
+        </button>
         <div className='container' style={{marginTop: '5px'}}>
           <h5>Select discharge cross section</h5>
           <DropdownMenu
@@ -280,6 +243,15 @@ const CrossSectionForm = (
         </div>
 
       </div>
+      {showCrossSectionUploadModal && (
+        <CrossSectionUploadModal
+          setShowModal={setShowCrossSectionUploadModal}
+          setMessageInfo={setMessageInfo}
+          callback={fetchCrossSections}
+          ws={ws}
+        />
+
+      )}
     </div>
 
   )
@@ -291,11 +263,15 @@ CrossSectionForm.propTypes = {
   crossSection: PropTypes.object,
   CSDischarge: PropTypes.object.isRequired,
   CSWaterLevel: PropTypes.object.isRequired,
+  bboxSelected: PropTypes.bool,
   setCameraConfig: PropTypes.func.isRequired,
   setCrossSection: PropTypes.func.isRequired,
   setCSDischarge: PropTypes.func.isRequired,
   setCSWaterLevel: PropTypes.func.isRequired,
+  setBboxSelected: PropTypes.func.isRequired,
+  handleBboxStart: PropTypes.func.isRequired,
   setMessageInfo: PropTypes.func.isRequired,
+  ws: PropTypes.object.isRequired,
 };
 
 export default CrossSectionForm;

@@ -36,7 +36,7 @@
 
 .control-styles {
     position: absolute;
-    top: 10px;
+    top: 40px;
     right: 10px;
     display: flex;
     flex-direction: column;

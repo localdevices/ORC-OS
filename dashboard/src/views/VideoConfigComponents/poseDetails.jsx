@@ -284,7 +284,7 @@ const PoseDetails = (
       if (err_round > 0.1) {
         setFitPoseData({
           status: 'warning',
-          message: `GCPs successfully fitted, but with a large average error: ${err_round} m.`
+          message: `GCPs fitted, but with a large average error: ${err_round} m.`
         });
       } else {
         setFitPoseData({

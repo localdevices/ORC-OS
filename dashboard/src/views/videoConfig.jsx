@@ -28,6 +28,8 @@ const VideoConfig = () => {
   const [crossSection, setCrossSection] = useState({}); // Video metadata
   const [CSDischarge, setCSDischarge] = useState({}); // Video metadata
   const [CSWaterLevel, setCSWaterLevel] = useState({}); // Video metadata
+  const [bboxSelected, setBboxSelected] = useState(false);  // state to check if bbox must be drawn
+
   const [activeTab, setActiveTab] = useState('configDetails');
   const [activeView, setActiveView] = useState('camView');
   const {setMessageInfo} = useMessage();
@@ -519,6 +521,33 @@ const VideoConfig = () => {
     setActiveView(view);
   };
 
+  const handleBboxStart = () => {
+    setBboxSelected(true);
+    const msg = {
+      action: 'update_video_config',
+      op: 'reset_bbox',
+      // params: {
+      //   video_patch: {
+      //     video_config: {
+      //       camera_config: {bbox_camera: [], bbox: []},
+      //       cross_section: {bbox_wet: []}
+      //     }
+      //   }
+      // }
+    }
+    sendDebouncedMsg(msg);
+    // setBBoxPolygon(null);
+    // setWettedBbox(null);
+
+    // // remove bbox_camera from cameraConfig
+    // const newConfig = {
+    //   ...cameraConfig,
+    //   bbox_camera: null,
+    // };
+    //
+    // setCameraConfig(newConfig);
+  }
+
 
   return (
     <div style={{"position": "relative", "maxHeight": "100%", "display": "flex", "flexDirection": "column"}}>
@@ -562,9 +591,12 @@ const VideoConfig = () => {
                 rotate={cameraConfig?.rotation || null}
                 CSDischarge={CSDischarge}
                 CSWaterLevel={CSWaterLevel}
+                bboxSelected={bboxSelected}
                 setCameraConfig={setCameraConfig}
                 setSelectedWidgetId={setSelectedWidgetId}
                 setImgDims={setImgDims}
+                setBboxSelected={setBboxSelected}
+                handleBboxStart={handleBboxStart}
                 ws={ws.current}
               />
             )}
@@ -720,10 +752,13 @@ const VideoConfig = () => {
                         crossSection={crossSection}
                         CSDischarge={CSDischarge}
                         CSWaterLevel={CSWaterLevel}
+                        bboxSelected={bboxSelected}
                         setCameraConfig={setCameraConfig}
                         setCrossSection={setCrossSection}
                         setCSDischarge={setCSDischarge}
                         setCSWaterLevel={setCSWaterLevel}
+                        setBboxSelected={setBboxSelected}
+                        handleBboxStart={handleBboxStart}
                         setMessageInfo={setMessageInfo}
                         ws={ws.current}
                       />
