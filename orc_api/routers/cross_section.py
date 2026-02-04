@@ -206,6 +206,9 @@ async def upload_cs_geojson(file: UploadFile, linearize: bool = Form(False)):
         # extract crs
         file.file.seek(0)
         gdf = gpd.read_file(file.file)
+        # gpd parses a random CRS on a gdf if no crs is given in shapefile. If crs is None, also set gdf.crs to None
+        if crs is None:
+            gdf.set_crs(None, allow_override=True)
     except Exception:
         raise HTTPException(status_code=400, detail="File is not a properly formatted JSON file")
     try:
@@ -215,6 +218,8 @@ async def upload_cs_geojson(file: UploadFile, linearize: bool = Form(False)):
         if crs is not None:
             # add the crs, this gets lost in translation
             cs["crs"] = crs
+        else:
+            cs.pop("crs")
         cs = CrossSectionCreate(features=cs)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
