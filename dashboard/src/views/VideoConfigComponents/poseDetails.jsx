@@ -195,7 +195,7 @@ const PoseDetails = (
         ws.sendJson({
           action: 'update_video_config',
           op: 'set_field',
-          params: {video_patch: videoPatch}
+          params: {video_patch: videoPatch, update: true}
         })
       }
     } catch (error) {

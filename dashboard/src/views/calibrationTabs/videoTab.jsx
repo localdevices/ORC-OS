@@ -35,7 +35,6 @@ const VideoTab = (
   const [bBoxPolygon, setBBoxPolygon] = useState(null);
   const [wettedBbox, setWettedBbox] = useState([]);  // wetted part of bounding box, following CS
   const {setMessageInfo} = useMessage();
-  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   const handleGCPClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     // Add the new dot to the state with the ID of the associated widget

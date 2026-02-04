@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import api, {createWebSocketConnection, closeWebSocketConnection, useDebouncedWsSender} from "../api/api.js";
 import {run_video} from "../utils/apiCalls/video.jsx";
 import {deepMerge} from "../utils/deepMerge.js";
@@ -44,6 +44,8 @@ const VideoConfig = () => {
 
   // allow for sending debounced msgs
   const sendDebouncedMsg = useDebouncedWsSender(ws.current, 400);
+  // set navigation
+  const navigate = useNavigate();
 
   // Helper to add instance methods to a camera config object
   const enhanceCameraConfig = (config) => {
@@ -276,7 +278,6 @@ const VideoConfig = () => {
       if ('cross_section' in patchVideoConfig) {
         setCSDischarge(prevCSDischarge => {
           const merged = deepMerge(prevCSDischarge, wsResponse.video.video_config.cross_section)
-          console.log("CROSS SECTION", merged);
           return merged
         });
       }
@@ -333,17 +334,22 @@ const VideoConfig = () => {
 
   const deleteVideoConfig = async () => {
     let warnUser = "";
-    if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
+    if (video.video_config.sample_video_id === video.id) { // && video.video_config.ready_to_run) {
       warnUser = "This video acts as the reference video for the current video configuration. Deleting means the actual configuration is removed irreversibly. Are you sure you want to remove the video configuration?"
     } else {
       warnUser = "This video uses another video's video configuration. Deleting means you can set a new video configuration for this particular video. This action is reversible by re-selecting the video configuration later. Do you want to remove the video configuration use?"
     }
     const userConfirmed = window.confirm(warnUser);
     if (userConfirmed) {
-      if (video.video_config.sample_video_id === video.id && video.video_config.ready_to_run) {
+      if (video.video_config.sample_video_id === video.id) { //} && video.video_config.ready_to_run) {
         try {
           await api.delete(`/video_config/${videoConfig.id}/deps/`); // remove video config including its dependencies
           setMessageInfo("success", "Video configuration deleted successfully.");
+          // re-navigate to page to refresh everything
+          console.log("NAVIGATING")
+          navigate(0)
+          // navigate(`/video_config/${video.id}`);
+
         } catch (error) {
           console.error("Error deleting video configuration:", error);
           setMessageInfo("error", "Failed to delete video configuration. Please try again later.");
@@ -351,6 +357,10 @@ const VideoConfig = () => {
       } else {
         try {
           await api.patch(`/video/${video.id}/`, {video_config_id: null });
+          // re-navigate to page
+          // navigate(`/video_config/${video.id}`);
+          navigate(0)
+
         } catch (error) {
           console.error("Error patching video:", error);
           setMessageInfo("error", "Failed to patch video. Please try again later.");
@@ -358,15 +368,15 @@ const VideoConfig = () => {
         }
 
       }
-      setVideoConfig(null); // Reset the video configuration in the state
-      createNewRecipe();  // if the recipe exists, it will be overwritten later
-      createCameraConfig();  // if the cam config exists, it will be overwritten later
-      setCSDischarge({});
-      setCSWaterLevel({});
-      setActiveTab('configDetails');
-      setActiveView('camView');
-      setWidgets([]);
-      setSelectedWidgetId(null);
+      // setVideoConfig(null); // Reset the video configuration in the state
+      // createNewRecipe();  // if the recipe exists, it will be overwritten later
+      // createCameraConfig();  // if the cam config exists, it will be overwritten later
+      // setCSDischarge({});
+      // setCSWaterLevel({});
+      // setActiveTab('configDetails');
+      // setActiveView('camView');
+      // setWidgets([]);
+      // setSelectedWidgetId(null);
     }
   }
 

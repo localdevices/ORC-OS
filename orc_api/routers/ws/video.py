@@ -369,7 +369,7 @@ class WSVideoState(BaseModel):
         self.set_bbox("set_bbox_from_width_length", **params)
         return self.submodel_bbox
 
-    def set_field(self, video_patch: Optional[Dict] = None, update=True) -> Dict:
+    def set_field(self, video_patch: Optional[Dict] = None, update=False) -> Dict:
         """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
 
         Parameters
