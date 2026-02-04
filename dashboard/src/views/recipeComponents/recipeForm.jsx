@@ -5,7 +5,7 @@ import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import './recipeComponents.css'
 
-const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageInfo, CSWaterLevel, CSDischarge, ws}) => {
+const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel, CSDischarge, ws}) => {
   const [formData, setFormData] = useState({
     name: '',
     id: '',
@@ -81,16 +81,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     }
   }, [selectedRecipe]);
 
-  // Utility function to safely parse JSON
-  const safelyParseJSON = (jsonString) => {
-    try {
-      return JSON.parse(jsonString); // Parse if valid JSON string
-    } catch (error) {
-      console.warn("Invalid JSON string:", error);
-      return jsonString; // Fallback: Leave it as the original string
-    }
-  };
-
   const renderAlphaValue = (value) => {
     for (let i = 0; i < roughnessValues.length - 1; i++) {
       const currentValue = parseFloat(roughnessValues[i].value);
@@ -110,7 +100,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
   }
 
   const loadModal = async () => {
-    console.log("load modal");
     const input = document.createElement('input');
     input.type = "file";
     input.accept = ".yml";
@@ -136,33 +125,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     });
     // trigger input dialog box to open
     input.click();
-  }
-
-  const submitData = (formData) => {
-    return {
-      id: formData.id || null,
-      name: formData.name,
-      data: safelyParseJSON(formData.data),
-      start_frame: formData.start_frame,
-      end_frame: formData.end_frame,
-      lazy: formData.lazy,
-      freq: formData.freq,
-      resolution: formData.resolution,
-      window_size: formData.window_size,
-      v_distance: formData.v_distance,
-      alpha: formData.alpha,
-      quiver_scale_grid: formData.quiver_scale_grid,
-      quiver_scale_cs: formData.quiver_scale_cs,
-      quiver_width_grid: formData.quiver_width_grid,
-      quiver_width_cs: formData.quiver_width_cs,
-      min_z: formData.min_z,
-      max_z: formData.max_z,
-      wl_preprocess: formData.wl_preprocess,
-      wl_s2n_thres: formData.wl_s2n_thres,
-      padding: formData.padding,
-      length: formData.length,
-      bank: formData.bank
-    }
   }
 
   const updateRecipe = async (updatedFields) => {
@@ -250,48 +212,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     const updatedFields = {[name]: value};
     await updateRecipe(updatedFields);
   }
-
-  // const handleFormSubmit = async (event) => {
-  //   event.preventDefault();
-  //   // Dynamically filter only fields with non-empty values
-  //   const filteredData = Object.fromEntries(
-  //     Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-  //   );
-  //   // predefine response object
-  //   let response;
-  //   try {
-  //     console.log(submitData(filteredData));
-  //
-  //     if (filteredData.id === undefined) {
-  //       response = await api.post('/recipe/', submitData(filteredData));
-  //     } else {
-  //       response = await api.patch(`/recipe/${filteredData.id}`, submitData(filteredData));
-  //     }
-  //     console.log(response);
-  //     if (response.status !== 201 && response.status !== 200) {
-  //       const errorData = await response.json()
-  //       throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
-  //     }
-  //     // reload page
-  //     window.location.reload();
-  //     setSelectedRecipe({})
-  //     // set the form data to new device settings
-  //     setFormData({
-  //       name: '',
-  //       id: '',
-  //       start_frame: '',
-  //       end_frame: '',
-  //       // lazy: '',
-  //       freq: '',
-  //       resolution: '',
-  //       data: ''
-  //     });
-  //     setMessageInfo('success', 'Recipe stored successfully');
-  //   } catch (err) {
-  //     setMessageInfo('Error while storing recipe', err.response.data);
-  //   }
-  // };
-
 
   return (
     <div className='container tab'>
@@ -817,9 +737,9 @@ RecipeForm.propTypes = {
   selectedRecipe: PropTypes.object,
   setSelectedRecipe: PropTypes.func.isRequired,
   frameCount: PropTypes.number.isRequired,
-  setMessageInfo: PropTypes.func.isRequired,
   CSWaterLevel: PropTypes.object,
-  CSDischarge: PropTypes.object
+  CSDischarge: PropTypes.object,
+  ws: PropTypes.object.isRequired
 };
 
 export default RecipeForm;

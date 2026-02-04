@@ -209,6 +209,7 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
       <div className="flex-container no-padding" style={{overflow: "auto"}}>
         <div className="mb-2 mt-2">
           <label style={{minWidth: "800px", fontWeight: "bold"}}>Video frame:</label>
+          <i className="text-success">The horizontal and vertical lines show the impact of lens distortion on straight lines</i>
           <div className="readonly">
             {imageError ? (
               <div>-</div>

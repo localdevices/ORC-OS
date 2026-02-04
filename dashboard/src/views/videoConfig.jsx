@@ -13,7 +13,6 @@ import CrossSectionForm from "./VideoConfigComponents/crossSectionForm.jsx";
 import SideView from "./VideoConfigComponents/sideView.jsx";
 import TopView from "./VideoConfigComponents/topView.jsx";
 import VideoTab from "./calibrationTabs/videoTab.jsx";
-import CameraParameters from "./calibrationTabs/cameraParameters.jsx";
 import {useMessage} from "../messageContext.jsx";
 
 const VideoConfig = () => {
@@ -37,7 +36,6 @@ const VideoConfig = () => {
   // constants for image clicking
   const [widgets, setWidgets] = useState([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null); // To track which widget is being updated
-  const rotateState = useRef(cameraConfig?.rotation);
   const [imgDims, setImgDims] = useState(null);
   const [save, setSave] = useState(true);
   const [frameCount, setFrameCount] = useState(0);
@@ -91,35 +89,6 @@ const VideoConfig = () => {
       setCameraConfigInstance(enhanceCameraConfig(update));
     }
   };
-  // const setCameraConfig = (newConfig) => {
-  //   const cameraConfigInstance = {
-  //     ...newConfig,
-  //     isCalibrated: function () {
-  //       return (
-  //         this.f !== null &&
-  //         this.k1 !== null &&
-  //         this.k2 !== null &&
-  //         this.camera_position !== null &&
-  //         this.camera_rotation !== null
-  //       )
-  //     },
-  //     isPoseReady: function () {
-  //       // check if camera config is ready for doing the camera pose
-  //       return (
-  //         this.name !== null &&
-  //         this.id !== null
-  //       )
-  //     },
-  //     isReadyForProcessing: function () {
-  //       return (
-  //         this.isCalibrated() &&
-  //         this.isPoseReady() &&
-  //         this.bbox !== null
-  //       )
-  //     }
-  //   }
-  //   setCameraConfigInstance(cameraConfigInstance);
-  // }
 
   // Fetch video metadata and existing configs when the component is mounted
   useEffect(() => {
@@ -139,34 +108,6 @@ const VideoConfig = () => {
             setMessageInfo,
           );
           ws.current = wsCur;
-          // api.get(`/video/${videoId}/`)
-          //   .then((response) => {
-          //     setVideo(response.data);
-          //     if (response.data.video_config !== null) {
-          //       setVideoConfig({
-          //         id: response.data.video_config.id,
-          //         name: response.data.video_config.name,
-          //         sync_status: response.data.video_config.sync_status,
-          //         sample_video_id: response.data.video_config.sample_video_id
-          //       })
-          //       if (response.data.video_config.recipe !== null) {
-          //         setRecipe(response.data.video_config.recipe);
-          //       }
-          //       if (response.data.video_config.camera_config) {
-          //         setCameraConfig(response.data.video_config.camera_config);
-          //       }
-          //       if (response.data.video_config.cross_section) {
-          //         setCSDischarge(response.data.video_config.cross_section)
-          //       }
-          //       if (response.data.video_config.cross_section_wl) {
-          //         setCSWaterLevel(response.data.video_config.cross_section_wl)
-          //       }
-          //     } else {
-          //       createNewRecipe(updatedFrameCount);  // if the recipe exists, it will be overwritten later
-          //       createCameraConfig();  // if cam config exists, it will be overwritten later
-          //     }
-          //   })
-          //   .catch(err => console.error("Error fetching video data:", err))
         })
         .catch((err) => console.error("Error fetching frame count:", err))
         .finally(() => {
@@ -196,25 +137,6 @@ const VideoConfig = () => {
     }
   }, [widgets])
 
-  // useEffect(() => {
-  //   // ensure the user can save if any of the video config items changes
-  //   setSave(true);
-  // }, [cameraConfig, recipe, CSDischarge, CSWaterLevel])
-
-  // useEffect(() => {
-  //   // check if the height and width of camera config must be adapted to a new rotation
-  //   if (rotateState.current !== cameraConfig?.rotation && imgDims !== null && imgDims.height !== 0 && imgDims.width !== 0) {
-  //     // set state to new
-  //     rotateState.current = cameraConfig.rotation;
-  //     const newConfig = {
-  //       ...cameraConfig,
-  //       height: imgDims.height,
-  //       width: imgDims.width,
-  //     }
-  //     setCameraConfig(newConfig)
-  //   }
-  // }, [imgDims])
-
   // if any cross-section is set, make sure that the CS camera perspective is only provided when lens parameters are
   // complete
   useEffect(() => {
@@ -233,8 +155,7 @@ const VideoConfig = () => {
   const callbackVideoStates = (wsResponse, ws, setMessageInfo) => {
     // define what should happen with wsResponse once onmessage passes by
     // report save state
-    console.log("wsResponse:", wsResponse);
-    console.log()
+    // console.log("wsResponse:", wsResponse);
     if (!wsResponse.success && wsResponse.success !== undefined) {
       console.error("Error in wsResponse:", wsResponse);
       setMessageInfo("error", wsResponse.message);
@@ -245,10 +166,8 @@ const VideoConfig = () => {
     }
     // figure out what was returned, video, video_config, recipe, camera_config, cross_section, cross_section_wl
     if (wsResponse.video) {
-      // console.log("video received!", wsResponse.video);
       // set and/or patch entire video
       setVideo(prevVideo =>
-        // console.log("combine with existing video:", prevVideo);
         deepMerge(prevVideo, wsResponse.video)
       );
     }
@@ -256,9 +175,7 @@ const VideoConfig = () => {
       hasRequestedResetRef.current = false;
       const patchVideoConfig = wsResponse.video.video_config;
       setVideoConfig(prevVideoConfig => {
-        // console.log("Patching video config:", prevVideoConfig, patchVideoConfig)
         const merged = deepMerge(prevVideoConfig, wsResponse.video.video_config)
-        // console.log("video config update", prevVideoConfig, patchVideoConfig, merged);
         return merged;
       });
       // check subcomponents nested
@@ -294,7 +211,6 @@ const VideoConfig = () => {
         // a new recipe and camera config are needed, reset states to create new ones
         if (videoConfig === null || videoConfig === undefined) {
           hasRequestedResetRef.current = true;
-          console.log("RESETTING video config");
           ws.sendJson({"action": "reset_video_config"})
         }
       }
@@ -303,32 +219,6 @@ const VideoConfig = () => {
       setMessageInfo("success", wsResponse.message);
       return
     }
-
-  }
-
-  const createCameraConfig = () => {
-    api.get(`/camera_config/empty/${videoId}`)
-      .then((response) => {
-        setCameraConfig(response.data);
-      })
-      .catch((error) => {
-        console.error('Error occurred:', error);
-      });
-
-  }
-
-  const createNewRecipe = (frameCount) => {
-    api.post(`/recipe/empty/`)
-      .then((response) => {
-        const updatedRecipe = {
-          ...response.data,
-          end_frame: frameCount,
-        }
-        setRecipe(updatedRecipe);
-      })
-      .catch((error) => {
-        console.error('Error occurred:', error);
-      });
 
   }
 
@@ -346,10 +236,7 @@ const VideoConfig = () => {
           await api.delete(`/video_config/${videoConfig.id}/deps/`); // remove video config including its dependencies
           setMessageInfo("success", "Video configuration deleted successfully.");
           // re-navigate to page to refresh everything
-          console.log("NAVIGATING")
           navigate(0)
-          // navigate(`/video_config/${video.id}`);
-
         } catch (error) {
           console.error("Error deleting video configuration:", error);
           setMessageInfo("error", "Failed to delete video configuration. Please try again later.");
@@ -358,25 +245,12 @@ const VideoConfig = () => {
         try {
           await api.patch(`/video/${video.id}/`, {video_config_id: null });
           // re-navigate to page
-          // navigate(`/video_config/${video.id}`);
           navigate(0)
-
         } catch (error) {
           console.error("Error patching video:", error);
           setMessageInfo("error", "Failed to patch video. Please try again later.");
-
         }
-
       }
-      // setVideoConfig(null); // Reset the video configuration in the state
-      // createNewRecipe();  // if the recipe exists, it will be overwritten later
-      // createCameraConfig();  // if the cam config exists, it will be overwritten later
-      // setCSDischarge({});
-      // setCSWaterLevel({});
-      // setActiveTab('configDetails');
-      // setActiveView('camView');
-      // setWidgets([]);
-      // setSelectedWidgetId(null);
     }
   }
 
@@ -423,56 +297,7 @@ const VideoConfig = () => {
     await run_video(video, setMessageInfo);
   };
 
-  // const updateWidget = (id, updatedCoordinates) => {
-  //   setWidgets((prevWidgets) => {
-  //     const newWidgets = prevWidgets.map((widget) =>
-  //       widget.id === id
-  //         ? {
-  //           ...widget,
-  //           coordinates: {
-  //             ...updatedCoordinates,
-  //             x: parseFloat(updatedCoordinates.x) || null,
-  //             y: parseFloat(updatedCoordinates.y) || null,
-  //             z: parseFloat(updatedCoordinates.z) || null,
-  //             row: parseFloat(updatedCoordinates.row) || null,
-  //             col: parseFloat(updatedCoordinates.col) || null,
-  //
-  //           }
-  //         } : widget
-  //     );
-  //
-  //     // Update cameraConfig with new coordinates
-  //     const newConfig = {
-  //       ...cameraConfig,
-  //       gcps: {
-  //         ...cameraConfig.gcps,
-  //         z_0: null,
-  //         h_ref: null,
-  //         control_points: newWidgets.map(widget => widget.coordinates)
-  //       },
-  //       camera_position: null,
-  //       camera_rotation: null,
-  //       f: null,
-  //       k1: null,
-  //       k2: null,
-  //       bbox_camera: [],
-  //       bbox: [],
-  //       data: {
-  //         ...cameraConfig.data,
-  //         bbox: null
-  //       }
-  //
-  //     }
-  //     setCameraConfig(newConfig);
-  //     setCSDischarge({});
-  //     setCSWaterLevel({});
-  //     // also remove selected cross-sections
-  //     return newWidgets;
-  //   });
-  // };
-
   const updateWidget = (id, coordinates) => {
-    console.log(id, coordinates)
     // first update widget fields for snappy UI response
     setWidgets((prevWidgets) => {
       const newWidgets = prevWidgets.map((widget) =>
@@ -623,11 +448,6 @@ const VideoConfig = () => {
             )}
 
           </div>
-          {/*<CameraParameters*/}
-          {/*  cameraConfig={cameraConfig}*/}
-          {/*  setCameraConfig={setCameraConfig}*/}
-          {/*  ws={ws.current}*/}
-          {/*/>*/}
         </div>
         <div className="flex-container column no-padding">
           <div className="flex-container column" style={{"height": "calc(100vh - 496px)"}}>
@@ -730,18 +550,8 @@ const VideoConfig = () => {
                     {/*{activeTab === 'configDetails' && (*/}
                     <VideoConfigForm
                       selectedVideoConfig={videoConfig}
-                      setSelectedVideoConfig={setVideoConfig}
                       video={video}
                       cameraConfig={cameraConfig}
-                      recipe={recipe}
-                      CSDischarge={CSDischarge}
-                      CSWaterLevel={CSWaterLevel}
-                      setCameraConfig={setCameraConfig}
-                      setRecipe={setRecipe}
-                      setCSDischarge={setCSDischarge}
-                      setCSWaterLevel={setCSWaterLevel}
-                      setSave={setSave}
-                      setMessageInfo={setMessageInfo}
                       ws={ws.current}
                     />
                   </div>
@@ -782,8 +592,6 @@ const VideoConfig = () => {
                       imgDims={imgDims}
                       updateWidget={updateWidget}
                       setCameraConfig={setCameraConfig}
-                      setCSDischarge={setCSDischarge}
-                      setCSWaterLevel={setCSWaterLevel}
                       setWidgets={setWidgets}
                       setSelectedWidgetId={setSelectedWidgetId}
                       setMessageInfo={setMessageInfo}
@@ -797,7 +605,6 @@ const VideoConfig = () => {
                         selectedRecipe={recipe}
                         setSelectedRecipe={setRecipe}
                         frameCount={frameCount}
-                        setMessageInfo={setMessageInfo}
                         CSWaterLevel={CSWaterLevel}
                         CSDischarge={CSDischarge}
                         ws={ws.current}

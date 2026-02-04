@@ -1,5 +1,5 @@
 import api from "../../api/api.js";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import {useDebouncedWsSender} from "../../api/api.js";
@@ -16,8 +16,6 @@ const PoseDetails = (
     imgDims,
     updateWidget,
     setCameraConfig,
-    setCSDischarge,
-    setCSWaterLevel,
     setWidgets,
     setSelectedWidgetId,
     setMessageInfo,
@@ -87,26 +85,6 @@ const PoseDetails = (
     }
     const videoPatch = {video_config: {camera_config: updateCameraConfig}};
 
-    // const newConfig = {
-    //   ...cameraConfig,
-    //   gcps: {
-    //     ...cameraConfig.gcps,
-    //     z_0: null,
-    //     h_ref: null,
-    //     control_points: [
-    //       ...(cameraConfig.gcps?.control_points || []),
-    //       { x: '', y: '', z: '', row: '', col: '' }
-    //     ], // reset any pose dependent parameters
-    //     // automatically select the newly created widget for editing
-    //   },
-    //   camera_position: null,
-    //   camera_rotation: null,
-    //   f: null,
-    //   k1: null,
-    //   k2: null,
-    //   bbox_camera: [],
-    //   bbox: []
-    // }
     setSelectedWidgetId(updateCameraConfig.gcps.control_points.length);
     // send off to back end
     sendDebouncedMsg({
@@ -114,7 +92,6 @@ const PoseDetails = (
       op: 'set_field',
       params: {video_patch: videoPatch},
     });
-    // setCameraConfig(newConfig);
     // ensure user can set a new widget when clicking on add gcp
   };
 
@@ -140,52 +117,23 @@ const PoseDetails = (
         cross_section: null,
         cross_section_wl: null
     }};
-
-    // const newConfig = {
-    //   ...cameraConfig,
-    //   gcps: {
-    //     ...cameraConfig.gcps,
-    //     z_0: null,
-    //     h_ref: null,
-    //     control_points: cameraConfig.gcps.control_points.filter((gcp, index) => index + 1 !== id)
-    //   }, // reset any pose dependent parameters
-    //   camera_position: null,
-    //   camera_rotation: null,
-    //   f: null,
-    //   k1: null,
-    //   k2: null,
-    //   bbox_camera: [],
-    //   bbox: []
-    //
-    // }
     // send off to back end
     sendDebouncedMsg({
       action: 'update_video_config',
       op: 'set_field',
       params: {video_patch: videoPatch},
     });
-    //
-    // setCameraConfig(newConfig);
-    // setCSDischarge({});
-    // setCSWaterLevel({});
   };
 
 
   const handleSubmit = async () => {
     // submit the form with a GCP file (x, y, z csv or geojson)
-    // event.preventDefault();
     try {
       const GcpData = await loadFile();
 
       // Additional steps after successful file load
       // if a crs is found, set it on cameraConfig.gcps.crs
       if (GcpData) {
-        // const newConfig = {
-        //   ...cameraConfig,
-        //   gcps: GcpData,
-        //
-        // }
-        // setCameraConfig(newConfig);
         const updateCameraConfig = {
           gcps: GcpData,
         }
@@ -237,15 +185,6 @@ const PoseDetails = (
 
   const handleCrsChange = async (event) => {
     const {value} = event.target;
-    // const newConfig = {
-    //   ...cameraConfig,
-    //   gcps: {
-    //     ...cameraConfig.gcps,
-    //     crs: !isNaN(value) ? parseInt(value) : value
-    //   }
-    //
-    // }
-    // setCameraConfig(newConfig);
     const updateCameraConfig = {
       gcps: {
         ...cameraConfig.gcps,
@@ -306,16 +245,6 @@ const PoseDetails = (
           };
         })
       );
-      // set fields in cameraConfig
-      // const newConfig = {
-      //   ...cameraConfig,
-      //   camera_position: GcpFit.camera_position,
-      //   camera_rotation: GcpFit.camera_rotation,
-      //   f: GcpFit.f,
-      //   k1: GcpFit.k1,
-      //   k2: GcpFit.k2,
-      //
-      // }
       const updateCameraConfig = {
         camera_position: GcpFit.camera_position,
         camera_rotation: GcpFit.camera_rotation,
@@ -334,7 +263,6 @@ const PoseDetails = (
         params: {video_patch: videoPatch},
       });
 
-      // setCameraConfig(newConfig);
     } catch (error) {
       setMessageInfo('error', `Failed to fit GCPs: ${error.response.data.detail || error.message}`);
 
@@ -375,8 +303,6 @@ const PoseDetails = (
       </label>
       <div className="flex-container row">
         <div className="flex-container no-padding">
-          {/*onSubmit={handleSubmit}*/}
-          {/*<form>   */}
           <div className='mb-2 mt-0'>
             <label htmlFor='file' className='form-label small'>
               CSV or GeoJSON with x, y, z
@@ -384,7 +310,6 @@ const PoseDetails = (
             <input type='file' className='form-control' id='file' name='file'
                    accept=".geojson,.csv" onChange={handleFileChange} required/>
           </div>
-          {/*</form>*/}
           <div className='mb-2 mt-0'>
             <label htmlFor='crs' className='form-label small'>
               Coordinate reference system (only for GPS)
@@ -462,7 +387,6 @@ const PoseDetails = (
               ws={ws}
             />
           )}
-
           </tbody>
         </table>
       </div>
@@ -473,3 +397,17 @@ const PoseDetails = (
 };
 
 export default PoseDetails;
+
+PoseDetails.propTypes = {
+  cameraConfig: PropTypes.object,
+  widgets: PropTypes.array.isRequired,
+  selectedWidgetId: PropTypes.number.isRequired,
+  imgDims: PropTypes.array.isRequired,
+  updateWidget: PropTypes.func.isRequired,
+  setCameraConfig: PropTypes.func.isRequired,
+  setWidgets: PropTypes.func.isRequired,
+  setSelectedWidgetId: PropTypes.func.isRequired,
+  setMessageInfo: PropTypes.func.isRequired,
+  selectedVideo: PropTypes.object.isRequired,
+  ws: PropTypes.object.isRequired,
+};

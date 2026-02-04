@@ -1,9 +1,9 @@
 import {useDebouncedWsSender} from "../../api/api.js";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 
-const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMessageInfo, ws}) => {
+const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {
   const [formData, setFormData] = useState({
     name: '',
     id: '',
@@ -40,17 +40,8 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
     }
   };
 
-  const submitData = (formData) => {
-    return {
-      id: formData.id || null,
-      name: formData.name,
-      data: safelyParseJSON(formData.data),
-    }
-  }
-
   const handleInputChange = async (event) => {
     const {name, value} = event.target;
-    console.log("TRIGGERED CHANGE WITH", name, value)
     const updatedFormData = {
       ...formData,
       [name]: value
@@ -69,14 +60,6 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
       }
     }
     sendDebouncedMsg(msg);
-
-    //
-    // try {
-    //   const response = await api.post('/camera_config/update/', submitData(updatedFormData));
-    //   setSelectedCameraConfig(response.data);
-    // } catch (error) {
-    //   console.error('Error updating JSON:', error);
-    // }
   }
   const loadModal = async () => {
     const input = document.createElement('input');
@@ -89,9 +72,6 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
       // input.onchange = async (event) => {
       const file = event.target.files[0]; // Get the selected file
       if (file) {
-        console.log("FILE:", file)
-        // const formData = new FormData(); // Prepare form data for file upload
-        // formData.append("file", file);
         // read data and convert into JSON and set on formData.data
         const reader = new FileReader();
         reader.onload = function (e) {
@@ -99,48 +79,14 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
           // verify the text is properly formatted JSON
           try {
             const parsedJson = safelyParseJSON(rawText);
-            console.log("Parsed JSON:", parsedJson);
           } catch (error) {
             console.error("Invalid JSON format:", error);
             setMessageInfo('error', 'Invalid JSON format');
             return;
           }
-          // setFormData({...formData, data: rawText});
           handleInputChange({target: {name: "data", value: rawText}});
-
-          // console.log("JSON: ", e.target.result)
-          // const updatedFormData = {
-          //   ...formData,
-          //   data: e.target.result
-          // }
-          // formData.append("data", e.target.result);
         }
         reader.readAsText(file);
-
-        // try {
-        //   const response = await api.post(
-        //     url,
-        //     formData,
-        //     {headers: {"Content-Type": "multipart/form-data",},}
-        //   );
-        //   if (response.status === 201) {
-        //     // set the camera config data (only data, not id and name)
-        //     // setSelectedCameraConfig(prevState => ({
-        //     //     ...prevState,
-        //     //     data: response.data.data
-        //     //   }))
-        //     const { id, name, remote_id, created_at, sync_status, ...updatedData } = response.data
-        //     setSelectedCameraConfig(updatedData);
-        //   } else {
-        //     console.error("Error occurred during file upload:", response.data);
-        //     setMessageInfo('error', response.data.detail);
-        //
-        //   }
-        // } catch (error) {
-        //   console.error("Error occurred during file upload:", error);
-        //   setMessageInfo('error', `Error: ${error.response.data.detail}`);
-        // }
-
       }
     });
     // trigger input dialog box to open
@@ -149,26 +95,8 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-    // Dynamically filter only fields with non-empty values
-    event.preventDefault();
     try {
       ws.sendJson({"action": "save", "params": {}});
-    //
-    //   const filteredData = Object.fromEntries(
-    //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-    // );
-    // // predefine response object
-    // let response;
-    // try {
-    //   if (filteredData.id === undefined) {
-    //     response = await api.post('/camera_config/', submitData(filteredData));
-    //   } else {
-    //     response = await api.patch(`/recipe/${filteredData.id}`, submitData(filteredData));
-    //   }
-    //   if (response.status !== 201 && response.status !== 200) {
-    //     const errorData = await response.json()
-    //     throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
-    //   }
       setMessageInfo('success', 'Camera config stored successfully');
     } catch (err) {
       setMessageInfo('Error while storing camera config', err.response.data);
@@ -260,3 +188,9 @@ const CameraConfigForm = ({selectedCameraConfig, setSelectedCameraConfig, setMes
 };
 
 export default CameraConfigForm;
+
+CameraConfigForm.propTypes = {
+  selectedCameraConfig: PropTypes.object.isRequired,
+  setMessageInfo: PropTypes.func.isRequired,
+  ws: PropTypes.object.isRequired,
+};

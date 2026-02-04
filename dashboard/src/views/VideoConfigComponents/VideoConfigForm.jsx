@@ -1,21 +1,12 @@
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import {useDebouncedWsSender} from "../../api/api.js";
+import PropTypes from "prop-types";
 
 const VideoConfigForm = (
   {
     selectedVideoConfig,
-    setSelectedVideoConfig,
     video,
     cameraConfig,
-    recipe,
-    CSDischarge,
-    CSWaterLevel,
-    setCameraConfig,
-    setRecipe,
-    setCSDischarge,
-    setCSWaterLevel,
-    setSave,
-    setMessageInfo,
     ws
   }) => {
   const [formData, setFormData] = useState({
@@ -23,23 +14,8 @@ const VideoConfigForm = (
     id: '',
   });
   const [isSaving, setIsSaving] = useState(false);
-
   // create a delayed websocket sender for this component
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
-  //
-  // useEffect(() => {
-  //   // Create debounced function once
-  //   let timeout;
-  //   sendUpdateDebouncedRef.current = ({ msg }) => {
-  //     clearTimeout(timeout);
-  //     timeout = setTimeout(() => {
-  //       ws.sendJson(msg);
-  //     }, 400); // wait 400 ms before sending
-  //   };
-  //
-  //   // Cleanup on unmount
-  //   return () => clearTimeout(timeout);
-  // }, [ws]); // if ws is stable, this runs only once
 
   useEffect(() => {
     if (selectedVideoConfig) {
@@ -75,10 +51,6 @@ const VideoConfigForm = (
     }
     // send change off to backend
     sendDebouncedMsg(msg);
-    // // schedule ws update
-    // if (sendUpdateDebouncedRef.current) {
-    //   sendUpdateDebouncedRef.current({ msg });
-    // }
   }
 
   const handleRotateChange = async (event) => {
@@ -93,97 +65,9 @@ const VideoConfigForm = (
     try {
       ws.sendJson({"action": "save", "params": {"name": formData.name}});
 
-    // collect data from all fields
-
-    // // Dynamically filter only fields with non-empty values
-    // const filteredData = Object.fromEntries(
-    //   Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-    // );
-    // console.log("FORMDATA VID-CONFIG: ", formData);
-    // if (formData.sample_video_id === undefined) {
-    //   console.log("SAMPLE VIDEO UNDEFINED")
-    //   filteredData.sample_video_id = video.id;
-    // }
-    // if (formData.sync_status !== 1) {
-    //   filteredData.sync_status = 3;  // update sync status
-    // } else {
-    //   filteredData.sync_status = 1;  // if video config is new, don't update
-    // }
-    // // the entire video config is stored in one go
-    // if (Object.keys(CSDischarge).length > 0 && CSDischarge?.name === undefined) {
-    //   CSDischarge.name = filteredData.name;
-    // }
-    // if (Object.keys(CSWaterLevel).length > 0 && CSWaterLevel?.name === undefined) {
-    //   CSWaterLevel.name = filteredData.name;
-    // }
-    // if (recipe?.name === undefined) {
-    //   recipe.name = filteredData.name;
-    // }
-    // if (cameraConfig?.name === undefined) {
-    //   cameraConfig.name = filteredData.name;
-    // }
-    // if (CSDischarge.features) {
-    //   filteredData.cross_section = CSDischarge
-    // } else {
-    //   filteredData.cross_section = null;
-    // }
-    // if (CSWaterLevel.features) {
-    //   filteredData.cross_section_wl = CSWaterLevel
-    // } else {
-    //   filteredData.cross_section_wl = null;
-    // }
-    // if (recipe.data) {
-    //   filteredData.recipe = {
-    //     ...recipe,
-    //     sync_status: recipe.sync_status === 1 ? 1 : 3  // replace sync status
-    //   }
-    // } else {
-    //   filteredData.recipe = null;
-    // }
-    // if (cameraConfig.data) {
-    //   const {isCalibrated, isPoseReady, ...cameraConfigWithoutCalibrated} = cameraConfig;
-    //   filteredData.camera_config = cameraConfigWithoutCalibrated
-    // } else {
-    //   filteredData.camera_config = null;
-    // }
-    // // predefine response object
-    // let response;
-    // try {
-    //   response = await api.post('/video_config/', filteredData);
-    //   if (response.status !== 201 && response.status !== 200) {
-    //     const errorData = await response.json()
-    //     throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
-    //   } else {
-    //     // set the updated camera config, recipe and cross-section details
-    //     setSelectedVideoConfig(response.data);
-    //     // also set the camera config id and recipe id
-    //     setCameraConfig({
-    //         ...cameraConfig,
-    //         id: response.data.camera_config.id,
-    //         name: response.data.camera_config.name
-    //     });
-    //     setRecipe({
-    //         ...recipe,
-    //         id: response.data.recipe.id,
-    //         name: response.data.recipe.name,
-    //         sync_status: response.data.recipe.sync_status
-    //     });
-    //   }
-    //   setMessageInfo('success', 'Video config stored successfully');
     } catch (err) {
       console.error('Error storing video config:', err.response.data.detail);
     } finally {
-      // try {
-      //   // now also update the video where needed
-      //   video.video_config_id = response.data.id;
-      //   // and store this in the database
-      //   await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
-        // ensure saving is set to false (only when successful
-        // setSave(false);
-      // } catch (err) {
-      //   console.log(`Failed to set video config id for video ${video.id} due to ${err}`);
-      // } finally {
-        // ensure the view port is opened for edits in all cases
         setIsSaving(false);
       }
     }
@@ -320,17 +204,11 @@ const VideoConfigForm = (
 
 };
 
-import PropTypes from "prop-types";
-
 VideoConfigForm.propTypes = {
-  selectedVideoConfig: PropTypes.object,
-  setSelectedVideoConfig: PropTypes.func,
-  cameraConfig: PropTypes.object,
-  recipe: PropTypes.object,
-  CSDischarge: PropTypes.object,
-  CSWaterLevel: PropTypes.object,
-  setMessageInfo: PropTypes.func,
-  ws: PropTypes.object
+  selectedVideoConfig: PropTypes.object.isRequired,
+  video: PropTypes.object.isRequired,
+  cameraConfig: PropTypes.object.isRequired,
+  ws: PropTypes.object.isRequired,
 };
 
 export default VideoConfigForm;
