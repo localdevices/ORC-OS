@@ -20,19 +20,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    conn = op.get_bind()
+    # switch of foreign keys temporarily to prevent foreign key conflicts during migration.
+    conn.execute(sa.text("PRAGMA foreign_keys=OFF"))
     with op.batch_alter_table("time_series") as batch_op:
         batch_op.alter_column(
             "h",
             existing_type=sa.FLOAT(),
             nullable=True,
         )
+    conn.execute(sa.text("PRAGMA foreign_keys=ON"))
 
 
 def downgrade() -> None:
     """Downgrade schema."""
+    conn = op.get_bind()
+    # switch of foreign keys temporarily to prevent foreign key conflicts during migration.
+    conn.execute(sa.text("PRAGMA foreign_keys=OFF"))
     with op.batch_alter_table("time_series") as batch_op:
         batch_op.alter_column(
             "h",
             existing_type=sa.FLOAT(),
             nullable=False,
         )
+    conn.execute(sa.text("PRAGMA foreign_keys=ON"))
