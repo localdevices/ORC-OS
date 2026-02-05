@@ -2,10 +2,11 @@
 
 import platform
 import uuid
-from typing import Optional, Self
+from typing import Optional
 
 import psutil
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing_extensions import Self
 
 import orc_api
 from orc_api.db import DeviceFormStatus, DeviceStatus
