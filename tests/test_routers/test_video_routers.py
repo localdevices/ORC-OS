@@ -224,7 +224,6 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
         "sync_file": True,
         "sync_image": True,
     }
-
     response = auth_client.post("/api/video/sync/", json=params)
     assert response.status_code == 200
     # call should return a list of dicts with each dict having "sync_status": 5 (queued)
@@ -235,6 +234,7 @@ def test_video_websocket(auth_client, video_config_dict, monkeypatch):
     upload_dir = os.path.split(sample_data.get_hommerich_dataset())[0]
     monkeypatch.setattr("orc_api.routers.video.UPLOAD_DIRECTORY", upload_dir)
     monkeypatch.setattr("orc_api.UPLOAD_DIRECTORY", upload_dir)
+    monkeypatch.setattr("orc_api.routers.ws.video.get_session", lambda: db_session)
 
     # add a video
     db_session = next(get_db_override())
@@ -246,6 +246,7 @@ def test_video_websocket(auth_client, video_config_dict, monkeypatch):
     db_session.refresh(video1)
     # add the video to video_config_dict
     video_config_dict["sample_video_id"] = video1.id
+    # store video config in database
     response = auth_client.post("/api/video_config/", json=video_config_dict)
     # attach video_config to video1
     video_config_stored = VideoConfigResponse.model_validate(response.json())
@@ -255,12 +256,46 @@ def test_video_websocket(auth_client, video_config_dict, monkeypatch):
     # make a web socket item
     vs = WSVideoState(video=VideoResponse.model_validate(video1), saved=True)
     vs_c = copy.deepcopy(vs)
-    msg = {"op": "rotate_translate_bbox", "params": {"angle": 1.2}}
-    vs_c.update_video_config(**msg)
-    assert vs_c.video.video_config.camera_config.bbox != vs.video.video_config.camera_config.bbox
+
+    # save
+    vs_c.save(name="name_after_saving")
+    # test if the video_config with altered name is saved
+    rec = db_session.query(models.VideoConfig).first()
+    assert rec.name == "name_after_saving"
+    # update_cross_section
+    vs_c.update_cross_section(cross_section_id=2)
+    assert vs_c.video.video_config.cross_section_id == 2
+    vs_c.update_cross_section(cross_section_wl_id=1)
+    assert vs_c.video.video_config.cross_section_wl_id == 1
+
+    # update_water_level, setting z_0 to None. This should also set h_ref and bbox to None
+    # this also runs through set_bbox as dependency
+    vs_c.update_water_level(z_0=None, h_ref=150.0)
+    assert vs_c.video.video_config.camera_config.gcps.z_0 is None
+    assert vs_c.video.video_config.camera_config.gcps.h_ref == 0.0
+    # update_cam_config
+    vs_c.update_water_level(z_0=150.5, h_ref=150.5)
+    assert vs_c.video.video_config.camera_config.gcps.z_0 == 150.5
+    assert vs_c.video.video_config.camera_config.gcps.h_ref == 150.5
+
+    # update_recipe
+    msg = {"recipe_patch": {"freq": 5}}
+    vs_c.update_recipe(**msg)
+    assert vs_c.video.video_config.recipe.freq == 5
+    assert vs_c.video.video_config.recipe.data["video"]["freq"] == 5
+
     msg = {"op": "set_rotation", "params": {"rotation": 90}}
     vs_c.update_video_config(**msg)
     assert vs_c.video.video_config.camera_config.height == vs.video.video_config.camera_config.width
+
+    # set_bbox_from_width_length
+    msg = {
+        "op": "set_bbox_from_width_length",
+        "params": {"points": [[116.08, 246.5], [1629.8, 842.57], [1658.04, 580.61]]},
+    }
+    #
+    vs_c.update_video_config(**msg)
+
     msg = {
         "op": "set_field",
         "params": {"video_patch": {"video_config": {"camera_config": {"name": "alternative_name"}}}},
@@ -268,5 +303,13 @@ def test_video_websocket(auth_client, video_config_dict, monkeypatch):
     vs_c.update_video_config(**msg)
     assert vs_c.video.video_config.camera_config.name == "alternative_name"
 
-    # do a rotation on the camera config
-    print(vs.video)
+    # reset_bbox
+    msg = {"op": "rotate_translate_bbox", "params": {"angle": 1.2}}
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.bbox != vs.video.video_config.camera_config.bbox
+
+    # reset_video_config. Do at the end to prevent that we don't have anything to work on
+    vs_c.video.video_config_id = None
+    msg = {"name": "new_video_config"}
+    vs_c.reset_video_config(**msg)
+    assert vs_c.video.video_config.name == "new_video_config"

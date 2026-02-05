@@ -75,15 +75,18 @@ def test_get_patch_post_cross_section(auth_client, video_config_dict, db_session
     assert r.status_code == 200
     # json should contain type
     assert "type" in r.json()
-    # finally delete cross section
+    # finally delete dependent video config and then the cross section
+    r = auth_client.delete("/api/video_config/1/")
+    assert r.status_code == 204
+
     r = auth_client.delete("/api/cross_section/1/")
     assert r.status_code == 204
 
     # remove after test
+    db_session.query(db.VideoConfig).delete()
     db_session.query(db.CrossSection).delete()
     db_session.query(db.CameraConfig).delete()
     db_session.query(db.Recipe).delete()
-    db_session.query(db.VideoConfig).delete()
 
     db_session.commit()
     db_session.flush()

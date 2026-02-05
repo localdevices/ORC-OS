@@ -116,6 +116,11 @@ class WSVideoState(BaseModel):
             raise ValueError(f"Cross section {cs_id} is too far away from the camera (> 1000 m.)")
         return cs_rec
 
+    def get_from_cam_config(self, op, **params):
+        """Get output from a CameraConfig operation."""
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
+        return getattr(cc, op)(**params)
+
     def save(self, name=None):
         """Save current state to database."""
         try:
@@ -160,28 +165,6 @@ class WSVideoState(BaseModel):
         except Exception as e:
             traceback.print_exc()
             return WSVideoResponse(success=False, message=str(e))
-
-    def reset_video_config(self, name: Optional[str] = None):
-        """Reset state to default."""
-        if self.video.video_config_id is not None:
-            # get the name from the original config
-            name = self.video.video_config.name
-        vc = VideoConfigUpdate(name=name)
-        # check if recipe is None, if so make a default recipe
-        if vc.recipe is None:
-            frame_count = self.video.frame_count(base_path=UPLOAD_DIRECTORY)
-            vc.recipe = RecipeResponse(name=vc.name, end_frame=frame_count)
-        if vc.camera_config is None:
-            # initialize camera config with default values
-            height, width = self.video.dims(base_path=UPLOAD_DIRECTORY)
-            vc.camera_config = CameraConfigResponse(name=vc.name, data={"height": height, "width": width})
-        self.video.video_config = vc
-        self.saved = False
-        return WSVideoResponse(
-            success=True,
-            video=self.video.model_dump(),
-            saved=self.saved,
-        )
 
     def update_video_config(self, op: str, params: Optional[Dict] = None) -> Optional[Any]:
         """Execute operation for updating, passing optional parameters.
@@ -347,11 +330,6 @@ class WSVideoState(BaseModel):
             }
         }, "rotation of video modified"
 
-    def get_from_cam_config(self, op, **params):
-        """Get output from a CameraConfig operation."""
-        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
-        return getattr(cc, op)(**params)
-
     def set_bbox(self, op=None, inplace=True, **params):
         """Set bbox-related camera config properties."""
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
@@ -412,21 +390,6 @@ class WSVideoState(BaseModel):
         if video_patch is None:
             return {}
 
-        def update_nested(obj, patch: Dict):
-            """Recursively update nested pydantic model fields from a dictionary."""
-            for key, value in patch.items():
-                if isinstance(value, dict) and hasattr(obj, key):
-                    # If value is a dict and the attribute exists, recurse into it
-                    nested_obj = getattr(obj, key)
-                    if nested_obj is not None:
-                        update_nested(nested_obj, value)
-                    else:
-                        # If nested object is None, set the dict directly
-                        setattr(obj, key, value)
-                else:
-                    # Leaf value - set it directly
-                    setattr(obj, key, value)
-
         # make ready for updating
         video_update = VideoUpdate.model_validate(self.video)
         update_nested(video_update, video_patch)
@@ -473,6 +436,28 @@ class WSVideoState(BaseModel):
         if self.video.video_config.cross_section_wl is not None:
             self.video.video_config.cross_section_wl.camera_config = cc
         return self.submodel_bbox
+
+    def reset_video_config(self, name: Optional[str] = None):
+        """Reset state to default."""
+        if self.video.video_config_id is not None:
+            # get the name from the original config
+            name = self.video.video_config.name
+        vc = VideoConfigUpdate(name=name)
+        # check if recipe is None, if so make a default recipe
+        if vc.recipe is None:
+            frame_count = self.video.frame_count(base_path=UPLOAD_DIRECTORY)
+            vc.recipe = RecipeResponse(name=vc.name, end_frame=frame_count)
+        if vc.camera_config is None:
+            # initialize camera config with default values
+            height, width = self.video.dims(base_path=UPLOAD_DIRECTORY)
+            vc.camera_config = CameraConfigResponse(name=vc.name, data={"height": height, "width": width})
+        self.video.video_config = vc
+        self.saved = False
+        return WSVideoResponse(
+            success=True,
+            video=self.video.model_dump(),
+            saved=self.saved,
+        )
 
     def rotate_translate_bbox(self, **params):
         """Resizes bbox according to params."""
