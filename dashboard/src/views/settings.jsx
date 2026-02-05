@@ -180,7 +180,7 @@ const Settings = ({setRequiresRestart}) => {
               </div>
             )}
 
-          <h5>Daemon settings</h5>
+          <h5>Timing settings</h5>
 
           <div className='mb-3 mt-3'>
             <label htmlFor='allowed_dt' className='form-label'>

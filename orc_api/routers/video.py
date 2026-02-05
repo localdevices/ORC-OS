@@ -612,7 +612,8 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
         while True:
             # read requests from client
             msg = await websocket.receive_json()
-            print(f"Received message from websocket: {msg}")
+            if DEV_MODE:
+                print(f"Received message from websocket: {msg}")
             # validate message
             msg = WSVideoMsg.model_validate(msg)
             # perform operations on video config

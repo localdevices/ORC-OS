@@ -32,6 +32,9 @@ Feedback and bug reports are highly appreciated to improve future versions.
   connections.
 - Fixed issue with videos not appearing in the video table when video configuration is not complete yet.
 - Fixed issue with video record becoming incomplete after detaching the video_config.
+- Fixed issue with wrong video being selected upon click in time series when one or several filters are active.
+- Backend issue fixed, which resulted in an error when the device is not assigned any IP-address.
+- Syncing videos with LiveORC without any files resulted in an error. Video is now not synced if no files are selected.
 ### Security
 
 

@@ -21,10 +21,6 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.execute("PRAGMA foreign_keys=OFF")
     with op.batch_alter_table("video", recreate="always") as batch_op:
-        # batch_op.drop_constraint(
-        #     "fk_video_video_config_id",
-        #     type_="foreignkey",
-        # )
         batch_op.create_foreign_key(
             "fk_video_video_config_id",
             "video_config",
@@ -72,30 +68,73 @@ def upgrade() -> None:
         # Rename new table
         op.rename_table('video_config_new', 'video_config')
 
-    # with op.batch_alter_table("video_config", recreate="always") as batch_op:
-    #     batch_op.drop_constraint(
-    #         None,
-    #         type_="foreignkey",
-    #         columns=["sample_video_id"],
-    #     )
-        # only recreate so that the foreign key is dropped
-        # pass
-        # batch_op.drop_constraint(
-        #     "fk_video_video_config_id",
-        #     type_="foreignkey",
-        # )
-        # batch_op.create_foreign_key(
-        #     "fk_video_config_sample_video_id",
-        #     "video",
-        #     ["sample_video_id"],
-        #     ["id"],
-        #     ondelete="SET NULL",
-        # )
     op.execute("PRAGMA foreign_keys=OFF")
 
 
 def downgrade() -> None:
     op.execute("PRAGMA foreign_keys=OFF")
+    conn = op.get_bind()
+    op.create_table(
+        'video_config_old',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('name', sa.String(), nullable=False, comment="Named description of the video configuration"),
+        sa.Column('camera_config_id', sa.Integer(), nullable=True),
+        sa.Column('recipe_id', sa.Integer(), nullable=True),
+        sa.Column('cross_section_id', sa.Integer(), nullable=True),
+        sa.Column('cross_section_wl_id', sa.Integer(), nullable=True),
+
+        # ⬅️ restore FK to video (or whatever the pre-upgrade state was)
+        sa.Column('sample_video_id', sa.Integer(), nullable=True),
+
+        sa.Column('rvec', sa.JSON(), nullable=False),
+        sa.Column('tvec', sa.JSON(), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
+        sa.Column('remote_id', sa.Integer(), nullable=True),
+        sa.Column(
+            'sync_status',
+            sa.Enum('LOCAL', 'SYNCED', 'UPDATED', 'FAILED', 'QUEUE', name='syncstatus'),
+            nullable=True,
+        ),
+
+        sa.ForeignKeyConstraint(['camera_config_id'], ['camera_config.id']),
+        sa.ForeignKeyConstraint(['cross_section_id'], ['cross_section.id']),
+        sa.ForeignKeyConstraint(['cross_section_wl_id'], ['cross_section.id']),
+        sa.ForeignKeyConstraint(['recipe_id'], ['recipe.id']),
+        sa.ForeignKeyConstraint(['sample_video_id'], ['video.id']),
+
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('remote_id'),
+    )
+
+    # Copy all data back
+    conn.execute(sa.text("""
+        INSERT INTO video_config_old (
+            id, name,
+            camera_config_id, recipe_id,
+            cross_section_id, cross_section_wl_id,
+            sample_video_id,
+            rvec, tvec,
+            created_at,
+            remote_id,
+            sync_status
+        )
+        SELECT
+            id, name,
+            camera_config_id, recipe_id,
+            cross_section_id, cross_section_wl_id,
+            sample_video_id,
+            rvec, tvec,
+            created_at,
+            remote_id,
+            sync_status
+        FROM video_config;
+    """))
+
+    # Swap tables
+    op.drop_table('video_config')
+    op.rename_table('video_config_old', 'video_config')
+
+    # also change video table back
     with op.batch_alter_table("video", recreate="always") as batch_op:
         batch_op.drop_constraint(
             "fk_video_video_config_id",
@@ -107,4 +146,5 @@ def downgrade() -> None:
             ["video_config_id"],
             ["id"],
         )
+
     op.execute("PRAGMA foreign_keys=OFF")
