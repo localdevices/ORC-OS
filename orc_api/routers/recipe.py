@@ -70,14 +70,6 @@ async def patch_recipe(id: int, recipe: RecipeRemote, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail=f"Error updating recipe: {e}")
 
 
-@router.post("/empty/", response_model=RecipeResponse, status_code=200)
-async def empty_recipe():
-    """Create an empty recipe in-memory."""
-    # return an empty response for now
-    recipe = RecipeResponse()
-    return recipe
-
-
 @router.post("/", response_model=RecipeResponse, status_code=201)
 async def create_recipe(recipe: RecipeResponse, db: Session = Depends(get_db)):
     """Create a new recipe and store it in the database."""

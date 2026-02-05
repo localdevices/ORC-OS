@@ -18,7 +18,7 @@ class VideoConfig(RemoteBase):
     cross_section_wl_id: Mapped[int] = mapped_column(Integer, ForeignKey("cross_section.id"), nullable=True)
     sample_video_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("video.id", ondelete="RESTRICT"),
+        # ForeignKey("video.id", ondelete="SET NULL"),
         nullable=True,
         comment="Video containing sampling information such as GCPs",
     )
@@ -38,7 +38,9 @@ class VideoConfig(RemoteBase):
     recipe = relationship("Recipe", foreign_keys=[recipe_id])
     cross_section = relationship("CrossSection", foreign_keys=[cross_section_id])
     cross_section_wl = relationship("CrossSection", foreign_keys=[cross_section_wl_id])
-    sample_video = relationship("Video", foreign_keys=[sample_video_id])
+    sample_video = relationship(
+        "Video", foreign_keys=[sample_video_id], primaryjoin="Video.id == VideoConfig.sample_video_id"
+    )
 
     def __str__(self):
         return "{}: {}".format(self.id, self.name)

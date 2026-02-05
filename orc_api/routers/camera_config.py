@@ -6,7 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pyorc import CameraConfig as pyorcCameraConfig
 
-from orc_api import UPLOAD_DIRECTORY, crud
+from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import CameraConfig, Session
 from orc_api.schemas.camera_config import (
@@ -14,20 +14,8 @@ from orc_api.schemas.camera_config import (
     CameraConfigResponse,
     CameraConfigUpdate,
 )
-from orc_api.schemas.video import VideoResponse
 
 router: APIRouter = APIRouter(prefix="/camera_config", tags=["camera_config"])
-
-
-@router.get("/empty/{video_id}", response_model=CameraConfigResponse, status_code=200)
-async def empty_camera_config(video_id: int, db: Session = Depends(get_db)):
-    """Create an empty camera config in-memory."""
-    # return an empty camera config for now with height and width of current video
-    video_rec = crud.video.get(db, video_id)
-    video = VideoResponse.model_validate(video_rec)
-    height, width = video.dims(base_path=UPLOAD_DIRECTORY)
-    cam_config = CameraConfigResponse(data={"height": height, "width": width})
-    return cam_config
 
 
 @router.get("/", response_model=List[CameraConfigResponse], description="Get all camera configurations")

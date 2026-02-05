@@ -19,6 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.execute("PRAGMA foreign_keys=OFF")
     with op.batch_alter_table("video", recreate="always") as batch_op:
         # batch_op.drop_constraint(
         #     "fk_video_video_config_id",
@@ -31,9 +32,70 @@ def upgrade() -> None:
             ["id"],
             ondelete="SET NULL",
         )
+    # also make sure that sample_video_id is set to NULL when that video gets deleted. Requires recreation of table
+    conn = op.get_bind()
+
+    if conn.dialect.name == "sqlite":
+        # --- Handle 'video_config' table foreign key ---
+        op.create_table(
+            'video_config_new',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(), nullable=False, comment="Named description of the video configuration"),
+            sa.Column('camera_config_id', sa.Integer(), nullable=True),
+            sa.Column('recipe_id', sa.Integer(), nullable=True),
+            sa.Column('cross_section_id', sa.Integer(), nullable=True),
+            sa.Column('cross_section_wl_id', sa.Integer(), nullable=True),
+            sa.Column('sample_video_id', sa.Integer(), nullable=True, comment="Video containing sampling information such as GCPs"),
+            sa.Column('rvec', sa.JSON(), nullable=False, comment="Rotation vector for matching CrossSection with CameraConfig"),
+            sa.Column('tvec', sa.JSON(), nullable=False, comment="Translation vector for matching CrossSection with CameraConfig"),
+            sa.Column('created_at', sa.DateTime(), nullable=False),
+            sa.Column('remote_id', sa.Integer(), nullable=True),
+            sa.Column('sync_status', sa.Enum('LOCAL', 'SYNCED', 'UPDATED', 'FAILED', 'QUEUE', name='syncstatus'),
+                      nullable=True),
+
+            sa.ForeignKeyConstraint(['camera_config_id'], ['camera_config.id'], ),
+            sa.ForeignKeyConstraint(['cross_section_id'], ['cross_section.id'], ),
+            sa.ForeignKeyConstraint(['cross_section_wl_id'], ['cross_section.id'], ),
+            sa.ForeignKeyConstraint(['recipe_id'], ['recipe.id'], ),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('remote_id')
+        )
+        # Copy existing data
+        conn.execute(sa.text("""
+            INSERT INTO video_config_new (id, name, camera_config_id, recipe_id, cross_section_id, cross_section_wl_id, sample_video_id, rvec, tvec, created_at, remote_id, sync_status)
+            SELECT id, name, camera_config_id, recipe_id, cross_section_id, cross_section_wl_id, sample_video_id, rvec, tvec, created_at, remote_id, sync_status FROM video_config;
+        """))# noqa: E501
+
+        # Drop old table
+        op.drop_table('video_config')
+
+        # Rename new table
+        op.rename_table('video_config_new', 'video_config')
+
+    # with op.batch_alter_table("video_config", recreate="always") as batch_op:
+    #     batch_op.drop_constraint(
+    #         None,
+    #         type_="foreignkey",
+    #         columns=["sample_video_id"],
+    #     )
+        # only recreate so that the foreign key is dropped
+        # pass
+        # batch_op.drop_constraint(
+        #     "fk_video_video_config_id",
+        #     type_="foreignkey",
+        # )
+        # batch_op.create_foreign_key(
+        #     "fk_video_config_sample_video_id",
+        #     "video",
+        #     ["sample_video_id"],
+        #     ["id"],
+        #     ondelete="SET NULL",
+        # )
+    op.execute("PRAGMA foreign_keys=OFF")
 
 
 def downgrade() -> None:
+    op.execute("PRAGMA foreign_keys=OFF")
     with op.batch_alter_table("video", recreate="always") as batch_op:
         batch_op.drop_constraint(
             "fk_video_video_config_id",
@@ -45,3 +107,4 @@ def downgrade() -> None:
             ["video_config_id"],
             ["id"],
         )
+    op.execute("PRAGMA foreign_keys=OFF")

@@ -132,6 +132,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
       ...formData,
       ...updatedFields
     }
+    setFormData(updatedFormData);
     const videoPatch = {video_config: {recipe: updatedFields}};
     const msg = {
       action: "update_video_config",
@@ -141,7 +142,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
       }
     }
     sendDebouncedMsg(msg)
-    setFormData(updatedFormData);
   }
 
   const handleInputChange = async (event) => {
