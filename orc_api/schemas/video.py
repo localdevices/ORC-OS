@@ -380,61 +380,74 @@ class VideoResponse(VideoBase, RemoteModel):
                     self.time_series = self.time_series.sync_remote(session=session, site=site)
                     self.time_series_id = self.time_series.id
 
-            if self.remote_id is None:
-                # committing a new video always occurs on a central end point (not site specific)
-                endpoint = "/api/video/"
-            else:
-                # video can only be changed under the site end point
-                endpoint = f"api/site/{site}/video/"
-            data = {
-                "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "camera_config": self.video_config.remote_id,
-                "status": self.status.value,
-            }
-            if self.created_at:
-                data["created_at"] = self.created_at.strftime("%Y-%m-%dT%H:%M:%SZ")
-            if self.time_series:
-                data["time_series"] = self.time_series.remote_id  # only if time series is available
-            # make a dict for files to send
-            files = {}
-            if self.file and os.path.exists(self.get_video_file(base_path=base_path)) and sync_file:
-                files["file"] = (self.file, open(self.get_video_file(base_path=base_path), "rb"))
-            if self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image:
-                files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
-            # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
-            logger.debug(f"Syncing video {self.id} - {self.file} to remote site {site}.")
-            response_data = super().sync_remote(
-                session=session, endpoint=endpoint, data=data, files=files, timeout=timeout
+            # only sync if an image and/or video file should be submitted. Otherwise only time series is sufficient.
+            sync_file_required = self.file and os.path.exists(self.get_video_file(base_path=base_path)) and sync_file
+            sync_image_required = self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image
+            if sync_file_required or sync_image_required:
+                if self.remote_id is None:
+                    # committing a new video always occurs on a central end point (not site specific)
+                    endpoint = "/api/video/"
+                else:
+                    # video can only be changed under the site end point
+                    endpoint = f"api/site/{site}/video/"
+                data = {
+                    "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "camera_config": self.video_config.remote_id,
+                    "status": self.status.value,
+                }
+                if self.created_at:
+                    data["created_at"] = self.created_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+                if self.time_series:
+                    data["time_series"] = self.time_series.remote_id  # only if time series is available
+                # make a dict for files to send
+                files = {}
+                if sync_file_required:
+                    files["file"] = (self.file, open(self.get_video_file(base_path=base_path), "rb"))
+                if sync_image_required:
+                    files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
+                # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
+                logger.debug(f"Syncing video {self.id} - {self.file} to remote site {site}.")
+                response_data = super().sync_remote(
+                    session=session, endpoint=endpoint, data=data, files=files, timeout=timeout
+                )
+                if response_data is not None:
+                    response_data.pop("camera_config", None)
+                    response_data.pop("created_at", None)
+                    response_data.pop(
+                        "file", None
+                    )  # remove all refs to file media, as these are different on the remote server
+                    response_data.pop("image", None)
+                    response_data.pop("keyframe", None)
+                    response_data.pop("thumbnail", None)
+                    response_data.pop("project", None)
+                    response_data.pop("time_series", None)
+                    response_data.pop("creator", None)
+                    response_data["video_config_id"] = self.video_config_id
+                    response_data["time_series_id"] = self.time_series_id
+                    # patch the record in the database, where necessary
+                    # update schema instance
+                    update_video = VideoResponse.model_validate(response_data)
+                    r = crud.video.update(
+                        session,
+                        id=self.id,
+                        video=update_video.serialize_for_db(),  # model_dump(exclude_unset=True, exclude_none=True)
+                    )
+                    logger.info(f"Syncing to remote site {site} successful.")
+                    video_run_state.update(
+                        sync_status=SyncRunStatus.SUCCESS,
+                        message=f"Syncing to remote site {site} successful.",
+                    )
+                    return VideoResponse.model_validate(r)
+                return None
+            # if no syncing of video is needed, only update the sync status back to LOCAL
+            logger.debug(
+                f"Skipping syncing of video {self.id} - {self.file}. No image or video file requested to sync."
             )
-            if response_data is not None:
-                response_data.pop("camera_config", None)
-                response_data.pop("created_at", None)
-                response_data.pop(
-                    "file", None
-                )  # remove all refs to file media, as these are different on the remote server
-                response_data.pop("image", None)
-                response_data.pop("keyframe", None)
-                response_data.pop("thumbnail", None)
-                response_data.pop("project", None)
-                response_data.pop("time_series", None)
-                response_data.pop("creator", None)
-                response_data["video_config_id"] = self.video_config_id
-                response_data["time_series_id"] = self.time_series_id
-                # patch the record in the database, where necessary
-                # update schema instance
-                update_video = VideoResponse.model_validate(response_data)
-                r = crud.video.update(
-                    session,
-                    id=self.id,
-                    video=update_video.serialize_for_db(),  # model_dump(exclude_unset=True, exclude_none=True)
-                )
-                logger.info(f"Syncing to remote site {site} successful.")
-                video_run_state.update(
-                    sync_status=SyncRunStatus.SUCCESS,
-                    message=f"Syncing to remote site {site} successful.",
-                )
-                return VideoResponse.model_validate(r)
-            return None
+            video_run_state.update(
+                sync_status=SyncRunStatus.SUCCESS,
+                message=f"Syncing to remote site {site} without video sucessful.",
+            )
+            _ = crud.video.update(session, id=self.id, video={"sync_status": models.SyncStatus.LOCAL})
         except Exception as e_sync:
             logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
             video_run_state.update(
