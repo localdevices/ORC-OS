@@ -1,8 +1,10 @@
 """Database models for NodeORC."""
 
 import os
+import sqlite3
 
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, event, inspect
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 
 from orc_api import __home__
@@ -46,6 +48,16 @@ __all__ = [
 db_path_config = os.path.join(__home__, "orc-os.db")
 sqlite_engine = f"sqlite:///{db_path_config}"
 engine_config = create_engine(sqlite_engine, connect_args={"check_same_thread": False})
+
+
+# make sure that foreign keys are recognized and foreign key constraints handled
+@event.listens_for(Engine, "connect")
+def enable_sqlite_foreign_keys(dbapi_connection, _):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine_config)
 session = Session()

@@ -177,14 +177,8 @@ const SideView = ({CSDischarge, CSWaterLevel, zMin, zMax, waterLevel, yRightOffs
 }
 
 SideView.propTypes = {
-  CSDischarge: PropTypes.shape({
-    s: PropTypes.arrayOf(PropTypes.number),
-    z: PropTypes.arrayOf(PropTypes.number)
-  }),
-  CSWaterLevel: PropTypes.shape({
-    s: PropTypes.arrayOf(PropTypes.number),
-    z: PropTypes.arrayOf(PropTypes.number)
-  }),
+  CSDischarge: PropTypes.object,
+  CSWaterLevel: PropTypes.object,
   zMin: PropTypes.number,
   zMax: PropTypes.number,
   waterLevel: PropTypes.number,

@@ -1,10 +1,7 @@
 """Pydantic models for daemon settings."""
 
-import getpass
 import os
-import socket
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 from fastapi import UploadFile
@@ -16,31 +13,6 @@ from orc_api.database import get_session
 from orc_api.routers.video import upload_video
 from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import disk_management, queue, sys_utils
-
-
-def get_hostname() -> str:
-    """Get the hostname of the device."""
-    try:
-        return socket.gethostname()
-    except Exception:
-        # for linux cases
-        return Path("/etc/hostname").read_text().strip()
-
-
-def get_primary_internal_ip() -> str:
-    """Get the primary internal IP address of the device through a test connection."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # dummy connection without packages
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-    finally:
-        s.close()
-
-
-def get_user() -> str:
-    """Get currently logged in user."""
-    return getpass.getuser()
 
 
 # Pydantic model for responses
@@ -111,8 +83,8 @@ class SettingsResponse(SettingsBase):
     def sample_scp_ip(self) -> str:
         """Get sample SCP command with IP address."""
         # Get IP-addresses and hostname
-        ip = get_primary_internal_ip()
-        user = get_user()
+        ip = sys_utils.get_primary_internal_ip()
+        user = sys_utils.get_user()
         return f"scp {self.file_format} {user}@{ip}:{INCOMING_DIRECTORY}"
 
     @computed_field
@@ -120,9 +92,9 @@ class SettingsResponse(SettingsBase):
     def sample_sftp_details(self) -> dict:
         """Dictionary with transfer details required for SFTP transfer from IP camera."""
         return {
-            "hostname": get_hostname(),
-            "IP": get_primary_internal_ip(),
-            "username": get_user(),
+            "hostname": sys_utils.get_hostname(),
+            "IP": sys_utils.get_primary_internal_ip(),
+            "username": sys_utils.get_user(),
             "incoming_directory": INCOMING_DIRECTORY,
         }
 
@@ -131,16 +103,10 @@ class SettingsResponse(SettingsBase):
     def sample_scp_hostname(self) -> str:
         """Dictionary with several transfer option examples for videos."""
         # Get IP-addresses and hostname
-        hostname = get_hostname()
-        user = get_user()
+        hostname = sys_utils.get_hostname()
+        user = sys_utils.get_user()
         return f"scp {self.file_format} {user}@{hostname}:{INCOMING_DIRECTORY}"
 
-    # @model_validator(mode="after")
-    # def add_sample_filename(cls, instance):
-    #     """Add sample filename to the response."""
-    #     if instance.video_file_fmt:
-    #         instance.sample_file = os.path.join(INCOMING_DIRECTORY, instance.file_format)
-    #     return instance
     @model_validator(mode="after")
     def add_sample_filename(self) -> Self:
         """Add sample filename to the response."""

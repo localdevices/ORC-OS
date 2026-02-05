@@ -8,7 +8,6 @@ import {
 } from 'chart.js';
 
 import api from '../api/api.js';
-import {useMessage} from '../messageContext';
 
 // Register ChartJS components
 ChartJS.register(
@@ -33,7 +32,6 @@ const Device = () => {
         message: ''
     });
     // set message box
-    const {setMessageInfo} = useMessage();
 
     const fetchDevice = async () => {
         const randomQuery = `cacheBust=${Date.now()}`
@@ -42,19 +40,15 @@ const Device = () => {
         setDeviceStatus(response.data.status);
     };
     const fetchDeviceStatuses = async () => {
-      const randomQuery = `cacheBust=${Date.now()}`
-      try {
-        const response = await api.get(`/device/statuses/?${randomQuery}`);
-        setDeviceStatuses(response.data); // Assuming API returns array of statuses
-      } catch (err) {
-        console.log(`Failed to fetch device statuses. ${err}`);
-      }
+        const randomQuery = `cacheBust=${Date.now()}`
+        try {
+            const response = await api.get(`/device/statuses/?${randomQuery}`);
+            setDeviceStatuses(response.data); // Assuming API returns array of statuses
+        } catch (err) {
+            console.log(`Failed to fetch device statuses. ${err}`);
+        }
     };
-    // helper function to get status name from status value
-    const getStatusName = (statusValue) => {
-        const status = deviceStatuses.find(s => s.value === statusValue);
-        return status ? status.key : '';
-    };
+
     useEffect(() => {
         fetchDevice();
         fetchDeviceStatuses();
@@ -74,54 +68,6 @@ const Device = () => {
         }
     }, [device]);
 
-    const handleInputChange = (event) => {
-        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
-        setFormData({
-            ...formData,
-            [event.target.name]: value,
-        });
-    }
-    const handleInputIntChange = (event) => {
-        const { name, value, type } = event.target;
-        event.target.value = value;
-        setFormData({
-            ...formData,
-            [name]: type === "number" | type === "select-one" ? parseInt(value) : value
-        });
-    };
-    const handleStatusChange = (e) => {
-        setDeviceStatus(e.target.value); // Update selected status in state
-        handleInputIntChange(e); // Pass the change event to the parent handler
-    };
-    const handleFormSubmit = async (event) => {
-        try {
-            event.preventDefault();
-            console.log(formData);
-            const response = await api.post('/device/', formData);
-            if (!response.status === 200) {
-                const errorData = await response.json()
-                throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
-            }
-            setMessageInfo('success', 'Device information updated successfully!');
-
-            // read back the device after posting
-            fetchDevice();
-            // set the form data to new device settings
-            setFormData({
-                name: '',
-                operating_system: '',
-                processor: '',
-                memory: '',
-                status: '',
-                orc_os_version: '',
-                message: ''
-            });
-            setDeviceStatus(device.status);
-
-        } catch (err) {
-            setMessageInfo('error', err.response.data);
-        }
-    };
     // Prepare chart data
     const memoryChartData = {
         labels: ['Used Memory', 'Free Memory'],
@@ -179,62 +125,71 @@ const Device = () => {
     };
 
     return (
-        <div className='container'>
-            Change your device name and check your device health.
-            <hr/>
-            <div className="flex-container">
-                <div className="card">
-                    <h4>Device status</h4>
-                    <form onSubmit={handleFormSubmit}>
-                        <div className='mb-3 mt-3'>
-                            <label htmlFor='name' className='form-label'>
-                                Change the name of your device
-                            </label>
-                            <input type='text' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name}/>
-                        </div>
-                        <button type='submit' className='btn'>
-                            Submit
-                        </button>
-                    </form>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label>
-                            Device status: {getStatusName(deviceStatus)}
-                        </label>
-                    </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label>
-                            Processor: {device.processor}
-                        </label>
-                        <div className="readonly">{status.key}</div>
-                    </div>
-                    <div className="flex-container" style={{display: "flex", flexDirection: "row"}}>
-                        <label>
-                            ORC-OS version: {device.orc_os_version}
-                        </label>
-                        <div className="readonly">{status.key}</div>
-                    </div>
-                </div>
-                <div className="card">
-                    <h4>Resources use</h4>
-                    <div className='mb-3 mt-3'>
-                        <div className='text-center mt-2'>
-                            <p>Memory usage: {parseFloat(device.used_memory).toFixed(2)} / {parseFloat(device.memory).toFixed(2)} GB</p>
-                        </div>
-                        <div style={{ maxWidth: '150px', margin: '0 auto' }}>
-                            <Pie data={memoryChartData} options={chartOptions} />
-                        </div>
-                    </div>
-                    <div className='text-center mt-2'>
-                        <p>Disk usage: {parseFloat(device.used_disk_space).toFixed(2)} / {parseFloat(device.disk_space).toFixed(2)} GB</p>
-                    </div>
-                    <div className='mb-3 mt-3'>
-                        <div style={{ maxWidth: '150px', margin: '0 auto' }}>
-                            <Pie data={diskSpaceChartData} options={chartOptions} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="container">
+          <h2>Device info</h2>
+          Check the status of the device
+          <div className="split-screen flex">
+              <div className="flex-container column" style={{height: "calc(100vh - 250px)", minHeight: "800px"}}>
+                  <h4>Device status</h4>
+                  <div className='mb-0 mt-3'>
+                      <label htmlFor='name' className='form-label'>
+                          ORC-OS version
+                      </label>
+                      <input type='text' className='form-control' id='name' name='name' value={device.orc_os_version} disabled/>
+                  </div>
+                  <div className='mb-0 mt-3'>
+                      <label htmlFor='name' className='form-label'>
+                          ORC-OS release name
+                      </label>
+                      <input type='text' className='form-control' id='name' name='name' value={device.orc_os_release} disabled/>
+                  </div>
+                  <div className='mb-0 mt-3'>
+                      <label htmlFor='name' className='form-label'>
+                          Hostname of the device
+                      </label>
+                      <input type='text' className='form-control' id='name' name='name' value={device.hostname} disabled/>
+                  </div>
+                  <div className='mb-0 mt-3'>
+                      <label htmlFor='name' className='form-label'>
+                          Local IP address of the device
+                      </label>
+                      <input type='text' className='form-control' id='name' name='name' value={device.ip_address} disabled/>
+                  </div>
+                  <div className='mb-0 mt-3'>
+                      <label htmlFor='name' className='form-label'>
+                          Device processor
+                      </label>
+                      <input type='text' className='form-control' id='name' name='name' value={device.processor} disabled/>
+                  </div>
+                  <div className='mb-3 mt-3'>
+                      <label htmlFor='name' className='form-label'>
+                          Device processor
+                      </label>
+                      <input type='text' className='form-control' id='name' name='name' value={device.processor} disabled/>
+                  </div>
+              </div>
+              <div className="flex-container column"  style={{height: "calc(100vh - 250px)", minHeight: "800px"}}>
+                  <h4>Resources use</h4>
+                  <div className='mb-3 mt-3'>
+                      <div className='text-center mt-2'>
+                          <p>Memory usage: {parseFloat(device.used_memory).toFixed(2)} / {parseFloat(device.memory).toFixed(2)} GB</p>
+                      </div>
+                      <div style={{ maxWidth: '250px', margin: '0 auto' }}>
+                          <Pie data={memoryChartData} options={chartOptions} />
+                      </div>
+                  </div>
+                  <div className='text-center mt-2'>
+                      <p>Disk usage: {parseFloat(device.used_disk_space).toFixed(2)} / {parseFloat(device.disk_space).toFixed(2)} GB</p>
+                  </div>
+                  <div className='mb-3 mt-3'>
+                      <div style={{ maxWidth: '250px', margin: '0 auto' }}>
+                          <Pie data={diskSpaceChartData} options={chartOptions} />
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+      </div>
 
     );
 };

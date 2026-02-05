@@ -2,18 +2,7 @@ import PropTypes from "prop-types";
 
 import api from "../api/api.js";
 import { useEffect, useMemo } from "react";
-
-// Simple debounce utility returning a stable debounced function
-export const createDebounce = (callback, delay) => {
-  let timeout;
-  const debounced = (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => callback(...args), delay);
-  };
-  // return a cancel function to clear the timeout
-  debounced.cancel = () => clearTimeout(timeout);
-  return debounced;
-};
+import { createDebounce } from "./helpers.jsx";
 
 // Check if an image URL is already cached by the browser
 export const isImageCached = (url) => {

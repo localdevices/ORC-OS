@@ -42,7 +42,7 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setS
             <input
               type="number"
               name="row"
-              value={coordinates.row || ''}
+              value={coordinates.row ?? ''}
               disabled
               className="form-control form-control-sm"
             />
@@ -51,7 +51,7 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setS
             <input
               type="number"
               name="col"
-              value={coordinates.col || ''}
+              value={coordinates.col ?? ''}
               disabled
               className="form-control form-control-sm"
             />
@@ -60,7 +60,7 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setS
             <input
               type="number"
               name="x"
-              value={coordinates.x || ''}
+              value={coordinates.x ?? ''}
               onChange={handleChange}
               className="form-control form-control-sm"
             />
@@ -69,7 +69,7 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setS
             <input
               type="number"
               name="y"
-              value={coordinates.y || ''}
+              value={coordinates.y ?? ''}
               onChange={handleChange}
               className="form-control form-control-sm"
             />
@@ -78,7 +78,7 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setS
             <input
               type="number"
               name="z"
-              value={coordinates.z || ''}
+              value={coordinates.z ?? ''}
               onChange={handleChange}
               className="form-control form-control-sm"
             />
@@ -101,69 +101,5 @@ const XYZWidget = ({ id, coordinates, onUpdate, onDelete, selectedWidgetId, setS
         </tr>
   );
 };
-
-//   return (
-//     <div className="widget" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-//       <input
-//         type="number"
-//         name="row"
-//         placeholder="Row"
-//         step="1"
-//         value={coordinates.row || ''}
-//         onChange={handleChange}
-//         disabled
-//         style={{ flex: 1, textAlign: "center" }}
-//       />
-//       <input
-//         type="number"
-//         name="col"
-//         placeholder="Col"
-//         step="1"
-//         value={coordinates.col || ''}
-//         onChange={handleChange}
-//         disabled
-//         style={{ flex: 1, textAlign: "center" }}
-//       />
-//       <input
-//         type="number"
-//         name="x"
-//         placeholder="X"
-//         value={coordinates.x || ''}
-//         onChange={handleChange}
-//
-//         style={{ flex: 1, textAlign: "center" }}
-//       />
-//       <input
-//         type="number"
-//         name="y"
-//         placeholder="Y"
-//         value={coordinates.y || ''}
-//         onChange={handleChange}
-//         style={{ flex: 1, textAlign: "center" }}
-//       />
-//       <input
-//         type="number"
-//         name="z"
-//         placeholder="Z"
-//         value={coordinates.z || ''}
-//         onChange={handleChange}
-//         style={{ flex: 1, textAlign: "center" }}
-//       />
-//       <button
-//         className="close-button"
-//         onClick={handleDelete}
-//         style={{
-//           background: "none",
-//           border: "none",
-//           color: "red",
-//           cursor: "pointer",
-//           fontSize: "1.2em",
-//         }}
-//       >
-//         &times;
-//       </button>
-//     </div>
-//   );
-// };
 
 export default XYZWidget;

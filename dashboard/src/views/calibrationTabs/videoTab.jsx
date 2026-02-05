@@ -17,18 +17,22 @@ const VideoTab = (
     rotate,
     CSDischarge,
     CSWaterLevel,
+    bboxSelected,
     setCameraConfig,
     setSelectedWidgetId,
     setImgDims,
+    setBboxSelected,
+    handleBboxStart,
+    ws
   }
 ) => {
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(1);
   const [bboxMarkers, setBboxMarkers] = useState([]);
   const [clickCount, setClickCount] = useState(0);
-  const [bboxSelected, setBboxSelected] = useState(false);
   const imageRef = useRef(null);  // Reference to image within TransFormWrapper
   const [bBoxPolygon, setBBoxPolygon] = useState(null);
+  const [wettedBbox, setWettedBbox] = useState([]);  // wetted part of bounding box, following CS
   const {setMessageInfo} = useMessage();
 
   const handleGCPClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
@@ -43,8 +47,8 @@ const VideoTab = (
         col: originalCol,
       });
 
-    // Select next widget
-    const nextWidgetId = getNextWidgetId(selectedWidgetId);
+      // Select next widget
+      const nextWidgetId = getNextWidgetId(selectedWidgetId);
       setSelectedWidgetId(nextWidgetId);
     }
   }
@@ -56,7 +60,7 @@ const VideoTab = (
     setBboxMarkers(newMarkers);
     setClickCount(clickCount + 1);
     if (clickCount === 2) {
-      // Draw final marker and reset
+      // Draw final marker and reset after 2 seconds
       setTimeout(() => {
         setBboxSelected(false);
         setBboxMarkers([]);
@@ -70,93 +74,85 @@ const VideoTab = (
     return widgets[(currentIndex + 1) % widgets.length].id;
   };
 
-  const handleRotateLeft = () => {
-    console.log('Rotate left');
-    // Implement bounding box logic
-  };
-
-  const handleRotateRight = () => {
-    console.log('Rotate right');
-    // Implement bounding box logic
-  };
-
-  const handleMove = (direction) => {
-    console.log('Move:', direction);
-    // Implement move logic
-  };
 
   return (
-          <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
-            {cameraConfig && (
-            <ControlPanel
-              onRotateLeft={handleRotateLeft}
-              onRotateRight={handleRotateRight}
-              onBoundingBox={() => {
-                setBboxSelected(true);
-                setBBoxPolygon(null);
-                // remove bbox_camera from cameraConfig
-                const newConfig = {
-                  ...cameraConfig,
-                  bbox_camera: null,
-                };
+    <div style={{ height: '100%', maxHeight: '100%', width: '100%', maxWidth: '100%', overflow: 'auto', position: 'relative'}}>
+      {cameraConfig && (
+        <ControlPanel
+          onBoundingBox={handleBboxStart}
+          cameraConfig={cameraConfig}
+          bboxSelected={bboxSelected}
+          ws={ws}
+        />
+      )
+      }
+      <div style={{position: 'sticky', textAlign: 'center', marginBottom: '10px', color: '#555' }}>
+        {bboxSelected ? (
+          "First click left bank, then right bank, then expand up and downstream"
+        ) : (
+          "Zoom and pan with your mouse. Click on the photo to select row/column"
+        )
+        }
+      </div>
 
-                setCameraConfig(newConfig);
-              }}
-              onMove={handleMove}
-              cameraConfig={cameraConfig}
-              bboxSelected={bboxSelected}
-            />
-            )
-            }
 
-            <TransformWrapper
-               pinchEnabled={true}
-               wheelEnabled={false}
-               touchEnabled={true}
-               panEnabled={true}
-               preventWheel={true}
-              // ensure the scale is tracked all the time
-               onTransformed={(e) => {
-                 setScale(e.state.scale)
-               }}
-             >
-                 <PhotoComponent
-                   video={video}
-                   frameNr={frameNr}
-                   imageRef={imageRef}
-                   widgets={widgets}
-                   cameraConfig={cameraConfig}
-                   scale={scale}
-                   imgDims={imgDims}
-                   rotate={rotate}
-                   bBoxPolygon={bBoxPolygon}
-                   CSDischarge={CSDischarge}
-                   CSWaterLevel={CSWaterLevel}
-                   dragging={dragging}
-                   setCameraConfig={setCameraConfig}
-                   setImgDims={setImgDims}
-                   setBBoxPolygon={setBBoxPolygon}
-                   bboxMarkers={bboxMarkers}
-                   handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
-                   bboxClickCount={clickCount}
-                 />
-            </TransformWrapper>
-            <div style={{position: 'sticky', textAlign: 'center', marginTop: '10px', color: '#555' }}>
-              Zoom and pan with your mouse. Click on the photo to select row/column
-            </div>
-{/*       <h2>Current Coordinates:</h2> */}
-{/*       <pre>{JSON.stringify(widgets, null, 2)}</pre> */}
+      <TransformWrapper
+        pinchEnabled={true}
+        wheelEnabled={false}
+        touchEnabled={true}
+        panEnabled={true}
+        preventWheel={true}
+        // ensure the scale is tracked all the time
+        onTransformed={(e) => {
+          setScale(e.state.scale)
+        }}
+      >
+        <PhotoComponent
+          video={video}
+          frameNr={frameNr}
+          imageRef={imageRef}
+          widgets={widgets}
+          cameraConfig={cameraConfig}
+          scale={scale}
+          imgDims={imgDims}
+          rotate={rotate}
+          bBoxPolygon={bBoxPolygon}
+          wettedBbox={wettedBbox}
+          CSDischarge={CSDischarge}
+          CSWaterLevel={CSWaterLevel}
+          dragging={dragging}
+          setCameraConfig={setCameraConfig}
+          setImgDims={setImgDims}
+          setBBoxPolygon={setBBoxPolygon}
+          setWettedBbox={setWettedBbox}
+          bboxMarkers={bboxMarkers}
+          handlePhotoClick={bboxSelected ? handleBoundingBoxClick : handleGCPClick}
+          bboxClickCount={clickCount}
+          ws={ws}
+        />
+      </TransformWrapper>
     </div>
   );
 };
 
 VideoTab.propTypes = {
   video: PropTypes.object.isRequired,
+  frameNr: PropTypes.number.isRequired,
+  cameraConfig: PropTypes.object.isRequired,
   widgets: PropTypes.array.isRequired,
   selectedWidgetId: PropTypes.oneOfType([PropTypes.number]),
   updateWidget: PropTypes.func.isRequired,
   imgDims: PropTypes.object,
+  rotate: PropTypes.number,
+  CSDischarge: PropTypes.object,
+  CSWaterLevel: PropTypes.object,
+  bboxSelected: PropTypes.bool.isRequired,
+  setCameraConfig: PropTypes.func.isRequired,
+  setSelectedWidgetId: PropTypes.func.isRequired,
   setImgDims: PropTypes.func.isRequired,
+  setBboxSelected: PropTypes.func.isRequired,
+  handleBboxStart: PropTypes.func.isRequired,
+  ws: PropTypes.object.isRequired,
 };
 
 export default VideoTab;

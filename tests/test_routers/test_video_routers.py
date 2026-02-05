@@ -1,3 +1,4 @@
+import copy
 import os
 from datetime import datetime, timedelta
 
@@ -5,6 +6,7 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+from pyorc import sample_data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -13,6 +15,9 @@ from orc_api import db as models
 from orc_api.database import get_db
 from orc_api.db import Base
 from orc_api.main import app
+from orc_api.routers.ws.video import WSVideoState
+from orc_api.schemas.video import VideoResponse
+from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -219,8 +224,108 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
         "sync_file": True,
         "sync_image": True,
     }
-
     response = auth_client.post("/api/video/sync/", json=params)
     assert response.status_code == 200
     # call should return a list of dicts with each dict having "sync_status": 5 (queued)
     assert all([rec["sync_status"] == 5 for rec in response.json()])
+
+
+def test_video_websocket(auth_client, video_config_dict, monkeypatch):
+    upload_dir = os.path.split(sample_data.get_hommerich_dataset())[0]
+    monkeypatch.setattr("orc_api.routers.video.UPLOAD_DIRECTORY", upload_dir)
+    monkeypatch.setattr("orc_api.UPLOAD_DIRECTORY", upload_dir)
+    monkeypatch.setattr("orc_api.routers.ws.video.get_session", lambda: db_session)
+
+    # add a video
+    db_session = next(get_db_override())
+    video1 = models.Video(
+        timestamp=datetime.now(), status=models.video.VideoStatus.NEW, file=sample_data.get_hommerich_dataset()
+    )  # code 1
+    db_session.add_all([video1])
+    db_session.commit()
+    db_session.refresh(video1)
+    # add the video to video_config_dict
+    video_config_dict["sample_video_id"] = video1.id
+    # store video config in database
+    response = auth_client.post("/api/video_config/", json=video_config_dict)
+    # attach video_config to video1
+    video_config_stored = VideoConfigResponse.model_validate(response.json())
+    video1.video_config_id = video_config_stored.id
+    db_session.commit()
+    db_session.refresh(video1)
+    # make a web socket item
+    vs = WSVideoState(video=VideoResponse.model_validate(video1), saved=True)
+    vs_c = copy.deepcopy(vs)
+
+    # save
+    vs_c.save(name="name_after_saving")
+    # test if the video_config with altered name is saved
+    rec = db_session.query(models.VideoConfig).first()
+    assert rec.name == "name_after_saving"
+    # update_cross_section
+    vs_c.update_cross_section(cross_section_id=2)
+    assert vs_c.video.video_config.cross_section_id == 2
+    vs_c.update_cross_section(cross_section_wl_id=1)
+    assert vs_c.video.video_config.cross_section_wl_id == 1
+
+    # update_water_level, setting z_0 to None. This should also set h_ref and bbox to None
+    # this also runs through set_bbox as dependency
+    vs_c.update_water_level(z_0=None, h_ref=150.0)
+    assert vs_c.video.video_config.camera_config.gcps.z_0 is None
+    assert vs_c.video.video_config.camera_config.gcps.h_ref == 0.0
+    # update_cam_config
+    vs_c.update_water_level(z_0=150.5, h_ref=150.5)
+    assert vs_c.video.video_config.camera_config.gcps.z_0 == 150.5
+    assert vs_c.video.video_config.camera_config.gcps.h_ref == 150.5
+
+    # update camera config via data
+    cc_data = vs_c.video.video_config.camera_config.data
+    k1 = cc_data.dist_coeffs[0][0] = 2000
+    k1_new = k1 + 0.01
+    cc_data.dist_coeffs[0][0] = k1_new
+    msg = {"data": cc_data}
+    vs_c.set_camera_config_data(**msg)
+    assert vs_c.video.video_config.camera_config.k1 == k1_new
+
+    # update_recipe
+    msg = {"recipe_patch": {"freq": 5}}
+    vs_c.update_recipe(**msg)
+    assert vs_c.video.video_config.recipe.freq == 5
+    assert vs_c.video.video_config.recipe.data["video"]["freq"] == 5
+
+    recipe_data = vs_c.video.video_config.recipe.data
+    recipe_data["video"]["freq"] = 3
+    # populate fields from data
+    msg = {"data": recipe_data}
+    vs_c.set_recipe_data(**msg)
+    assert vs_c.video.video_config.recipe.freq == 3
+
+    msg = {"op": "set_rotation", "params": {"rotation": 90}}
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.height == vs.video.video_config.camera_config.width
+
+    # set_bbox_from_width_length
+    msg = {
+        "op": "set_bbox_from_width_length",
+        "params": {"points": [[116.08, 246.5], [1629.8, 842.57], [1658.04, 580.61]]},
+    }
+    #
+    vs_c.update_video_config(**msg)
+
+    msg = {
+        "op": "set_field",
+        "params": {"video_patch": {"video_config": {"camera_config": {"name": "alternative_name"}}}},
+    }
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.name == "alternative_name"
+
+    # reset_bbox
+    msg = {"op": "rotate_translate_bbox", "params": {"angle": 1.2}}
+    vs_c.update_video_config(**msg)
+    assert vs_c.video.video_config.camera_config.bbox != vs.video.video_config.camera_config.bbox
+
+    # reset_video_config. Do at the end to prevent that we don't have anything to work on
+    vs_c.video.video_config_id = None
+    msg = {"name": "new_video_config"}
+    vs_c.reset_video_config(**msg)
+    assert vs_c.video.video_config.name == "new_video_config"

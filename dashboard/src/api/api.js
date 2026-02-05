@@ -1,11 +1,12 @@
 import axios from 'axios'
+import { useEffect, useRef} from "react";
+import {createDebounce} from "../utils/helpers.jsx";
 
 const API_BASE = import.meta.env.VITE_ORC_API_BASE ?? '/api';
 const API_DIRECT = import.meta.env.VITE_ORC_API_DIRECT ?? '/api';  // only in dev mode
 
 const api = axios.create({
    baseURL: API_BASE,
-   // baseURL: `http://localhost:5000`,
    withCredentials: true
 });
 
@@ -38,7 +39,7 @@ export default api;
 
 let webSocketInstances = {};
 
-export const createWebSocketConnection = (connectionId, url, onMessageCallback, json) => {
+export const createWebSocketConnection = (connectionId, url, onMessageCallback, json, ...callbackArgs) => {
   // Create WebSocket connection
   if (json === undefined) {
     json = true;
@@ -56,6 +57,17 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
     const webSocket = new WebSocket(socketUrl);
     webSocketInstances[connectionId] = webSocket;
 
+    // add a method to send json messages
+    webSocket.sendJson = async (msg) => {
+      if (webSocket.readyState !== WebSocket.OPEN) throw new Error(
+        `WebSocket is not open (readyState = ${webSocket.readyState})`
+      );
+      try {
+        webSocket.send(json ? JSON.stringify(msg) : msg);
+      } catch (e) {
+        console.error("WebSocket payload or sending error:", e);
+      }
+    }
     // Event: WebSocket successfully opened
     webSocket.onopen = () => {
       // uncomment below to debug
@@ -70,7 +82,7 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
         msg = json ? JSON.parse(event.data) : event.data;
         // uncomment below to debug
         // console.log(`Message on connection Id "${connectionId}":`, msg);
-        if (onMessageCallback) onMessageCallback(msg);
+        if (onMessageCallback) onMessageCallback(msg, webSocket, ...callbackArgs);
       } catch (e) {
         console.error("WS parsing error:", e);
       }
@@ -92,7 +104,58 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
       console.error(`WebSocket error on connection ID "${connectionId}":`, error);
       webSocket.close();
     };
+
     return webSocket;
   };
   return connect()
+};
+
+// gracefully close a connection from list of connection
+export const closeWebSocketConnection = (connectionId, code = 1000, reason = 'Intentional close') => {
+  const ws = webSocketInstances[connectionId];
+  if (!ws) {
+    return;
+  }
+
+  // Prevent the onclose handler from attempting to reconnect
+  ws.onclose = null;
+
+  try {
+    ws.close(code, reason);
+  } catch (e) {
+    console.error(`Error while closing WebSocket "${connectionId}":`, e);
+  }
+  delete webSocketInstances[connectionId];
+};
+
+// a debounced message sender for web sockets
+
+// Generic debounced WebSocket sender
+export const useDebouncedWsSender = (ws, delayMs = 400) => {
+  const sendRef = useRef(null);
+
+  useEffect(() => {
+    if (!ws) {
+      sendRef.current = null;
+      return undefined;
+    }
+
+    const debounced = createDebounce((msg) => {
+      ws.sendJson(msg);
+    }, delayMs);
+
+    sendRef.current = debounced;
+
+    return () => {
+      debounced.cancel && debounced.cancel();
+      sendRef.current = null;
+    };
+  }, [ws, delayMs]);
+
+  // Stable function to call from event handlers
+  return (msg) => {
+    if (sendRef.current) {
+      sendRef.current(msg);
+    }
+  };
 };

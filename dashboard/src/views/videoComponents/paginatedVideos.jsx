@@ -161,7 +161,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   // Handle the "Delete" button action
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this video and all media files associated with it?')) {
-      api.delete(`/video/${id}`)
+      api.delete(`/video/${id}/`)
         .then(() => {
           const updatedData = data.filter((video) => video.id !== id); // Remove from state
           setData(updatedData);
@@ -367,7 +367,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                           disabled={!video.allowed_to_run && video.status !== 2 && video.status !== 3}
                           onClick={() => handleRun(video)}
                   >
-                    <FaPlay className="run"/>
+                    <RiPencilFill className="edit"/>
                   </button>
                   <button className="btn-icon"
                     // disabled when video config is not ready, or task is already queued (2) or running (3)
@@ -381,7 +381,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                   <button className="btn-icon"
                           onClick={() => handleView(video)}
                   >
-                    <RiPencilFill className="edit"/>
+                    <FaPlay className="run"/>
                   </button>
                   <button className="btn-icon"
                           onClick={() => handleDelete(video.id)}

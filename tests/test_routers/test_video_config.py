@@ -35,6 +35,6 @@ def test_add_filled_video_config(auth_client, video_config_dict):
 def test_add_empty_video_config(auth_client):
     video_config = VideoConfigBase(name="hello")
     video_config_dict = video_config.model_dump(exclude_none=True)
-    _ = auth_client.get("/api/callback_url")
-    response = auth_client.post("/api/video_config", json=video_config_dict)
+    _ = auth_client.get("/api/callback_url/")
+    response = auth_client.post("/api/video_config/", json=video_config_dict)
     assert response.status_code == 201

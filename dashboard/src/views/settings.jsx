@@ -180,7 +180,7 @@ const Settings = ({setRequiresRestart}) => {
               </div>
             )}
 
-          <h5>Daemon settings</h5>
+          <h5>Timing settings</h5>
 
           <div className='mb-3 mt-3'>
             <label htmlFor='allowed_dt' className='form-label'>
@@ -232,7 +232,7 @@ const Settings = ({setRequiresRestart}) => {
             </div>
           </div>
 
-          <h5>LiveORC settings</h5>
+          <h5>LiveORC file syncing</h5>
           <div className='mb-3 mt-3'>
             <input
               type='checkbox'
@@ -245,7 +245,7 @@ const Settings = ({setRequiresRestart}) => {
               style={{marginRight: '10px'}}
             />
             <label htmlFor='sync_file' className='form-label'>
-              Synchronize Video file with LiveORC server (if configured)
+              Synchronize video file with LiveORC server (if configured)
             </label>
           </div>
           <div className='mb-3 mt-3'>
@@ -263,6 +263,10 @@ const Settings = ({setRequiresRestart}) => {
               Synchronize result image file with LiveORC server (if configured)
             </label>
           </div>
+          {!formData.sync_image && !formData.sync_file && (
+            <i className="text-danger">Only time series records will be synced as you did not select any files to sync</i>
+          )}
+
           <div className='mb-3 mt-3'>Activate the daemon runner.
             <div className="form-check form-switch">
               <label className="form-label" htmlFor="active" style={{marginLeft: '0'}}></label>

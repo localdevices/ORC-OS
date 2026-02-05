@@ -3,7 +3,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 
 import './photoComponent.css';
 import PropTypes from 'prop-types';
-import api from "../../api/api.js";
+import api, {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
 
@@ -19,15 +19,18 @@ const PhotoComponent = (
     imgDims,
     rotate,
     bBoxPolygon,
+    wettedBbox,
     CSDischarge,
     CSWaterLevel,
     dragging,
     setCameraConfig,
     setImgDims,
     setBBoxPolygon,
+    setWettedBbox,
     bboxMarkers,
     handlePhotoClick,
-    bboxClickCount
+    bboxClickCount,
+    ws
   }) => {
   const [loading, setLoading] = useState(false); // Track the loading state of image
   const [transformState, setTransformState] = useState(null);  // state of zoom is stored here
@@ -42,11 +45,12 @@ const PhotoComponent = (
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
+  const [CSWaterLines, setCSWaterLines] = useState([]);  // lines at water/land interface
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
 
   // set a mouseDown state for tracking mouse behaviour
   const mouseDownTimeRef = useRef(0);
-
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 100);
 
   const checkImageReady = () => {
     // check if image is loaded, transform wrapper is ready and image dimensions set
@@ -59,35 +63,45 @@ const PhotoComponent = (
     );
   };
 
-  useEffect(() => {
-    // ensure if click count is 3, the camera config is updated with the set bbox
-    if (bboxClickCount === 3) {
-      setCameraConfig(lastResponse.current.data)
-    }
-  }, [bboxClickCount])
+  // helper function to transform list of coordinates
+  const transformCoords = (coords) => {
+    return coords.map(p => {
+      const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+      const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
+      return {x, y};
+    })
+  }
+
+  // useEffect(() => {
+  //   // ensure if click count is 3, the camera config is updated with the set bbox
+  //   if (bboxClickCount === 3) {
+  //     setCameraConfig(lastResponse.current.data)
+  //   }
+  // }, [bboxClickCount])
 
   useEffect(() => {
     // check if image and dimensions are entirely intialized
     if (checkImageReady()) {
+      let newBboxPoints;
+      // all cam config info is present
       if (cameraConfig && cameraConfig?.bbox_camera && cameraConfig?.bbox_camera !== null) {
         // update the polygon points with the cameraConfig.bbox_image points
-        const newBboxPoints = cameraConfig.bbox_camera.map(p => {
-          const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-          const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-          return {x, y};
-        })
-        setBBoxPolygon(newBboxPoints);
+        newBboxPoints = transformCoords(cameraConfig.bbox_camera);
+      } else {
+        newBboxPoints = []
       }
+    setBBoxPolygon(newBboxPoints);
+      // only gcps are present
       if (cameraConfig && cameraConfig?.gcps?.control_points) {
         updateFittedPoints();
         updateDots();
+      // nothing is present
       } else {
         setDots({});
         setFittedPoints([]);
         setBBoxPolygon([]);
       }
     }
-
   }, [cameraConfig, imgDims, transformState, photoBbox]);
 
   useEffect(() => {
@@ -97,19 +111,12 @@ const PhotoComponent = (
       // CSDischarge &&
       CSDischarge?.bottom_surface
     ) {
-      const newCSPolPoints = CSDischarge.bottom_surface.map(p => {
-        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-        return {x, y};
-      })
+      const newCSPolPoints = transformCoords(CSDischarge.bottom_surface);
       setCSDischargePolygon(newCSPolPoints);
-      const newWetPolPoints = CSDischarge.wetted_surface.map(p => {
-        const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-        const y = p[1] / imgDims.height * photoBbox.height / transformState.scale;
-        return {x, y};
-      })
+      const newWetPolPoints = transformCoords(CSDischarge.wetted_surface);
       setCSWettedSurfacePolygon(newWetPolPoints);
-
+      const newWaterLines = CSDischarge.water_lines.map(line => transformCoords(line))
+      setCSWaterLines(newWaterLines);
     } else {
       if (CSDischargePolygon.length > 0) {
         setCSDischargePolygon([]);
@@ -118,7 +125,15 @@ const PhotoComponent = (
         setCSWettedSurfacePolygon([]);
       }
     }
-  }, [CSDischarge?.bottom_surface, cameraConfig, imgDims, transformState, photoBbox]);
+    if (
+      checkImageReady() &&
+      // CSDischarge &&
+      CSDischarge?.bbox_wet
+    ) {
+      const newBboxWetPoints = CSDischarge.bbox_wet.map(pol => transformCoords(pol));
+      setWettedBbox(newBboxWetPoints);
+    }
+  }, [CSDischarge, cameraConfig, imgDims, transformState, photoBbox]);
 
   useEffect(() => {
     if (
@@ -190,8 +205,8 @@ const PhotoComponent = (
       y: start.y,
     };
     const endPoint = {
-      x: end.x, // (end.col / imgDims.width) * photoBbox.width,
-      y: end.y // (end.row / imgDims.height) * photoBbox.height,
+      x: end.x,
+      y: end.y
     };
 
     return { start: startPoint, end: endPoint };
@@ -209,7 +224,7 @@ const PhotoComponent = (
     const clickDuration = Date.now() - mouseDownTimeRef.current;
     // Only consider it a "click" if dragging did not occur and the click was fast enough
     if (clickDuration < 200) {
-      handleMouseClick(event); // Call your existing click logic
+      handleMouseClick(event); // Call click event
     }
   };
 
@@ -237,7 +252,7 @@ const PhotoComponent = (
 
     const row = Math.round(normalizedY * imgDims.height * 100) / 100;
     const col = Math.round(normalizedX * imgDims.width * 100) / 100;
-
+    // console.log(row, col)
     setHoverCoordinates({ row, col });
     if (bboxClickCount === 1) {
       // a line should only be plotted dynamically when the user has already clicked once for a bounding box
@@ -246,46 +261,55 @@ const PhotoComponent = (
       // when user has clicked twice, a dynamic polygon should be retrieved from api and plotted.
       // a timeout is necessary to ensure the polygon is only updated once every 0.3 seconds, to prevent too many calls
       // to the api.
-      if (debounceTimeoutRef.current) {
-        // get rid of earlier timeout if it exists
-        clearTimeout(debounceTimeoutRef.current);
-      }
-
-      // also cancel any ongoing api call if it exists
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      // set up a new abort controller for the new request upon mouse move
-      abortControllerRef.current = new AbortController();
-      const abortSignal = abortControllerRef.current.signal;
-
+      // if (debounceTimeoutRef.current) {
+      //   // get rid of earlier timeout if it exists
+      //   clearTimeout(debounceTimeoutRef.current);
+      // }
+      //
+      // // also cancel any ongoing api call if it exists
+      // if (abortControllerRef.current) {
+      //   abortControllerRef.current.abort();
+      // }
+      //
+      // // set up a new abort controller for the new request upon mouse move
+      // abortControllerRef.current = new AbortController();
+      // const abortSignal = abortControllerRef.current.signal;
+      //
       // setup a timeout event with api call
-      var bboxPoints = [];
-      debounceTimeoutRef.current = setTimeout(async () => {
-        // make simple list of lists for API call
-        const points = bboxMarkers.map(p => [p.col, p.row]);
-        points.push([col, row]);
-        const url = "/camera_config/bounding_box/";
-        const response = await api.post(
-          url,
-          {
-            "camera_config": cameraConfig,
-            "points": points,
-          }
-        )
-          .then(response => {
-            lastResponse.current = response;
-            const bbox = response.data.bbox_camera;
-            // set the bbox_camera on the current cameraConfig
-            bboxPoints = bbox.map(p => {
-              const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-              const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
-              return {x, y};
-            })
-            setBBoxPolygon(bboxPoints);
-          })
-      }, 100);
+      const points = bboxMarkers.map(p => [p.col, p.row]);
+      points.push([col, row]);
+      const msg = {
+        action: "update_video_config",
+        op: "set_bbox_from_width_length",
+        params: {
+          points: points
+        }
+      }
+      sendDebouncedMsg(msg);
+      // debounceTimeoutRef.current = setTimeout(async () => {
+      //   // make simple list of lists for API call
+      //   const points = bboxMarkers.map(p => [p.col, p.row]);
+      //   points.push([col, row]);
+      //   const url = "/camera_config/bounding_box/";
+      //   const response = await api.post(
+      //     url,
+      //     {
+      //       "camera_config": cameraConfig,
+      //       "points": points,
+      //     }
+      //   )
+      //     .then(response => {
+      //       lastResponse.current = response;
+      //       const bbox = response.data.bbox_camera;
+      //       // set the bbox_camera on the current cameraConfig
+      //       bboxPoints = bbox.map(p => {
+      //         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
+      //         const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
+      //         return {x, y};
+      //       })
+      //       setBBoxPolygon(bboxPoints);
+      //     })
+      // }, 100);
       setLineCoordinates(null);
     }
 
@@ -550,6 +574,30 @@ const PhotoComponent = (
           zIndex={0}
         />
       )}
+      {/*wetted part of bounding box*/}
+      {transformState && photoBbox && wettedBbox && wettedBbox.length > 0 && wettedBbox.map((line, idx) => (
+        <PolygonDrawer
+          points={line}
+          key={`bbox wet pol ${idx}`}
+          fill={"rgba(75, 75, 192, 0.3)"}
+          stroke={"rgba(75, 75, 192, 1)"}
+          strokeWidth={2 / transformState.scale}
+          zIndex={1}
+        />
+
+      ))}
+
+      {/*/!*Render the water/land boundary lines*!/*/}
+      {/*{transformState && photoBbox && CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (*/}
+      {/*  <PolygonDrawer*/}
+      {/*    points={line}*/}
+      {/*    key={`water line ${idx}`}*/}
+      {/*    fill={"rgba(75, 130, 192, 0.3)"}*/}
+      {/*    stroke={"red"}*/}
+      {/*    strokeWidth={2 / transformState.scale}*/}
+      {/*    zIndex={1}*/}
+      {/*  />*/}
+      {/*))}*/}
 
       {/* Render the dashed line */}
       {lineCoordinates && (
@@ -597,8 +645,8 @@ const PhotoComponent = (
         <div
           style={{
             position: 'absolute',
-            top: "10px",
-            left: "10px",
+            top: "40px",
+            left: "5px",
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             color: 'white',
             padding: '5px 10px',

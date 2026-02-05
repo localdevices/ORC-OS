@@ -1,27 +1,21 @@
-import api from "../../api/api.js";
 import {useEffect, useState} from "react";
+import {useDebouncedWsSender} from "../../api/api.js";
+import PropTypes from "prop-types";
 
 const VideoConfigForm = (
   {
     selectedVideoConfig,
-    setSelectedVideoConfig,
     video,
     cameraConfig,
-    recipe,
-    CSDischarge,
-    CSWaterLevel,
-    setCameraConfig,
-    setRecipe,
-    setCSDischarge,
-    setCSWaterLevel,
-    setSave,
-    setMessageInfo
+    ws
   }) => {
   const [formData, setFormData] = useState({
     name: '',
     id: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  // create a delayed websocket sender for this component
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   useEffect(() => {
     if (selectedVideoConfig) {
@@ -44,128 +38,39 @@ const VideoConfigForm = (
 
 
   const handleInputChange = async (event) => {
-    const {name, value, type} = event.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: value
+    const { name, value } = event.target;
+    // update local state immediately so UI is snappy
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    const msg = {
+      "action": "update_video_config",
+      "op": "set_field",
+      "params": {"video_patch": {"video_config": {[name]: value}}}
     }
-    setFormData(updatedFormData);
-    setSave(true);
+    // send change off to backend
+    sendDebouncedMsg(msg);
   }
 
   const handleRotateChange = async (event) => {
     const value = event.target.value === "0" ? null : parseInt(event.target.value);
     // set the rotation correctly
-    const updatedCameraConfig = {
-      ...cameraConfig,
-      rotation: value,
-      height: cameraConfig.height,
-      width: cameraConfig.width,
-    };
-    setCameraConfig(updatedCameraConfig);
-    // set the rotation correctly
+    ws.sendJson({"action": "update_video_config", "op": "set_rotation", "params": {"rotation": value}})
   }
 
   const handleFormSubmit = async (event) => {
     setIsSaving(true);
     event.preventDefault();
-    // collect data from all fields
-
-    // Dynamically filter only fields with non-empty values
-    const filteredData = Object.fromEntries(
-      Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-    );
-    console.log("FORMDATA VID-CONFIG: ", formData);
-    if (formData.sample_video_id === undefined) {
-      console.log("SAMPLE VIDEO UNDEFINED")
-      filteredData.sample_video_id = video.id;
-    }
-    if (formData.sync_status !== 1) {
-      filteredData.sync_status = 3;  // update sync status
-    } else {
-      filteredData.sync_status = 1;  // if video config is new, don't update
-    }
-    // the entire video config is stored in one go
-    if (Object.keys(CSDischarge).length > 0 && CSDischarge?.name === undefined) {
-      CSDischarge.name = filteredData.name;
-    }
-    if (Object.keys(CSWaterLevel).length > 0 && CSWaterLevel?.name === undefined) {
-      CSWaterLevel.name = filteredData.name;
-    }
-    if (recipe?.name === undefined) {
-      recipe.name = filteredData.name;
-    }
-    if (cameraConfig?.name === undefined) {
-      cameraConfig.name = filteredData.name;
-    }
-    if (CSDischarge.features) {
-      filteredData.cross_section = CSDischarge
-    } else {
-      filteredData.cross_section = null;
-    }
-    if (CSWaterLevel.features) {
-      filteredData.cross_section_wl = CSWaterLevel
-    } else {
-      filteredData.cross_section_wl = null;
-    }
-    if (recipe.data) {
-      filteredData.recipe = {
-        ...recipe,
-        sync_status: recipe.sync_status === 1 ? 1 : 3  // replace sync status
-      }
-    } else {
-      filteredData.recipe = null;
-    }
-    if (cameraConfig.data) {
-      const {isCalibrated, isPoseReady, ...cameraConfigWithoutCalibrated} = cameraConfig;
-      filteredData.camera_config = cameraConfigWithoutCalibrated
-    } else {
-      filteredData.camera_config = null;
-    }
-    // predefine response object
-    let response;
     try {
-      response = await api.post('/video_config/', filteredData);
-      if (response.status !== 201 && response.status !== 200) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
-      } else {
-        // set the updated camera config, recipe and cross-section details
-        setSelectedVideoConfig(response.data);
-        // also set the camera config id and recipe id
-        setCameraConfig({
-            ...cameraConfig,
-            id: response.data.camera_config.id,
-            name: response.data.camera_config.name
-        });
-        setRecipe({
-            ...recipe,
-            id: response.data.recipe.id,
-            name: response.data.recipe.name,
-            sync_status: response.data.recipe.sync_status
-        });
-      }
-      setMessageInfo('success', 'Video config stored successfully');
+      ws.sendJson({"action": "save", "params": {"name": formData.name}});
+
     } catch (err) {
-      setMessageInfo('error', `Error while storing video config ${err.response.data.detail}`);
+      console.error('Error storing video config:', err.response.data.detail);
     } finally {
-      try {
-        // now also update the video where needed
-        video.video_config_id = response.data.id;
-        // and store this in the database
-        await api.patch(`/video/${video.id}`, {"video_config_id": response.data.id});
-        // ensure saving is set to false (only when successful
-        setSave(false);
-      } catch (err) {
-        console.log(`Failed to set video config id for video ${video.id} due to ${err}`);
-      } finally {
-        // ensure the view port is opened for edits in all cases
         setIsSaving(false);
       }
-
     }
-  };
-
 
   return (
     <div className='container tab'>
@@ -200,7 +105,7 @@ const VideoConfigForm = (
               type="radio"
               id="modePerspective"
               name="videoMode"
-              onChange={handleInputChange}
+              // onChange={handleInputChange}
               value="perspective"
               required
               checked={true}
@@ -213,7 +118,7 @@ const VideoConfigForm = (
               type="radio"
               id="modeHomography"
               name="videoMode"
-              onChange={handleInputChange}
+              // onChange={handleInputChange}
               value="homography"
               required
               disabled={true}
@@ -227,7 +132,7 @@ const VideoConfigForm = (
               type="radio"
               id="modeDrone"
               name="videoMode"
-              onChange={handleInputChange}
+              // onChange={handleInputChange}
               value="nadirDrone"
               required
               disabled={true}
@@ -299,16 +204,11 @@ const VideoConfigForm = (
 
 };
 
-import PropTypes from "prop-types";
-
 VideoConfigForm.propTypes = {
-  selectedVideoConfig: PropTypes.object,
-  setSelectedVideoConfig: PropTypes.func,
-  cameraConfig: PropTypes.object,
-  recipe: PropTypes.object,
-  CSDischarge: PropTypes.object,
-  CSWaterLevel: PropTypes.object,
-  setMessageInfo: PropTypes.func,
+  selectedVideoConfig: PropTypes.object.isRequired,
+  video: PropTypes.object.isRequired,
+  cameraConfig: PropTypes.object.isRequired,
+  ws: PropTypes.object.isRequired,
 };
 
 export default VideoConfigForm;

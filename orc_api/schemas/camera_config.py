@@ -4,12 +4,15 @@ import warnings
 from typing import List, Optional, Union
 
 import numpy as np
+import shapely.geometry
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pyorc import CameraConfig as pyorcCameraConfig
 from pyorc import cv
 from pyorc.cv import get_cam_mtx
 from pyproj.crs import CRS
 
+from orc_api import crud
+from orc_api.db import CameraConfig
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.control_points import ControlPoint, ControlPointSet
 
@@ -20,8 +23,8 @@ warnings.simplefilter("always", DeprecationWarning)
 class GCPData(BaseModel):
     """GCP data model."""
 
-    src: Optional[List[List[float]]] = Field(default=None, description="GCP source points.")
-    dst: Optional[List[List[float]]] = Field(default=None, description="GCP destination points.")
+    src: Optional[List[List[Optional[float]]]] = Field(default=None, description="GCP source points.")
+    dst: Optional[List[List[Optional[float]]]] = Field(default=None, description="GCP destination points.")
     crs: Optional[Union[str, int]] = Field(default=None, description="Coordinate Reference System of the GCPs.")
     h_ref: Optional[float] = Field(default=None, description="Reference height of water level in local datum.")
     z_0: Optional[float] = Field(default=None, description="Reference height of water level in GCP datum.")
@@ -69,6 +72,18 @@ class CameraConfigBase(BaseModel):
         """Return the camera configuration as pyorc camera config object."""
         return pyorcCameraConfig(**self.data.model_dump())
 
+    def patch_post(self, db):
+        """Patch or post the camera configuration depending on whether an ID is set."""
+        # first validate as Update
+        camera_config = CameraConfigUpdate.model_validate(self)
+        cc_dict = camera_config.model_dump(exclude_none=True, include={"name", "data", "remote_id", "sync_status"})
+        if camera_config.id is None:
+            new_cc = CameraConfig(**cc_dict)
+            new_cc = crud.camera_config.add(db=db, camera_config=new_cc)
+        else:
+            new_cc = crud.camera_config.update(db=db, id=camera_config.id, camera_config=cc_dict)
+        return CameraConfigResponse.model_validate(new_cc)
+
 
 class CameraConfigRemote(CameraConfigBase, RemoteModel):
     """Model for camera configuration with remote fields included."""
@@ -76,7 +91,7 @@ class CameraConfigRemote(CameraConfigBase, RemoteModel):
     pass
 
 
-class CameraConfigInteraction(CameraConfigBase):
+class CameraConfigInteraction(CameraConfigRemote):
     """Response model for camera configuration."""
 
     id: Optional[int] = Field(default=None, description="CameraConfig ID")
@@ -94,8 +109,8 @@ class CameraConfigInteraction(CameraConfigBase):
     gcps: Optional[ControlPointSet] = Field(default=None, description="Control point set model for use in front end.")
     height: Optional[int] = Field(default=None, description="Height of the image in pixels.")
     width: Optional[int] = Field(default=None, description="Height of the image in pixels.")
-    bbox: Optional[List[List[float]]] = Field(default=None, description="Bounding (geographical) box of the AOI.")
-    bbox_camera: Optional[List[List[float]]] = Field(default=None, description="Bounding box (camera) of the AOI.")
+    bbox: List[List[float]] = Field(default=[], description="Bounding (geographical) box of the AOI.")
+    bbox_camera: List[List[float]] = Field(default=[], description="Bounding box (camera) of the AOI.")
 
     @property
     def allowed_to_run(self):
@@ -115,7 +130,7 @@ class CameraConfigInteraction(CameraConfigBase):
             return False
 
         # Check if bounding box is set
-        if self.bbox is None:
+        if self.bbox is None or len(self.bbox) == 0:
             return False
 
         return True
@@ -203,7 +218,9 @@ class CameraConfigResponse(CameraConfigInteraction):
             if instance.data.bbox is not None:
                 cc = pyorcCameraConfig(**instance.data.model_dump())
                 instance.bbox = list(map(list, cc.bbox.exterior.coords))
-                instance.bbox_camera = list(map(list, cc.get_bbox(mode="camera", within_image=True).exterior.coords))
+                instance.bbox_camera = list(
+                    map(list, cc.get_bbox(mode="camera", within_image=True, exterior_split=200).exterior.coords)
+                )
         return instance
 
 
@@ -225,45 +242,56 @@ class CameraConfigUpdate(CameraConfigInteraction):
     @model_validator(mode="after")
     def populate_data_from_fields(cls, instance):
         """Populate the camera configuration data where needed."""
-        instance.data.rotation = instance.rotation
-        instance.data.height = instance.height
-        instance.data.width = instance.width
-        if instance.f is not None:
-            camera_matrix = get_cam_mtx(height=instance.data.height, width=instance.data.width, focal_length=instance.f)
-            instance.data.camera_matrix = camera_matrix.tolist()
+        if instance.data is None:
+            data = CameraConfigData(height=instance.height, width=instance.width)
         else:
-            instance.data.camera_matrix = None
+            data = instance.data
+        data.rotation = instance.rotation
+        data.height = instance.height
+        data.width = instance.width
+        if instance.f is not None:
+            camera_matrix = get_cam_mtx(height=data.height, width=data.width, focal_length=instance.f)
+            data.camera_matrix = camera_matrix.tolist()
+        else:
+            data.camera_matrix = None
         dist_coeffs = np.zeros((5, 1), dtype=np.float64)
         if instance.k1 is not None:
             dist_coeffs[0][0] = instance.k1
         if instance.k2 is not None:
             dist_coeffs[1][0] = instance.k2
-        instance.data.dist_coeffs = dist_coeffs.tolist()
+        data.dist_coeffs = dist_coeffs.tolist()
         if instance.camera_position is not None and instance.camera_rotation is not None:
             # prepare the rvec and tvec
             rvec, tvec = cv.pose_world_to_camera(np.array(instance.camera_rotation), np.array(instance.camera_position))
-            instance.data.rvec, instance.data.tvec = (
+            data.rvec, data.tvec = (
                 rvec.tolist(),
                 tvec.tolist(),
             )
         else:
             # if either one is missing, we set everything to None
-            instance.data.rvec, instance.data.tvec = None, None
+            data.rvec, data.tvec = None, None
 
         # handle the control points
         if instance.gcps:
             if instance.gcps.control_points:
+                # validate the control points
+                instance.gcps = ControlPointSet.model_validate(instance.gcps.model_dump())
                 # parse to src / dst
                 src, dst = instance.gcps.parse()
                 # only parse if serc and dst are not None
-                instance.data.gcps = GCPData(
+                data.gcps = GCPData(
                     crs=instance.gcps.crs, src=src, dst=dst, h_ref=instance.gcps.h_ref, z_0=instance.gcps.z_0
                 )
             else:
                 src, dst = None, None
             # also make the crs of the entire camera config equal to the crs of the gcps
             if instance.gcps.crs is not None:
-                instance.data.crs = instance.gcps.crs
+                data.crs = instance.gcps.crs
+        if instance.bbox is not None and len(instance.bbox) > 0:
+            data.bbox = shapely.geometry.Polygon(instance.bbox).wkt
+        else:
+            data.bbox = None
+        instance.data = data
         return instance
 
 

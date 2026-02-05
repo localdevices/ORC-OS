@@ -1,11 +1,12 @@
-import api from "../../api/api.js";
+import api, {useDebouncedWsSender} from "../../api/api.js";
+import {safelyParseJSON} from "../../utils/helpers.jsx";
 import {useEffect, useState} from "react";
 import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
 import './recipeComponents.css'
 
-const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageInfo, CSWaterLevel, CSDischarge}) => {
+const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel, CSDischarge, ws}) => {
   const [formData, setFormData] = useState({
     name: '',
     id: '',
@@ -25,6 +26,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     {name: "Smooth e.g. concrete deep", value: "0.85"},
     {name: "Very smooth concrete deep", value: "0.90"},
   ]
+  const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -80,16 +82,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     }
   }, [selectedRecipe]);
 
-  // Utility function to safely parse JSON
-  const safelyParseJSON = (jsonString) => {
-    try {
-      return JSON.parse(jsonString); // Parse if valid JSON string
-    } catch (error) {
-      console.warn("Invalid JSON string:", error);
-      return jsonString; // Fallback: Leave it as the original string
-    }
-  };
-
   const renderAlphaValue = (value) => {
     for (let i = 0; i < roughnessValues.length - 1; i++) {
       const currentValue = parseFloat(roughnessValues[i].value);
@@ -109,7 +101,6 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
   }
 
   const loadModal = async () => {
-    console.log("load modal");
     const input = document.createElement('input');
     input.type = "file";
     input.accept = ".yml";
@@ -126,6 +117,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
             formData,
             {headers: {"Content-Type": "multipart/form-data",},}
           );
+          console.log(response);
           // set the recipe to the returned recipe
           setSelectedRecipe(response.data);
         } catch (error) {
@@ -137,83 +129,61 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
     input.click();
   }
 
-  const submitData = (formData) => {
-    return {
-      id: formData.id || null,
-      name: formData.name,
-      data: safelyParseJSON(formData.data),
-      start_frame: formData.start_frame,
-      end_frame: formData.end_frame,
-      lazy: formData.lazy,
-      freq: formData.freq,
-      resolution: formData.resolution,
-      window_size: formData.window_size,
-      v_distance: formData.v_distance,
-      alpha: formData.alpha,
-      quiver_scale_grid: formData.quiver_scale_grid,
-      quiver_scale_cs: formData.quiver_scale_cs,
-      quiver_width_grid: formData.quiver_width_grid,
-      quiver_width_cs: formData.quiver_width_cs,
-      min_z: formData.min_z,
-      max_z: formData.max_z,
-      wl_preprocess: formData.wl_preprocess,
-      wl_s2n_thres: formData.wl_s2n_thres,
-      padding: formData.padding,
-      length: formData.length,
-      bank: formData.bank
+  const updateRecipe = async (updatedFields) => {
+    const updatedFormData = {
+      ...formData,
+      ...updatedFields
     }
+    setFormData(updatedFormData);
+    // const videoPatch = {video_config: {recipe: updatedFields}};
+    const msg = {
+      action: "update_video_config",
+      op: "update_recipe",
+      params: {
+        recipe_patch: updatedFields
+      }
+    }
+    sendDebouncedMsg(msg)
+  }
+
+  const handleRawDataChange = async (event) => {
+    const {value} = event.target;
+    const updatedFormData ={
+      ...formData,
+      data: value
+    }
+    setFormData(updatedFormData);
+    // create a new recipe response based on data
+    const msg = {
+      action: "update_video_config",
+      op: "set_recipe_data",
+      params: {
+        "data": safelyParseJSON(value)
+      }
+    }
+    sendDebouncedMsg(msg)
   }
 
   const handleInputChange = async (event) => {
     const {name, value, type} = event.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: name === "resolution" ? parseFloat(value) : (type === "number" ? parseInt(value) : value)
-    }
-    setFormData(updatedFormData);
-    try {
-      const response = await api.post('/recipe/update/', submitData(updatedFormData));
-      setSelectedRecipe(response.data);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-    }
+    const parsedValue = name === "resolution" ? parseFloat(value) : (type === "number" ? parseInt(value) : value);
+    const updatedFields = {[name]: parsedValue};
+    await updateRecipe(updatedFields);
   }
 
   const handleInputLiteralChange = async (event) => {
-
-    const {name, value, type} = event.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: value === "" ? null : value
-    }
-    setFormData(updatedFormData);
-    console.log(submitData(updatedFormData));
-    try {
-      const response = await api.post('/recipe/update/', submitData(updatedFormData));
-      setSelectedRecipe(response.data);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-    }
+    const {name, value} = event.target;
+    const parsedValue = value === "" ? null : value
+    const updatedFields = {[name]: parsedValue};
+    await updateRecipe(updatedFields);
   }
 
   const handleInputBooleanChange = async (event) => {
-
-    const {name, value, type} = event.target;
+    const {name, value} = event.target;
     const booleanValue = value === "true" ? true : value === "false" ? false : null;
-    const updatedFormData = {
-      ...formData,
-      [name]: booleanValue,
-    }
-    setFormData(updatedFormData);
-    console.log(updatedFormData);
-    try {
-      const response = await api.post('/recipe/update/', submitData(updatedFormData));
-      setSelectedRecipe(response.data);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-    }
+    const updatedFields = {[name]: booleanValue};
+    await updateRecipe(updatedFields);
   }
-
 
   const handleFrameChange = async (values) => {
     const minimumDifference = 10;
@@ -232,18 +202,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         endValue = frameCount;
       }
     }
-    const updatedFormData = {
-      ...formData,
-      start_frame: startValue,
-      end_frame: endValue
-    }
-    setFormData(updatedFormData);
-    try {
-      const response = await api.post('/recipe/update/', submitData(updatedFormData));
-      setSelectedRecipe(response.data);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-    }
+    const updatedFields = {start_frame: startValue, end_frame: endValue};
+    await updateRecipe(updatedFields);
   }
 
   const handleWaterLevelMinMaxChange = async (values) => {
@@ -263,77 +223,15 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
         maxValue = Math.max(...CSWaterLevel?.z);
       }
     }
-    const updatedFormData = {
-      ...formData,
-      min_z: minValue,
-      max_z: maxValue
-    }
-    setFormData(updatedFormData);
-    try {
-      const response = await api.post('/recipe/update/', submitData(updatedFormData));
-      setSelectedRecipe(response.data);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-    }
+    const updatedFields = {min_z: minValue, max_z: maxValue};
+    await updateRecipe(updatedFields);
   }
 
   const handleSliderChange = async (name, value) => {
     // Ensure values are at least `minimumDifference` apart
-    const updatedFormData = {
-      ...formData,
-      [name]: value,
-    }
-    setFormData(updatedFormData);
-
-    try {
-      const response = await api.post('/recipe/update/', submitData(updatedFormData));
-      setSelectedRecipe(response.data);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-    }
+    const updatedFields = {[name]: value};
+    await updateRecipe(updatedFields);
   }
-
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
-    // Dynamically filter only fields with non-empty values
-    const filteredData = Object.fromEntries(
-      Object.entries(formData).filter(([key, value]) => value !== '' && value !== null)
-    );
-    // predefine response object
-    let response;
-    try {
-      console.log(submitData(filteredData));
-
-      if (filteredData.id === undefined) {
-        response = await api.post('/recipe/', submitData(filteredData));
-      } else {
-        response = await api.patch(`/recipe/${filteredData.id}`, submitData(filteredData));
-      }
-      console.log(response);
-      if (response.status !== 201 && response.status !== 200) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
-      }
-      // reload page
-      window.location.reload();
-      setSelectedRecipe({})
-      // set the form data to new device settings
-      setFormData({
-        name: '',
-        id: '',
-        start_frame: '',
-        end_frame: '',
-        // lazy: '',
-        freq: '',
-        resolution: '',
-        data: ''
-      });
-      setMessageInfo('success', 'Recipe stored successfully');
-    } catch (err) {
-      setMessageInfo('Error while storing recipe', err.response.data);
-    }
-  };
-
 
   return (
     <div className='container tab'>
@@ -346,7 +244,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
       </button>
 
       <div style={{"padding": "5px"}}>
-        <form onSubmit={handleFormSubmit}>
+        {/*<form onSubmit={handleFormSubmit}>*/}
+        <form>
           <div className='mb-3 mt-3' style={{display: 'none'}}>
             <label htmlFor='id' className='form-label'>
               Recipe ID
@@ -840,7 +739,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, setMessageIn
                 className="form-control"
                 rows="40"
                 value={formData.data}
-                onChange={handleInputChange}
+                onChange={handleRawDataChange}
               ></textarea>
             </div>
           )}
@@ -858,9 +757,9 @@ RecipeForm.propTypes = {
   selectedRecipe: PropTypes.object,
   setSelectedRecipe: PropTypes.func.isRequired,
   frameCount: PropTypes.number.isRequired,
-  setMessageInfo: PropTypes.func.isRequired,
   CSWaterLevel: PropTypes.object,
-  CSDischarge: PropTypes.object
+  CSDischarge: PropTypes.object,
+  ws: PropTypes.object.isRequired
 };
 
 export default RecipeForm;

@@ -1,5 +1,5 @@
 import {rainbowColors} from "../../utils/helpers.jsx";
-import {Line, Scatter, Chart } from 'react-chartjs-2';
+import {Chart } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,13 +34,12 @@ const pointIndexPlugin = {
     );
     if (controlPointsDatasetIndex !== -1) {
 
-    // data.datasets.forEach((dataset, datasetIndex) => {
+      // data.datasets.forEach((dataset, datasetIndex) => {
       const meta = chart.getDatasetMeta(controlPointsDatasetIndex);
       meta.data.forEach((element, index) => {
         // Get the data value
         const value = index + 1; // Index + 1 as the label
         const position = element.tooltipPosition(); // Position of the point
-        // console.log(position);
         // Draw the text
         ctx.font = '12px sans-serif'; // Set font style
         ctx.textAlign = 'center'; // Align text at the center of the point
@@ -114,9 +113,6 @@ const cameraIconPlugin = {
         ctx.closePath();
         ctx.fill();
       }
-
-
-
     }
   },
 };
@@ -124,7 +120,6 @@ const cameraIconPlugin = {
 // Register the plugins
 ChartJS.register(pointIndexPlugin);
 ChartJS.register(cameraIconPlugin);
-
 
 const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBox}) => {
   const polygonData =
@@ -184,7 +179,6 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBo
           intersect: false,
           callbacks: {
             label: function (tooltipItem) {
-              // console.log(tooltipItem);
               return `Point ${tooltipItem.dataIndex + 1}\n x: ${tooltipItem.parsed.x.toFixed(2)} y: ${tooltipItem.parsed.y.toFixed(2)}`;
             },
           }
@@ -208,7 +202,8 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBo
   const options = {
     // responsive: true,
     aspectRatio: 1,
-    maintainAspectRatio: true,
+    // maintainAspectRatio: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         title: {
@@ -253,7 +248,11 @@ const TopView = ({CSDischarge, CSWaterLevel, Gcps, cameraPosition, rotation, bBo
 
   }
   return (
-    <div style={{ minHeight: "200px", overflowY: "auto"}}>
+    <div style={{
+      width: "100%",
+      // maxWidth: "600px",
+      aspectRatio: "1 / 1",
+      overflowY: "auto"}}>
       <Chart
         type="scatter"
         key={Math.random()}
@@ -272,7 +271,10 @@ TopView.propTypes = {
     s: PropTypes.arrayOf(PropTypes.number).isRequired,
     z: PropTypes.arrayOf(PropTypes.number).isRequired
   }).isRequired,
-  CSWaterLevel: PropTypes.any, // Update based on the actual usage of CSWaterLevel
+  CSWaterLevel: PropTypes.object, // Update based on the actual usage of CSWaterLevel
+  Gcps: PropTypes.object,
+  cameraPosition: PropTypes.arrayOf(PropTypes.number), // xyz location of camera
+  rotation: PropTypes.number,  // down-pose rotation (others not needed for top view)
   bBox: PropTypes.arrayOf(
     PropTypes.arrayOf(PropTypes.number)
   ).isRequired, // array of [x, y] coordinates

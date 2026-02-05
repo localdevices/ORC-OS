@@ -124,6 +124,7 @@ def test_video_update_timeseries(video_response_no_ts, session_video_config, mon
         mp.setattr("orc_api.schemas.video.xr.open_dataset", xr_open_dataset)
         mock_video.update_timeseries(session_video_config, "mock_base_path")
     # delete all records before closing
+    session_video_config.query(models.Video).delete()
     session_video_config.query(models.TimeSeries).delete()
 
 

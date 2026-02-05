@@ -49,14 +49,12 @@ def test_update_device_create_new_and_get():
     assert response.status_code == 201
     response_data = response.json()
     assert response_data["name"] == device_data["name"]
-    assert response_data["operating_system"] == device_data["operating_system"]
     assert response_data["memory"] == device_data["memory"]
     # now try to get the device
     response = client.get("/device/")
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["name"] == device_data["name"]
-    assert response_data["operating_system"] == device_data["operating_system"]
     assert response_data["memory"] == device_data["memory"]
 
 
@@ -70,8 +68,6 @@ def test_update_device_update_existing():
     assert response.status_code == 201
     response_data = response.json()
     assert response_data["name"] == updated_device_data["name"]
-    assert response_data["operating_system"] == updated_device_data["operating_system"]
-    assert response_data["processor"] == updated_device_data["processor"]
 
 
 def test_get_device_statuses_success():

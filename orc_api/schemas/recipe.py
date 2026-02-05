@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from orc_api import crud
+from orc_api.db import Recipe
 from orc_api.schemas.base import RemoteModel
 
 frames_options = {
@@ -127,6 +128,18 @@ class RecipeBase(BaseModel):
     name: Optional[str] = Field(default=None, description="Free recognizable description of cross section.")
     data: Optional[dict] = Field(default=None, description="Recipe data")
     model_config = ConfigDict(from_attributes=True)
+
+    def patch_post(self, db):
+        """Patch or post instance dependent on whether an ID is already set or not."""
+        # first validate as simplified recipe
+        recipe = RecipeRemote.model_validate(self)
+        recipe_dict = recipe.model_dump(exclude_none=True, include={"name", "data", "remote_id", "sync_status"})
+        if recipe.id is None:
+            recipe_db = Recipe(**recipe_dict)
+            recipe_db = crud.recipe.add(db=db, recipe=recipe_db)
+        else:
+            recipe_db = crud.recipe.update(db=db, id=recipe.id, recipe=recipe_dict)
+        return RecipeResponse.model_validate(recipe_db)
 
 
 class RecipeRemote(RecipeBase, RemoteModel):

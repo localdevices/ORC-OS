@@ -4,6 +4,7 @@ import asyncio
 import io
 import mimetypes
 import os
+import traceback  # only used in DEV_MODE
 from datetime import datetime
 from typing import List, Optional, Union
 from zipfile import ZIP_DEFLATED
@@ -26,10 +27,11 @@ from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
 
 # Directory to save uploaded files
-from orc_api import UPLOAD_DIRECTORY, crud
+from orc_api import DEV_MODE, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_db
 from orc_api.db import SyncStatus, Video, VideoStatus
 from orc_api.log import logger
+from orc_api.routers.ws.video import WSVideoMsg, WSVideoState
 from orc_api.schemas.video import (
     DeleteVideosRequest,
     DownloadVideosRequest,
@@ -44,8 +46,6 @@ from orc_api.utils import queue, websockets
 from orc_api.utils.states import video_run_state
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
-
-# UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 # Ensure the upload directory exists
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
@@ -583,3 +583,57 @@ async def update_video_ws(websocket: WebSocket):
     except WebSocketDisconnect:
         f"Websocket {websocket} disconnected."
         conn_manager.disconnect(websocket)
+
+
+@router.websocket("/{id}/video_ws/")
+async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
+    """Get continuous status of video config belonging to video via websocket."""
+    await conn_manager.connect(websocket)
+    print(f"Connected websocket for video config data exchange: {websocket}")
+    # initialize the websocket state
+    try:
+        db = next(get_db())
+        video_rec = crud.video.get(db=db, id=id)
+        video = VideoResponse.model_validate(video_rec)
+        # create a state for the rest of the session
+        video_state = WSVideoState(video=video, saved=True)
+        db.close()
+        await websocket.send_json(video_state.model_dump(mode="json"))
+
+    except Exception as e:
+        await websocket.send_json({"error": str(e)})
+        if DEV_MODE:
+            traceback.print_exc()
+        print(f"Error sending video config data to websocket: {e}")
+        await websocket.close()
+        return
+
+    try:
+        while True:
+            # read requests from client
+            msg = await websocket.receive_json()
+            if DEV_MODE:
+                print(f"Received message from websocket: {msg}")
+            # validate message
+            msg = WSVideoMsg.model_validate(msg)
+            # perform operations on video config
+            if msg.action == "save":
+                name = msg.params.pop("name", None)
+                r = video_state.save(name=name)
+            elif msg.action == "reset_video_config":
+                r = video_state.reset_video_config()
+            elif msg.action == "update_video_config":
+                # update with the operation and parameters only
+                r = video_state.update_video_config(**msg.model_dump(exclude={"action"}))
+            await websocket.send_json(r.model_dump(mode="json"))
+    except WebSocketDisconnect:
+        print(f"Websocket {websocket} for video_config_id {id} disconnected.")
+        conn_manager.disconnect(websocket)
+        # await websocket.close()
+    except Exception as e:
+        if DEV_MODE:
+            traceback.print_exc()
+        print(f"Websocket error: {e}")
+        conn_manager.disconnect(websocket)
+    # finally:
+    #     await websocket.close()

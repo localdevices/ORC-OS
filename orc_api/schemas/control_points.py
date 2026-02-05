@@ -35,8 +35,8 @@ def compute_utm_zone(points: List[dict]) -> pyproj.CRS:
 class ControlPoint(BaseModel):
     """Base model for a cross-section."""
 
-    x: float
-    y: float
+    x: Optional[float] = None
+    y: Optional[float] = None
     z: Optional[float] = None
     row: Optional[float] = None
     col: Optional[float] = None
@@ -85,8 +85,8 @@ class ControlPointSet(BaseModel):
         dst = [[point.x, point.y] if all_z_none else [point.x, point.y, point.z] for point in self.control_points]
         src = [[point.col, point.row] for point in self.control_points]
         # check if any src or dst coordinates are None
-        if any(None in coord for coord in src) or any(None in coord for coord in dst):
-            return None, None
+        # if any(None in coord for coord in src) or any(None in coord for coord in dst):
+        #     return None, None
         return src, dst
 
 

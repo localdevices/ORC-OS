@@ -10,13 +10,18 @@ Feedback and bug reports are highly appreciated to improve future versions.
 ### Added
 - A brand new time series view for water level and discharge data displays, filtering and downloading. A rating curve
   view is also available for a quick view on the water level - discharge relationship.
-- maximum velocity is now default set to 10 m/s.
-- Video configuration selection modal is mmore instructive with a better understanding of current status and the
+- Video configuration selection modal is more instructive with a better understanding of current status and the
   options.
+- The bounding box in the Video Configuration image window can be rotated and moved after first creation.
 ### Changed
 - Video table loads much faster and responds to changes made by user without a full page refresh being required.
 - Video editing modal and video config selection modal now show feedback during loading and saving, preventing user
   from clicking multiple times.
+- maximum velocity is now default set to 10 m/s.
+- All points, lines and polygons in the Video Configuration image window are now entirely dynamical and do not require
+  saving and page refreshing.
+- The wetted part of the bounding box is displayed separately. This helps to identify the correct bounding box around
+  the cross section.
 ### Deprecated
 ### Removed
 ### Fixed
@@ -27,6 +32,9 @@ Feedback and bug reports are highly appreciated to improve future versions.
   connections.
 - Fixed issue with videos not appearing in the video table when video configuration is not complete yet.
 - Fixed issue with video record becoming incomplete after detaching the video_config.
+- Fixed issue with wrong video being selected upon click in time series when one or several filters are active.
+- Backend issue fixed, which resulted in an error when the device is not assigned any IP-address.
+- Syncing videos with LiveORC without any files resulted in an error. Video is now not synced if no files are selected.
 ### Security
 
 

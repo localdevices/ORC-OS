@@ -1,3 +1,24 @@
+// Utility function to safely parse JSON
+export const safelyParseJSON = (jsonString) => {
+  try {
+    return JSON.parse(jsonString); // Parse if valid JSON string
+  } catch (error) {
+    console.warn("Invalid JSON string:", error);
+    return jsonString; // Fallback: Leave it as the original string
+  }
+};
+
+// Simple debounce utility returning a stable debounced function
+export const createDebounce = (callback, delay) => {
+  let timeout;
+  const debounced = (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => callback(...args), delay);
+  };
+  // return a cancel function to clear the timeout
+  debounced.cancel = () => clearTimeout(timeout);
+  return debounced;
+};
 
 // make some colors
 export const rainbowColors = Array.from({length: 10}, (_, i) => {
@@ -47,4 +68,12 @@ export const areControlPointsEqual = (arr1, arr2) => {
       obj1.row === obj2.row &&
       obj1.col === obj2.col;
   });
+};
+
+
+// Helper: parse numbers but keep 0 as a valid value
+export const toNumberOrNull = (value) => {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = parseFloat(value);
+  return Number.isNaN(n) ? null : n;
 };

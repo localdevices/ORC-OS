@@ -67,7 +67,7 @@ const PaginatedRecipes = ({initialData}) => {
     }
     if (window.confirm(`Are you sure you want to delete ${selectedIds.length} recipes?`)) {
       Promise.all(
-        selectedIds.map((id) => api.delete(`/recipe/${id}`).catch((error) => error)) // Attempt to delete each id and catch errors
+        selectedIds.map((id) => api.delete(`/recipe/${id}/`).catch((error) => error)) // Attempt to delete each id and catch errors
       )
         .then(() => {
           // Remove deleted recipes from the state
@@ -88,7 +88,7 @@ const PaginatedRecipes = ({initialData}) => {
   // Handle the "Delete" button action
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this recipe?')) {
-      api.delete(`/recipe/${id}`) // Replace with your API endpoint
+      api.delete(`/recipe/${id}/`) // Replace with your API endpoint
         .then(() => {
           const updatedData = data.filter((recipe) => recipe.id !== id); // Remove from state
           setData(updatedData);
@@ -114,47 +114,6 @@ const PaginatedRecipes = ({initialData}) => {
     setSelectedRecipe(null);
     setShowModal(false);
   };
-  const createNewModal = () => {
-    api.post(`/recipe/empty/`) // Replace with your API endpoint
-      .then((response) => {
-        setSelectedRecipe(response.data);
-      })
-      .catch((error) => {
-        console.error('Error occurred:', error);
-      });
-
-  }
-  const loadModal = async () => {
-    console.log("load modal");
-    const input = document.createElement('input');
-    input.type = "file";
-    input.accept = ".yml";
-    // Wait for the user to select a file
-    input.addEventListener('change', async (event) => {
-
-    // input.onchange = async (event) => {
-      const file = event.target.files[0]; // Get the selected file
-      if (file) {
-        const formData = new FormData(); // Prepare form data for file upload
-        formData.append("file", file);
-
-        try {
-          const response = await api.post(
-            '/recipe/from_file/',
-            formData,
-            {headers: {"Content-Type": "multipart/form-data",},}
-          );
-          // set the recipe to the returned recipe
-          setSelectedRecipe(response.data);
-        } catch (error) {
-          console.error("Error occurred during file upload:", error);
-        }
-      }
-    });
-    // trigger input dialog box to open
-    input.click();
-
-  }
 
   const saveRecipe = async () => {
     const recipe_id = selectedRecipe.id;
@@ -235,18 +194,6 @@ const PaginatedRecipes = ({initialData}) => {
       </div>
       <div style={{flexDirection: "column", flex: 0}}>
         <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
-          <button
-            className="btn"
-            onClick={createNewModal}
-          >
-            Create new
-          </button>
-          <button
-            className="btn"
-            onClick={loadModal}
-          >
-            Upload from .yml
-          </button>
           <button
             className="btn btn-danger"
             onClick={handleDeleteSelected}

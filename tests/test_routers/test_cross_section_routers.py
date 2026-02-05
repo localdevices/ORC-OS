@@ -37,6 +37,7 @@ def mock_cross_section():
 def test_get_patch_post_cross_section(auth_client, video_config_dict, db_session):
     # first add a complete video config
     r = auth_client.post("/api/video_config/", json=video_config_dict)
+    assert r.status_code == 201
 
     # now we can test cross section routes
     r = auth_client.get("/api/cross_section/")  # this should give list of all cross sections
@@ -74,15 +75,18 @@ def test_get_patch_post_cross_section(auth_client, video_config_dict, db_session
     assert r.status_code == 200
     # json should contain type
     assert "type" in r.json()
-    # finally delete cross section
+    # finally delete dependent video config and then the cross section
+    r = auth_client.delete("/api/video_config/1/")
+    assert r.status_code == 204
+
     r = auth_client.delete("/api/cross_section/1/")
     assert r.status_code == 204
 
     # remove after test
+    db_session.query(db.VideoConfig).delete()
     db_session.query(db.CrossSection).delete()
     db_session.query(db.CameraConfig).delete()
     db_session.query(db.Recipe).delete()
-    db_session.query(db.VideoConfig).delete()
 
     db_session.commit()
     db_session.flush()

@@ -21,10 +21,15 @@ def test_video_config_transform_cs(video_config_response):
     vc = video_config_response
     tvec = [0.5, 10.0, 1]
     vc.tvec = tvec
-    vc.rvec = [0.0, 0.0, 0.5]  # rotation only around the z-axis
+    vc.rvec = [0.0, 0.0, 90 / 180 * np.pi]  # rotation 45deg. only around the z-axis
+    vc.tvec_wl = [0.5, 10.0, 1]
     cs_transform = vc.cross_section_rt
-    # check off set, vertically should be 1
+    cs_transform_wl = vc.cross_section_wl_rt  # just call to check if it works
+    # check offset, vertically should be 1, x and y are also rotated so less easy to check
     assert np.allclose(cs_transform.gdf.geometry.z - vc.cross_section.gdf.geometry.z, 1)
+    # rotation and translation for wl is only translation, so x and y offsert should be following tvec_wl
+    assert np.allclose(cs_transform_wl.gdf.geometry.x - vc.cross_section_wl.gdf.geometry.x, 0.5)
+    assert np.allclose(cs_transform_wl.gdf.geometry.y - vc.cross_section_wl.gdf.geometry.y, 10)
 
 
 def test_video_config_recipe_cleaned(video_config_response):

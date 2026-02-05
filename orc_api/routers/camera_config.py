@@ -1,14 +1,12 @@
 """Router for camera configuration."""
 
 import json
-import os
 from typing import List
 
-import cv2
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pyorc import CameraConfig as pyorcCameraConfig
 
-from orc_api import __home__, crud
+from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import CameraConfig, Session
 from orc_api.schemas.camera_config import (
@@ -16,27 +14,8 @@ from orc_api.schemas.camera_config import (
     CameraConfigResponse,
     CameraConfigUpdate,
 )
-from orc_api.schemas.video import VideoResponse
-
-UPLOAD_DIRECTORY = os.path.join(__home__, "uploads")
 
 router: APIRouter = APIRouter(prefix="/camera_config", tags=["camera_config"])
-
-
-@router.get("/empty/{video_id}", response_model=CameraConfigResponse, status_code=200)
-async def empty_camera_config(video_id: int, db: Session = Depends(get_db)):
-    """Create an empty camera config in-memory."""
-    # return an empty camera config for now with height and width of current video
-    video_rec = crud.video.get(db, video_id)
-    video = VideoResponse.model_validate(video_rec)
-    fn = video.get_video_file(base_path=UPLOAD_DIRECTORY)
-    cap = cv2.VideoCapture(fn)
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    cap.release()
-    del cap
-    cam_config = CameraConfigResponse(data={"height": height, "width": width})
-    return cam_config
 
 
 @router.get("/", response_model=List[CameraConfigResponse], description="Get all camera configurations")
@@ -79,9 +58,10 @@ async def upload_camera_config(
 )
 async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Update a camera config in the database."""
-    update_cam_config = camera_config.model_dump(exclude_none=True, include={"name", "data"})
-    camera_config = crud.camera_config.update(db=db, id=id, camera_config=update_cam_config)
-    return camera_config
+    try:
+        return camera_config.patch_post(db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error updating camera config: {e}")
 
 
 @router.post(
@@ -89,13 +69,12 @@ async def patch_camera_config(id: int, camera_config: CameraConfigUpdate, db: Se
 )
 async def post_camera_config(camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Post a new camera configuration."""
-    # Create a new device record if none exists, only include the name and data fields,
+    # Create a new camera config record if none exists, only include the name and data fields,
     # all others are only for front end
-    new_camera_config = CameraConfig(**camera_config.model_dump(exclude_none=True, include={"name", "data"}))
-    db.add(new_camera_config)
-    db.commit()
-    db.refresh(new_camera_config)
-    return new_camera_config
+    try:
+        return camera_config.patch_post(db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating camera config: {e}")
 
 
 @router.post("/update/", response_model=CameraConfigUpdate, status_code=201)
