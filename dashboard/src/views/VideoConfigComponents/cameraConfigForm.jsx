@@ -2,6 +2,7 @@ import {useDebouncedWsSender} from "../../api/api.js";
 import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import '../cameraAim.scss'
+import {safelyParseJSON} from "../../utils/helpers.jsx";
 
 const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {
   const [formData, setFormData] = useState({
@@ -30,15 +31,7 @@ const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {
 
   }, [selectedCameraConfig]);
 
-  // Utility function to safely parse JSON
-  const safelyParseJSON = (jsonString) => {
-    try {
-      return JSON.parse(jsonString); // Parse if valid JSON string
-    } catch (error) {
-      console.warn("Invalid JSON string:", error);
-      return jsonString; // Fallback: Leave it as the original string
-    }
-  };
+
 
   const handleInputChange = async (event) => {
     const {name, value} = event.target;
@@ -49,14 +42,9 @@ const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {
     setFormData(updatedFormData);
     const msg = {
       "action": "update_video_config",
-      "op": "set_field",
+      "op": "set_camera_config_data",
       "params": {
-        "video_patch": {
-          "video_config": {
-            "camera_config": {[name]: name === "data" ? safelyParseJSON(value) : value}
-          }
-        },
-        "update": name === "data" ? false : true
+        "data": safelyParseJSON(value)
       }
     }
     sendDebouncedMsg(msg);
@@ -78,7 +66,7 @@ const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {
           const rawText = e.target.result;
           // verify the text is properly formatted JSON
           try {
-            const parsedJson = safelyParseJSON(rawText);
+            safelyParseJSON(rawText);
           } catch (error) {
             console.error("Invalid JSON format:", error);
             setMessageInfo('error', 'Invalid JSON format');

@@ -1,3 +1,12 @@
+// Utility function to safely parse JSON
+export const safelyParseJSON = (jsonString) => {
+  try {
+    return JSON.parse(jsonString); // Parse if valid JSON string
+  } catch (error) {
+    console.warn("Invalid JSON string:", error);
+    return jsonString; // Fallback: Leave it as the original string
+  }
+};
 
 // Simple debounce utility returning a stable debounced function
 export const createDebounce = (callback, delay) => {

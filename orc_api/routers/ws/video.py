@@ -374,6 +374,28 @@ class WSVideoState(BaseModel):
         self.set_bbox("set_bbox_from_width_length", **params)
         return self.submodel_bbox
 
+    def set_camera_config_data(self, data: Optional[Dict] = None) -> Dict:
+        """Set raw data of camera config and update fields with response instance.
+
+        THe entire data field must be passed
+        """
+        if data is None or data == {}:
+            return {}
+        # create new response instance
+        new_cc = CameraConfigResponse(
+            id=self.video.video_config.camera_config.id, name=self.video.video_config.camera_config.name, data=data
+        )
+        new_cc_dict = new_cc.model_dump()
+        r = {"video_config": {"camera_config": new_cc}}
+        self.video.video_config.camera_config = new_cc
+        if self.video.video_config.cross_section is not None:
+            self.video.video_config.cross_section.camera_config = new_cc
+            r["video_config"]["cross_section"] = {"camera_config": new_cc_dict}
+        if self.video.video_config.cross_section_wl is not None:
+            self.video.video_config.cross_section_wl.camera_config = new_cc
+            r["video_config"]["cross_section_wl"] = {"camera_config": new_cc_dict}
+        return r
+
     def set_field(self, video_patch: Optional[Dict] = None, update=False) -> Dict:
         """Set a field within self.video model instance, following the dictionary structure of the video_patch input.
 
@@ -421,6 +443,22 @@ class WSVideoState(BaseModel):
         # force video into a response model again
         self.video = VideoResponse.model_validate(video_update.model_dump())
         return self.video.model_dump()
+
+    def set_recipe_data(self, data: Optional[Dict] = None) -> Dict:
+        """Set raw data of recipe and update fields with response instance.
+
+        THe entire data field must be passed
+        """
+        if data is None or data == {}:
+            return {}
+        # create new response instance
+        new_recipe = RecipeResponse(
+            id=self.video.video_config.recipe.id, name=self.video.video_config.recipe.name, data=data
+        )
+        new_recipe_dict = new_recipe.model_dump()
+        r = {"video_config": {"recipe": new_recipe_dict}}
+        self.video.video_config.recipe = new_recipe
+        return r
 
     def reset_bbox(self):
         """Reset bounding box from width and length."""

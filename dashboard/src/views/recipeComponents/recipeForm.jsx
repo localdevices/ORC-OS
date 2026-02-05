@@ -1,4 +1,5 @@
 import api, {useDebouncedWsSender} from "../../api/api.js";
+import {safelyParseJSON} from "../../utils/helpers.jsx";
 import {useEffect, useState} from "react";
 import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";
@@ -116,6 +117,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
             formData,
             {headers: {"Content-Type": "multipart/form-data",},}
           );
+          console.log(response);
           // set the recipe to the returned recipe
           setSelectedRecipe(response.data);
         } catch (error) {
@@ -139,6 +141,24 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
       op: "update_recipe",
       params: {
         recipe_patch: updatedFields
+      }
+    }
+    sendDebouncedMsg(msg)
+  }
+
+  const handleRawDataChange = async (event) => {
+    const {value} = event.target;
+    const updatedFormData ={
+      ...formData,
+      data: value
+    }
+    setFormData(updatedFormData);
+    // create a new recipe response based on data
+    const msg = {
+      action: "update_video_config",
+      op: "set_recipe_data",
+      params: {
+        "data": safelyParseJSON(value)
       }
     }
     sendDebouncedMsg(msg)
@@ -719,7 +739,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
                 className="form-control"
                 rows="40"
                 value={formData.data}
-                onChange={handleInputChange}
+                onChange={handleRawDataChange}
               ></textarea>
             </div>
           )}

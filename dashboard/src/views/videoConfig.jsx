@@ -190,6 +190,7 @@ const VideoConfig = () => {
         setCameraConfig(prevCameraConfig => {
           const merged = deepMerge(prevCameraConfig, wsResponse.video.video_config.camera_config)
           return merged;
+          console.log(merged);
         });
       }
       if ('cross_section' in patchVideoConfig) {

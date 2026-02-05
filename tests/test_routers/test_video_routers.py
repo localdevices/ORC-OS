@@ -278,11 +278,27 @@ def test_video_websocket(auth_client, video_config_dict, monkeypatch):
     assert vs_c.video.video_config.camera_config.gcps.z_0 == 150.5
     assert vs_c.video.video_config.camera_config.gcps.h_ref == 150.5
 
+    # update camera config via data
+    cc_data = vs_c.video.video_config.camera_config.data
+    k1 = cc_data.dist_coeffs[0][0] = 2000
+    k1_new = k1 + 0.01
+    cc_data.dist_coeffs[0][0] = k1_new
+    msg = {"data": cc_data}
+    vs_c.set_camera_config_data(**msg)
+    assert vs_c.video.video_config.camera_config.k1 == k1_new
+
     # update_recipe
     msg = {"recipe_patch": {"freq": 5}}
     vs_c.update_recipe(**msg)
     assert vs_c.video.video_config.recipe.freq == 5
     assert vs_c.video.video_config.recipe.data["video"]["freq"] == 5
+
+    recipe_data = vs_c.video.video_config.recipe.data
+    recipe_data["video"]["freq"] = 3
+    # populate fields from data
+    msg = {"data": recipe_data}
+    vs_c.set_recipe_data(**msg)
+    assert vs_c.video.video_config.recipe.freq == 3
 
     msg = {"op": "set_rotation", "params": {"rotation": 90}}
     vs_c.update_video_config(**msg)

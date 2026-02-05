@@ -135,15 +135,28 @@ const PoseDetails = (
       // if a crs is found, set it on cameraConfig.gcps.crs
       if (GcpData) {
         const updateCameraConfig = {
-          gcps: GcpData,
+          gcps: {
+            ...GcpData,
+            z_0: null,
+            h_ref: null,
+          },
+          camera_position: null,
+          camera_rotation: null,
+          f: null,
+          k1: null,
+          k2: null,
+          bbox_camera: [],
+          bbox: []
         }
         const videoPatch = {video_config: {
             camera_config: updateCameraConfig,
+            cross_section: null,
+            cross_section_wl: null
           }};
         ws.sendJson({
           action: 'update_video_config',
           op: 'set_field',
-          params: {video_patch: videoPatch, update: true}
+          params: {video_patch: videoPatch}
         })
       }
     } catch (error) {
