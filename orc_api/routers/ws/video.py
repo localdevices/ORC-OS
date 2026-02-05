@@ -17,6 +17,22 @@ from orc_api.schemas.video import VideoResponse, VideoUpdate
 from orc_api.schemas.video_config import VideoConfigUpdate
 
 
+def update_nested(obj, patch: Dict):
+    """Update nested pydantic model fields recursively from a dictionary."""
+    for key, value in patch.items():
+        if isinstance(value, dict) and hasattr(obj, key):
+            # If value is a dict and the attribute exists, recurse into it
+            nested_obj = getattr(obj, key)
+            if nested_obj is not None:
+                update_nested(nested_obj, value)
+            else:
+                # If nested object is None, set the dict directly
+                setattr(obj, key, value)
+        else:
+            # Leaf value - set it directly
+            setattr(obj, key, value)
+
+
 class WSVideoMsg(BaseModel):
     """WebSocket message model.
 
@@ -297,6 +313,17 @@ class WSVideoState(BaseModel):
 
         self.video.video_config.camera_config = new_cc
         return new_cc
+
+    def update_recipe(self, recipe_patch: Optional[Dict] = None) -> Dict:
+        """Update recipe fields."""
+        # make ready for updating
+        if recipe_patch is None or recipe_patch == {}:
+            return {}
+        recipe_update = RecipeUpdate.model_validate(self.video.video_config.recipe)
+        update_nested(recipe_update, recipe_patch)
+        recipe_update = RecipeUpdate.model_validate(recipe_update)
+        self.video.video_config.recipe = RecipeResponse.model_validate(recipe_update)
+        return {"video_config": {"recipe": self.video.video_config.recipe.model_dump()}}
 
     def set_rotation(self, **params):
         """Set rotation of camera config."""

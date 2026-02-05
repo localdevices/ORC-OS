@@ -133,12 +133,12 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
       ...updatedFields
     }
     setFormData(updatedFormData);
-    const videoPatch = {video_config: {recipe: updatedFields}};
+    // const videoPatch = {video_config: {recipe: updatedFields}};
     const msg = {
       action: "update_video_config",
-      op: "set_field",
+      op: "update_recipe",
       params: {
-        video_patch: videoPatch
+        recipe_patch: updatedFields
       }
     }
     sendDebouncedMsg(msg)
