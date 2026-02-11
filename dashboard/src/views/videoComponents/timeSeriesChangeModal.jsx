@@ -11,7 +11,7 @@ import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/im
 import {FaSpinner} from "react-icons/fa";
 
 
-export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
+export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
   const [loading, setLoading] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -143,12 +143,6 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
     }
   }, [waterLevel, crossSection, videoConfig, imageRef.current, loading, imgDims])
 
-  // Close modal
-  const closeModal = () => {
-    setShowModal(false);
-    setVideo(null);
-  };
-
   const handleImageLoad = () => {
     if (imageRef.current && imageUrl) {
       setImgDims({
@@ -194,7 +188,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
     try {
       await run_video(video, setMessageInfo);
       setMessageInfo('success', 'Video submitted successfully');
-      setShowModal(false);
+      closeModal();
     } catch (error) {
       console.error(error.response.data.detail);
     }
@@ -388,7 +382,7 @@ export const TimeSeriesChangeModal = ({setShowModal, video, setVideo}) => {
   )
 }
 TimeSeriesChangeModal.propTypes = {
-  setShowModal: PropTypes.func.isRequired,
   video: PropTypes.object.isRequired,
   setVideo: PropTypes.func.isRequired,
+  closeModal: PropTypes.func.isRequired,
 };

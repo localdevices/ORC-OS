@@ -1,5 +1,5 @@
 import {useState, useEffect} from "react";
-import {sync_video, patchVideo} from "../../utils/apiCalls/video.jsx"
+import {sync_video, patchVideo, getVideoId} from "../../utils/apiCalls/video.jsx"
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
@@ -32,17 +32,29 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
   const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page (default 25)
-  const [selectedVideo, setSelectedVideo] = useState(null); // For modal views, to select the right video
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [videoLogData, setVideoLogData] = useState("");
-  const [showLog, setShowLog] = useState(false);
-  const [showModal, setShowModal] = useState(false); // State for modal visibility
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [showRunModal, setShowRunModal] = useState(false);
+  const [modalState, setModalState] = useState({"type": null, "video": null});
   const [selectedIds, setSelectedIds] = useState([]); // Array of selected video IDs
 
   // allow for setting messages
   const {setMessageInfo} = useMessage();
+
+  // check at mount if a parameter for the editVideoId is provided. If so, open edit modal with video
+  useEffect(() => {
+    const setVideoFromParams = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const videoId = params.get("editVideoId")
+      if (videoId) {
+        const video = await getVideoId(videoId);
+        if (video) {
+          console.log("VIDEO: ", video);
+          openModal("run", video)
+        }
+      }
+    }
+    setVideoFromParams();
+  }, [])
 
   // Data must be updated when the page changes, when start and end date changes
   useEffect(() => {
@@ -120,23 +132,23 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
 
   useEffect(() => {
     // ensure that table information is always up-to-date
-    if (!selectedVideo) return;
+    if (!modalState.video) return;
     setData(prevData => {
       return prevData.map(video => {
-        if (video.id === selectedVideo.id) {
+        if (video.id === modalState.video.id) {
           return {
             ...video,
-            time_series: selectedVideo.time_series,
-            video_config: selectedVideo.video_config,
-            allowed_to_run: selectedVideo.allowed_to_run[0] || selectedVideo.allowed_to_run,
-            status: selectedVideo.status,
-            sync_status: selectedVideo.sync_status
+            time_series: modalState.video.time_series,
+            video_config: modalState.video.video_config,
+            allowed_to_run: modalState.video.allowed_to_run[0] || modalState.video.allowed_to_run,
+            status: modalState.video.status,
+            sync_status: modalState.video.sync_status
           };
         }
         return video;
       });
     });
-  }, [selectedVideo]);
+  }, [modalState.video]);
 
   const renderVideoConfigButton = (video) => {
     return (
@@ -179,52 +191,63 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   };
   // Handle the "Delete" button action
   const handleShowLog = (video) => {
-    setSelectedVideo(video);
     api.get(`/video/${video.id}/log/`)
       .then((response) => {
         const lines = response.data.split("\n");
         setVideoLogData(lines);
-        setShowLog(true);
-
       })
       .catch((error) => {
         setVideoLogData([`No log available for video with ID: ${video.id}`])
         console.error('Error fetching log for video with ID:', video.id, error);
-        setShowLog(true);
+      })
+      .finally(() => {
+        // always open the modal
+        openModal("log", video);
+
       });
   }
 
+  const openModal = (type, video) => {
+    setModalState({type, video});
+  }
+  const closeModal = () => {
+    setModalState({type: null, video: null});
+  }
 
+  // only set the video in the modal to a different value
+  const setVideoModal = (video) => {
+    setModalState({
+      ...modalState,
+      video: video,
+    })
+
+  }
 
   const handleView = (video) => {
-    setSelectedVideo(video);
-    setShowModal(true);
+    openModal("view", video);
   };
 
   const handleRun = (video) => {
-    setSelectedVideo(video);
-    setShowRunModal(true);
+    openModal("run", video);
   }
 
   const handleSync = (video) => {
     sync_video(video, setMessageInfo);
   }
   const handleVideoConfig = (video) => {
-    setSelectedVideo(video); // Set the selected video
-    setShowConfigModal(true); // Open the modal
+    openModal("config", video);
   }
 
   // Function to handle configuration selection and API call
   const handleConfigSelection = async (event) => {
     const {value} = event.target;
     try {
-      await patchVideo(selectedVideo.id, {video_config_id: value ? value : null}).then(async () => {
-        await api.get(`/video/${selectedVideo.id}/`).then((r) => {
-          setSelectedVideo(r.data);
+      await patchVideo(modalState.video.id, {video_config_id: value ? value : null}).then(async () => {
+        await api.get(`/video/${modalState.video.id}/`).then((r) => {
           // update table if required
           setData(prevData => {
             return prevData.map(video => {
-              if (video.id === selectedVideo.id) {
+              if (video.id === r.data.id) {
                 return {
                   ...video,
                   video_config_id: value,
@@ -235,12 +258,18 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
               return video;
             });
           });
+          if (value) {
+            setMessageInfo('success', `Video configuration ${value} selected for video ${modalState.video.id}`);
+          } else {
+            setMessageInfo('success', `Cleared video configuration for video ${modalState.video.id}`);
+
+          }
+          closeModal()
         })
       });
       // Success feedback
-      setMessageInfo('success', `Video configuration ${value} selected for video ${selectedVideo.id}`);
-      // setSelectedVideo(null)
-      setShowConfigModal(false);
+      setMessageInfo('success', `Video configuration ${value} selected for video ${modalState.video.id}`);
+      closeModal();
       setSavingConfig(false);
     } catch (error) {
       // Error handling
@@ -412,77 +441,16 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         </div>
       </div>
       <VideoConfigModal
-        showModal={showConfigModal}
-        setShowModal={setShowConfigModal}
+        modalState={modalState}
+        closeModal={closeModal}
         saving={savingConfig}
         setSaving={setSavingConfig}
-        video={selectedVideo}
         handleConfigSelection={handleConfigSelection}
       />
-      {/*/!*Modal for selecting a VideoConfig or creating a new Video Config*!/*/}
-      {/*/!* Modal for video config *!/*/}
-      {/*<Modal*/}
-      {/*  isOpen={showConfigModal}*/}
-      {/*  onRequestClose={() => setShowConfigModal(false)}*/}
-      {/*  contentLabel="Video Configurations"*/}
-
-      {/*  style={{*/}
-      {/*    overlay: {*/}
-      {/*      backgroundColor: "rgba(0, 0, 0, 0.6)",*/}
-      {/*    },*/}
-
-      {/*    content: {*/}
-      {/*      maxWidth: "600px",*/}
-      {/*      maxHeight: "400px",*/}
-      {/*      margin: "auto",*/}
-      {/*      padding: "20px",*/}
-      {/*    },*/}
-      {/*  }}*/}
-      {/*>*/}
-
-      {/*  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>*/}
-      {/*    <h2>Video Configurations</h2>*/}
-      {/*    <button*/}
-      {/*      style={{*/}
-      {/*        background: "none",*/}
-      {/*        border: "none",*/}
-      {/*        fontSize: "1.5rem",*/}
-      {/*        cursor: "pointer",*/}
-      {/*        lineHeight: "1",*/}
-      {/*      }}*/}
-      {/*      onClick={() => setShowConfigModal(false)}*/}
-      {/*      aria-label="Close"*/}
-      {/*    >*/}
-      {/*      &times;*/}
-      {/*    </button>*/}
-      {/*  </div>*/}
-      {/*  {selectedVideo && <p>Configuring Video: {selectedVideo.id}</p>}*/}
-      {/*  {selectedVideo?.video_config?.id ?*/}
-      {/*    selectedVideo?.video_config?.sample_video_id === selectedVideo?.id ? (*/}
-      {/*      <div role="alert" style={{"color": "blue"}}><p>{`This is the reference video for config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}. Click edit to modify.`}</p></div>*/}
-      {/*    ) : (*/}
-      {/*      <div role="alert" style={{"color": "green"}}><p>{`Current selected config: ${selectedVideo.video_config.id}: ${selectedVideo.video_config.name}`}</p></div>*/}
-
-      {/*  ) : (<div role="alert" style={{"color": "red"}}><p>No config selected. Select one below or start editing a new config.</p></div>)}*/}
-      {/*  <h5>Select an Existing Config:</h5>*/}
-      {/*  <div className="mb-3 mt-0">*/}
-      {/*    <DropdownMenu*/}
-      {/*      callbackFunc={handleConfigSelection}*/}
-      {/*      data={availableVideoConfigs}*/}
-      {/*      value={selectedVideo && selectedVideo?.video_config ? selectedVideo.video_config.id : ""}*/}
-      {/*      noSelectionText={"-- Select no config --"}*/}
-      {/*    />*/}
-      {/*  </div>*/}
-      {/*  <div className="container">*/}
-      {/*    <h5>Create new or edit existing config:</h5>*/}
-      {/*    <button className="btn" onClick={() => createNewVideoConfig(selectedVideo.id)}>Edit</button>*/}
-      {/*  </div>*/}
-      {/*</Modal>*/}
-
       {/* modal for video log file display */}
       <Modal
-        isOpen={showLog}
-        onRequestClose={() => setShowLog(false)}
+        isOpen={modalState.type === "log" && modalState.video !== null}
+        onRequestClose={closeModal}
         contentLabel="Video Log"
         style={{
           overlay: {
@@ -499,9 +467,8 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         }}
       >
         <div>
-          {/*<div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>*/}
           <div className="modal-header">
-            {selectedVideo && <h2 className="modal-title">Log for video: {selectedVideo.id}</h2>}
+            {modalState.video && <h2 className="modal-title">Log for video: {modalState.video.id} - {modalState.video.timestamp.toLocaleString()}</h2>}
             <button
               style={{
                 background: "none",
@@ -510,7 +477,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 cursor: "pointer",
                 lineHeight: "1",
               }}
-              onClick={() => setShowLog(false)}
+              onClick={closeModal}
               aria-label="Close"
             >
               &times;
@@ -539,20 +506,17 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           </div>
 
         </div>
-
-
       </Modal>
       {/*Modal for editing / analyzing video */}
-      {showModal && selectedVideo && (
+      {modalState.type === "view" && modalState.video && (
         <VideoDetailsModal
-          selectedVideo={selectedVideo}
-          setSelectedVideo={setSelectedVideo}
-          setShowModal={setShowModal}
+          selectedVideo={modalState.video}
+          closeModal={closeModal}
         />
       )}
       {/*Modal for running video */}
-      {showRunModal && selectedVideo && (
-        <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo}/>
+      {modalState.type === "run" && modalState.video && (
+        <TimeSeriesChangeModal video={modalState.video} setVideo={setVideoModal} closeModal={closeModal}/>
       )}
     </div>
   );

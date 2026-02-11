@@ -8,15 +8,17 @@ import PropTypes from "prop-types";
 import {FaSpinner} from "react-icons/fa";
 
 
-export const VideoConfigModal = ({showModal, setShowModal, saving, setSaving, video, handleConfigSelection}) => {
+export const VideoConfigModal = ({modalState, closeModal, saving, setSaving, handleConfigSelection}) => {
   const [loading, setLoading] = useState(false);
   const [availableVideoConfigs, setAvailableVideoConfigs] = useState([]);
-
+  const [video, setVideo] = useState(null);
   // set navigation
   const navigate = useNavigate();
 
   // Fetch the existing video configs when the modal is opened
   useEffect(() => {
+    // set video on more convenient local state
+    setVideo(modalState.video)
     setLoading(true);
     setSaving(false);
     api.get("/video_config/") // Replace with your endpoint for fetching video configs
@@ -28,7 +30,7 @@ export const VideoConfigModal = ({showModal, setShowModal, saving, setSaving, vi
         setLoading(false);
         console.error("Error fetching video configs:", error);
       });
-  }, []);
+  }, [modalState]);
 
 
   const createNewVideoConfig = (video_id) => {
@@ -36,15 +38,14 @@ export const VideoConfigModal = ({showModal, setShowModal, saving, setSaving, vi
     navigate(`/video_config/${video_id}`);
   }
 
-
   return (
     <>
       {/*Modal for selecting a VideoConfig or creating a new Video Config*/}
       {/* Modal for video config */}
       <Modal
-        isOpen={showModal}
+        isOpen={modalState.type === "config" && modalState.video !== null}
         onRequestClose={() => {
-          setShowModal(false);
+          closeModal();
           setSaving(false);
         }
       }
@@ -74,7 +75,7 @@ export const VideoConfigModal = ({showModal, setShowModal, saving, setSaving, vi
               cursor: "pointer",
               lineHeight: "1",
             }}
-            onClick={() => setShowModal(false)}
+            onClick={() => closeModal()}
             aria-label="Close"
           >
             &times;
@@ -114,10 +115,9 @@ export const VideoConfigModal = ({showModal, setShowModal, saving, setSaving, vi
   )
 }
 VideoConfigModal.propTypes = {
-  showModal: PropTypes.bool.isRequired,
-  setShowModal: PropTypes.func.isRequired,
+  modalState: PropTypes.object.isRequired,
+  closeModal: PropTypes.func.isRequired,
   saving: PropTypes.bool.isRequired,
   setSaving: PropTypes.func.isRequired,
-  video: PropTypes.object,
   handleConfigSelection: PropTypes.func.isRequired,
 };
