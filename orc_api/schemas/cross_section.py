@@ -213,6 +213,13 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
         pols = self.obj.get_bbox_dry_wet(h=h, camera=camera, dry=dry)
         return [list(map(list, pol.exterior.coords)) for pol in pols.geoms]
 
+    def validate_h_a(self, h_a: float) -> bool:
+        """Validate if the water level is above the lowest point in the cross section."""
+        # convert to coordinate datum
+        z_a = self.camera_config.obj.h_to_z(h_a)
+        # check if z_a is above the lowest point in the cross section
+        return z_a > np.array(self.z).min()
+
 
 class CrossSectionUpdate(CrossSectionBase):
     """Update model with several input fields from user."""

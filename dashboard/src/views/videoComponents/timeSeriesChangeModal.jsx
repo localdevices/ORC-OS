@@ -54,7 +54,13 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
       return getFrameUrl(video, frameNr, rotate);
     },
     onUrlReady: (url, { cached }) => {
-      setLoading(true)
+      if (cached) {
+        // If the image is cached, we can set loading to false immediately
+        setLoading(false);
+      } else {
+        // Otherwise, we'll wait for the onLoad event of the image
+        setLoading(true)
+      }
     },
     delayMs: 300
   });
@@ -103,6 +109,31 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
     }
   }, [crossSection, imageRef.current, imgDims, videoConfig?.camera_config?.gcps])
 
+  // useEffect(() => {
+  //   // If the image URL is already loaded from cache, the <img> may be complete
+  //   // before React attaches the onLoad handler. Ensure we clear the loading
+  //   // spinner and set dimensions in that case.
+  //   if (!imageUrl) return;
+  //   const img = imageRef.current;
+  //   if (!img) return;
+
+  //   if (img.complete) {
+  //     handleImageLoad();
+  //   } else {
+  //     const onLoad = () => handleImageLoad();
+  //     const onError = () => {
+  //       setLoading(false);
+  //       console.error('Image failed to load.');
+  //     };
+  //     img.addEventListener('load', onLoad);
+  //     img.addEventListener('error', onError);
+  //     return () => {
+  //       img.removeEventListener('load', onLoad);
+  //       img.removeEventListener('error', onError);
+  //     };
+  //   }
+  // }, [imageUrl]);
+
   useEffect(() => {
     if (crossSection && videoConfig && imageRef?.current && !loading && imgDims.width > 0 && imgDims.height > 0) {
       // Debounce getWettedSurface by 300ms
@@ -136,7 +167,10 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
               setCSWaterLines(drawLines);
             }
           }
-        )
+        ).catch(error => {
+          console.error("Error fetching water lines:", error);
+          setCSWaterLines([]);
+        })
       }, 100);
       // Cleanup if dependencies change within 300ms
       return () => clearTimeout(timeoutWaterLevel);
@@ -325,6 +359,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                   setLoading(false); // Always unset loading on error
                   console.error('Image failed to load.');
                 }}
+
                 src={imageUrl}
                 alt="img-set-water-level"
               />

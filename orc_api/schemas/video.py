@@ -1,7 +1,6 @@
 """Video schema."""
 
 import glob
-import json
 import os
 import subprocess
 import time
@@ -11,14 +10,14 @@ from typing import Optional
 import numpy as np
 import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from pyorc.service import velocity_flow
+from pyorc.service import velocity_flow_subprocess
 from sqlalchemy.orm import Session
 
 from orc_api import crud, timeout_before_shutdown
 from orc_api import db as models
 from orc_api.database import get_session
 from orc_api.db import Video
-from orc_api.log import add_filehandler, logger, remove_file_handler
+from orc_api.log import logger, remove_file_handler
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse, VideoConfigUpdate
@@ -200,8 +199,9 @@ class VideoResponse(VideoBase, RemoteModel):
         with get_session() as session:
             try:
                 # set up a temporary additional log file handler
-                print(f"Adding log file handler for video {self.id} {self.get_log_file(base_path=base_path)}")
                 rec = crud.video.get(session, id=self.id)
+                if not rec:
+                    raise ValueError(f"Video with id {self.id} does not exist in database.")
                 rec.status = models.VideoStatus.TASK
                 session.commit()
                 session.refresh(rec)
@@ -223,7 +223,7 @@ class VideoResponse(VideoBase, RemoteModel):
 
                 # check for h_a
                 h_a = None if self.time_series is None else self.time_series.h
-                logger.debug(f"Checked for water level in time series, found {h_a}")
+                logger.debug(f"Checked for water level in time series, found {h_a:.3f} m.")
 
                 # overrule with set level if the video configuration is made with the current video
                 if self.video_config.sample_video_id == self.id:
@@ -231,21 +231,21 @@ class VideoResponse(VideoBase, RemoteModel):
                     h_a = self.video_config.camera_config.gcps.h_ref
 
                 # assemble all information
-                logger.info(f"Water level set to {h_a}")
+                logger.info(f"Water level set to {h_a:.3f} m.")
+                # check if h_a is above lowest point in cross section
+                validate_h_a_cross = self.video_config.cross_section_wl_rt.validate_h_a(h_a=h_a)
+                if not validate_h_a_cross:
+                    raise Exception(
+                        f"Provided water level {h_a:.3f} m is not above the lowest point in the cross section. "
+                        f"Please provide a higher water level, or adjust the cross section."
+                    )
                 output = os.path.join(self.get_path(base_path=base_path), "output")
                 cameraconfig = self.video_config.camera_config.data.model_dump()
                 # get the rotated/translated cross-section
-                cross_section_feats = self.video_config.cross_section_rt.features
-                # dump the used features in the output path of the video
-                cross = os.path.join(self.get_path(base_path=base_path), "cross_section.geojson")
-                with open(cross, "w") as f:
-                    json.dump(cross_section_feats, f)
+                cross = self.video_config.cross_section_rt.features
                 # if h_a is not available and a cross section is available, make cross section file for water level
                 if h_a is None and self.video_config.cross_section_wl:
-                    cross_section_wl_feats = self.video_config.cross_section_wl_rt.features
-                    cross_wl = os.path.join(self.get_path(base_path=base_path), "cross_section_wl.geojson")
-                    with open(cross_wl, "w") as f:
-                        json.dump(cross_section_wl_feats, f)
+                    cross_wl = self.video_config.cross_section_wl_rt.features
                 else:
                     cross_wl = None
                 # get the recipe with any required fields filled
@@ -266,10 +266,14 @@ class VideoResponse(VideoBase, RemoteModel):
                         f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
                     )
                 # run the video with pyorc with an additional logger handler
-                add_filehandler(
-                    logger=logger, path=self.get_log_file(base_path=base_path), function="velocimetry", log_level=10
+                # add_filehandler(
+                #     logger=logger, path=self.get_log_file(base_path=base_path), function="velocimetry", log_level=10
+                # )
+                logger.info(
+                    "Starting video processing with pyorc. You can check logs per video record after running in "
+                    "the video view."
                 )
-                velocity_flow(
+                res = velocity_flow_subprocess(
                     recipe=recipe,
                     videofile=videofile,
                     cameraconfig=cameraconfig,
@@ -280,6 +284,11 @@ class VideoResponse(VideoBase, RemoteModel):
                     cross_wl=cross_wl,
                     logger=logger,
                 )
+                if res.returncode != 0:
+                    raise Exception(
+                        f"Error running video, pyorc returned non-zero exit code: {res.returncode}. Please check "
+                        "the log belonging to video"
+                    )
                 remove_file_handler(logger, name_contains="pyorc.log")
                 self.image = rel_img_fn
                 # update time series (before video, in case time series with optical water level is added in the process
@@ -290,15 +299,15 @@ class VideoResponse(VideoBase, RemoteModel):
                 video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
             except Exception as e:
                 # ensure the file handler is removed, even if an error occurs
-                remove_file_handler(logger, name_contains="pyorc.log")
+                # remove_file_handler(logger, name_contains="pyorc.log")
                 # ensure status is ERROR, but continue afterwards
                 self.status = models.VideoStatus.ERROR
                 # also show this state in the web socket
                 video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
                 logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
-            finally:
-                # the last handler should be our file handler.
-                remove_file_handler(logger, name_contains="pyorc.log")
+            # finally:
+            #     # the last handler should be our file handler.
+            #     remove_file_handler(logger, name_contains="pyorc.log")
 
             update_data = self.serialize_for_db()
             if self.time_series:

@@ -18,6 +18,7 @@ from orc_api import (
 )
 from orc_api.database import get_session
 from orc_api.db import VideoStatus
+from orc_api.log import logger
 from orc_api.routers import (
     auth,
     callback_url,
@@ -51,8 +52,6 @@ from orc_api.utils.states import video_run_state
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the scheduler and logger."""
-    from orc_api.log import logger
-
     logger.info("Starting ORC-OS API")
     scheduler = BackgroundScheduler()
     scheduler.start()
