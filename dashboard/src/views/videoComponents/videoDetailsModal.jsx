@@ -3,14 +3,15 @@
 import {useState} from "react";
 import {VideoDetails} from "./videoDetails.jsx";
 
-export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal}) => {
+export const VideoDetailsModal = ({selectedVideo, closeModal}) => {
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
 
   // Close modal
-  const closeModal = () => {
-    setSelectedVideo(null);
-    setShowModal(false);
+  const closeActions = () => {
+    closeModal();
+    // setSelectedVideo(null);
+    // setShowModal(false);
     setImageError(false);
     setVideoError(false);
   };
@@ -26,7 +27,7 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
               <button
                 type="button"
                 className="btn-close"
-                onClick={closeModal}
+                onClick={closeActions}
               ></button>
             </div>
             <div className="modal-body">
@@ -36,7 +37,7 @@ export const VideoDetailsModal = ({selectedVideo, setSelectedVideo, setShowModal
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={closeModal}
+                onClick={closeActions}
               >
                 Close
               </button>

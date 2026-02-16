@@ -5,6 +5,7 @@ import logging
 import logging.handlers
 import os
 import sys
+from typing import Optional
 
 import anyio
 from fastapi import WebSocket
@@ -28,7 +29,7 @@ class FunctionFilter(logging.Filter):
 
 def setuplog(
     name: str = "orc-os",
-    path: str = None,
+    path: Optional[str] = None,
     log_level: int = 20,
     fmt: str = FMT,
     append: bool = True,
@@ -105,7 +106,7 @@ def remove_file_handler(logger, name_contains="hello_world"):
                 logger.debug(f"Removed file handler to {handler.baseFilename} from logger.")
 
 
-def start_logger(verbose, quiet, log_path=None):
+def start_logger(verbose, quiet, log_path=None) -> logging.Logger:
     if not log_path:
         # set it here to a fixed location
         log_path = os.path.join(__home__, "log")
@@ -164,9 +165,9 @@ async def stream_new_lines(websocket: WebSocket, fn: str):
                 await asyncio.sleep(0.1)  # Wait before trying to read more lines
 
 
-if "ALEMBIC_RUNNING" not in os.environ:
-    logger = start_logger(True, False, log_path=LOG_DIRECTORY)
-else:
-    logger = None
+# if "ALEMBIC_RUNNING" not in os.environ:
+logger = start_logger(True, False, log_path=LOG_DIRECTORY)
+# else:
+#     logger = None
 
 __all__ = ["logger", "get_last_lines", "stream_new_lines"]

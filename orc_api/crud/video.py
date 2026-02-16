@@ -29,19 +29,19 @@ def filter_status(query: Query, status: Optional[models.VideoStatus] = None):
     return query
 
 
-def filter_sync_status(query: Query, sync_status: Optional[models.VideoStatus] = None):
+def filter_sync_status(query: Query, sync_status: Optional[models.SyncStatus] = None):
     """Filter query by start and stop datetime."""
     if sync_status:
         query = query.where(models.Video.sync_status == sync_status)
     return query
 
 
-def get_query_by_id(db: Session, id: int):
+def get_query_by_id(db: Session, id: int) -> Query:
     """Get a single video in a query (e.g. for updating."""
     return db.query(models.Video).filter(models.Video.id == id)
 
 
-def get(db: Session, id: int):
+def get(db: Session, id: int) -> Optional[models.Video]:
     """Get a single video."""
     query = get_query_by_id(db=db, id=id)
     if query.count() == 0:
@@ -53,7 +53,7 @@ def get_closest(
     db: Session,
     timestamp: datetime,
     allowed_dt: Optional[float] = None,
-):
+) -> Optional[models.Video]:
     """Fetch the video closest to the given timestamp (None if further away than allowed_dt)."""
     return generic.get_closest(db.query(models.Video), models.Video, timestamp, allowed_dt)
 
@@ -70,7 +70,7 @@ def get_closest_no_ts(
     return generic.get_closest(q, models.Video, timestamp, allowed_dt)
 
 
-def get_ids(db: Session, ids: List[int] = None) -> List[models.Video]:
+def get_ids(db: Session, ids: Optional[List[int]] = None) -> List[models.Video]:
     """List videos from provided ids."""
     ids = [] if ids is None else ids
     query = db.query(models.Video).filter(models.Video.id.in_(ids))

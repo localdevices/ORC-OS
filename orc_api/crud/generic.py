@@ -1,19 +1,17 @@
 """Generic CRUD operations, used in multiple CRUD modules."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.orm.query import Query
-
-from orc_api.db import Base
 
 
 def get_closest(
     query: Query,
-    model: Base,
+    model: Any,
     timestamp: datetime,
     allowed_dt: Optional[float] = None,
-):
+) -> Optional[Any]:
     """Fetch the model instance closest to the given timestamp.
 
     This function queries to find the model instance that is closest
