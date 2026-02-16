@@ -17,7 +17,7 @@ from orc_api import crud, timeout_before_shutdown
 from orc_api import db as models
 from orc_api.database import get_session
 from orc_api.db import Video
-from orc_api.log import logger, remove_file_handler
+from orc_api.log import logger
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse, VideoConfigUpdate
@@ -206,7 +206,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 session.commit()
                 session.refresh(rec)
                 # now also show the state PROCESSING in web socket
-                filename = os.path.split(self.file)[1]
+                filename = os.path.split(self.file)[1] if self.file else None
                 video_run_state.update(
                     video_id=self.id,
                     video_file=filename,
@@ -266,9 +266,6 @@ class VideoResponse(VideoBase, RemoteModel):
                         f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
                     )
                 # run the video with pyorc with an additional logger handler
-                # add_filehandler(
-                #     logger=logger, path=self.get_log_file(base_path=base_path), function="velocimetry", log_level=10
-                # )
                 logger.info(
                     "Starting video processing with pyorc. You can check logs per video record after running in "
                     "the video view."
@@ -286,10 +283,10 @@ class VideoResponse(VideoBase, RemoteModel):
                 )
                 if res.returncode != 0:
                     raise Exception(
-                        f"Error running video, pyorc returned non-zero exit code: {res.returncode}. Please check "
-                        "the log belonging to video"
+                        f"Error running video, pyorc returned non-zero exit code: {res.returncode} and error output "
+                        f"{res.stderr}"
+                        "Please check the log belonging to video"
                     )
-                remove_file_handler(logger, name_contains="pyorc.log")
                 self.image = rel_img_fn
                 # update time series (before video, in case time series with optical water level is added in the process
                 logger.info("Updating time series belonging to video.")
@@ -298,8 +295,6 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.status = models.VideoStatus.DONE
                 video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
             except Exception as e:
-                # ensure the file handler is removed, even if an error occurs
-                # remove_file_handler(logger, name_contains="pyorc.log")
                 # ensure status is ERROR, but continue afterwards
                 self.status = models.VideoStatus.ERROR
                 # also show this state in the web socket
