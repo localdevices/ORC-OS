@@ -1,4 +1,4 @@
-## [0.5.x] - 2026-xx-xx
+## [0.5.0] - 2026-xx-xx
 This is a **preproduction alpha release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -35,6 +35,7 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - Fixed issue with wrong video being selected upon click in time series when one or several filters are active.
 - Backend issue fixed, which resulted in an error when the device is not assigned any IP-address.
 - Syncing videos with LiveORC without any files resulted in an error. Video is now not synced if no files are selected.
+- Velocimetry processing now is a fully independent subprocess. This prevents unnecessary memory leaks.
 ### Security
 
 
