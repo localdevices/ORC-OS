@@ -58,6 +58,10 @@ INCOMING_DIRECTORY = os.getenv("ORC_INCOMING_DIRECTORY")
 if not INCOMING_DIRECTORY:
     INCOMING_DIRECTORY = os.path.join(UPLOAD_DIRECTORY, "incoming")
 
+SERVICE_DIRECTORY = os.getenv("ORC_SERVICE_DIRECTORY")
+if not SERVICE_DIRECTORY:
+    SERVICE_DIRECTORY = os.path.join(__home__, "services")
+
 SECRET_KEY = os.getenv("ORC_SECRET_KEY", ORC_DEFAULT_KEY)
 
 DEV_MODE = os.getenv("ORC_DEV_MODE", "0") == "1"
