@@ -211,3 +211,73 @@ def test_service_executor_deploy(tmp_path, monkeypatch):
     assert not expected_timer_symlink.exists()
     assert not os.path.exists(executor.env_file_path)
     assert not os.path.exists(executor.service_script)
+
+
+def test_service_executor_enable_disable(tmp_path):
+    # Create a mock service instance
+    service = Service(
+        id=1,
+        service_short_name="test-service",
+        service_long_name="Test Service",
+        service_type=ServiceType.ONE_TIME,
+        description="A test service",
+    )
+
+    # Create a ServiceExecutor instance using the mock service
+    executor = ServiceExecutor(
+        service_short_name=service.service_short_name,
+        service_long_name=service.service_long_name,
+        service_type=service.service_type,
+        parameters=None,
+    )
+
+    # Set up temporary paths for deployment
+    temp_systemd_path = tmp_path / "systemd"
+    temp_systemd_path.mkdir()
+    executor.SYSTEMD_PATH = temp_systemd_path
+
+    # Mock subprocess.run to avoid actually enabling/disabling services on the test system
+    with patch("subprocess.run") as mock_run:
+        executor.enable_service()
+        mock_run.assert_called_with(
+            ["sudo", "systemctl", "enable", executor.service_enabler], check=True, capture_output=True
+        )
+        executor.disable_service()
+        mock_run.assert_called_with(
+            ["sudo", "systemctl", "disable", executor.service_enabler], check=True, capture_output=True
+        )
+
+
+def test_service_executor_start_stop(tmp_path):
+    # Create a mock service instance
+    service = Service(
+        id=1,
+        service_short_name="test-service",
+        service_long_name="Test Service",
+        service_type=ServiceType.ONE_TIME,
+        description="A test service",
+    )
+
+    # Create a ServiceExecutor instance using the mock service
+    executor = ServiceExecutor(
+        service_short_name=service.service_short_name,
+        service_long_name=service.service_long_name,
+        service_type=service.service_type,
+        parameters=None,
+    )
+
+    # Set up temporary paths for deployment
+    temp_systemd_path = tmp_path / "systemd"
+    temp_systemd_path.mkdir()
+    executor.SYSTEMD_PATH = temp_systemd_path
+
+    # Mock subprocess.run to avoid actually starting/stopping services on the test system
+    with patch("subprocess.run") as mock_run:
+        executor.start_service()
+        mock_run.assert_called_with(
+            ["sudo", "systemctl", "start", executor.service_enabler], check=True, capture_output=True
+        )
+        executor.stop_service()
+        mock_run.assert_called_with(
+            ["sudo", "systemctl", "stop", executor.service_enabler], check=True, capture_output=True
+        )

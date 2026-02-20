@@ -30,6 +30,7 @@ from orc_api.routers import (
     log,
     pivideo_stream,
     recipe,
+    service,
     settings,
     time_series,
     updates,
@@ -172,6 +173,7 @@ app.include_router(callback_url.router)
 app.include_router(camera_config.router)
 app.include_router(control_points.router)
 app.include_router(cross_section.router)
+app.include_router(service.router)
 app.include_router(device.router)
 app.include_router(disk_management.router)
 app.include_router(log.router)
@@ -189,8 +191,12 @@ app.include_router(water_level.router)
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
-    return {"message": "You have reached the ORC-OS API"}
+    """Get root endpoint with status."""
+    return {
+        "message": "You have reached the ORC-OS API",
+        "dev": DEV_MODE,
+        "uptime_seconds": int(time.time() - app.state.start_time),
+    }
 
 
 @app.get("/no-access")
