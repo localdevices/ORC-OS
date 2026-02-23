@@ -29,6 +29,15 @@ class ServiceParameterCreate(BaseModel):
             raise ValueError("parameter_short_name must be alphanumeric with underscores only")
         return v.upper()
 
+    @field_validator("parameter_type", mode="before")
+    @classmethod
+    def convert_parameter_type(cls, v):
+        """Convert string to ParameterType enum."""
+        if isinstance(v, str):
+            # get the ParameterType from string instead of integer
+            return getattr(ParameterType, v)
+        return v
+
 
 class ServiceParameterUpdate(ServiceParameterCreate):
     """Schema for updating service parameters."""
@@ -57,7 +66,10 @@ class ServiceCreate(BaseModel):
     service_long_name: str = Field(..., min_length=1, max_length=255)
     service_type: ServiceType = ServiceType.ONE_TIME
     description: Optional[str] = None
+    readme: Optional[str] = None
     parameters: Optional[List[ServiceParameterCreate]] = None
+    version: Optional[str] = None
+    update_url: Optional[str] = None
 
     @field_validator("service_short_name")
     @classmethod
@@ -73,6 +85,9 @@ class ServiceUpdate(BaseModel):
 
     service_long_name: Optional[str] = None
     description: Optional[str] = None
+    readme: Optional[str] = None
+    version: Optional[str] = None
+    update_url: Optional[str] = None
 
 
 class ServiceResponse(BaseModel):
@@ -83,6 +98,9 @@ class ServiceResponse(BaseModel):
     service_long_name: str
     service_type: ServiceType
     description: Optional[str]
+    readme: Optional[str]
+    version: Optional[str]
+    update_url: Optional[str]
     parameters: Optional[List[ServiceParameterResponse]] = None
     model_config = ConfigDict(from_attributes=True)
 
@@ -254,11 +272,6 @@ Restart=on-failure
 RestartSec=10s
 StandardOutput=file:{self.log_file_path}
 StandardError=file:{self.log_file_path}
-StandardOutputMaxFileSize=10M
-StandardErrorMaxFileSize=10M
-StandardOutputMaxFiles=5
-StandardErrorMaxFiles=5
-StandardOutputMaxRetentionSec=7day
 
 [Install]
 WantedBy=multi-user.target
@@ -515,3 +528,65 @@ WantedBy=timers.target
             subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
         except Exception as e:
             raise RuntimeError(f"Failed to delete service: {str(e)}")
+
+
+class ServiceExportData(BaseModel):
+    """Schema for exporting service data to JSON."""
+
+    service_short_name: str
+    service_long_name: str
+    service_type: ServiceType
+    description: Optional[str]
+    version: str
+    update_url: Optional[str]
+    parameters: List[ServiceParameterCreate]
+    script_content: Optional[str] = None
+    timer_frequency: Optional[int] = None
+    on_boot_sec: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        return self.model_dump_json(indent=4)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "ServiceExportData":
+        """Create from JSON string."""
+        return cls.model_validate_json(json_str)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ServiceExportData":
+        """Create from dictionary."""
+        return cls.model_validate(data)
+
+    @field_validator("service_type", mode="before")
+    @classmethod
+    def convert_service_type(cls, v):
+        """Convert service type string to enum."""
+        if isinstance(v, str):
+            return getattr(ServiceType, v)
+        return v
+
+
+class ServiceImportRequest(BaseModel):
+    """Schema for importing service from JSON."""
+
+    service_data: ServiceExportData
+    preserve_env: bool = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ServiceVersionCheck(BaseModel):
+    """Schema for version check response."""
+
+    current_version: str
+    latest_version: Optional[str]
+    update_available: bool
+    update_url: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)

@@ -80,14 +80,16 @@ class VideoConfigBase(BaseModel):
     id: Optional[int] = Field(default=None, description="Video configuration ID")
     name: str = Field(description="Named description of the video configuration.")
     rvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
-        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection for discharge with CameraConfig."
+        default=[0.0, 0.0, 0.0],
+        description="Rotation vector for matching CrossSection for discharge with CameraConfig.",
     )
     tvec: Optional[conlist(float, min_length=3, max_length=3)] = Field(
         default=[0.0, 0.0, 0.0],
         description="Translation vector for matching CrossSection for discharge with CameraConfig.",
     )
     rvec_wl: Optional[conlist(float, min_length=3, max_length=3)] = Field(
-        [0.0, 0.0, 0.0], description="Rotation vector for matching CrossSection for water level with CameraConfig."
+        default=[0.0, 0.0, 0.0],
+        description="Rotation vector for matching CrossSection for water level with CameraConfig.",
     )
     tvec_wl: Optional[conlist(float, min_length=3, max_length=3)] = Field(
         default=[0.0, 0.0, 0.0],
@@ -97,7 +99,7 @@ class VideoConfigBase(BaseModel):
     camera_config: Optional[CameraConfigResponse] = Field(
         default=None, description="Associated CameraConfig object (if available)."
     )
-    recipe: Optional[RecipeResponse] = Field(None, description="Associated Recipe object (if available).")
+    recipe: Optional[RecipeResponse] = Field(default=None, description="Associated Recipe object (if available).")
     cross_section: Optional[CrossSectionResponseCameraConfig] = Field(
         default=None, description="Associated CrossSection object (if available)."
     )

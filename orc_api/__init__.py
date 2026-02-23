@@ -68,9 +68,4 @@ DEV_MODE = os.getenv("ORC_DEV_MODE", "0") == "1"
 if not SECRET_KEY and not DEV_MODE:
     raise ValueError("ORC_SECRET_KEY not set and not running in development mode. Exiting")
 
-if SECRET_KEY == "ORC_DEFAULT_KEY":
-    warnings.warn(
-        "WARNING: Using default ORC_SECRET_KEY. This is not secure and should be changed in a production environment.",
-        stacklevel=2,
-    )
 from . import crud, db, routers, schemas, utils

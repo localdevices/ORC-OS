@@ -5,9 +5,11 @@ os.environ["ALEMBIC_RUNNING"] = "1"
 
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine, pool
+from sqlalchemy import create_engine, pool, event, text
+from sqlalchemy.engine import Engine
 
 from alembic import context
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,6 +34,11 @@ target_metadata = Base.metadata
 # ... etc.
 DATABASE_URL = sqlite_engine
 
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -72,13 +79,20 @@ def run_migrations_online() -> None:
     # )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-
+        # Enable foreign keys for this connection
+        print("Enabling SQLite foreign key support for migration connection...")
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        # cursor = connection.cursor()
+        # cursor.execute("PRAGMA foreign_keys=ON")
+        # cursor.close()
+        context.configure(connection=connection, target_metadata=target_metadata, dialect_opts={"sqlite_synchronous": 0})
         with context.begin_transaction():
             context.run_migrations()
 
 
 if context.is_offline_mode():
+    print("Running migrations in offline mode...")
     run_migrations_offline()
 else:
+    print("Running migrations in online mode...")
     run_migrations_online()

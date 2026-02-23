@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from orc_api import (
     DEV_MODE,
     ORIGINS,
+    SECRET_KEY,
     UPLOAD_DIRECTORY,
     crud,
 )
@@ -54,6 +55,12 @@ from orc_api.utils.states import video_run_state
 async def lifespan(app: FastAPI):
     """Start the scheduler and logger."""
     logger.info("Starting ORC-OS API")
+    if SECRET_KEY == "ORC_DEFAULT_KEY":
+        logger.warning(
+            "WARNING: Using default ORC_SECRET_KEY. This is not secure and should be "
+            "changed in a production environment.",
+        )
+
     scheduler = BackgroundScheduler()
     scheduler.start()
     session = get_session()

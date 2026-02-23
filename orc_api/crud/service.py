@@ -33,6 +33,9 @@ def create_service(db: Session, service: ServiceCreate) -> Service:
         service_long_name=service.service_long_name,
         service_type=service.service_type,
         description=service.description,
+        readme=service.readme,
+        version=service.version,
+        update_url=service.update_url,
     )
 
     db.add(db_service)
@@ -142,6 +145,12 @@ def update_service(db: Session, service_id: int, service_update: ServiceUpdate) 
 
     if service_update.description is not None:
         db_service.description = service_update.description
+
+    if service_update.version is not None:
+        db_service.version = service_update.version
+
+    if service_update.update_url is not None:
+        db_service.update_url = service_update.update_url
 
     db.commit()
     db.refresh(db_service)

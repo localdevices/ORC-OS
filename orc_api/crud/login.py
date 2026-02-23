@@ -38,3 +38,16 @@ def verify(db: Session, plain_password: str):
     if password_entry:
         return bcrypt.checkpw(plain_password.encode("utf-8"), password_entry.hashed_password.encode("utf-8"))
     return False
+
+
+def delete_all_passwords(db: Session) -> int:
+    """Delete all password records from the database.
+
+    Returns:
+        int: Number of password records deleted
+
+    """
+    count = db.query(models.Password).count()
+    db.query(models.Password).delete()
+    db.commit()
+    return count

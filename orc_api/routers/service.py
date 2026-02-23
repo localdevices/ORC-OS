@@ -1,5 +1,6 @@
 """Router for custom systemd service management."""
 
+import os
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,12 +11,15 @@ from orc_api.database import get_db
 from orc_api.schemas.service import (
     ServiceCreate,
     ServiceExecutor,
+    ServiceExportData,
+    ServiceImportRequest,
     ServiceParameterCreate,
     ServiceParameterResponse,
     ServiceParameterUpdate,
     ServiceResponse,
     ServiceStateResponse,
     ServiceUpdate,
+    ServiceVersionCheck,
 )
 
 router = APIRouter(prefix="/service", tags=["service"])
@@ -208,20 +212,6 @@ def deploy_service(
             parameters=service.parameters,
             service_type=service.service_type,
         )
-
-        # # Create service file
-        # service_content = executor.create_service_file(
-        #     service.service_long_name, exec_start
-        # )
-
-        # # Create timer file if needed
-        # timer_content = None
-        # if service.service_type == ServiceType.TIMER:
-        #     timer_content = executor.create_timer_file(
-        #         service.service_long_name,
-        #         on_boot_sec=on_boot_sec,
-        #         frequency=frequency,
-        #     )
 
         # Deploy files
         executor.deploy_service(
@@ -419,3 +409,227 @@ def get_service_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Status check failed: {str(e)}",
         )
+
+
+# Export/Import endpoints
+@router.get("/{service_id}/export/", response_model=ServiceExportData)
+def export_service(
+    service_id: int,
+    db: Session = Depends(get_db),
+):
+    """Export a service definition to JSON format."""
+    service = crud.get_service(db, service_id)
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service with ID {service_id} not found",
+        )
+
+    # Read script content if it exists
+    try:
+        executor = ServiceExecutor(
+            service_short_name=service.service_short_name,
+            service_long_name=service.service_long_name,
+            parameters=[ServiceParameterResponse.model_validate(p) for p in service.parameters],
+            service_type=service.service_type,
+        )
+        script_content = None
+        if executor.service_script and os.path.isfile(executor.service_script):
+            with open(executor.service_script, "r") as f:
+                script_content = f.read()
+    except Exception:
+        script_content = None
+
+    # Convert parameters to create schemas
+    parameters = [
+        ServiceParameterCreate(
+            parameter_short_name=p.parameter_short_name,
+            parameter_long_name=p.parameter_long_name,
+            parameter_type=p.parameter_type,
+            default_value=p.default_value,
+            nullable=p.nullable,
+            description=p.description,
+        )
+        for p in service.parameters
+    ]
+
+    return ServiceExportData(
+        service_short_name=service.service_short_name,
+        service_long_name=service.service_long_name,
+        service_type=service.service_type,
+        description=service.description,
+        version=service.version or "0.0.0",
+        update_url=service.update_url,
+        parameters=parameters,
+        script_content=script_content,
+    )
+
+
+@router.post("/{service_id}/import/", response_model=ServiceResponse)
+def import_service(
+    service_id: int,
+    import_request: ServiceImportRequest,
+    db: Session = Depends(get_db),
+):
+    """Import/update a service from JSON format.
+
+    Parameters
+    ----------
+    service_id : int
+        ID of the service to update (or create if not exists)
+    import_request : ServiceImportRequest
+        Import request with service data and preserve_env flag
+    db : Session
+        Database session
+
+    """
+    # Check if service exists
+    service = crud.get_service(db, service_id)
+
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service with ID {service_id} not found",
+        )
+
+    try:
+        service_data = import_request.service_data
+        preserve_env = import_request.preserve_env
+
+        # Update service metadata
+        service_update = ServiceUpdate(
+            service_long_name=service_data.service_long_name,
+            description=service_data.description,
+            version=service_data.version,
+            update_url=service_data.update_url,
+        )
+        db_service = crud.update_service(db, service_id, service_update)
+
+        # Update parameters (delete old ones, add new ones)
+        # Delete existing parameters
+        for param in service.parameters:
+            crud.delete_service_parameter(db, param.id)
+
+        # Add new parameters
+        for param in service_data.parameters:
+            crud.add_service_parameter(db, service_id, param)
+
+        # Refresh to get updated service
+        db_service = crud.get_service(db, service_id)
+        if db_service is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve updated service",
+            )
+        # If script content is provided, prepare for deployment
+        if service_data.script_content:
+            executor = ServiceExecutor(
+                service_short_name=db_service.service_short_name,
+                service_long_name=db_service.service_long_name,
+                parameters=[ServiceParameterResponse.model_validate(p) for p in db_service.parameters],
+                service_type=db_service.service_type,
+            )
+
+            # Read existing env file if preserving
+            existing_env = {}
+            if preserve_env:
+                env_dict = executor.read_env_file()
+                # Map parameter short names to parameter IDs
+                for param in db_service.parameters:
+                    if param.parameter_short_name in env_dict:
+                        existing_env[param.id] = env_dict[param.parameter_short_name]
+
+            # Deploy the service with the script and parameters
+            executor.deploy_service(
+                script_content=service_data.script_content,
+                parameter_values=existing_env if preserve_env else None,
+                on_boot_sec=service_data.on_boot_sec or "5s",
+                frequency=service_data.timer_frequency or 15,
+            )
+
+        return ServiceResponse.model_validate(db_service)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Import failed: {str(e)}",
+        )
+
+
+@router.get("/{service_id}/version-check/", response_model=ServiceVersionCheck)
+def check_version(
+    service_id: int,
+    db: Session = Depends(get_db),
+):
+    """Check if a newer version of the service is available.
+
+    This endpoint compares the current version with the latest version
+    available at the update_url and returns whether an update is available.
+
+    """
+    import requests
+
+    service = crud.get_service(db, service_id)
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service with ID {service_id} not found",
+        )
+
+    current_version = service.version or "0.0.0"
+    latest_version = None
+    update_available = False
+
+    if service.update_url:
+        try:
+            response = requests.get(service.update_url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            if "version" in data:
+                latest_version = data["version"]
+                # Simple version comparison (assumes semver)
+                update_available = _compare_versions(current_version, latest_version) < 0
+        except Exception:
+            # If we can't reach the URL, just return what we have
+            pass
+
+    return ServiceVersionCheck(
+        current_version=current_version,
+        latest_version=latest_version,
+        update_available=update_available,
+        update_url=service.update_url,
+    )
+
+
+def _compare_versions(current: str, latest: str) -> int:
+    """Compare two semantic versions.
+
+    Returns:
+        -1 if current < latest
+        0 if current == latest
+        1 if current > latest
+
+    """
+
+    def parse_version(v: str) -> tuple:
+        parts = v.split(".")
+        try:
+            return tuple(int(p) for p in parts)
+        except ValueError:
+            return tuple(0 for _ in parts)
+
+    current_parts = parse_version(current)
+    latest_parts = parse_version(latest)
+
+    # Pad with zeros if different lengths
+    max_len = max(len(current_parts), len(latest_parts))
+    current_parts = current_parts + (0,) * (max_len - len(current_parts))
+    latest_parts = latest_parts + (0,) * (max_len - len(latest_parts))
+
+    if current_parts < latest_parts:
+        return -1
+    elif current_parts > latest_parts:
+        return 1
+    else:
+        return 0

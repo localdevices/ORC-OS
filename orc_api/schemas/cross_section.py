@@ -67,16 +67,13 @@ class CrossSectionBase(BaseModel):
         return self.gdf.crs
 
     def patch_post(self, db):
-        """Patch or post the cross section depending on whether an ID is set."""
+        """Patch or post the cross section, only posting available with base model."""
         # first validate as Update
         cs_dict = self.model_dump(
             exclude_none=True, include={"name", "timestamp", "features", "remote_id", "sync_status"}
         )
-        if self.id is None:
-            cs_db = CrossSection(**cs_dict)
-            cs_db = crud.cross_section.add(db=db, cross_section=cs_db)
-        else:
-            cs_db = crud.cross_section.update(db=db, id=self.id, cross_section=cs_dict)
+        cs_db = CrossSection(**cs_dict)
+        cs_db = crud.cross_section.add(db=db, cross_section=cs_db)
         return CrossSectionResponse.model_validate(cs_db)
 
 
@@ -85,14 +82,18 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
 
     id: Optional[int] = Field(default=None, description="CrossSection ID")
     # in response, name is required
-    name: str = Field(description="Free recognizable description of cross section.")
+    name: Optional[str] = Field(default=None, description="Free recognizable description of cross section.")
 
-    def sync_remote(self, session: Session, site: int, **kwargs):
+    def sync_remote(self, session: Session, site: int, **kwargs):  # type: ignore
         """Send the cross-section to LiveORC API."""
+        if not self.id:
+            raise ValueError("CrossSection must have an ID to sync remotely.")
         endpoint = f"/api/site/{site}/profile/"
         data = {
-            "name": self.name,
-            "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "name": self.name if self.name else f"CrossSection {self.id}",
+            "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            if self.timestamp
+            else datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "data": self.features,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
@@ -105,13 +106,26 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
             r = crud.cross_section.update(
                 session,
                 id=self.id,
-                cross_section=update_cross_section.model_dump(exclude_unset=True, exclude=["x", "y", "z", "s"]),
+                cross_section=update_cross_section.model_dump(exclude_unset=True, exclude={"x", "y", "z", "s"}),
             )
             return CrossSectionResponse.model_validate(r)
         return None
 
     def get_linearized(self):
         """Return a linearized version of the cross section."""
+
+    def patch_post(self, db):
+        """Patch or post the cross section depending on whether an ID is set."""
+        # first validate as Update
+        cs_dict = self.model_dump(
+            exclude_none=True, include={"name", "timestamp", "features", "remote_id", "sync_status"}
+        )
+        if self.id is None:
+            cs_db = CrossSection(**cs_dict)
+            cs_db = crud.cross_section.add(db=db, cross_section=cs_db)
+        else:
+            cs_db = crud.cross_section.update(db=db, id=self.id, cross_section=cs_dict)
+        return CrossSectionResponse.model_validate(cs_db)
 
 
 class CrossSectionResponseCameraConfig(CrossSectionResponse):
@@ -191,7 +205,7 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
             return []
         return list(map(list, pol.exterior.coords))
 
-    def get_csl_line(self, h: float, camera: bool = True, length=1.0, offset=0.0) -> Optional[List[List[List[float]]]]:
+    def get_csl_line(self, h: float, camera: bool = True, length=1.0, offset=0.0) -> List[List[List[float]]]:
         """Return the cross section line of the cross section in serializable coordinates."""
         if self.obj is None:
             return []
@@ -216,6 +230,8 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
     def validate_h_a(self, h_a: float) -> bool:
         """Validate if the water level is above the lowest point in the cross section."""
         # convert to coordinate datum
+        if self.camera_config is None:
+            raise ValueError("Camera configuration is required to interpret the water level.")
         z_a = self.camera_config.obj.h_to_z(h_a)
         # check if z_a is above the lowest point in the cross section
         return z_a > np.array(self.z).min()

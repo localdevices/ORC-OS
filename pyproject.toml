@@ -61,6 +61,9 @@ test = [
 [project.urls]
 Source = "https://github.com/localdevices/ORC-OS"
 
+[project.scripts]
+orc = "orc_api.cli.main:orc"
+
 [tool.flit.sdist]
 include = [
     "orc_api",

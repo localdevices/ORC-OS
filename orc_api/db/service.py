@@ -38,6 +38,9 @@ class Service(Base):
         Enum(ServiceType), nullable=False, default=ServiceType.ONE_TIME, index=True
     )
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    readme: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="0.0.0")
+    update_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
 
     # Relationship
     parameters: Mapped[list["ServiceParameter"]] = relationship(
