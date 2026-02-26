@@ -232,8 +232,8 @@ class VideoResponse(VideoBase, RemoteModel):
 
                 # assemble all information
                 logger.info(f"Water level set to {h_a:.3f} m.")
-                # check if h_a is above lowest point in cross section
-                validate_h_a_cross = self.video_config.cross_section_wl_rt.validate_h_a(h_a=h_a)
+                # check if h_a is above lowest point in cross section for discharge estimation
+                validate_h_a_cross = self.video_config.cross_section_rt.validate_h_a(h_a=h_a)
                 if not validate_h_a_cross:
                     raise Exception(
                         f"Provided water level {h_a:.3f} m is not above the lowest point in the cross section. "
