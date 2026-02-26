@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 import click
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.database import get_session
@@ -38,7 +39,7 @@ def save_json_file(filepath: Path, data: dict, pretty: bool = True) -> None:
 
 def import_service(
     json_path: Path,
-    db,
+    db: Session,
     preserve_env: bool = True,
     deploy: bool = False,
 ) -> dict:
@@ -57,6 +58,7 @@ def import_service(
                 description=service_data.description,
                 version=service_data.version,
                 update_url=service_data.update_url,
+                readme=service_data.readme,
             )
             db_service = crud.service.update_service(db, service_id, service_update)
             for param in existing.parameters:
@@ -71,6 +73,7 @@ def import_service(
                 service_long_name=service_data.service_long_name,
                 service_type=service_data.service_type,
                 description=service_data.description,
+                readme=service_data.readme,
                 parameters=service_data.parameters,
             )
             db_service = crud.service.create_service(db, service_create)
@@ -119,7 +122,7 @@ def import_service(
         return {"status": "error", "message": str(e)}
 
 
-def export_service(service_id: int, db, output_path: Optional[Path] = None) -> dict:
+def export_service(service_id: int, db: Session, output_path: Optional[Path] = None) -> dict:
     """Export a service to a JSON file."""
     try:
         service = crud.service.get_service(db, service_id)
@@ -157,6 +160,7 @@ def export_service(service_id: int, db, output_path: Optional[Path] = None) -> d
             service_long_name=service.service_long_name,
             service_type=service.service_type,
             description=service.description,
+            readme=service.readme,
             version=service.version or "0.0.0",
             update_url=service.update_url,
             parameters=parameters,
@@ -176,6 +180,20 @@ def export_service(service_id: int, db, output_path: Optional[Path] = None) -> d
             click.echo(f"Service exported to: {output_path}")
 
         return result
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def delete_service(service_id: int, db: Session) -> dict:
+    """Delete a service by ID."""
+    try:
+        service = crud.service.get_service(db, service_id)
+        if not service:
+            return {"status": "error", "message": f"Service with ID {service_id} not found"}
+
+        crud.service.delete_service(db, service_id)
+        return {"status": "success", "message": f"Service with ID {service_id} deleted successfully"}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -227,6 +245,22 @@ def export_cmd(service_id, output):
                 click.echo(json.dumps(result["data"], indent=2))
         else:
             click.echo(f"✗ Export failed: {result['message']}", err=True)
+            exit(1)
+    finally:
+        db.close()
+
+
+@service.command(name="delete")
+@click.argument("service_id", type=int, required=True)
+def delete_cmd(service_id):
+    """Delete a service by ID."""
+    db = get_session()
+    try:
+        delete_result = delete_service(service_id, db)
+        if delete_result["status"] == "success":
+            click.echo(f"✓ {delete_result['message']}")
+        else:
+            click.echo(f"✗ {delete_result['message']}", err=True)
             exit(1)
     finally:
         db.close()

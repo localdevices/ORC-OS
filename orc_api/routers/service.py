@@ -1,7 +1,7 @@
 """Router for custom systemd service management."""
 
 import os
-from typing import List
+from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -126,6 +126,43 @@ def add_parameter(
 
     db_param = crud.add_service_parameter(db, service_id, param)
     return db_param
+
+
+@router.post("/{service_id}/update_env/", status_code=status.HTTP_200_OK)
+async def update_service_env(
+    service_id: int,
+    parameter_values: Dict[int, str],
+    db: Session = Depends(get_db),
+) -> Dict[str, str]:
+    """Update service environment file with parameter values."""
+    try:
+        # Fetch service and parameters from database
+        service = crud.get_service(db, service_id)
+        if not service:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Service with ID {service_id} not found",
+            )
+        # Create response model instance to validate data
+        service = ServiceResponse.model_validate(service)
+        # Create ServiceExecutor instance
+        executor = ServiceExecutor(
+            service_short_name=service.service_short_name,
+            service_long_name=service.service_long_name,
+            service_type=service.service_type,
+            parameters=service.parameters,
+        )
+        # Write env file with provided parameter values
+        executor.write_env_file(parameter_values)
+
+        return {
+            "message": f"Environment file updated for service {service.service_short_name}",
+            "env_file_path": executor.env_file_path,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update environment file: {str(e)}")
 
 
 @router.get("/{service_id}/parameters/", response_model=List[ServiceParameterResponse])
@@ -458,6 +495,7 @@ def export_service(
         service_long_name=service.service_long_name,
         service_type=service.service_type,
         description=service.description,
+        readme=service.readme,
         version=service.version or "0.0.0",
         update_url=service.update_url,
         parameters=parameters,

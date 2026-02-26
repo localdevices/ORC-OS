@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator, model_validator
 
 from orc_api import SERVICE_DIRECTORY
 from orc_api.db.service import ParameterType, ServiceType
@@ -56,7 +56,68 @@ class ServiceParameterResponse(BaseModel):
     default_value: Optional[str]
     nullable: bool
     description: Optional[str]
+    service_short_name: Optional[str] = None  # Added to provide context for reading .env file
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("parameter_type")
+    def serialize_service_type(self, v: ServiceType) -> str:
+        """Serialize parameter type enum to string."""
+        return v.name
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_service_short_name(cls, data: Any) -> Any:
+        """Extract service_short_name from the service relationship if available."""
+        # If data is an ORM object with a service relationship, extract service_short_name
+        if hasattr(data, "service") and hasattr(data.service, "service_short_name"):
+            if not hasattr(data, "service_short_name") or data.service_short_name is None:
+                data.service_short_name = data.service.service_short_name
+        # If data is a dict with a service object, extract from it
+        elif isinstance(data, dict) and "service" in data:
+            service = data["service"]
+            if hasattr(service, "service_short_name") and "service_short_name" not in data:
+                data["service_short_name"] = service.service_short_name
+
+        return data
+
+    @computed_field  # type: ignore
+    @property
+    def current_value(self) -> Optional[str]:
+        """Get the current value from the .env file for this parameter.
+
+        Returns
+        -------
+        Optional[str]
+            The current value from the .env file, or None if not set
+
+        """
+        if not self.service_short_name:
+            return None
+
+        env_file_path = os.path.join(SERVICE_DIRECTORY, f"orc-{self.service_short_name}.env")
+
+        if not os.path.isfile(env_file_path):
+            return None
+
+        try:
+            with open(env_file_path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        if "=" in line:
+                            key, value = line.split("=", 1)
+                            if key == self.parameter_short_name:
+                                # Remove quotes if present
+                                if value.startswith('"') and value.endswith('"'):
+                                    value = value[1:-1]
+                                # Unescape special characters
+                                value = value.replace('\\"', '"').replace("\\$", "$")
+                                return value
+        except (OSError, IOError):
+            # If we can't read the file, return None
+            return None
+
+        return None
 
 
 class ServiceCreate(BaseModel):
@@ -103,6 +164,11 @@ class ServiceResponse(BaseModel):
     update_url: Optional[str]
     parameters: Optional[List[ServiceParameterResponse]] = None
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("service_type")
+    def serialize_service_type(self, v: ServiceType) -> str:
+        """Serialize service type enum to string."""
+        return v.name
 
 
 class ServiceParameterValue(BaseModel):
@@ -312,6 +378,18 @@ WantedBy=timers.target
 """
         return timer_content
 
+    def create_service_links(self) -> None:
+        """Create symbolic links for service and timer files in systemd directory."""
+        service_link = os.path.join(self.SYSTEMD_PATH, self.service_file_name)
+        if not os.path.exists(service_link):
+            service_path = os.path.join(SERVICE_DIRECTORY, self.service_file_name)
+            subprocess.run(["sudo", "ln", "-sf", service_path, service_link], check=True)
+        if self.service_type == ServiceType.TIMER:
+            timer_link = os.path.join(self.SYSTEMD_PATH, self.timer_file_name)
+            if not os.path.exists(timer_link):
+                timer_path = os.path.join(SERVICE_DIRECTORY, self.timer_file_name)
+                subprocess.run(["sudo", "ln", "-sf", timer_path, timer_link], check=True)
+
     def deploy_service(
         self,
         script_content: str,
@@ -347,23 +425,18 @@ WantedBy=timers.target
         # script MUST be executable
         os.chmod(self.service_script, 0o755)
         # Write service file
-        service_link = os.path.join(self.SYSTEMD_PATH, self.service_file_name)
         service_path = os.path.join(SERVICE_DIRECTORY, self.service_file_name)
         with open(service_path, "w") as f:
             f.write(self.create_service_file(user=user))
-        # create symbolic link as super-user
-        subprocess.run(["sudo", "ln", "-sf", service_path, service_link], check=True)
 
         # Write timer file if provided
         if self.service_type == ServiceType.TIMER:
             timer_content = self.create_timer_file(on_boot_sec=on_boot_sec, frequency=frequency)
-            timer_link = os.path.join(self.SYSTEMD_PATH, self.timer_file_name)
             timer_path = os.path.join(SERVICE_DIRECTORY, self.timer_file_name)
             with open(timer_path, "w") as f:
                 f.write(timer_content)
-            # create symbolic link for timer as super-user
-            subprocess.run(["sudo", "ln", "-sf", timer_path, timer_link], check=True)
         # Reload systemd
+        self.create_service_links()
         subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
 
     def enable_service(self) -> str:
@@ -373,6 +446,8 @@ WantedBy=timers.target
             Output message
 
         """
+        # check if symlink to service exists in systemd directory, if not, create the symbolic link as super-user
+        self.create_service_links()
         try:
             subprocess.run(
                 ["sudo", "systemctl", "enable", self.service_enabler],
@@ -537,6 +612,7 @@ class ServiceExportData(BaseModel):
     service_long_name: str
     service_type: ServiceType
     description: Optional[str]
+    readme: Optional[str]
     version: str
     update_url: Optional[str]
     parameters: List[ServiceParameterCreate]

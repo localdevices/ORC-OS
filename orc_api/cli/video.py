@@ -6,6 +6,7 @@ import shutil
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -22,25 +23,13 @@ from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils.io import read_cross_section_from_csv, read_cross_section_from_geojson
 
 
-@click.group()
-def video():
-    """Video management commands."""
-    pass
-
-
-@video.command()
-@click.argument("file_path", type=click.Path(exists=True), required=True)
-@click.argument("timestamp", type=str, required=True)
-@click.option("--video-config-id", type=int, default=None, help="Optional video configuration id")
-def add(file_path, timestamp, video_config_id):
+def add_video(db, file_path: str, timestamp: str, video_config_id: Optional[int] = None):
     """Add a new video from file path and timestamp through CLI."""
     try:
         ts = datetime.strptime(timestamp, "%Y%m%dT%H%M%SZ")
     except Exception:
         click.echo("✗ Invalid timestamp format. Use %Y%m%dT%H%M%SZ", err=True)
         raise SystemExit(1)
-
-    db = get_session()
     try:
         video_schema = VideoCreate(timestamp=ts, video_config_id=video_config_id)
         video_instance = Video(**video_schema.model_dump(exclude_none=True))
@@ -57,6 +46,7 @@ def add(file_path, timestamp, video_config_id):
         db.refresh(video_instance)
 
         click.echo(f"✓ Video added: id={video_instance.id} file={rel_file_path}")
+        return {"status": "success", "video_id": video_instance.id}
     except Exception as e:
         click.echo(f"✗ Adding video failed: {e}", err=True)
         raise SystemExit(1)
@@ -64,17 +54,13 @@ def add(file_path, timestamp, video_config_id):
         db.close()
 
 
-@video.command(name="list")
-@click.option("--skip", type=int, default=0, help="Number of records to skip (default: 0)")
-@click.option("--limit", type=int, default=100, help="Maximum number of records to return (default: 100)")
-def list_cmd(skip, limit):
+def list_videos(db, skip: int = 0, limit: int = 100):
     """List videos on CLI."""
-    db = get_session()
     try:
         videos = video_crud.get_list(db, first=skip, count=limit)
         if not videos:
             click.echo("No videos found.")
-            return
+            return {"status": "success", "videos": None}
         header = f"{'ID':<6} {'Timestamp':<20} {'Status':<10} {'Sync':<10} {'File':<50}"
         click.echo(header)
         click.echo("-" * len(header))
@@ -88,6 +74,7 @@ def list_cmd(skip, limit):
                 file_name = file_name[:47] + "..."
             click.echo(f"{video_id:<6} {timestamp:<20} {status:<10} {sync_status:<10} {file_name:<50}")
         click.echo(f"\nShowing {len(videos)} video(s) (skip={skip}, limit={limit})")
+        return {"status": "success", "videos": [video.id for video in videos]}
     except Exception as e:
         click.echo(f"✗ List command failed: {e}", err=True)
         raise SystemExit(1)
@@ -95,11 +82,8 @@ def list_cmd(skip, limit):
         db.close()
 
 
-@video.command()
-@click.argument("video_id", type=int, required=True)
-def delete(video_id):
+def delete_video(db, video_id: int):
     """Delete a single video through CLI."""
-    db = get_session()
     try:
         video = video_crud.get(db, video_id)
         if not video:
@@ -113,6 +97,7 @@ def delete(video_id):
         click.echo(f"  File: {file_info}")
         video_crud.delete(db, video_id)
         click.echo(f"✓ Video {video_id} deleted successfully")
+        return {"status": "success", "message": f"Video {video_id} deleted successfully"}
     except ValueError as e:
         click.echo(f"✗ Error: {e}", err=True)
         raise SystemExit(1)
@@ -121,6 +106,39 @@ def delete(video_id):
         raise SystemExit(1)
     finally:
         db.close()
+
+
+@click.group()
+def video():
+    """Video management commands."""
+    pass
+
+
+@video.command()
+@click.argument("file_path", type=click.Path(exists=True), required=True)
+@click.argument("timestamp", type=str, required=True)
+@click.option("--video-config-id", type=int, default=None, help="Optional video configuration id")
+def add(file_path, timestamp, video_config_id):
+    """Add a new video from file path and timestamp through CLI."""
+    db = get_session()
+    add_video(db, file_path=file_path, timestamp=timestamp, video_config_id=video_config_id)
+
+
+@video.command(name="list")
+@click.option("--skip", type=int, default=0, help="Number of records to skip (default: 0)")
+@click.option("--limit", type=int, default=100, help="Maximum number of records to return (default: 100)")
+def list_cmd(skip, limit):
+    """List videos on CLI."""
+    db = get_session()
+    list_videos(db, skip=skip, limit=limit)
+
+
+@video.command()
+@click.argument("video_id", type=int, required=True)
+def delete(video_id):
+    """Delete a single video through CLI."""
+    db = get_session()
+    delete_video(db, video_id=video_id)
 
 
 @video.command()

@@ -2,7 +2,10 @@ from orc_api import crud, schemas
 from orc_api.db.service import ServiceType
 
 
-def test_get_patch_post_delete_service(auth_client, db_session):
+def test_get_patch_post_delete_service(auth_client, db_session, tmpdir, monkeypatch):
+    # replace service directory by a temporary directory for testing
+    monkeypatch.setattr("orc_api.schemas.service.SERVICE_DIRECTORY", str(tmpdir))
+
     service = schemas.service.ServiceCreate(
         service_short_name="some-service",
         service_long_name="Some Service",
@@ -73,6 +76,21 @@ def test_get_patch_post_delete_service(auth_client, db_session):
     assert r.json()["parameters"][1]["parameter_short_name"] == "param2_updated".upper()
     assert r.json()["parameters"][1]["parameter_long_name"] == "Parameter 2 Updated"
     assert r.json()["parameters"][1]["default_value"] == "1"
+    # try to write a .env file with some parameter values through the router
+    parameter_values = {
+        1: "value1",
+        2: "2",
+    }
+
+    r = auth_client.post("/api/service/1/update_env/", json=parameter_values)
+    assert r.status_code == 200
+    env_file_path = r.json()["env_file_path"]
+    # check if content of file contains parameters in expected format
+    with open(env_file_path, "r") as f:
+        content = f.read()
+        assert 'PARAM1="value1"' in content
+        assert "PARAM2_UPDATED=2" in content
+
     # delete parameter
     r = auth_client.delete("/api/service/parameters/2/")
     assert r.status_code == 204

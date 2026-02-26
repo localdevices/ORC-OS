@@ -152,6 +152,8 @@ def update_service(db: Session, service_id: int, service_update: ServiceUpdate) 
     if service_update.update_url is not None:
         db_service.update_url = service_update.update_url
 
+    if service_update.readme is not None:
+        db_service.readme = service_update.readme
     db.commit()
     db.refresh(db_service)
     return db_service
