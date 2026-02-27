@@ -22,6 +22,8 @@ import VideoConfig from "./views/videoConfig.jsx";
 import ListRecipe from "./views/listRecipe.jsx";
 import ListCrossSection from "./views/listCrossSection.jsx";
 import Log from "./views/log.jsx";
+import ServicesAdmin from "./views/services/ServicesAdmin.jsx";
+import ServiceDetail from "./views/services/ServiceDetail.jsx";
 import api, {createWebSocketConnection} from './api/api.js';
 import orcLogo from '/orc_favicon.svg'
 
@@ -42,7 +44,9 @@ const routeTemplates = [
   "/video_config/<videoId>",
   "/recipe",
   "/cross_section",
-  "/log"
+  "/log",
+  "/services",
+  "/services/<serviceId>"
 ];
 // Match current path against route templates
 const matchRoute = (path) => {
@@ -70,7 +74,7 @@ const matchRoute = (path) => {
 
 
 // Helper component to conditionally render Navbar and Footer
-const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, videoRunState, setVideoRunState}) => {
+const Layout = ({ children, requiresRestart, setRequiresRestart, devStatus, setIsLoading, videoRunState, setVideoRunState}) => {
   const location = useLocation();
   const isInvalidRoute = !matchRoute(location.pathname);
   // Hide Navbar and Footer on login or 404 routes
@@ -95,6 +99,7 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, v
       {!hideLayout && <Navbar
         requiresRestart={requiresRestart}
         setRequiresRestart={setRequiresRestart}
+        devStatus={devStatus}
         setIsLoading={setIsLoading}
         videoRunState={videoRunState}
       />}
@@ -106,7 +111,8 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, setIsLoading, v
 
 const App = () => {
     const [isLoading, setIsLoading] = useState(true); // Spinner state
-    const [apiStatus, setApiStatus] = useState(null); // Error state
+    const [devStatus, setDevStatus] = useState(false); // Dev mode status
+    const [apiStatus, setApiStatus] = useState(null); // Error state API
     const [requiresRestart, setRequiresRestart] = useState(false); // track if device needs restart
     const [videoRunState, setVideoRunState] = useState({
       video_id: 0,
@@ -124,6 +130,9 @@ const App = () => {
                 const response = await api.get("/"); // check the root page
                 if (response.status === 200) {
                   setIsLoading(false); // API is available, stop showing spinner
+                  if (response.data.dev) {
+                    setDevStatus(true);
+                  }
                 } else {
                   console.log(response)
 
@@ -169,6 +178,7 @@ const App = () => {
             <Layout
               requiresRestart={requiresRestart}
               setRequiresRestart={setRequiresRestart}
+              devStatus={devStatus}
               setIsLoading={setIsLoading}
               videoRunState={videoRunState}
               setVideoRunState={setVideoRunState}
@@ -255,6 +265,20 @@ const App = () => {
                 <Route path="/log" element={
                   <ProtectedRoute>
                     <Log />
+                  </ProtectedRoute>
+                } />
+                {devStatus && (
+                  <Route path="/services" element={
+                    <ProtectedRoute>
+                      <ServicesAdmin />
+                    </ProtectedRoute>
+                  } />
+                )}
+                <Route path="/services/:serviceId" element={
+                  <ProtectedRoute>
+                    <ServiceDetail
+                      devStatus={devStatus}
+                    />
                   </ProtectedRoute>
                 } />
               </Routes>

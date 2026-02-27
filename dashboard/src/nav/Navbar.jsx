@@ -8,6 +8,7 @@ import {
   FaCheck,
   FaTimes,
   FaSignOutAlt,
+  FaTools,
   FaKey,
   FaHome,
   FaVideo,
@@ -26,7 +27,7 @@ import {PasswordChangeModal} from "./passwordChangeModal.jsx";
 import api from "../api/api.js";
 import { useAuth } from "../auth/useAuth.jsx";
 
-const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunState}) => {
+const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, videoRunState}) => {
 
   const [isOpen, setIsOpen] = useState(false); // track if the navbar is open / closed
   const { logout } = useAuth();
@@ -125,7 +126,9 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
               disabled={!requiresRestart}
               onClick={handleRestartClick}
             />
-            <OptionsMenu/>
+            <OptionsMenu
+              devStatus={devStatus}
+            />
             <div
               className="user-menu-wrapper"
               onMouseEnter={() => {
@@ -142,6 +145,19 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
               }}
             >
               <FaUser style={{ cursor: 'pointer' }}/>
+              {devStatus && (
+                <FaTools
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    fontSize: '1em',
+                    color: 'red',
+                  }}
+                  title="Development mode"
+                />
+              )}
+              {/* </span> */}
               {userMenuOpen && (
                 <div className="user-menu">
                   <div

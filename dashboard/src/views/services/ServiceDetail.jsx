@@ -611,7 +611,7 @@ const ServiceDetail = ({ devStatus }) => {
           </div>
         </div>
       )}
-
+      {devStatus && (
       <div className="action-buttons">
         <button
           className="btn btn-secondary"
@@ -620,6 +620,7 @@ const ServiceDetail = ({ devStatus }) => {
           Back to Services
         </button>
       </div>
+      )}
     </div>
   );
 };
