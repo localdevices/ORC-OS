@@ -141,7 +141,7 @@ const VideoConfig = () => {
   // complete
   useEffect(() => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
-      if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
+      if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSDischarge).length > 0) {
         setCSDischarge({});
       }
       if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {

@@ -238,8 +238,8 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
 
       <div className="sidebar-overlay"></div> {/*make background grey*/}
       <div className="modal fade show d-block" tabIndex="-1">
-        <div className="modal-dialog" style={{maxWidth: "600px", marginTop: "30px"}}>  {/*ensure modal spans a broad screen size*/}
-          <div className="modal-content">
+        <div className="modal-dialog" style={{maxWidth: "900px", marginTop: "30px"}}>  {/*ensure modal spans a broad screen size*/}
+          <div className="modal-content" style={{maxWidth: "900px"}}>
             <div className="modal-header">
               <h5 className="modal-title">{`Process video ${video.id} - ${video.file.split(`/${video.id}/`)[1]}`}</h5>
               <button
