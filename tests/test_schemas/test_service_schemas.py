@@ -246,6 +246,10 @@ def test_service_executor_enable_disable(tmp_path):
         mock_run.assert_called_with(
             ["sudo", "systemctl", "disable", executor.service_enabler], check=True, capture_output=True
         )
+        executor.log_service(num_lines=10)
+        mock_run.assert_called_with(
+            ["sudo", "journalctl", "-u", executor.service_file_name, "-n", "10"], capture_output=True, text=True
+        )
 
 
 def test_service_executor_start_stop(tmp_path):

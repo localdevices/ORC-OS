@@ -80,9 +80,30 @@ class ServiceParameterResponse(BaseModel):
 
         return data
 
+    @computed_field
+    @property
+    def parsed_default_value(self) -> Optional[Any]:
+        """Parse the default value to the correct type based on parameter_type."""
+        if self.default_value is None or self.default_value == "":
+            return None
+        try:
+            if self.parameter_type == ParameterType.INTEGER:
+                return int(self.default_value)
+            elif self.parameter_type == ParameterType.FLOAT:
+                return float(self.default_value)
+            elif self.parameter_type == ParameterType.BOOLEAN:
+                if self.default_value == "1" or self.default_value.lower() == "true":
+                    return True
+                return False
+            else:
+                return self.default_value
+        except ValueError:
+            # If conversion fails, return the default value as a string
+            return self.default_value
+
     @computed_field  # type: ignore
     @property
-    def current_value(self) -> Optional[str]:
+    def current_value(self) -> Optional[Any]:
         """Get the current value from the .env file for this parameter.
 
         Returns
@@ -112,7 +133,19 @@ class ServiceParameterResponse(BaseModel):
                                     value = value[1:-1]
                                 # Unescape special characters
                                 value = value.replace('\\"', '"').replace("\\$", "$")
-                                return value
+                                try:
+                                    # convert to type of parameter
+                                    if self.parameter_type == ParameterType.INTEGER:
+                                        return int(value)
+                                    elif self.parameter_type == ParameterType.FLOAT:
+                                        return float(value)
+                                    elif self.parameter_type == ParameterType.BOOLEAN:
+                                        return value.lower() == "1"
+                                    else:
+                                        return value
+                                except ValueError:
+                                    # If conversion fails, set value is not of said type, return None
+                                    return None
         except (OSError, IOError):
             # If we can't read the file, return None
             return None
@@ -243,10 +276,8 @@ class ServiceExecutor:
 
         for param in self.parameters:
             value = parameter_values.get(param.id)
-
             if value is None:
-                value = param.default_value
-
+                value = param.parsed_default_value
             if value is None and not param.nullable:
                 raise ValueError(f"Parameter {param.parameter_short_name} is required but no value provided")
 
@@ -255,6 +286,9 @@ class ServiceExecutor:
                 if param.parameter_type == ParameterType.STRING:
                     escaped_value = str(value).replace('"', '\\"').replace("$", "\\$")
                     env_lines.append(f'{param.parameter_short_name}="{escaped_value}"')
+                elif param.parameter_type == ParameterType.BOOLEAN:
+                    # escape if value is empty
+                    env_lines.append(f"{param.parameter_short_name}={'1' if value else '0'}")
                 else:
                     env_lines.append(f"{param.parameter_short_name}={value}")
 
@@ -275,8 +309,9 @@ class ServiceExecutor:
         os.makedirs(os.path.dirname(self.env_file_path), exist_ok=True)
 
         # Write with restricted permissions
+        content = self.create_env_file_content(parameter_values)
         with open(self.env_file_path, "w") as f:
-            f.write(self.create_env_file_content(parameter_values))
+            f.write(content)
 
         os.chmod(self.env_file_path, 0o600)
 
@@ -603,6 +638,35 @@ WantedBy=timers.target
             subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
         except Exception as e:
             raise RuntimeError(f"Failed to delete service: {str(e)}")
+
+    def log_service(self, num_lines: int = 100) -> str:
+        """Read the last lines of the service log file.
+
+        Parameters
+        ----------
+        num_lines: int
+            Number of lines to read from the end of the log file
+
+        Returns
+        -------
+        str
+            The last lines of the log file
+
+        """
+        # Get detailed status
+        result = subprocess.run(
+            [
+                "sudo",
+                "journalctl",
+                "-u",
+                self.service_file_name,
+                "-n",
+                str(num_lines),
+            ],  # use filename to check if service is running
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
 
 
 class ServiceExportData(BaseModel):

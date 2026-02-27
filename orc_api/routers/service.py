@@ -1,13 +1,15 @@
 """Router for custom systemd service management."""
 
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from orc_api import DEV_MODE
 from orc_api.crud import service as crud
 from orc_api.database import get_db
+from orc_api.db.service import ParameterType
 from orc_api.schemas.service import (
     ServiceCreate,
     ServiceExecutor,
@@ -22,12 +24,23 @@ from orc_api.schemas.service import (
     ServiceVersionCheck,
 )
 
+
+def _dev_only():
+    if not DEV_MODE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="this endpoint is available in development mode only",
+        )
+
+
 router = APIRouter(prefix="/service", tags=["service"])
 
 #    service: ServiceCreate,
 
 
-@router.post("/", response_model=ServiceResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=ServiceResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(_dev_only)]
+)
 def create_service(
     service: ServiceCreate,
     db: Session = Depends(get_db),
@@ -71,7 +84,7 @@ def get_service(
     return service
 
 
-@router.patch("/{service_id}/", response_model=ServiceResponse)
+@router.patch("/{service_id}/", response_model=ServiceResponse, dependencies=[Depends(_dev_only)])
 def update_service(
     service_id: int,
     service_update: ServiceUpdate,
@@ -87,7 +100,7 @@ def update_service(
     return db_service
 
 
-@router.delete("/{service_id}/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{service_id}/", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(_dev_only)])
 def delete_service(
     service_id: int,
     db: Session = Depends(get_db),
@@ -110,7 +123,7 @@ def delete_service(
 
 
 # Parameter endpoints
-@router.post("/{service_id}/parameters/", response_model=ServiceParameterResponse)
+@router.post("/{service_id}/parameters/", response_model=ServiceParameterResponse, dependencies=[Depends(_dev_only)])
 def add_parameter(
     service_id: int,
     param: ServiceParameterCreate,
@@ -131,18 +144,18 @@ def add_parameter(
 @router.post("/{service_id}/update_env/", status_code=status.HTTP_200_OK)
 async def update_service_env(
     service_id: int,
-    parameter_values: Dict[int, str],
+    parameter_values: Dict[int, Any],
     db: Session = Depends(get_db),
 ) -> Dict[str, str]:
     """Update service environment file with parameter values."""
+    # Fetch service and parameters from database
+    service = crud.get_service(db, service_id)
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service with ID {service_id} not found",
+        )
     try:
-        # Fetch service and parameters from database
-        service = crud.get_service(db, service_id)
-        if not service:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Service with ID {service_id} not found",
-            )
         # Create response model instance to validate data
         service = ServiceResponse.model_validate(service)
         # Create ServiceExecutor instance
@@ -152,11 +165,36 @@ async def update_service_env(
             service_type=service.service_type,
             parameters=service.parameters,
         )
+        # check if parameter values can be cast to correct types
+        if service.parameters is not None:
+            for param in service.parameters:
+                if param.id in parameter_values:
+                    value = parameter_values[param.id]
+                    # test if value is of correct type or can be cast to correct type
+                    if param.parameter_type == ParameterType.BOOLEAN:
+                        if isinstance(value, bool):
+                            continue
+                    elif param.parameter_type == ParameterType.INTEGER:
+                        if isinstance(value, int):
+                            continue
+                    elif param.parameter_type == ParameterType.FLOAT:
+                        if isinstance(value, float):
+                            continue
+                    elif param.parameter_type in [ParameterType.STRING, ParameterType.LITERAL]:
+                        if isinstance(value, str):
+                            continue
+                    # elif param.parameter_type in [crud.ParameterType.STRING, crud.ParameterType.LITERAL]:
+                    #     parameter_values[param.id] = str(value)
+                    else:
+                        raise ValueError(
+                            f"Unsupported value {value} for parameter '{param.parameter_short_name}' "
+                            f"with type {param.parameter_type}"
+                        )
         # Write env file with provided parameter values
         executor.write_env_file(parameter_values)
 
         return {
-            "message": f"Environment file updated for service {service.service_short_name}",
+            "message": f"Environment file updated for service {service.service_short_name} in {executor.env_file_path}",
             "env_file_path": executor.env_file_path,
         }
     except ValueError as e:
@@ -180,7 +218,36 @@ def list_parameters(
     return service.parameters
 
 
-@router.patch("/parameters/{param_id}/", response_model=ServiceParameterResponse)
+@router.get("/{service_id}/log/", response_model=List[str])
+def get_service_log(
+    service_id: int,
+    db: Session = Depends(get_db),
+):
+    """Get the latest log output for a service."""
+    service = crud.get_service(db, service_id)
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service with ID {service_id} not found",
+        )
+    service = ServiceResponse.model_validate(service)
+    try:
+        executor = ServiceExecutor(
+            service_short_name=service.service_short_name,
+            service_long_name=service.service_long_name,
+            parameters=service.parameters,
+            service_type=service.service_type,
+        )
+        log_output = executor.log_service()
+        return log_output.splitlines()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve log output: {str(e)}",
+        )
+
+
+@router.patch("/parameters/{param_id}/", response_model=ServiceParameterResponse, dependencies=[Depends(_dev_only)])
 def update_parameter(
     param_id: int,
     param_update: ServiceParameterUpdate,
@@ -196,7 +263,7 @@ def update_parameter(
     return db_param
 
 
-@router.delete("/parameters/{param_id}/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/parameters/{param_id}/", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(_dev_only)])
 def delete_parameter(
     param_id: int,
     db: Session = Depends(get_db),
@@ -211,7 +278,7 @@ def delete_parameter(
 
 
 # Service control endpoints
-@router.post("/{service_id}/deploy/")
+@router.post("/{service_id}/deploy/", dependencies=[Depends(_dev_only)])
 def deploy_service(
     service_id: int,
     script_content: str,
@@ -449,7 +516,7 @@ def get_service_status(
 
 
 # Export/Import endpoints
-@router.get("/{service_id}/export/", response_model=ServiceExportData)
+@router.get("/{service_id}/export/", response_model=ServiceExportData, dependencies=[Depends(_dev_only)])
 def export_service(
     service_id: int,
     db: Session = Depends(get_db),
@@ -503,7 +570,7 @@ def export_service(
     )
 
 
-@router.post("/{service_id}/import/", response_model=ServiceResponse)
+@router.post("/{service_id}/import/", response_model=ServiceResponse, dependencies=[Depends(_dev_only)])
 def import_service(
     service_id: int,
     import_request: ServiceImportRequest,

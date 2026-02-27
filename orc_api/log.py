@@ -10,7 +10,7 @@ from typing import Optional
 import anyio
 from fastapi import WebSocket
 
-from orc_api import LOG_DIRECTORY, __home__, __version__
+from orc_api import LOG_DIRECTORY, __home__
 
 FMT = "%(asctime)s - %(name)s - %(module)s - %(levelname)s - %(message)s"
 
@@ -68,8 +68,6 @@ def setuplog(
         # if append is False and os.path.isfile(path):
         #     os.unlink(path)
         add_filehandler(logger, path, log_level=log_level, fmt=fmt, backupCount=10)
-    logger.info(f"ORC-OS version: {__version__}")
-
     return logger
 
 
@@ -165,9 +163,6 @@ async def stream_new_lines(websocket: WebSocket, fn: str):
                 await asyncio.sleep(0.1)  # Wait before trying to read more lines
 
 
-# if "ALEMBIC_RUNNING" not in os.environ:
 logger = start_logger(True, False, log_path=LOG_DIRECTORY)
-# else:
-#     logger = None
 
 __all__ = ["logger", "get_last_lines", "stream_new_lines"]

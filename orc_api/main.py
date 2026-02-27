@@ -15,6 +15,7 @@ from orc_api import (
     ORIGINS,
     SECRET_KEY,
     UPLOAD_DIRECTORY,
+    __version__,
     crud,
 )
 from orc_api.database import get_session
@@ -54,7 +55,8 @@ from orc_api.utils.states import video_run_state
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the scheduler and logger."""
-    logger.info("Starting ORC-OS API")
+    logger.info(f"ORC-OS API v{__version__}")
+
     if SECRET_KEY == "ORC_DEFAULT_KEY":
         logger.warning(
             "WARNING: Using default ORC_SECRET_KEY. This is not secure and should be "
