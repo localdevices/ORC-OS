@@ -451,10 +451,6 @@ WantedBy=timers.target
             User to run service as
 
         """
-        # write the env file if parameters are provided. This can be overridden by the user later, but ensures that
-        # defaults are set if no values provided at runtime.
-        self.write_env_file(parameter_values)  # if parameter_values is None, it will be set to empty dict
-        # Write script file
         with open(self.service_script, "w") as f:
             f.write(script_content)
         # script MUST be executable
@@ -473,6 +469,10 @@ WantedBy=timers.target
         # Reload systemd
         self.create_service_links()
         subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
+        # finally, attempt writing the env file if parameters are provided. This can be overridden by the user later
+        # defaults are set if no values provided at runtime.
+        self.write_env_file(parameter_values)  # if parameter_values is None, it will be set to empty dict
+        # Write script file
 
     def enable_service(self) -> str:
         """Enable the service/timer.
