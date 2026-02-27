@@ -371,8 +371,6 @@ EnvironmentFile={self.env_file_path}
 ExecStart={self.service_script}
 Restart=on-failure
 RestartSec=10s
-StandardOutput=file:{self.log_file_path}
-StandardError=file:{self.log_file_path}
 
 [Install]
 WantedBy=multi-user.target
