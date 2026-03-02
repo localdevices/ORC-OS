@@ -13,8 +13,8 @@ from orc_api.schemas.service import (
     ServiceCreate,
     ServiceExecutor,
     ServiceExportData,
-    ServiceParameterCreate,
     ServiceParameterResponse,
+    ServiceResponse,
     ServiceUpdate,
 )
 
@@ -101,6 +101,7 @@ def import_service(
                 service_long_name=db_service.service_long_name,
                 parameters=[ServiceParameterResponse.model_validate(p) for p in db_service.parameters],
                 service_type=db_service.service_type,
+                script_type=service_data.script_type,
             )
             existing_env = {}
             if preserve_env:
@@ -128,45 +129,8 @@ def export_service(service_id: int, db: Session, output_path: Optional[Path] = N
         service = crud.service.get_service(db, service_id)
         if not service:
             return {"status": "error", "message": f"Service with ID {service_id} not found"}
-
-        script_content = None
-        try:
-            executor = ServiceExecutor(
-                service_short_name=service.service_short_name,
-                service_long_name=service.service_long_name,
-                parameters=[ServiceParameterResponse.model_validate(p) for p in service.parameters],
-                service_type=service.service_type,
-            )
-            if executor.service_script and Path(executor.service_script).is_file():
-                with open(executor.service_script, "r") as f:
-                    script_content = f.read()
-        except Exception:
-            pass
-
-        parameters = [
-            ServiceParameterCreate(
-                parameter_short_name=p.parameter_short_name,
-                parameter_long_name=p.parameter_long_name,
-                parameter_type=p.parameter_type,
-                default_value=p.default_value,
-                nullable=p.nullable,
-                description=p.description,
-            )
-            for p in service.parameters
-        ]
-
-        export_data = ServiceExportData(
-            service_short_name=service.service_short_name,
-            service_long_name=service.service_long_name,
-            service_type=service.service_type,
-            description=service.description,
-            readme=service.readme,
-            version=service.version or "0.0.0",
-            update_url=service.update_url,
-            parameters=parameters,
-            script_content=script_content,
-        )
-
+        service = ServiceResponse.model_validate(service)
+        export_data = service.export()
         result = {
             "status": "success",
             "service_id": service_id,
@@ -191,12 +155,38 @@ def delete_service(service_id: int, db: Session) -> dict:
         service = crud.service.get_service(db, service_id)
         if not service:
             return {"status": "error", "message": f"Service with ID {service_id} not found"}
-
-        crud.service.delete_service(db, service_id)
+        service = ServiceResponse.model_validate(service)
+        service.delete()  # this will handle both database deletion and file cleanup
         return {"status": "success", "message": f"Service with ID {service_id} deleted successfully"}
-
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+def list_services(db, skip: int = 0, limit: int = 100):
+    """List videos on CLI."""
+    try:
+        services = crud.service.list_services(db, skip=skip, limit=limit)
+        if not services:
+            click.echo("No services found.")
+            return {"status": "success", "services": None}
+        header = f"{'ID':<6} {'Short name':<50} {'Type':<20} {'Version':<10}"
+        click.echo(header)
+        click.echo("-" * len(header))
+        for service in services:
+            service_id = str(service.id)[:6]
+            short_name = service.service_short_name if service.service_short_name else "N/A"
+            if len(short_name) > 50:
+                short_name = short_name[:47] + "..."
+            service_type = service.service_type.name if service.service_type else "N/A"
+            version = service.version if service.version else "N/A"
+            click.echo(f"{service_id:<6} {short_name:<50} {service_type:<20} {version:<10}")
+        click.echo(f"\nShowing {len(services)} service(s) (skip={skip}, limit={limit})")
+        return {"status": "success", "services": [service.id for service in services]}
+    except Exception as e:
+        click.echo(f"✗ List command failed: {e}", err=True)
+        raise SystemExit(1)
+    finally:
+        db.close()
 
 
 @click.group()
@@ -264,6 +254,15 @@ def delete_cmd(service_id):
             exit(1)
     finally:
         db.close()
+
+
+@service.command(name="list")
+@click.option("--skip", type=int, default=0, help="Number of records to skip (default: 0)")
+@click.option("--limit", type=int, default=100, help="Maximum number of records to return (default: 100)")
+def list_cmd(skip, limit):
+    """List services on CLI."""
+    db = get_session()
+    list_services(db, skip=skip, limit=limit)
 
 
 @click.command()

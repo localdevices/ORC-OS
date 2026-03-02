@@ -2,12 +2,14 @@
 
 import os
 import subprocess
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator, model_validator
 
-from orc_api import SERVICE_DIRECTORY
+from orc_api import SERVICE_DIRECTORY, crud
+from orc_api.database import get_session
 from orc_api.db.service import ParameterType, ServiceType
 
 
@@ -153,6 +155,50 @@ class ServiceParameterResponse(BaseModel):
         return None
 
 
+class ServiceExportData(BaseModel):
+    """Schema for exporting service data to JSON."""
+
+    service_short_name: str
+    service_long_name: str
+    service_type: ServiceType
+    description: Optional[str]
+    readme: Optional[str]
+    version: str
+    update_url: Optional[str]
+    parameters: List[ServiceParameterCreate]
+    script_content: Optional[str] = None
+    script_type: Optional[Literal["python", "bash"]] = None
+    timer_frequency: Optional[int] = None
+    on_boot_sec: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        return self.model_dump_json(indent=4)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "ServiceExportData":
+        """Create from JSON string."""
+        return cls.model_validate_json(json_str)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ServiceExportData":
+        """Create from dictionary."""
+        return cls.model_validate(data)
+
+    @field_validator("service_type", mode="before")
+    @classmethod
+    def convert_service_type(cls, v):
+        """Convert service type string to enum."""
+        if isinstance(v, str):
+            return getattr(ServiceType, v)
+        return v
+
+
 class ServiceCreate(BaseModel):
     """Schema for creating custom services."""
 
@@ -172,6 +218,15 @@ class ServiceCreate(BaseModel):
         if not all(c.isalnum() or c == "-" for c in v):
             raise ValueError("service_short_name must be alphanumeric with hyphens only")
         return v.lower()
+
+    @field_validator("service_type", mode="before")
+    @classmethod
+    def convert_service_type(cls, v):
+        """Convert string to ServiceType enum."""
+        if isinstance(v, str):
+            # get the ServiceType from string instead of integer
+            return getattr(ServiceType, v)
+        return v
 
 
 class ServiceUpdate(BaseModel):
@@ -203,6 +258,86 @@ class ServiceResponse(BaseModel):
         """Serialize service type enum to string."""
         return v.name
 
+    def export(self) -> ServiceExportData:
+        """Export service data for backup or transfer.
+
+        Returns
+        -------
+        ServiceExportData
+            Data class containing all relevant service information
+
+        """
+        try:
+            executor = ServiceExecutor(
+                service_short_name=self.service_short_name,
+                service_long_name=self.service_long_name,
+                parameters=[ServiceParameterResponse.model_validate(p) for p in self.parameters or []],
+                service_type=self.service_type,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize ServiceExecutor for export: {str(e)}")
+
+        # Read script content if it exists
+        try:
+            # first check if service file exists and read the type of the script from the ExecStart directive
+            script_type = None
+            if executor.service_script:
+                if executor.service_script.endswith(".py"):
+                    script_type = "python"
+                else:
+                    script_type = "bash"
+            script_content = None
+            if executor.service_script and os.path.isfile(executor.service_script):
+                with open(executor.service_script, "r") as f:
+                    script_content = f.read()
+        except Exception:
+            script_content = None
+            script_type = None
+
+        # Convert parameters to create schemas
+        parameters = [
+            ServiceParameterCreate(
+                parameter_short_name=p.parameter_short_name,
+                parameter_long_name=p.parameter_long_name,
+                parameter_type=p.parameter_type,
+                default_value=p.default_value,
+                nullable=p.nullable,
+                description=p.description,
+            )
+            for p in self.parameters or []
+        ]
+
+        return ServiceExportData(
+            service_short_name=self.service_short_name,
+            service_long_name=self.service_long_name,
+            service_type=self.service_type,
+            description=self.description,
+            readme=self.readme,
+            version=self.version or "0.0.0",
+            update_url=self.update_url,
+            parameters=parameters,
+            script_content=script_content,
+            script_type=script_type,
+        )
+
+    def delete(self) -> None:
+        """Delete the service, including database record and systemd files."""
+        executor = ServiceExecutor(
+            service_short_name=self.service_short_name,
+            service_long_name=self.service_long_name,
+            parameters=self.parameters,
+            service_type=self.service_type,
+        )
+        with get_session() as db:
+            success = crud.service.delete_service(db, self.id)
+            if not success:
+                raise IndexError(f"Service with ID {self.id} not found in database, cannot delete")
+        # finally, attempt to remove service files.
+        try:
+            executor.delete_service()
+        except Exception as e:
+            raise IOError(f"Failed to delete service files: {str(e)}")
+
 
 class ServiceParameterValue(BaseModel):
     """Schema for setting parameter values at runtime."""
@@ -231,6 +366,7 @@ class ServiceExecutor:
         service_short_name: str,
         service_long_name: str,
         service_type: ServiceType,
+        script_type: Optional[Literal["python", "bash"]] = None,
         parameters: Optional[List[ServiceParameterResponse]] = None,
     ):
         """Initialize service executor.
@@ -243,6 +379,8 @@ class ServiceExecutor:
             Long name of the service
         service_type: ServiceType
             Type of the service (e.g. one_time, scheduled)
+        script_type: Literal["python", "bash"], optional
+            The type of the script (python or bash). If not provided, no script will be created or executed (yet)
         parameters: List[ServiceParameterResponse]
             Parameter definitions for the service
 
@@ -250,13 +388,35 @@ class ServiceExecutor:
         self.service_short_name = service_short_name
         self.service_long_name = service_long_name
         self.service_type = service_type
+        self.script_type = script_type
         self.parameters = parameters or []
         self.service_file_name = f"orc-{service_short_name}.service"  # no directory set here, symbolic links used
         self.timer_file_name = f"orc-{service_short_name}.timer"
         self.service_enabler = self.service_file_name if service_type == ServiceType.ONE_TIME else self.timer_file_name
-        self.service_script = os.path.join(SERVICE_DIRECTORY, f"orc-{service_short_name}.sh")
         self.env_file_path = os.path.join(SERVICE_DIRECTORY, f"orc-{service_short_name}.env")
         self.log_file_path = os.path.join(SERVICE_DIRECTORY, f"orc-{service_short_name}.log")
+
+    @property
+    def service_script(self) -> Optional[str]:
+        """Determine the script path based on the script type or existing service file."""
+        if self.script_type == "python":
+            return os.path.join(SERVICE_DIRECTORY, f"orc-{self.service_short_name}.py")
+        elif self.script_type == "bash":
+            return os.path.join(SERVICE_DIRECTORY, f"orc-{self.service_short_name}.sh")
+        else:
+            # If script type is not provided, attempt to find existing script by checking the ExecStart directive
+            # in the service file
+            service_file_path = os.path.join(SERVICE_DIRECTORY, self.service_file_name)
+            if os.path.isfile(service_file_path):
+                with open(service_file_path, "r") as f:
+                    for line in f:
+                        if line.startswith("ExecStart="):
+                            exec_start = line.split("=", 1)[1].strip()
+                            if exec_start.endswith(".py"):
+                                return exec_start
+                            elif exec_start.endswith(".sh") or exec_start.endswith(".bash"):
+                                return exec_start
+            return None
 
     def create_env_file_content(self, parameter_values: Dict[int, str]) -> str:
         """Create content for environment file based on parameter values.
@@ -273,13 +433,16 @@ class ServiceExecutor:
 
         """
         env_lines = []
-
+        print(self.parameters)
         for param in self.parameters:
             value = parameter_values.get(param.id)
             if value is None:
                 value = param.parsed_default_value
             if value is None and not param.nullable:
-                raise ValueError(f"Parameter {param.parameter_short_name} is required but no value provided")
+                raise ValueError(
+                    f"Parameter {param.parameter_short_name} is required but no value provided. "
+                    f"This means I cannot write the .env file for the service. Please provide values yourself."
+                )
 
             if value is not None:
                 # Escape special characters in environment variables
@@ -355,9 +518,18 @@ class ServiceExecutor:
             Service file content
 
         """
+        if self.script_type is None:
+            raise ValueError(
+                "script_type must be provided to determine how to execute the service script. "
+                "Initiate ServiceExecutor with script_type='python' or 'bash' to deploy service with script."
+            )
+        if self.script_type == "python":
+            exec_start = f"{sys.executable} {self.service_script}"
+        else:
+            exec_start = self.service_script
+
         if user is None:
             user = os.getenv("USER", "root")
-
         service_content = f"""[Unit]
 Description={self.service_long_name}
 After=network-online.target time-sync.target
@@ -366,9 +538,10 @@ Wants=network-online.target time-sync.target
 [Service]
 Type=simple
 User={user}
-WorkingDirectory=/home/{user}
+WorkingDirectory={os.path.split(sys.executable)[0]}
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/{user}/.local/bin"
 EnvironmentFile={self.env_file_path}
-ExecStart={self.service_script}
+ExecStart={exec_start}
 Restart=on-failure
 RestartSec=10s
 
@@ -449,6 +622,12 @@ WantedBy=timers.target
             User to run service as
 
         """
+        if self.service_script is None:
+            raise ValueError(
+                "Service script type is not provided, cannot determine script path. "
+                "Initiate ServiceExecutor with script_type='python' or 'bash' to deploy service with script."
+            )
+        # Write script file
         with open(self.service_script, "w") as f:
             f.write(script_content)
         # script MUST be executable
@@ -470,7 +649,6 @@ WantedBy=timers.target
         # finally, attempt writing the env file if parameters are provided. This can be overridden by the user later
         # defaults are set if no values provided at runtime.
         self.write_env_file(parameter_values)  # if parameter_values is None, it will be set to empty dict
-        # Write script file
 
     def enable_service(self) -> str:
         """Enable the service/timer.
@@ -612,6 +790,9 @@ WantedBy=timers.target
                 capture_output=True,
             )
 
+            # First lookup scripty file before .service file is removed
+            service_script = self.service_script
+            print("Service script to be removed:", service_script)
             # Remove files
             service_path = os.path.join(SERVICE_DIRECTORY, self.service_file_name)
             service_link = self.SYSTEMD_PATH / self.service_file_name
@@ -630,8 +811,8 @@ WantedBy=timers.target
                 os.unlink(timer_path)
             if os.path.exists(self.env_file_path):
                 os.unlink(self.env_file_path)
-            if os.path.exists(self.service_script):
-                os.unlink(self.service_script)
+            if service_script and os.path.exists(service_script):
+                os.unlink(service_script)
             # Reload systemd
             subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
         except Exception as e:
@@ -665,49 +846,6 @@ WantedBy=timers.target
             text=True,
         )
         return result.stdout
-
-
-class ServiceExportData(BaseModel):
-    """Schema for exporting service data to JSON."""
-
-    service_short_name: str
-    service_long_name: str
-    service_type: ServiceType
-    description: Optional[str]
-    readme: Optional[str]
-    version: str
-    update_url: Optional[str]
-    parameters: List[ServiceParameterCreate]
-    script_content: Optional[str] = None
-    timer_frequency: Optional[int] = None
-    on_boot_sec: Optional[str] = None
-    model_config = ConfigDict(from_attributes=True)
-
-    def to_json(self) -> str:
-        """Convert to JSON string."""
-        return self.model_dump_json(indent=4)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return self.model_dump(mode="json")
-
-    @classmethod
-    def from_json(cls, json_str: str) -> "ServiceExportData":
-        """Create from JSON string."""
-        return cls.model_validate_json(json_str)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ServiceExportData":
-        """Create from dictionary."""
-        return cls.model_validate(data)
-
-    @field_validator("service_type", mode="before")
-    @classmethod
-    def convert_service_type(cls, v):
-        """Convert service type string to enum."""
-        if isinstance(v, str):
-            return getattr(ServiceType, v)
-        return v
 
 
 class ServiceImportRequest(BaseModel):

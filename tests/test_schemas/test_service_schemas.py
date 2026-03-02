@@ -210,7 +210,8 @@ def test_service_executor_deploy(tmp_path, monkeypatch):
     assert not expected_symlink.exists()
     assert not expected_timer_symlink.exists()
     assert not os.path.exists(executor.env_file_path)
-    assert not os.path.exists(executor.service_script)
+    if executor.service_script:
+        assert not os.path.exists(executor.service_script)
 
 
 def test_service_executor_enable_disable(tmp_path):

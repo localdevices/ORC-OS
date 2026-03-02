@@ -1,7 +1,6 @@
 """Router for custom systemd service management."""
 
-import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -112,13 +111,23 @@ def delete_service(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Service with ID {service_id} not found",
         )
-
-    # TODO: Stop and remove systemd files if they exist
-    success = crud.delete_service(db, service_id)
-    if not success:
+    service = ServiceResponse.model_validate(service)
+    try:
+        service.delete()  # this will handle both database deletion and file cleanup
+    except IndexError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except IOError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete service",
+            detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete service: {str(e)}",
         )
 
 
@@ -282,6 +291,7 @@ def delete_parameter(
 def deploy_service(
     service_id: int,
     script_content: str,
+    script_type: Literal["python", "bash"] = "bash",
     on_boot_sec: str = "5s",
     frequency: int = 15,
     db: Session = Depends(get_db),
@@ -294,6 +304,8 @@ def deploy_service(
         ID of the service
     script_content: str
         The content of the script to be executed by the service
+    script_type: Literal["python", "bash"]
+        The type of the script (python or bash)
     on_boot_sec: str
         For timer services, delay after boot (in seconds or time format) before first run
     frequency: int
@@ -315,6 +327,7 @@ def deploy_service(
             service_long_name=service.service_long_name,
             parameters=service.parameters,
             service_type=service.service_type,
+            script_type=script_type,
         )
 
         # Deploy files
@@ -528,46 +541,14 @@ def export_service(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Service with ID {service_id} not found",
         )
-
-    # Read script content if it exists
+    service = ServiceResponse.model_validate(service)
     try:
-        executor = ServiceExecutor(
-            service_short_name=service.service_short_name,
-            service_long_name=service.service_long_name,
-            parameters=[ServiceParameterResponse.model_validate(p) for p in service.parameters],
-            service_type=service.service_type,
+        return service.export()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Export failed: {str(e)}",
         )
-        script_content = None
-        if executor.service_script and os.path.isfile(executor.service_script):
-            with open(executor.service_script, "r") as f:
-                script_content = f.read()
-    except Exception:
-        script_content = None
-
-    # Convert parameters to create schemas
-    parameters = [
-        ServiceParameterCreate(
-            parameter_short_name=p.parameter_short_name,
-            parameter_long_name=p.parameter_long_name,
-            parameter_type=p.parameter_type,
-            default_value=p.default_value,
-            nullable=p.nullable,
-            description=p.description,
-        )
-        for p in service.parameters
-    ]
-
-    return ServiceExportData(
-        service_short_name=service.service_short_name,
-        service_long_name=service.service_long_name,
-        service_type=service.service_type,
-        description=service.description,
-        readme=service.readme,
-        version=service.version or "0.0.0",
-        update_url=service.update_url,
-        parameters=parameters,
-        script_content=script_content,
-    )
 
 
 @router.post("/{service_id}/import/", response_model=ServiceResponse, dependencies=[Depends(_dev_only)])
