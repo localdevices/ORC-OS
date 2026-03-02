@@ -66,10 +66,7 @@ const ServiceDetail = ({ devStatus }) => {
       setParameterValues(values);
       console.log('Initialized parameter values:', values);
     } catch (error) {
-      setMessageInfo({
-        type: 'error',
-        message: `Failed to load service: ${error.message}`,
-      });
+      setMessageInfo('error',`Failed to load service: ${error.message}`);
       navigate('/services');
     } finally {
       console.log(parameterValues);
@@ -99,16 +96,10 @@ const ServiceDetail = ({ devStatus }) => {
     try {
       setControlLoading(true);
       const response = await api.post(`/service/${serviceId}/${action}/`);
-      setMessageInfo({
-        type: 'success',
-        message: response.data.message,
-      });
+      setMessageInfo('success', response.data.message);
       fetchStatus();
     } catch (error) {
-      setMessageInfo({
-        type: 'error',
-        message: `Failed to ${action} service: ${error.message}`,
-      });
+      setMessageInfo('error',`Failed to ${action} service: ${error.message}`);
     } finally {
       setControlLoading(false);
     }
@@ -145,16 +136,10 @@ const ServiceDetail = ({ devStatus }) => {
     if (window.confirm('Are you sure you want to delete this parameter?')) {
       try {
         await api.delete(`/service/parameters/${paramId}/`);
-        setMessageInfo({
-          type: 'success',
-          message: 'Parameter deleted successfully',
-        });
+        setMessageInfo('success', 'Parameter deleted successfully');
         fetchService();
       } catch (error) {
-        setMessageInfo({
-          type: 'error',
-          message: `Failed to delete parameter: ${error.message}`,
-        });
+        setMessageInfo('error', `Failed to delete parameter: ${error.message}`);
       }
     }
   };
@@ -225,10 +210,7 @@ const ServiceDetail = ({ devStatus }) => {
   }
   const handleSubmitDeploy = async () => {
     if (!scriptContent.trim()) {
-      setMessageInfo({
-        type: 'error',
-        message: 'Please provide a script content',
-      });
+      setMessageInfo('error', 'Please provide a script content');
       return;
     }
 
@@ -237,21 +219,16 @@ const ServiceDetail = ({ devStatus }) => {
       const response = await api.post(`/service/${serviceId}/deploy/`, null, {
         params: {
           script_content: scriptContent,
+          script_type: scriptType,
         },
       });
-      setMessageInfo({
-        type: 'success',
-        message: response.data.message || 'Service deployed successfully',
-      });
+      setMessageInfo('success', response.data.message || 'Service deployed successfully');
       setShowDeployForm(false);
       setScriptContent('');
       setScriptType('bash');
       fetchStatus();
     } catch (error) {
-      setMessageInfo({
-        type: 'error',
-        message: `Failed to deploy service: ${error.message}`,
-      });
+      setMessageInfo('error', `Failed to deploy service: ${error.message}`);
     } finally {
       setControlLoading(false);
     }

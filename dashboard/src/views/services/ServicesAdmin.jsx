@@ -28,10 +28,7 @@ const ServicesAdmin = () => {
       const response = await api.get('/service/');
       setServices(response.data);
     } catch (error) {
-      setMessageInfo({
-        type: 'error',
-        message: `Failed to load services: ${error.message}`,
-      });
+      setMessageInfo('error', `Failed to load services: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -41,10 +38,7 @@ const ServicesAdmin = () => {
     try {
       if (isNew) {
         const response = await api.post('/service/', formData);
-        setMessageInfo({
-          type: 'success',
-          message: `Service "${formData.service_long_name}" created successfully`,
-        });
+        setMessageInfo('success', `Service "${formData.service_long_name}" created successfully`);
         setShowServiceForm(false);
         fetchServices();
         navigate(`/services/${response.data.id}`);
@@ -53,19 +47,13 @@ const ServicesAdmin = () => {
         const id = selectedService?.id;
         if (!id) throw new Error('No service selected for update');
         const response = await api.patch(`/service/${id}/`, formData);
-        setMessageInfo({
-          type: 'success',
-          message: `Service "${formData.service_long_name}" updated successfully`,
-        });
+        setMessageInfo('success', `Service "${formData.service_long_name}" updated successfully`);
         setShowServiceForm(false);
         setSelectedService(null);
         fetchServices();
       }
     } catch (error) {
-      setMessageInfo({
-        type: 'error',
-        message: `Failed to ${isNew ? 'create' : 'update'} service: ${error.message}`,
-      });
+      setMessageInfo('error', `Failed to ${isNew ? 'create' : 'update'} service: ${error.message}`);
     }
   };
 
@@ -73,16 +61,10 @@ const ServicesAdmin = () => {
     if (window.confirm(`Are you sure you want to delete the service "${serviceName}"?`)) {
       try {
         await api.delete(`/service/${serviceId}/`);
-        setMessageInfo({
-          type: 'success',
-          message: `Service "${serviceName}" deleted successfully`,
-        });
+        setMessageInfo('success', `Service "${serviceName}" deleted successfully`);
         fetchServices();
       } catch (error) {
-        setMessageInfo({
-          type: 'error',
-          message: `Failed to delete service: ${error.message}`,
-        });
+        setMessageInfo('error', `Failed to delete service: ${error.message}`);
       }
     }
   };
@@ -139,12 +121,7 @@ const ServicesAdmin = () => {
                   <span className="label">Parameters</span>
                   <span className="value">{service.parameters?.length || 0}</span>
                 </div>
-                {/* <div className="stat">
-                  <span className="label">Status</span>
-                  <span className={`status ${service.enabled ? 'enabled' : 'disabled'}`}>
-                    {getServiceStatus(service)}
-                  </span>
-                </div> */}
+
               </div>
 
               <div className="card-actions">

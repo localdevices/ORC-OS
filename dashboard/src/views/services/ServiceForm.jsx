@@ -41,19 +41,13 @@ const ServiceForm = ({ onSave, onCancel, isNew = false, initialData = null }) =>
     e.preventDefault();
 
     if (!formData.service_short_name || !formData.service_long_name) {
-      setMessageInfo({
-        type: 'error',
-        message: 'Service short name and long name are required',
-      });
+      setMessageInfo('error', 'Service short name and long name are required');
       return;
     }
 
     // Validate short name format
     if (!/^[a-z0-9-]+$/.test(formData.service_short_name)) {
-      setMessageInfo({
-        type: 'error',
-        message: 'Service short name must be lowercase alphanumeric with hyphens only',
-      });
+      setMessageInfo('error', 'Service short name must be lowercase alphanumeric with hyphens only');
       return;
     }
     onSave(formData);
