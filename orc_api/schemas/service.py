@@ -282,6 +282,7 @@ class ServiceResponse(BaseModel):
             # first check if service file exists and read the type of the script from the ExecStart directive
             script_type = None
             if executor.service_script:
+                print("Service script found at:", executor.service_script)
                 if executor.service_script.endswith(".py"):
                     script_type = "python"
                 else:
@@ -289,6 +290,7 @@ class ServiceResponse(BaseModel):
             script_content = None
             if executor.service_script and os.path.isfile(executor.service_script):
                 with open(executor.service_script, "r") as f:
+                    print("Reading script content from:", executor.service_script)
                     script_content = f.read()
         except Exception:
             script_content = None
@@ -413,9 +415,9 @@ class ServiceExecutor:
                         if line.startswith("ExecStart="):
                             exec_start = line.split("=", 1)[1].strip()
                             if exec_start.endswith(".py"):
-                                return exec_start
+                                return os.path.join(SERVICE_DIRECTORY, f"orc-{self.service_short_name}.py")
                             elif exec_start.endswith(".sh") or exec_start.endswith(".bash"):
-                                return exec_start
+                                return os.path.join(SERVICE_DIRECTORY, f"orc-{self.service_short_name}.sh")
             return None
 
     def create_env_file_content(self, parameter_values: Dict[int, str]) -> str:
@@ -433,7 +435,6 @@ class ServiceExecutor:
 
         """
         env_lines = []
-        print(self.parameters)
         for param in self.parameters:
             value = parameter_values.get(param.id)
             if value is None:
@@ -792,7 +793,6 @@ WantedBy=timers.target
 
             # First lookup scripty file before .service file is removed
             service_script = self.service_script
-            print("Service script to be removed:", service_script)
             # Remove files
             service_path = os.path.join(SERVICE_DIRECTORY, self.service_file_name)
             service_link = self.SYSTEMD_PATH / self.service_file_name
