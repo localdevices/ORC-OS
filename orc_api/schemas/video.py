@@ -223,7 +223,8 @@ class VideoResponse(VideoBase, RemoteModel):
 
                 # check for h_a
                 h_a = None if self.time_series is None else self.time_series.h
-                logger.debug(f"Checked for water level in time series, found {h_a:.3f} m.")
+                if h_a:
+                    logger.debug(f"Checked for water level in time series, found {h_a:.3f} m.")
 
                 # overrule with set level if the video configuration is made with the current video
                 if self.video_config.sample_video_id == self.id:
