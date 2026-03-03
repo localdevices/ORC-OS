@@ -113,7 +113,7 @@ export const OptionsMenu = ({ devStatus }) => {
                   role="button"
                 >
                   <TbPrompt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                  {service.service_short_name[0].toUpperCase() + service.service_short_name.slice(1)}
+                  {service.service_short_name[0].toUpperCase() + service.service_short_name.slice(1).replaceAll("-", " ")}
                 </div>
               ))}
             </div>

@@ -27,6 +27,7 @@ import {getTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
 
 const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRunState}) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [data, setData] = useState([]);  // initialize data
   const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
@@ -40,6 +41,12 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   // allow for setting messages
   const {setMessageInfo} = useMessage();
 
+    useEffect(() => {
+    // Collapse by default on small screens (< 768px)
+    if (window.innerWidth < 768) {
+      setIsCollapsed(true);
+    }
+  }, []);
   // check at mount if a parameter for the editVideoId is provided. If so, open edit modal with video
   useEffect(() => {
     const setVideoFromParams = async () => {
@@ -285,28 +292,47 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
           <div>Loading videos...</div>
         </div>
       )}
+      {/* Collapse button */}
+      {/* <button
+        style={{alignSelf: "flex-end", marginBottom: "10px"}}
+        onClick={() => setIsCollapsed((prev) => !prev)}
+      >
+        {isCollapsed ? "Expand" : "Collapse"}
+      </button> */}
+        <div className="flex-container column">
+                <h5>Add and filter videos</h5>
 
-      <div className="flex-container column">
-        <div>
-          <VideoUploader
-            uploadedVideo={uploadedVideo}
-            setUploadedVideo={setUploadedVideo}
+          <button
+            className="toggle-service-description" style={{left: 0, alignSelf: "flex-start"}}
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            aria-label={isCollapsed ? 'Show upload window' : 'Hide upload window'}
+            title={isCollapsed ? 'Show upload window' : 'Hide upload window'}
+          >
+            {isCollapsed ? '▶' : '▼'}
+          </button>
+
+        <div className={`collapsible-content${isCollapsed ? ' collapsed' : ''}`}>
+        {/* <div className={`collapsible-content`}> */}
+            <VideoUploader
+              uploadedVideo={uploadedVideo}
+              setUploadedVideo={setUploadedVideo}
+            />
+          <ActionVideos
+            data={data}
+            selectedIds={selectedIds}
+            startDate={startDate}
+            endDate={endDate}
+            idxFirst={currentPage * rowsPerPage}
+            setData={setData}
+            setSelectedIds={setSelectedIds}
+            setStartDate={setStartDate}
+            setEndDate={setEndDate}
+            setCurrentPage={setCurrentPage}
+            setMessageInfo={setMessageInfo}
           />
         </div>
-        <ActionVideos
-          data={data}
-          selectedIds={selectedIds}
-          startDate={startDate}
-          endDate={endDate}
-          idxFirst={currentPage * rowsPerPage}
-          setData={setData}
-          setSelectedIds={setSelectedIds}
-          setStartDate={setStartDate}
-          setEndDate={setEndDate}
-          setCurrentPage={setCurrentPage}
-          setMessageInfo={setMessageInfo}
-        />
-      </div>
+      {/* )} */}
+        </div>
 
       <div className="flex-container column">
 
@@ -314,9 +340,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         <div role="alert" style={{color: "green", fontStyle: "italic"}}>
           Press Ctrl + R to refresh the status of your videos
         </div>
-
-
-        <div>
+        <div style={{overflowX: "auto"}}>
           {/* Table */}
           <table className="table table-bordered table-striped">
             <thead>
@@ -337,10 +361,10 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
               <th>Timestamp</th>
               <th>Thumbnail</th>
               <th>Video config</th>
-              <th>Time series</th>
+              <th style={{width: "250px", whiteSpace: "nowrap"}}>Time series</th>
               <th style={{width: "100px", whiteSpace: "nowrap"}}>Status</th>
               <th style={{width: "100px", whiteSpace: "nowrap"}}>Sync status</th>
-              <th style={{width: "189px", whiteSpace: "nowrap"}}>Actions</th>
+              <th style={{position: "sticky", width: "189px", whiteSpace: "nowrap", right: 0, zIndex: 0, background: "#ffffff"}}>Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -355,7 +379,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 </td>
                 <td>{video.id}</td>
                 <td>{video.file ? video.file.split(`/${video.id}/`)[1] : "-"}</td>
-                <td>{video.timestamp.slice(0, 19)}</td>
+                <td style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{video.timestamp.slice(0, 19)}</td>
                 <td>
                   <img
                     loading="lazy"
@@ -381,8 +405,8 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                     }}
                   />
                 </td>
-                <td>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
-                <td>
+                <td style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
+                <td style={{minWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
                   <strong><i>h</i></strong>: {video.time_series && video.time_series?.h ? Math.round(video.time_series.h * 1000) / 1000 + " m " : "N/A "}
                   | <strong><i>Q</i></strong>: {video.time_series && video.time_series?.q_50 ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s " : "N/A "}
                   | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series && video.time_series?.v_av ? Math.round(video.time_series.v_av * 100) / 100 + " m/s " : "N/A "}
@@ -390,7 +414,12 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 </td>
                 <td>{getStatusIcon(video.status)}</td>
                 <td>{getSyncStatusIcon(video.sync_status)}</td>
-                <td>
+                <td style={{position: "sticky", width: "189px", whiteSpace: "nowrap", right: 0, zIndex: 0, background: "#ffffff"}}>
+                  <button className="btn-icon"
+                          onClick={() => handleView(video)}
+                  >
+                    <FaPlay className="run"/>
+                  </button>
                   <button className="btn-icon"
                     // disabled when video config is not ready, or task is already queued (2) or running (3)
                           disabled={!video.allowed_to_run && video.status !== 2 && video.status !== 3}
@@ -404,13 +433,6 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                           onClick={() => handleSync(video)}
                   >
                     <FaSync className="run"/>
-                  </button>
-
-
-                  <button className="btn-icon"
-                          onClick={() => handleView(video)}
-                  >
-                    <FaPlay className="run"/>
                   </button>
                   <button className="btn-icon"
                           onClick={() => handleDelete(video.id)}

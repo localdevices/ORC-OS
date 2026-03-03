@@ -293,10 +293,10 @@ const Settings = ({setRequiresRestart}) => {
               )
             }
           </div>
-          <button type='submit' className='btn'>
-            Submit
+          <button type='submit' className='btn btn-primary'>
+            Save changes
           </button>
-          <button type='submit' className='btn bg-primary' onClick={() => setShowFileTransferModal(true)} style={{marginLeft: '10px'}} disabled={!validateSettings()}>
+          <button type='submit' className='btn btn-secondary' onClick={() => setShowFileTransferModal(true)} style={{marginLeft: '10px'}} disabled={!validateSettings()}>
             Show file transfer examples
           </button>
         </form>

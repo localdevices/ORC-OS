@@ -26,8 +26,21 @@
   flex-direction: column;
   overflow-y: auto; /* scrollable with overflowing content */
   position: relative;
-  padding: 1rem 1rem; /* Optional: Add some padding */
+  padding: 5px 10px;
   height: 100%;
+}
+
+/* for animations of collapsing content, such as the readme description in the service details page */
+.collapsible-content {
+  max-height: 1000px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.7s;
+}
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 a {
@@ -42,8 +55,8 @@ a:hover {
 
 .flex-container {
   display: flex;
-  gap: 10px;
-  margin: 10px;
+  gap: 2px;
+  margin: 2px;
   padding: 10px;
   flex-direction: row;
   background-color: #ffffff;
@@ -51,7 +64,7 @@ a:hover {
   border-radius: 10px 10px 10px 10px; /* Rounded top corners */
   height: 100%;
   box-sizing: border-box;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
   text-align: left;
 
 
@@ -303,6 +316,7 @@ a:hover {
   border-color: #0a4777;
   color: #fff;
   margin: 10px;
+  border-radius: 15px !important;
 }
 
 .btn:hover {

@@ -86,7 +86,7 @@ const DiskManagement = ({setRequiresRestart}) => {
     };
     return (
         <div className='container'>
-            <h2>Change your disk management settings.</h2>
+            <h2>Change your disk management settings</h2>
             <div className="flex-container column">
             <form onSubmit={handleFormSubmit}>
                 <div className='mb-3 mt-3'>
@@ -113,8 +113,8 @@ const DiskManagement = ({setRequiresRestart}) => {
                     </label>
                     <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
                 </div>
-                <button type='submit' className='btn'>
-                    Submit
+                <button type='submit' className='btn btn-primary'>
+                    Save changes
                 </button>
 
                    <div>

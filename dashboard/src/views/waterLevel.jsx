@@ -1,8 +1,8 @@
-import {useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/api.js';
-import {useMessage} from '../messageContext';
+import { useMessage } from '../messageContext';
 
-const WaterLevel = ({setRequiresRestart}) => {
+const WaterLevel = ({ setRequiresRestart }) => {
     const [scriptTypeStatus, setScriptTypeStatus] = useState([]);
     const [waterLevel, updateWaterLevel] = useState([]);
     const [formData, setFormData] = useState({
@@ -13,7 +13,7 @@ const WaterLevel = ({setRequiresRestart}) => {
         optical: false
     });
     // set up message box
-    const {setMessageInfo} = useMessage();
+    const { setMessageInfo } = useMessage();
 
     const fetchWaterLevel = async () => {
         const response = await api.get('/water_level/');
@@ -26,7 +26,7 @@ const WaterLevel = ({setRequiresRestart}) => {
         if (waterLevel) {
             if (waterLevel.created_at) {
                 waterLevel.created_at = waterLevel.created_at.slice(0, 19);
-                }
+            }
             setFormData({
                 created_at: waterLevel.created_at || '',
                 frequency: waterLevel.frequency || null,
@@ -73,7 +73,7 @@ const WaterLevel = ({setRequiresRestart}) => {
             setMessageInfo("success", "Water level settings updated successfully!");
             setRequiresRestart(true);
 
-          // read back the device after posting
+            // read back the device after posting
             fetchWaterLevel();
             // set the form data to new device settings
             setFormData({
@@ -84,64 +84,66 @@ const WaterLevel = ({setRequiresRestart}) => {
                 optical: ''
             });
         } catch (err) {
-          setMessageInfo("error", err.response.data);
+            setMessageInfo("error", err.response.data);
         }
     };
     return (
         <div className='container'>
+            <h2>Change your water level settings</h2>
             Change your water level settings. You can let ORC-OS read and store water levels automatically using
             a user-defined script.
-            <hr/>
-            <form onSubmit={handleFormSubmit}>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='created_at' className='form-label'>
-                        Date of creation or last update.
-                    </label>
-                    <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='frequency' className='form-label'>
-                        Frequency [s] for checking for new water level using the script. E.g. a value of 1800 checks every half hour.
-                    </label>
-                    <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='script_type' className='form-label'>
-                        Script type of the provided script.
-                    </label>
-                    <select name="script_type" id="script_type" className="form-select" onChange={handleScriptTypeChange} value={scriptTypeStatus}>
-                        <option value="0">PYTHON</option>
-                        <option value="1">BASH</option>
-                    </select>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <label htmlFor='script' className='form-label'>
-                        Script content. The script should produce a last line with the water level in the following
-                        form: &lt;%Y-%m-%dT%H:%M%SZ&gt;, &lt;value&gt;
-                    </label>
-{/*                     <input type='text' className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/> */}
-                    <textarea className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/>
-                </div>
-                <div className='mb-3 mt-3'>
-                    <input
-                      type='checkbox'
-                      className='form-check-input'
-                      id='optical'
-                      name='optical'
-                      onChange={handleInputChange}
-                      value={formData.optical}
-                      checked={formData.optical}
-                      style={{marginRight: '10px'}}
-                    />
-                    <label htmlFor='optical' className='form-label'>
-                        Allow attempting to resolve water levels optically
-                    </label>
-                </div>
-                <button type='submit' className='btn'>
-                    Submit
-                </button>
-            </form>
-       </div>
+            <div className="flex-container column">
+                <form onSubmit={handleFormSubmit}>
+                    <div className='mb-3 mt-3'>
+                        <label htmlFor='created_at' className='form-label'>
+                            Date of creation or last update.
+                        </label>
+                        <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled />
+                    </div>
+                    <div className='mb-3 mt-3'>
+                        <label htmlFor='frequency' className='form-label'>
+                            Frequency [s] for checking for new water level using the script. E.g. a value of 1800 checks every half hour.
+                        </label>
+                        <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
+                    </div>
+                    <div className='mb-3 mt-3'>
+                        <label htmlFor='script_type' className='form-label'>
+                            Script type of the provided script.
+                        </label>
+                        <select name="script_type" id="script_type" className="form-select" onChange={handleScriptTypeChange} value={scriptTypeStatus}>
+                            <option value="0">PYTHON</option>
+                            <option value="1">BASH</option>
+                        </select>
+                    </div>
+                    <div className='mb-3 mt-3'>
+                        <label htmlFor='script' className='form-label'>
+                            Script content. The script should produce a last line with the water level in the following
+                            form: &lt;%Y-%m-%dT%H:%M%SZ&gt;, &lt;value&gt;
+                        </label>
+                        {/*                     <input type='text' className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/> */}
+                        <textarea className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }} />
+                    </div>
+                    <div className='mb-3 mt-3'>
+                        <input
+                            type='checkbox'
+                            className='form-check-input'
+                            id='optical'
+                            name='optical'
+                            onChange={handleInputChange}
+                            value={formData.optical}
+                            checked={formData.optical}
+                            style={{ marginRight: '10px' }}
+                        />
+                        <label htmlFor='optical' className='form-label'>
+                            Allow attempting to resolve water levels optically
+                        </label>
+                    </div>
+                    <button type='submit' className='btn btn-primary'>
+                        Save changes
+                    </button>
+                </form>
+            </div>
+        </div>
 
     );
 };

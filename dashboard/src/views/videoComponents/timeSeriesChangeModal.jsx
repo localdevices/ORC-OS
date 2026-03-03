@@ -294,7 +294,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 </div>
               )}
               <button
-                className="btn"
+                className="btn btn-warning"
                 type="submit"
                 disabled={waterLevel | saving | !videoConfig}
                 onClick={handleAddWaterLevel}
@@ -307,7 +307,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
               >
 
               <button
-                  className="btn"
+                  className="btn btn-primary"
                   type="submit"
                   disabled={!waterLevel | saving}
                   onClick={handleSubmitVideo}
@@ -324,7 +324,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 </div>
               )}
                 <button
-                  className="btn"
+                  className="btn btn-primary"
                   type="submit"
                   onClick={(e) => handleSubmitVideo(e, { forceOptical: true })}
                   disabled={!videoConfig?.cross_section_wl | saving}

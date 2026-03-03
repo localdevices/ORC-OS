@@ -8,7 +8,7 @@ import {getLogLineStyle} from "../../utils/helpers.jsx";
 
 import ParameterForm from './ParameterForm.jsx';
 import './services.css';
-
+import {CodeBlock} from "../../utils/codeBlock.jsx";
 /**
  * ServiceDetail - Component for managing an individual service
  * Displays service information, parameters, and control buttons
@@ -192,7 +192,6 @@ const ServiceDetail = ({ devStatus }) => {
     // saves parameter values to .env file belonging to service.
     try {
       setControlLoading(true);
-      console.log('Submitting parameter values:', parameterValues);
       const response = await api.post(
         `/service/${serviceId}/update_env/`,
         parameterValues, {
@@ -280,7 +279,19 @@ const ServiceDetail = ({ devStatus }) => {
           </div>
           {!readmeCollapsed && (
             <div className="service-description">
-              <ReactMarkdown>{service.readme}</ReactMarkdown>
+              <ReactMarkdown
+                // Handle inline code and code blocks in a standardized manner
+                components={{
+                  code({node, inline, className, children, ...props}) {
+                    console.log(node, inline, className, children);
+                    return className ? (
+                        <CodeBlock code={children}/>
+                    ) : (
+                      <code {...props}>{children}</code>
+                    );
+                  }
+                }}
+              >{service.readme}</ReactMarkdown>
             </div>
           )}
         </div>
@@ -300,6 +311,8 @@ const ServiceDetail = ({ devStatus }) => {
         </div>
         {!logCollapsed && (
           <div className="service-description-green" ref={logContainerRef}>
+            <pre className="text-dark p-3 rounded mb-0">
+            <code id="log-output">
             {logData.length > 0 ? (
               logData.map((line, index) => (
                 <div key={index} style={getLogLineStyle(line)}>
@@ -309,6 +322,8 @@ const ServiceDetail = ({ devStatus }) => {
             ) : (
               <div>Loading logs...</div>
             )}
+              </code>
+            </pre>
 
           </div>
         )}

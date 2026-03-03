@@ -114,7 +114,7 @@ const ActionVideos = (
         {/*<hr/>*/}
         {/*<div style={{minWidth: "20%", flex: 0, padding: "20px"}}>*/}
         <button
-          className="btn"
+          className="btn btn-primary"
           onClick={handleDownloadSelected}
           disabled={selectedIds.length === 0}
         >
@@ -131,7 +131,7 @@ const ActionVideos = (
       {/*<div className="ms-3" style={{minWidth: "250px", flex: 1}}>*/}
         <h5>Bulk actions</h5>
         <button
-          className="btn"
+          className="btn btn-primary"
           onClick={handleDownloadBulk}
         >
           Download
@@ -144,7 +144,7 @@ const ActionVideos = (
           }
         >
           <button
-            className="btn"
+            className="btn btn-secondary"
             onClick={handleSyncBulk}
             disabled={!urlSite?.remote_site_id}
 

@@ -249,7 +249,9 @@ const App = () => {
                 } />
                 <Route path="/video_config/:videoId" element={
                   <ProtectedRoute>
-                    <VideoConfig />
+                    <VideoConfig
+                      devStatus={devStatus}
+                    />
                   </ProtectedRoute>
                 } />
                 <Route path="/recipe" element={

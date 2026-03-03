@@ -107,7 +107,7 @@ const ServicesAdmin = () => {
                 <div className="service-meta">
                   <code className="service-shortname">{service.service_short_name}</code>
                   <span className={`service-type ${service.service_type}`}>
-                    {service.service_type === 1 ? '⏱ One-Time' : '⏰ Timer'}
+                    {service.service_type === "ONE_TIME" ? '⏱ One-Time' : '⏰ Timer'}
                   </span>
                 </div>
               </div>
