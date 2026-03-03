@@ -49,6 +49,9 @@ def upgrade() -> None:
     op.create_index(op.f('ix_service_parameter_parameter_type'), 'service_parameter', ['parameter_type'], unique=False)
     op.create_index(op.f('ix_service_parameter_service_id'), 'service_parameter', ['service_id'], unique=False)
     op.create_index(op.f('ix_video_config_sync_status'), 'video_config', ['sync_status'], unique=False)
+
+    # add a JSON field to time series for miscellaneous ts information
+    op.add_column('time_series', sa.Column('misc', sa.JSON(), nullable=True))
     # ### end Alembic commands ###
 
 
@@ -62,4 +65,8 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_service_service_type'), table_name='service')
     op.drop_index(op.f('ix_service_service_short_name'), table_name='service')
     op.drop_table('service')
+
+    # remove JSON field from time series
+    op.drop_column('time_series', 'misc')
+    # ### end Alembic commands ###
     # ### end Alembic commands ###
