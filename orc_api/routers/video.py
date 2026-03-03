@@ -579,9 +579,16 @@ async def update_video_ws(websocket: WebSocket):
             status_msg = await video_run_state.queue.get()
             await conn_manager.send_json(websocket=websocket, json=status_msg)
             await asyncio.sleep(0.1)
-
     except WebSocketDisconnect:
         f"Websocket {websocket} disconnected."
+        conn_manager.disconnect(websocket)
+    except Exception as e:
+        if DEV_MODE:
+            traceback.print_exc()
+        print(f"Websocket error: {e}")
+        conn_manager.disconnect(websocket)
+    except asyncio.CancelledError:
+        print(f"Websocket {websocket} cancelled.")
         conn_manager.disconnect(websocket)
 
 
@@ -635,5 +642,6 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
             traceback.print_exc()
         print(f"Websocket error: {e}")
         conn_manager.disconnect(websocket)
-    # finally:
-    #     await websocket.close()
+    except asyncio.CancelledError:
+        print(f"Websocket {websocket} for video_config_id {id} cancelled.")
+        conn_manager.disconnect(websocket)
