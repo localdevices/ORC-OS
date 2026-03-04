@@ -9,12 +9,14 @@ import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from orc_api import (
     DEV_MODE,
     ORIGINS,
     SECRET_KEY,
     UPLOAD_DIRECTORY,
+    __release__,
     __version__,
     crud,
 )
@@ -164,7 +166,25 @@ async def auth_middleware(request: Request, call_next):
     r = auth_helpers.auth_token(request)
     # r should be None if all is good and then forward to request will be performed. Otherwise a response is returned.
     if r is not None:
-        return r
+        # root api should return some information about the API and does not require auth
+        if request.url.path == "/api/":
+            content = {
+                "detail": "You have reached the ORC-OS API. Please authenticate to access more endpoints.",
+                "version": __version__,
+                "release": __release__,
+            }
+            return JSONResponse(
+                status_code=401,
+                content=content,
+                headers={
+                    "Access-Control-Allow-Origin": request.headers.get("Origin", "*"),
+                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true",
+                },
+            )
+        else:
+            return r
 
     return await call_next(request)
 
@@ -202,8 +222,10 @@ app.include_router(water_level.router)
 async def root():
     """Get root endpoint with status."""
     return {
-        "message": "You have reached the ORC-OS API",
+        "detail": "You have reached the ORC-OS API",
         "dev": DEV_MODE,
+        "version": __version__,
+        "release": __release__,
         "uptime_seconds": int(time.time() - app.state.start_time),
     }
 
