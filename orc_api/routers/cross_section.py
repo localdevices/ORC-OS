@@ -2,15 +2,10 @@
 
 import io
 import json
-from typing import List
+from typing import List, Optional
 
-import geopandas as gpd
-import numpy as np
-import pandas as pd
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
-from pyorc.api.cross_section import _fit_line
-from shapely.geometry import Point
 from sqlalchemy.orm import Session
 
 # Directory to save uploaded files
@@ -24,6 +19,7 @@ from orc_api.schemas.cross_section import (
     CrossSectionResponseCameraConfig,
     CrossSectionUpdate,
 )
+from orc_api.utils.io import read_cross_section_from_csv, read_cross_section_from_geojson
 
 router: APIRouter = APIRouter(prefix="/cross_section", tags=["cross_section"])
 
@@ -34,25 +30,6 @@ def get_record(db: Session, id: int):
     if not cs:
         raise HTTPException(status_code=404, detail="Cross section not found.")
     return cs
-
-
-def linearize_points(gdf):
-    """Straighten points in GeoDataFrame along average line with nearest snapping."""
-    centroid, direction, angle = _fit_line(gdf.geometry.x, gdf.geometry.y)
-    # Project each point onto the line closest-distance
-    coords = np.column_stack([gdf.geometry.x, gdf.geometry.y])
-    coords_centered = coords - centroid
-
-    # Project onto the line direction
-    projections = np.dot(coords_centered, direction)
-
-    # Calculate new coordinates on the line
-    new_x = centroid[0] + projections * direction[0]
-    new_y = centroid[1] + projections * direction[1]
-    new_geometries = [Point(_x, _y, _z) for _x, _y, _z in zip(new_x, new_y, gdf.geometry.z)]
-    # Create new geometries with Z preserved
-    gdf.geometry = new_geometries
-    return gdf
 
 
 @router.delete("/{id}/", status_code=204, response_model=None)
@@ -95,7 +72,7 @@ async def download_cs(id: int, db: Session = Depends(get_db)):
 
 @router.get("/{id}/wetted_surface/", response_model=List[List[float]], status_code=200)
 async def get_wetted_surface(
-    id: int, db: Session = Depends(get_db), camera_config_id: int = None, h: float = 0.0, camera: bool = True
+    id: int, db: Session = Depends(get_db), camera_config_id: Optional[int] = None, h: float = 0.0, camera: bool = True
 ):
     """Return wetted surface at a given height in serializable coordinates."""
     if camera_config_id is None:
@@ -116,12 +93,12 @@ async def get_wetted_surface(
 async def get_csl_line(
     id: int,
     db: Session = Depends(get_db),
-    camera_config_id: int = None,
+    camera_config_id: Optional[int] = None,
     h: float = 0.0,
     length: float = 1.0,
     offset: float = 0.0,
     camera: bool = True,
-):
+) -> List[List[List[float]]]:
     """Return wetted surface at a given height in serializable coordinates."""
     if camera_config_id is None:
         raise HTTPException(
@@ -154,6 +131,7 @@ async def patch_cs(id: int, cs: CrossSectionUpdate, db: Session = Depends(get_db
 async def get_cs_cam_config(id: int, camera_config: CameraConfigUpdate, db: Session = Depends(get_db)):
     """Retrieve a cross section with attempt to fill camera view coordinates using a provided camera configuration."""
     cs = crud.cross_section.get(db=db, id=id)
+    camera_config_resp = CameraConfigResponse.model_validate(camera_config.model_dump())  # convert into response
     if not cs:
         raise HTTPException(status_code=404, detail="Cross section not found.")
     try:
@@ -164,7 +142,7 @@ async def get_cs_cam_config(id: int, camera_config: CameraConfigUpdate, db: Sess
             sync_status=cs.sync_status,
             name=cs.name,
             features=cs.features,
-            camera_config=camera_config,
+            camera_config=camera_config_resp,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e).split(", ")[1])
@@ -196,34 +174,12 @@ async def upload_cs_geojson(file: UploadFile, linearize: bool = Form(False)):
 
     This does not store data in the database.
     """
-    cs_body = file.file.read()
+    cs_body = file.file.read().decode("utf-8")
     try:
-        cs = json.loads(cs_body)
-        if "crs" in cs:
-            crs = cs["crs"]
-        else:
-            crs = None
-        # extract crs
-        file.file.seek(0)
-        gdf = gpd.read_file(file.file)
-        # gpd parses a random CRS on a gdf if no crs is given in shapefile. If crs is None, also set gdf.crs to None
-        if crs is None:
-            gdf.set_crs(None, allow_override=True)
-    except Exception:
-        raise HTTPException(status_code=400, detail="File is not a properly formatted JSON file")
-    try:
-        if linearize:
-            gdf = linearize_points(gdf)
-        cs = json.loads(gdf.to_json())
-        if crs is not None:
-            # add the crs, this gets lost in translation
-            cs["crs"] = crs
-        else:
-            cs.pop("crs")
-        cs = CrossSectionCreate(features=cs)
+        cs = read_cross_section_from_geojson(cs_body, linearize=linearize)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return cs
+    return CrossSectionCreate(features=cs)
 
 
 @router.post("/from_csv/", response_model=CrossSectionCreate, status_code=201)
@@ -235,29 +191,9 @@ async def upload_cs_csv(
 
     This does not store data in the database.
     """
+    cs_body = file.file.read().decode("utf-8")
     try:
-        df = pd.read_csv(file.file)
-        # convert all keys to lower case
-        df = df.rename(columns=str.lower)
-    except Exception:
-        raise HTTPException(status_code=400, detail="File is not a properly formatted CSV file")
-    # look for (lower) X, Y, Z
-    expected_keys = {"x", "y", "z"}
-    # Check if all strings exist in the list
-    if expected_keys.issubset([k.lower() for k in df.keys()]):
-        # parse to gdf
-        geometry = gpd.points_from_xy(df["x"], df["y"], df["z"])
-        gdf = gpd.GeoDataFrame(df, geometry=geometry)
-        if linearize:
-            gdf = linearize_points(gdf)
-        # turn into json
-        cs = json.loads(gdf.to_json())
-        try:
-            # this should never go wrong, but in case it does, we still have an error message
-            cs = CrossSectionCreate(features=cs)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        return cs
-
-    else:
-        raise HTTPException(status_code=400, detail='.CSV file does not contain required columns named "x", "y", "z"')
+        cs = read_cross_section_from_csv(cs_body, linearize=linearize)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return CrossSectionCreate(features=cs)

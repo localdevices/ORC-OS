@@ -10,7 +10,7 @@ from typing import Optional
 import anyio
 from fastapi import WebSocket
 
-from orc_api import LOG_DIRECTORY, __home__, __version__
+from orc_api import LOG_DIRECTORY, __home__
 
 FMT = "%(asctime)s - %(name)s - %(module)s - %(levelname)s - %(message)s"
 
@@ -68,8 +68,6 @@ def setuplog(
         # if append is False and os.path.isfile(path):
         #     os.unlink(path)
         add_filehandler(logger, path, log_level=log_level, fmt=fmt, backupCount=10)
-    logger.info(f"ORC-OS version: {__version__}")
-
     return logger
 
 
@@ -157,17 +155,25 @@ async def stream_new_lines(websocket: WebSocket, fn: str):
         # with open(fn, "r") as f:
         # Move to the end of the file
         f.seek(0, 2)
-        while True:
-            line = await f.readline()
-            if line:
-                await websocket.send_text(line)  # Send the new line to the WebSocket
-            else:
-                await asyncio.sleep(0.1)  # Wait before trying to read more lines
+        try:
+            while True:
+                try:
+                    line = await f.readline()
+                    if line:
+                        await websocket.send_text(line)  # Send the new line to the WebSocket
+                    else:
+                        await asyncio.sleep(0.1)  # Wait before trying to read more lines
+                except Exception as e:
+                    # Break the loop if the websocket disconnects
+                    from starlette.websockets import WebSocketDisconnect
+
+                    if isinstance(e, WebSocketDisconnect):
+                        break
+                    raise
+        except asyncio.CancelledError:
+            pass  # Handle task cancellation gracefully
 
 
-# if "ALEMBIC_RUNNING" not in os.environ:
 logger = start_logger(True, False, log_path=LOG_DIRECTORY)
-# else:
-#     logger = None
 
 __all__ = ["logger", "get_last_lines", "stream_new_lines"]

@@ -107,7 +107,7 @@ export const VideoConfigModal = ({modalState, closeModal, saving, setSaving, han
         </div>
         <div className="container">
           <h5>Create new or edit existing config:</h5>
-          <button className="btn" disabled={saving} onClick={() => createNewVideoConfig(video.id)}>Edit</button>
+          <button className="btn btn-primary" disabled={saving} onClick={() => createNewVideoConfig(video.id)}>Edit</button>
             {saving && (<><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> Saving...</>)}
         </div>
       </Modal>

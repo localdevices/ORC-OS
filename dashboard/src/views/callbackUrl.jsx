@@ -277,8 +277,8 @@ const CallbackUrl = ({setRequiresRestart}) => {
           {/*</div>*/}
         </div>
 
-        <button type='submit' className='btn'>
-          Submit
+        <button type='submit' className='btn btn-primary'>
+          Save changes
         </button>
         <button
           type="button"

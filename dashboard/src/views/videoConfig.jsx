@@ -15,7 +15,7 @@ import TopView from "./VideoConfigComponents/topView.jsx";
 import VideoTab from "./calibrationTabs/videoTab.jsx";
 import {useMessage} from "../messageContext.jsx";
 
-const VideoConfig = () => {
+const VideoConfig = ({devStatus}) => {
   const { videoId } = useParams(); // Retrieve the videoId from the URL
   const hasRequestedResetRef = useRef(false);
   const ws = useRef(null);
@@ -141,7 +141,7 @@ const VideoConfig = () => {
   // complete
   useEffect(() => {
     if (cameraConfig && cameraConfig?.isCalibrated && !cameraConfig?.isCalibrated()) {
-      if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
+      if (CSDischarge !== null && CSDischarge?.camera_config !== null && Object.keys(CSDischarge).length > 0) {
         setCSDischarge({});
       }
       if (CSWaterLevel !== null && CSWaterLevel?.camera_config !== null && Object.keys(CSWaterLevel).length > 0) {
@@ -362,26 +362,8 @@ const VideoConfig = () => {
     const msg = {
       action: 'update_video_config',
       op: 'reset_bbox',
-      // params: {
-      //   video_patch: {
-      //     video_config: {
-      //       camera_config: {bbox_camera: [], bbox: []},
-      //       cross_section: {bbox_wet: []}
-      //     }
-      //   }
-      // }
     }
     sendDebouncedMsg(msg);
-    // setBBoxPolygon(null);
-    // setWettedBbox(null);
-
-    // // remove bbox_camera from cameraConfig
-    // const newConfig = {
-    //   ...cameraConfig,
-    //   bbox_camera: null,
-    // };
-    //
-    // setCameraConfig(newConfig);
   }
 
 
@@ -501,16 +483,19 @@ const VideoConfig = () => {
                   >
                     Name + details
                   </button>
-                  <button
-                    className={activeTab === 'gcps' ? 'active-tab' : ''}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleTabChange('gcps');
-                    }}
-                    disabled={!cameraConfig?.isPoseReady()}
-                  >
-                    Load/Save config
-                  </button>
+                  {/* only show load/save config tab if in devmode */}
+                  {devStatus && (
+                    <button
+                      className={activeTab === 'gcps' ? 'active-tab' : ''}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleTabChange('gcps');
+                      }}
+                      disabled={!cameraConfig?.isPoseReady()}
+                    >
+                      Load/Save config
+                    </button>
+                  )}
                   <button
                     className={activeTab === 'pose' ? 'active-tab' : ''}
                     onClick={(e) => {

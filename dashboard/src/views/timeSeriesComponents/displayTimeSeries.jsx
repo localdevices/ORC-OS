@@ -1,5 +1,4 @@
-import {useState, useEffect, useRef} from "react";
-import PropTypes from "prop-types";
+import { useState, useEffect, useRef } from "react";
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -16,12 +15,11 @@ import 'chartjs-adapter-date-fns';
 import zoomPlugin from 'chartjs-plugin-zoom';
 
 import VideoConfigFilterModal from "./videoConfigFilterModal.jsx";
-import {useMessage} from "../../messageContext.jsx";
+import { useMessage } from "../../messageContext.jsx";
 import api from "../../api/api.js";
-import ReactSlider from "react-slider";
-import {TimeSeriesChangeModal} from "../videoComponents/timeSeriesChangeModal.jsx";
-import {getVideoId} from "../../utils/apiCalls/video.jsx";
-import FilterDates from "../../utils/filterDates.jsx";
+import { TimeSeriesChangeModal } from "../videoComponents/timeSeriesChangeModal.jsx";
+import { getVideoId } from "../../utils/apiCalls/video.jsx";
+import FilterTimeSeries from "./filterTimeSeries.jsx";
 
 ChartJS.register(
   CategoryScale,
@@ -37,27 +35,35 @@ ChartJS.register(
 
 const DisplayTimeSeries = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [data, setData] = useState([]);  // initialize data
   const [filteredData, setFilteredData] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showRunModal, setShowRunModal] = useState(false);
-  const [dateRange, setDateRange] = useState({startDate: null, endDate: null});
+  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
   const chartRef = useRef(null);
   const loadDataTimeoutRef = useRef(null);
   // allow for setting messages
-  const {setMessageInfo} = useMessage();
+  const { setMessageInfo } = useMessage();
   // View toggle: 'timeSeries' or 'ratingCurve'
   const [viewMode, setViewMode] = useState('timeSeries');
   // Threshold filters
-  const [filterH, setFilterH] = useState({enabled: false, min: null, max: null});
-  const [filterQ50, setFilterQ50] = useState({enabled: false, min: null, max: null});
-  const [filterFractionVel, setFilterFractionVel] = useState({enabled: false, value: 20});
+  const [filterH, setFilterH] = useState({ enabled: false, min: null, max: null });
+  const [filterQ50, setFilterQ50] = useState({ enabled: false, min: null, max: null });
+  const [filterFractionVel, setFilterFractionVel] = useState({ enabled: false, value: 20 });
   // Video config filter
   const [selectedVideoConfigIds, setSelectedVideoConfigIds] = useState(null);
   const [showVideoConfigModal, setShowVideoConfigModal] = useState(false);
   const [allVideoConfigIds, setAllVideoConfigIds] = useState([]);
   const startDateTimeoutRef = useRef(null); // debouncers for preventing too frequent changes in calendar dates
   const endDateTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    // Collapse by default on small screens (< 768px)
+    if (window.innerWidth < 768) {
+      setIsCollapsed(true);
+    }
+  }, []);
 
   // Fetch all video config IDs on mount
   useEffect(() => {
@@ -132,8 +138,7 @@ const DisplayTimeSeries = () => {
 
   // Initial data load: one week before last timestamp to last timestamp
   useEffect(() => {
-    if (!selectedVideoConfigIds)
-    {
+    if (!selectedVideoConfigIds) {
       return;
     } // Wait for video config IDs to be loaded
 
@@ -141,7 +146,7 @@ const DisplayTimeSeries = () => {
       // setIsLoading(true);
       try {
         // First, get the last timestamp
-        const response = await api.get('/time_series/', {params: {count: 1}});
+        const response = await api.get('/time_series/', { params: { count: 1 } });
 
         if (response.data && response.data.length > 0) {
           const lastTimestamp = new Date(`${response.data[0].timestamp}Z`);
@@ -255,7 +260,7 @@ const DisplayTimeSeries = () => {
     }, 2000)  // delay of one second
   }
   // Handle zoom and load additional data if needed
-  const handleZoomComplete = async ({chart}) => {
+  const handleZoomComplete = async ({ chart }) => {
     if (loadDataTimeoutRef.current) {
       clearTimeout(loadDataTimeoutRef.current);
     }
@@ -269,37 +274,6 @@ const DisplayTimeSeries = () => {
         endDate: toISOLocal(maxDate)
       })
     }, 1000)
-  }
-  const handlefilterFracChange = async (value) => {
-    // Ensure values are at least `minimumDifference` apart
-    const updatedFilterFrac = {
-      ...filterFractionVel,
-      value: value
-    }
-    setFilterFractionVel(updatedFilterFrac);
-  }
-
-  const handlefilterHChange = async (values) => {
-    let [minH, maxH] = values;
-    // Ensure values are at least `minimumDifference` apart
-    const updatedFilterH = {
-      ...filterH,
-      min: minH,
-      max: maxH
-    }
-    setFilterH(updatedFilterH);
-  }
-
-  const handlefilterQ50Change = async (values) => {
-    let [minQ50, maxQ50] = values;
-
-    // Ensure values are at least `minimumDifference` apart
-    const updatedFilterQ50 = {
-      ...filterQ50,
-      min: minQ50,
-      max: maxQ50
-    }
-  setFilterQ50(updatedFilterQ50);
   }
 
   const handleClick = async (event, elements) => {
@@ -319,104 +293,49 @@ const DisplayTimeSeries = () => {
     }
   }
 
-  const convertToCSV = (data) => {
-    if (data.length === 0) return '';
 
-    // Get headers from the first object
-    const headers = Object.keys(data[0]);
-    const csvHeaders = headers.join(',');
-
-    // Convert each row to CSV format
-    const csvRows = data.map(row => {
-      return headers.map(header => {
-        const value = row[header];
-        // Handle null/undefined values and escape commas/quotes
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        // Escape quotes and wrap in quotes if contains comma or quote
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      }).join(',');
-    });
-
-    return [csvHeaders, ...csvRows].join('\n');
-  };
-
-  const handleDownload = async () => {
-
-    if (data.length === 0) {
-      setMessageInfo('warning', 'No data available to download');
-      return;
-    }
-
-    try {
-      const csvContent = convertToCSV(data);
-      const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-
-      // Generate filename with date range
-      const startDateStr = dateRange.startDate ? new Date(dateRange.startDate).toISOString().slice(0, -1).split('T')[0] : 'start';
-      const endDateStr = dateRange.endDate ? new Date(dateRange.endDate).toISOString().slice(0, -1).split('T')[0] : 'end';
-      const filename = `timeseries_${startDateStr}_to_${endDateStr}.csv`;
-
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      setMessageInfo('success', 'Time series data downloaded successfully');
-    } catch (error) {
-      console.error('Error downloading CSV:', error);
-      setMessageInfo('error', 'Failed to download time series data');
-    }
-  }
   // Prepare chart data based on view mode
   const chartData = viewMode === 'timeSeries' ? {
     datasets: [
-    {
-      label: 'Water Level',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.h || NaN})),
-      borderColor: 'rgba(30,63,192,0.8)',
-      backgroundColor: 'rgba(30, 63, 192, 0.3)',
-      yAxisID: 'y',
-      tension: 0.0,
-      fill: 'origin',
-    },
-    {
-      label: 'Discharge (median)',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.q_50 || NaN })),
-      borderColor: 'rgb(255,99,99)',
-      backgroundColor: 'rgba(255,99,99,0.5)',
-      yAxisID: 'y1',
-      tension: 0.0,
-    },
-    {
-      label: 'Surface Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.v_surf || NaN})),
-      borderColor: 'rgb(85,218,53)',
-      backgroundColor: 'rgba(85,218,53, 0.5)',
-      yAxisID: 'y2',
-      tension: 0.0,
-    },
-    {
-      label: 'Bulk Velocity',
-      data: filteredData.map(d => ({x: new Date(d.timestamp + "Z"), y: d.v_bulk || NaN})),
-      borderColor: 'rgb(33,81,21)',
-      backgroundColor: 'rgba(33,81,21, 0.5)',
-      yAxisID: 'y3',
-      tension: 0.0,
-    },
+      {
+        label: 'Water Level',
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.h || NaN })),
+        borderColor: 'rgba(30,63,192,0.8)',
+        backgroundColor: 'rgba(30, 63, 192, 0.3)',
+        yAxisID: 'y',
+        tension: 0.0,
+        fill: 'origin',
+      },
+      {
+        label: 'Discharge (median)',
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.q_50 || NaN })),
+        borderColor: 'rgb(255,99,99)',
+        backgroundColor: 'rgba(255,99,99,0.5)',
+        yAxisID: 'y1',
+        tension: 0.0,
+      },
+      {
+        label: 'Surface Velocity',
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_surf || NaN })),
+        borderColor: 'rgb(85,218,53)',
+        backgroundColor: 'rgba(85,218,53, 0.5)',
+        yAxisID: 'y2',
+        tension: 0.0,
+      },
+      {
+        label: 'Bulk Velocity',
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_bulk || NaN })),
+        borderColor: 'rgb(33,81,21)',
+        backgroundColor: 'rgba(33,81,21, 0.5)',
+        yAxisID: 'y3',
+        tension: 0.0,
+      },
     ].filter(Boolean),
   } : {
     // Rating curve: x = h (water level), y = q_50 (discharge)
     datasets: [{
       label: 'Rating Curve',
-      data: filteredData.map(d => ({x: d.h, y: d.q_50 || NaN})).filter(d => d.y !== null),
+      data: filteredData.map(d => ({ x: d.h, y: d.q_50 || NaN })).filter(d => d.y !== null),
       borderColor: 'rgb(30, 63, 192)',
       backgroundColor: 'rgba(30, 63, 192, 0.5)',
       showLine: false,
@@ -617,194 +536,47 @@ const DisplayTimeSeries = () => {
     },
   };
 
-  // helper functions to get the min / max values for the sliders, without getting Inf
-  const safeMin = (values, fallback = 0) => {
-    const arr = values.filter(v => v != null);
-    if (!arr.length) return fallback;
-    const m = Math.min(...arr);
-    return Number.isFinite(m) ? m : fallback;
-  };
-
-  const safeMax = (values, fallback = 0) => {
-    const arr = values.filter(v => v != null);
-    if (!arr.length) return fallback;
-    const m = Math.max(...arr);
-    return Number.isFinite(m) ? m : fallback;
-  };
   return (
     <div className="flex-container column no-padding">
       {isLoading && (
         <div className="spinner-viewport">
-          <div className="spinner"/>
+          <div className="spinner" />
           <div>Loading time series...</div>
         </div>
       )}
       <div className="flex-container column">
-        <h5>Filters</h5>
-        <div className="flex-container columns no-padding">
-          <div style={{"flex": "1 1 auto"}}>
-        {/* Threshold Filters */}
-        <div className="mb-3">
-          {/* Video Config Filter Button */}
-          <div className="mb-5 mt-3 form-horizontal">
-            <label htmlFor="filterHSlider" className="form-label">
-              <input
-                type="checkbox"
-                checked={filterH.enabled}
-                // disabled={viewMode !== 'timeSeries'}
-                onChange={(e) => setFilterH({...filterH, enabled: e.target.checked})}
-                className="me-1"
-              />
-
-              Water level (m)
-            </label>
-            <div className="slider-container">
-              <div className="slider-min">{Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0}</div>
-              <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1}</div>
-              <ReactSlider
-                className="horizontal-slider small"
-                disabled={!filterH.enabled}
-                value={[
-                  filterH.min || Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0,
-                  filterH.max || Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1
-                ]} // Default values if unset
-                min={Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0}
-                max={Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1}
-                step={0.001}
-                renderThumb={(props, state) => {
-                  const { key, ...rest } = props;
-                  return (
-                    <div
-                      key={key}
-                      {...rest}
-                      className={!filterH.enabled ? 'thumb thumb-disabled' : 'thumb'}
-                    >
-                      <div className="thumb-value">{state.valueNow}</div>
-                    </div>
-                  );
-                }}
-                // renderThumb={(props, state) => (
-                //   <div {...props} className={!filterH.enabled ? 'thumb thumb-disabled' : 'thumb'}>
-                //     <div className="thumb-value">{state.valueNow}</div>
-                //   </div>
-                // )}
-                onAfterChange={handlefilterHChange}
-              />
-            </div>
-          </div>
-          <div className="mb-5 mt-3 form-horizontal">
-            <label htmlFor="filterQ50Slider" className="form-label">
-              <input
-                type="checkbox"
-                checked={filterQ50.enabled}
-                // disabled={viewMode !== 'timeSeries'}
-                onChange={(e) => setFilterQ50({...filterQ50, enabled: e.target.checked})}
-                className="me-1"
-              />
-              Discharge (m³/s)
-            </label>
-            <div className="slider-container">
-              <div className="slider-min">{Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0}</div>
-              <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1}</div>
-              <ReactSlider
-                className="horizontal-slider small"
-                disabled={!filterQ50.enabled}
-                value={[
-                  filterQ50.min || Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0,
-                  filterQ50.max || Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1
-                ]} // Default values if unset
-                min={Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0}
-                max={Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1}
-                step={0.001}
-                renderThumb={(props, state) => {
-                  const { key, ...rest } = props;
-                  return (
-                    <div
-                      key={key}
-                      {...rest}
-                      className={!filterQ50.enabled ? 'thumb thumb-disabled' : 'thumb'}
-                    >
-                      <div className="thumb-value">{state.valueNow}</div>
-                    </div>
-                  );
-                }}
-                onAfterChange={handlefilterQ50Change}
-              />
-            </div>
-          </div>
-          <div className="mb-2 mt-3 form-horizontal">
-            <label htmlFor="filterFracSlider" className="form-label">
-              <input
-                type="checkbox"
-                checked={filterFractionVel.enabled}
-                // disabled={viewMode !== 'timeSeries'}
-                onChange={(e) => setFilterFractionVel({...filterFractionVel, enabled: e.target.checked})}
-                className="me-1"
-              />
-              min. Measured to total flow [%]
-            </label>
-            <div className="slider-container">
-              <div className="slider-min">{0}</div>
-              <div className="slider-max">{100}</div>
-              <ReactSlider
-                className="horizontal-slider small"
-                disabled={!filterFractionVel.enabled}
-                value={filterFractionVel.value || 0} // Default values if unset
-                min={0}
-                max={100}
-                step={1}
-                renderThumb={(props, state) => {
-                  const { key, ...rest } = props;
-                  return (
-                    <div
-                      key={key}
-                      {...rest}
-                      className={!filterFractionVel.enabled ? 'thumb thumb-disabled' : 'thumb'}
-                    >
-                      <div className="thumb-value">{state.valueNow}</div>
-                    </div>
-                  );
-                }}
-                onAfterChange={handlefilterFracChange}
-              />
-            </div>
-          </div>
+        <div className="flex-container no-padding" style={{"flexDirection": "row"}}>
           <button
-            className="btn"
-            onClick={handleDownload}
-            disabled={data.length === 0}
+            className="toggle-service-description" style={{left: 0, alignSelf: "flex-start"}}
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            aria-label={isCollapsed ? 'Show upload window' : 'Hide upload window'}
+            title={isCollapsed ? 'Show upload window' : 'Hide upload window'}
           >
-            Download selected
+            {isCollapsed ? '▶' : '▼'}
           </button>
-
+          <h5>Filters and downloads</h5>
         </div>
+        <div className={`collapsible-content${isCollapsed ? ' collapsed' : ''}`}>
+          <FilterTimeSeries
+            filterH={filterH}
+            setFilterH={setFilterH}
+            filterQ50={filterQ50}
+            setFilterQ50={setFilterQ50}
+            filterFractionVel={filterFractionVel}
+            setFilterFractionVel={setFilterFractionVel}
+            selectedVideoConfigIds={selectedVideoConfigIds}
+            allVideoConfigIds={allVideoConfigIds}
+            dateRange={dateRange}
+            setStartDate={setStartDate}
+            setEndDate={setEndDate}
+            data={data}
+          />
           </div>
-          <div style={{"flex": "0 0 auto", "width": "300px"}}>
-            <div className="mb-3">
-              <button
-                className="btn"
-                onClick={() => setShowVideoConfigModal(true)}
-              >
-                Video Configuration
-                {selectedVideoConfigIds && allVideoConfigIds.length > 0 &&
-                  selectedVideoConfigIds.length !== allVideoConfigIds.length &&
-                  selectedVideoConfigIds.length > 0 &&
-                  ` (${selectedVideoConfigIds.length} selected)`}
-              </button>
-            </div>
-            <FilterDates
-                startDate={dateRange.startDate}
-                endDate={dateRange.endDate}
-                setStartDate={setStartDate}
-                setEndDate={setEndDate}
-                title={"Select date range"}
-              />
-          </div>
-        </div>
       </div>
+
       <div className="flex-container column">
 
-      <h5>Data</h5>
+        <h5>Data</h5>
 
         <div className="tabs-row">
           <button
@@ -828,11 +600,11 @@ const DisplayTimeSeries = () => {
         </div>
 
         {/* Chart */}
-        <div style={{height: '500px', position: 'relative'}}>
-            <>
-              <Line ref={chartRef} data={chartData} options={chartOptions} key={viewMode} />
-            </>
-            {/*<div>No data available for the selected filters and date range.</div>*/}
+        <div style={{ height: '500px', position: 'relative' }}>
+          <>
+            <Line ref={chartRef} data={chartData} options={chartOptions} key={viewMode} />
+          </>
+          {/*<div>No data available for the selected filters and date range.</div>*/}
         </div>
         {/* Tooltip Image Display */}
       </div>
@@ -849,7 +621,7 @@ const DisplayTimeSeries = () => {
       )}
       {/*Modal for running video */}
       {showRunModal && selectedVideo && (
-        <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo}/>
+        <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo} />
       )}
     </div>
   );

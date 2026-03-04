@@ -59,29 +59,6 @@ const CrossSectionForm = (
         : {"cross_section_wl_id": value ? parseInt(value) : 0}
       }
       sendDebouncedMsg(msg)
-
-      //   const response = await api.post(
-      //     `cross_section/${value}/camera_config/?${new Date().getTime()}`,
-      //     cameraConfig
-      //   );
-      //   if (!response.data.within_image) {
-      //     setMessageInfo('error', `${nameCapitalize} cross section is not within the image`)
-      //   } else if (response.data.distance_camera > 1000) {
-      //     setMessageInfo('error', `${nameCapitalize} cross section is too far away from the camera (> 1000 m.)`)
-      //   } else {
-      //     // TODO: replace by ws.sendJson call
-      //     setter(response.data);
-      //     console.log(response.data);
-      //     setMessageInfo('success', `Successfully set ${name} cross section to ID ${value}`)
-      //   }
-      // } catch (error) {
-      //   console.log(error);
-      //   setMessageInfo('error', `Failed to fetch ${name} cross section: ${error.response.data.detail || error.message}`)
-      // }
-    // } else {
-    //   setter({});
-    //   setMessageInfo('success', `Successfully removed ${name} cross section`)
-    // }
   }
 
   const validateBboxReady = () => {
@@ -97,22 +74,6 @@ const CrossSectionForm = (
     if (!fieldsComplete) {
       return false;
     }
-    // if (prevCameraConfig.current !== cameraConfig) {
-    //   prevCameraConfig.current = cameraConfig;
-    //   // check if water level values are realistic
-    //   if (cameraConfig?.gcps?.control_points?.length > 0) {
-    //     const avgZ = cameraConfig.gcps.control_points.reduce((sum, point) => sum + point.z, 0) /
-    //       cameraConfig.gcps.control_points.length;
-    //     const zDiff = (avgZ - cameraConfig?.gcps?.z_0);
-    //     if (zDiff < 0) {
-    //       setMessageInfo("warning", `The set water level is ${Math.abs(zDiff).toFixed(2)} above the average height of the control points suggesting all control points are submerged. Is this correct?`)
-    //     } else if (zDiff > 20) {
-    //       setMessageInfo("warning", `The set water level is ${zDiff.toFixed(2)} meters different from the average height of the control points. This may not be realistic.`)
-    //     } else {
-    //       setMessageInfo("success", "Validated set water level")
-    //     }
-    //   }
-    // }
     return true;
   }
 
@@ -205,7 +166,7 @@ const CrossSectionForm = (
           data-bs-toggle="tooltip"
         >
         <button
-          className='btn'
+          className='btn btn-primary'
           onClick={() => handleBboxStart()}
           disabled={!validateBboxReady()}
         >
@@ -216,7 +177,7 @@ const CrossSectionForm = (
       </div>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Cross sections</h5>
-        <button className='btn' onClick={() => setShowCrossSectionUploadModal(true)}>
+        <button className='btn btn-primary' onClick={() => setShowCrossSectionUploadModal(true)}>
           Upload new
         </button>
         <div className='container' style={{marginTop: '5px'}}>

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Integer, event, text
+from sqlalchemy import JSON, DateTime, Float, Integer, event, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from orc_api.db import RemoteBase
@@ -44,7 +44,7 @@ class TimeSeries(RemoteBase):
     wetted_surface: Mapped[float] = mapped_column(Float, nullable=True)
     wetted_perimeter: Mapped[float] = mapped_column(Float, nullable=True)
     fraction_velocimetry: Mapped[float] = mapped_column(Float, nullable=True)
-
+    misc: Mapped[dict] = mapped_column(JSON, nullable=True)
     video = relationship("Video", uselist=False, back_populates="time_series")  # foreign_keys=[video_id]
 
     def __str__(self):

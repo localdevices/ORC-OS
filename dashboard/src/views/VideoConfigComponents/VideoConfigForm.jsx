@@ -194,7 +194,7 @@ const VideoConfigForm = (
             <label htmlFor="180deg" style={{ marginLeft: '8px' }}>180 degrees</label>
           </div>
         </div>
-        <button type='submit' className='btn'>
+        <button type='submit' className='btn btn-primary'>
           Save
         </button>
       </form>

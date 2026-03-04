@@ -4,6 +4,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import AnyHttpUrl
 from pyorc import sample_data
 
 from orc_api import crud
@@ -220,9 +221,9 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
     """
     # first patch the liveorc access
     callback_create = CallbackUrlCreate(
-        url=os.getenv("LIVEORC_URL"),
-        user=os.getenv("LIVEORC_EMAIL"),
-        password=os.getenv("LIVEORC_PASSWORD"),
+        url=AnyHttpUrl(os.getenv("LIVEORC_URL", "http://localhost:8000")),
+        user=os.getenv("LIVEORC_EMAIL", "user@email.org"),
+        password=os.getenv("LIVEORC_PASSWORD", "password"),
         retry_timeout=60,
         remote_site_id=1,
     )

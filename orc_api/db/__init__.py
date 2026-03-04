@@ -17,6 +17,7 @@ from .device import Device, DeviceFormStatus, DeviceStatus
 from .disk_management import DiskManagement
 from .password import Password
 from .recipe import Recipe
+from .service import Service, ServiceParameter
 from .settings import Settings
 from .time_series import TimeSeries
 from .video import Video, VideoStatus
@@ -29,6 +30,8 @@ __all__ = [
     "CallbackUrl",
     "CameraConfig",
     "CrossSection",
+    "Service",
+    "ServiceParameter",
     "Device",
     "DeviceFormStatus",
     "DeviceStatus",

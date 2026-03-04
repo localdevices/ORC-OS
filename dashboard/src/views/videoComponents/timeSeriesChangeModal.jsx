@@ -238,8 +238,8 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
 
       <div className="sidebar-overlay"></div> {/*make background grey*/}
       <div className="modal fade show d-block" tabIndex="-1">
-        <div className="modal-dialog" style={{maxWidth: "600px", marginTop: "30px"}}>  {/*ensure modal spans a broad screen size*/}
-          <div className="modal-content">
+        <div className="modal-dialog" style={{maxWidth: "900px", marginTop: "30px"}}>  {/*ensure modal spans a broad screen size*/}
+          <div className="modal-content" style={{maxWidth: "900px"}}>
             <div className="modal-header">
               <h5 className="modal-title">{`Process video ${video.id} - ${video.file.split(`/${video.id}/`)[1]}`}</h5>
               <button
@@ -248,7 +248,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 onClick={closeModal}
               ></button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body" style={{height: "100%", overflowY: "visible"}}>
               {waterLevel !== null && (
                 <div className="mb-3 mt-0">
                   <label htmlFor="waterLevel" className="form-label">
@@ -294,7 +294,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 </div>
               )}
               <button
-                className="btn"
+                className="btn btn-warning"
                 type="submit"
                 disabled={waterLevel | saving | !videoConfig}
                 onClick={handleAddWaterLevel}
@@ -307,7 +307,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
               >
 
               <button
-                  className="btn"
+                  className="btn btn-primary"
                   type="submit"
                   disabled={!waterLevel | saving}
                   onClick={handleSubmitVideo}
@@ -324,7 +324,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 </div>
               )}
                 <button
-                  className="btn"
+                  className="btn btn-primary"
                   type="submit"
                   onClick={(e) => handleSubmitVideo(e, { forceOptical: true })}
                   disabled={!videoConfig?.cross_section_wl | saving}

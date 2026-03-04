@@ -98,7 +98,6 @@ const VideoUploader = ({uploadedVideo, setUploadedVideo}) => {
 
   return (
     <div className="video-uploader">
-      <h5>Upload a Video</h5>
       <div
         {...getRootProps()}
         style={{

@@ -8,6 +8,7 @@ import {
   FaCheck,
   FaTimes,
   FaSignOutAlt,
+  FaTools,
   FaKey,
   FaHome,
   FaVideo,
@@ -26,7 +27,7 @@ import {PasswordChangeModal} from "./passwordChangeModal.jsx";
 import api from "../api/api.js";
 import { useAuth } from "../auth/useAuth.jsx";
 
-const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunState}) => {
+const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, videoRunState}) => {
 
   const [isOpen, setIsOpen] = useState(false); // track if the navbar is open / closed
   const { logout } = useAuth();
@@ -104,7 +105,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
           <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" onClick={() => handleToggle(isOpen, setIsOpen)}>
             <span className="navbar-toggler-icon"></span>
           </button>
-          <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px' }}>
+          <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px'}}>
             {videoRunState?.video_file !== "" && (
               <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>
                         {getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}
@@ -125,7 +126,9 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
               disabled={!requiresRestart}
               onClick={handleRestartClick}
             />
-            <OptionsMenu/>
+            <OptionsMenu
+              devStatus={devStatus}
+            />
             <div
               className="user-menu-wrapper"
               onMouseEnter={() => {
@@ -142,6 +145,19 @@ const Navbar = ({requiresRestart, setRequiresRestart, setIsLoading, videoRunStat
               }}
             >
               <FaUser style={{ cursor: 'pointer' }}/>
+              {devStatus && (
+                <FaTools
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    fontSize: '1em',
+                    color: 'red',
+                  }}
+                  title="Development mode"
+                />
+              )}
+              {/* </span> */}
               {userMenuOpen && (
                 <div className="user-menu">
                   <div

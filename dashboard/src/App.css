@@ -1,3 +1,5 @@
+/* Top-level styles for the entire application */
+
 #root {
   margin: 0 auto;
   padding: 0;
@@ -26,8 +28,21 @@
   flex-direction: column;
   overflow-y: auto; /* scrollable with overflowing content */
   position: relative;
-  padding: 1rem 1rem; /* Optional: Add some padding */
+  padding: 5px 10px;
   height: 100%;
+}
+
+/* for animations of collapsing content, such as the readme description in the service details page */
+.collapsible-content {
+  max-height: 1000px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.7s;
+}
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 a {
@@ -40,10 +55,11 @@ a:hover {
 }
 
 
+/* container styles */
 .flex-container {
   display: flex;
-  gap: 10px;
-  margin: 10px;
+  gap: 2px;
+  margin: 2px;
   padding: 10px;
   flex-direction: row;
   background-color: #ffffff;
@@ -51,7 +67,7 @@ a:hover {
   border-radius: 10px 10px 10px 10px; /* Rounded top corners */
   height: 100%;
   box-sizing: border-box;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
   text-align: left;
 
 
@@ -72,10 +88,59 @@ a:hover {
   box-shadow: none;
 }
 
+
+@media (max-width: 768px) {
+  .flex-container {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 768px) {
     .home-header {
         display: none !important;
     }
+}
+
+/* Grid container for two equal columns */
+.split-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns of equal width */
+  max-height: 100%; /* Full height of the viewport */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.split-screen.flex {}
+
+@media (max-width: 960px) {
+  .split-screen.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+.split-screen.three-columns {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.split-screen.three-columns.flex {
+
+}
+
+@media (max-width: 768px) {
+  .split-screen.three-columns.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+}
+
+.split-screen > .flex-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  max-height: 100%; /* Constrain height to the size of its container */
+  overflow: auto; /* Allow scrolling for overflowing content */
+  /*box-sizing: border-box; !* Include padding and border in dimensions *!*/
 }
 
 .image-container {
@@ -131,47 +196,6 @@ a:hover {
   /*color: #cc5200;      !* Optional: darker shade on hover *!*/
 }
 
-/* Grid container for two equal columns */
-.split-screen {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two columns of equal width */
-  max-height: 100%; /* Full height of the viewport */
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.split-screen.flex {}
-
-@media (max-width: 960px) {
-  .split-screen.flex {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-}
-
-.split-screen.three-columns {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-.split-screen.three-columns.flex {
-
-}
-
-@media (max-width: 768px) {
-  .split-screen.three-columns.flex {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-  }
-}
-
-.split-screen > .flex-container {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  max-height: 100%; /* Constrain height to the size of its container */
-  overflow: auto; /* Allow scrolling for overflowing content */
-  /*box-sizing: border-box; !* Include padding and border in dimensions *!*/
-}
 
 /* container around a set of tabs */
 .tabbed-form-container {
@@ -198,6 +222,8 @@ a:hover {
     border: 1px solid #ccc;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+/* tabbed layouts */
 
 /* container inside a tab */
 .container.tab {
@@ -230,11 +256,12 @@ a:hover {
   border-radius: 5px 5px 0 0; /* Rounded top corners */
   padding: 10px 20px;
   margin-right: 5px; /* Space between tabs */
-  background: #42a5da; /* Default background color */
-  color: #000;
+  background: #2196F3; /* Default background color */
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 13px;
+  font-weight: 600;
 }
 
 /* Disabled button style */
@@ -259,6 +286,7 @@ a:hover {
   background: #fff; /* Active tab matches content background */
   /*border-bottom: 2px solid black; !* Matches the background *!*/
   font-weight: bold; /* Highlight active tab with bold text */
+  color: #000;
   border: 2px solid #aaa;
 }
 
@@ -292,17 +320,13 @@ a:hover {
   margin-right: 300px;
 }
 
-@media (max-width: 768px) {
-  .flex-container {
-    flex-direction: column;
-  }
-}
-
+/* application-wide button styles */
 .btn {
   background-color: #0a4777;
   border-color: #0a4777;
   color: #fff;
   margin: 10px;
+  border-radius: 15px !important;
 }
 
 .btn:hover {
@@ -371,7 +395,7 @@ button.btn-icon:disabled .document {
     margin-bottom: 20px;
 }
 
-
+/* logo styles and animations */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -452,6 +476,7 @@ button.btn-icon:disabled .document {
   cursor: pointer;
 }
 
+/* spinner and loading screen styles */
 .spinner-viewport {
   position: fixed;
   top: 0;
@@ -508,4 +533,23 @@ button.btn-icon:disabled .document {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* table stylings */
+.sticky-actions-header {
+  position: sticky;
+  white-space: nowrap;
+  right: 0;
+  z-index: 0;
+  background: #ffffff !important;
+  box-shadow: -5px 0 10px -5px rgba(255, 255, 255, 0.2) !important;
+}
+
+.sticky-actions-cell {
+  position: sticky;
+  white-space: nowrap;
+  right: 0;
+  z-index: 0;
+  background: #ffffff !important;
+  box-shadow: -5px 0 10px -5px rgba(255, 255, 255, 0.2);
 }

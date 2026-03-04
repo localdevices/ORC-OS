@@ -5,9 +5,11 @@ os.environ["ALEMBIC_RUNNING"] = "1"
 
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine, pool
+from sqlalchemy import create_engine, pool, event, text
+from sqlalchemy.engine import Engine
 
 from alembic import context
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -72,13 +74,14 @@ def run_migrations_online() -> None:
     # )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-
+        context.configure(connection=connection, target_metadata=target_metadata)   # dialect_opts={"sqlite_synchronous": 0}
         with context.begin_transaction():
             context.run_migrations()
 
 
 if context.is_offline_mode():
+    print("Running migrations in offline mode...")
     run_migrations_offline()
 else:
+    print("Running migrations in online mode...")
     run_migrations_online()

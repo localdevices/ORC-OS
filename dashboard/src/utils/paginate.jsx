@@ -19,7 +19,7 @@ const Paginate = ({count, currentPage, rowsPerPage, setCurrentPage, setRowsPerPa
   };
 
   return (
-    <div className="d-flex justify-content-between align-items-center gap-2" style={{flex: 0}}>
+    <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2" style={{flex: 0}}>
     {/* Rows Per Page Selector */}
       <div>
         <label htmlFor="rowsPerPage" className="me-2">Rows per page:</label>

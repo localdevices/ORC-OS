@@ -336,15 +336,17 @@ const PoseDetails = (
           Add single GCP and validate by fitting pose
         </label>
         <div>
-          <button onClick={addWidget} style={{"margin": "0"}} id="addWidget" className="btn">Click to add GCP</button>
+          <button onClick={addWidget} style={{"margin": "0"}} id="addWidget" className="btn btn-primary">Click to add GCP</button>
           <button
             onClick={handleFitGcps}
-            className="btn"
+            className="btn btn-primary"
             disabled={!validateWidgets()}
           >Validate</button>
-          <button type='submit' className='btn bg-primary' onClick={() => {setShowCamParamsModal(true)}} style={{marginRight: '10px'}}>
+          <button type='submit' className='btn btn-secondary' onClick={() => {setShowCamParamsModal(true)}} style={{marginRight: '10px'}}>
             Camera parameters
           </button>
+        </div>
+
           {fitPoseData && (
             fitPoseData.status === 'success' ? (
               <i className="text-success">{fitPoseData.message}</i>
@@ -352,7 +354,6 @@ const PoseDetails = (
               <i className="text-danger">{fitPoseData.message}</i>
             )
             )}
-        </div>
         </div>
       </div>
       </div>
@@ -366,7 +367,7 @@ const PoseDetails = (
     <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
       <div className="table-responsive">
         <table className="table table-bordered table-sm text-center">
-          <thead className="table-dark">
+          <thead className="thead-dark">
           <tr>
             <th>Select</th>
             <th>Row</th>

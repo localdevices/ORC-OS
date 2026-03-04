@@ -19,7 +19,11 @@ width=100 align="right">
 > [!TIP]
 > Rainbow Sensing is the company behind this entirely Open-Source software framework. We provide ready-to-use images
 > with one year of support for a fixed fee. After the first year you may continue using the software on your own devices
-> indefinitely. Contact info@rainbowsensing.com for more information.
+> indefinitely. Contact info@rainbowsensing.com for more information. This image has:
+>
+> * 8 hours of support included over a year.
+> * free remote access for your institute via a secured server. Access your device anywhere!
+> * power management and on/off scheduling for sites with small power availability.
 >
 > We also provide training packages for field installation, field survey, image-based processing and principles,
 > LiveOpenRiverCam server deployment and maintenance (central API for storage and further use of data).

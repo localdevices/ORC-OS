@@ -223,7 +223,8 @@ class VideoResponse(VideoBase, RemoteModel):
 
                 # check for h_a
                 h_a = None if self.time_series is None else self.time_series.h
-                logger.debug(f"Checked for water level in time series, found {h_a:.3f} m.")
+                if h_a:
+                    logger.debug(f"Checked for water level in time series, found {h_a:.3f} m.")
 
                 # overrule with set level if the video configuration is made with the current video
                 if self.video_config.sample_video_id == self.id:
@@ -232,8 +233,8 @@ class VideoResponse(VideoBase, RemoteModel):
 
                 # assemble all information
                 logger.info(f"Water level set to {h_a:.3f} m.")
-                # check if h_a is above lowest point in cross section
-                validate_h_a_cross = self.video_config.cross_section_wl_rt.validate_h_a(h_a=h_a)
+                # check if h_a is above lowest point in cross section for discharge estimation
+                validate_h_a_cross = self.video_config.cross_section_rt.validate_h_a(h_a=h_a)
                 if not validate_h_a_cross:
                     raise Exception(
                         f"Provided water level {h_a:.3f} m is not above the lowest point in the cross section. "
