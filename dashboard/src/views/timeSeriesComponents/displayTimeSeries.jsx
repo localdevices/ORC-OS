@@ -545,7 +545,7 @@ const DisplayTimeSeries = () => {
         </div>
       )}
       <div className="flex-container column">
-        <h5>Filters and downloads</h5>
+        <div className="flex-container no-padding" style={{"flexDirection": "row"}}>
           <button
             className="toggle-service-description" style={{left: 0, alignSelf: "flex-start"}}
             onClick={() => setIsCollapsed((prev) => !prev)}
@@ -554,6 +554,8 @@ const DisplayTimeSeries = () => {
           >
             {isCollapsed ? '▶' : '▼'}
           </button>
+          <h5>Filters and downloads</h5>
+        </div>
         <div className={`collapsible-content${isCollapsed ? ' collapsed' : ''}`}>
           <FilterTimeSeries
             filterH={filterH}

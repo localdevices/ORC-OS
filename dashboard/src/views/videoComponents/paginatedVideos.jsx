@@ -300,8 +300,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
         {isCollapsed ? "Expand" : "Collapse"}
       </button> */}
         <div className="flex-container column">
-                <h5>Add and filter videos</h5>
-
+          <div className="flex-container no-padding" style={{"flexDirection": "row"}}>
           <button
             className="toggle-service-description" style={{left: 0, alignSelf: "flex-start"}}
             onClick={() => setIsCollapsed((prev) => !prev)}
@@ -311,6 +310,8 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
             {isCollapsed ? '▶' : '▼'}
           </button>
 
+                <h5>Add, download, filter</h5>
+</div>
         <div className={`collapsible-content${isCollapsed ? ' collapsed' : ''}`}>
         {/* <div className={`collapsible-content`}> */}
             <VideoUploader

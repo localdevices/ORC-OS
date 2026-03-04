@@ -237,7 +237,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
     <div className='container tab'>
       <h5>Video settings</h5>
       <button
-        className="btn"
+        className="btn btn-primary"
         onClick={loadModal}
       >
         Upload from .yml

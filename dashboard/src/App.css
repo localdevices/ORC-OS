@@ -256,11 +256,12 @@ a:hover {
   border-radius: 5px 5px 0 0; /* Rounded top corners */
   padding: 10px 20px;
   margin-right: 5px; /* Space between tabs */
-  background: #42a5da; /* Default background color */
-  color: #000;
+  background: #2196F3; /* Default background color */
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 13px;
+  font-weight: 600;
 }
 
 /* Disabled button style */
@@ -285,6 +286,7 @@ a:hover {
   background: #fff; /* Active tab matches content background */
   /*border-bottom: 2px solid black; !* Matches the background *!*/
   font-weight: bold; /* Highlight active tab with bold text */
+  color: #000;
   border: 2px solid #aaa;
 }
 
