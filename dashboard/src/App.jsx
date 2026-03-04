@@ -74,7 +74,16 @@ const matchRoute = (path) => {
 
 
 // Helper component to conditionally render Navbar and Footer
-const Layout = ({ children, requiresRestart, setRequiresRestart, devStatus, setIsLoading, videoRunState, setVideoRunState}) => {
+const Layout = ({
+  children,
+  requiresRestart,
+  setRequiresRestart,
+  devStatus,
+  setIsLoading,
+  videoRunState,
+  setVideoRunState,
+  apiStatus
+}) => {
   const location = useLocation();
   const isInvalidRoute = !matchRoute(location.pathname);
   // Hide Navbar and Footer on login or 404 routes
@@ -104,7 +113,9 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, devStatus, setI
         videoRunState={videoRunState}
       />}
       <div className="main-content">{children}</div>
-      {!hideLayout && window.innerWidth > 768 && <Footer />}
+      {!hideLayout && window.innerWidth > 768 && <Footer
+        apiStatus={apiStatus}
+      />}
     </div>
   );
 };
@@ -130,6 +141,7 @@ const App = () => {
                 const response = await api.get("/"); // check the root page
                 if (response.status === 200) {
                   setIsLoading(false); // API is available, stop showing spinner
+                  setApiStatus(response.data);
                   if (response.data.dev) {
                     setDevStatus(true);
                   }
@@ -140,8 +152,11 @@ const App = () => {
               if (error.response && error.response.status === 401) {
                 // navigate to login by setting loading to false. While user is null, the login page will always appear
                 setIsLoading(false);
+                console.log("User not authenticated, redirecting to login.");
+                console.log("API response:", error.response);
+                setApiStatus(error.response.data);
               } else {
-                setApiStatus("ORC-OS back end seems offline. Waiting for ORC-OS backend to start...");
+                setApiStatus({detail: "ORC-OS back end seems offline. Waiting for ORC-OS backend to start..."});
                 setIsLoading(true);
                 setRequiresRestart(false);  // as app is starting, restart is never required at this point
               }
@@ -165,7 +180,7 @@ const App = () => {
                     </a>
                 </div>
                 <div className="spinner"></div>
-                <div>{apiStatus || "Application is starting up, please wait..."}</div>
+                <div>{apiStatus?.detail || "Application is starting up, please wait..."}</div>
             </div>
           </div>
         );
@@ -180,10 +195,14 @@ const App = () => {
               setIsLoading={setIsLoading}
               videoRunState={videoRunState}
               setVideoRunState={setVideoRunState}
+              apiStatus={apiStatus}
             >
               <Routes>
                 <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={
+                  <Login
+                    apiStatus={apiStatus}
+                  />} />
                 <Route path="/" element={
                   <ProtectedRoute>
                      <Home />

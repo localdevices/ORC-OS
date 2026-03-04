@@ -6,7 +6,7 @@ import { useAuth } from "../auth/useAuth.jsx";
 import Confetti from 'react-confetti'
 import orcLogo from "/orc_favicon.svg";
 
-const Login = () => {
+const Login = ({apiStatus}) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passAvailable, setPassAvailable] = useState(true);
@@ -45,6 +45,7 @@ const Login = () => {
     <div>
     {!passAvailable && <Confetti width={width} height={height} />}
     <div className="spinner-container" style={{overflow: "hidden"}}>
+      <p>OpenRiverCam-OS "{apiStatus.release}" v{apiStatus.version} </p>
       <div>
         <a href="https://openrivercam.org" target="_blank">
           <img src={orcLogo} className="logo" alt="ORC logo" style={{"height": "300px"}} />
@@ -52,7 +53,7 @@ const Login = () => {
       </div>
       <div>
         {passAvailable ? (
-      <p>Please enter your password to proceed</p>) : (
+      <p style={{textAlign: "center"}}>Please enter your password to proceed</p>) : (
         <div>
           <p>Congratulations! This is your first use of ORC-OS! Please set a password now.</p>
         </div>)
@@ -75,7 +76,7 @@ const Login = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               style={{ marginTop: "8px" }}
             />
-            <button className="btn" type="submit">Create password</button>
+            <button className="btn btn-primary" type="submit">Create password</button>
             {confirmPassword.length > 0 && (
               <p style={{ color: passwordsMatch ? "green" : "red", margin: "6px 0" }}>
                 {passwordsMatch ? "Passwords match" : "Passwords do not match"}
@@ -83,7 +84,7 @@ const Login = () => {
             )}
           </>
         ) : (
-          <button className="btn" type="submit">Login</button>
+          <button className="btn btn-primary" type="submit">Login</button>
         )}
         {error && <p style={{ color: "red" }}>{error}</p>} {/* Display login error */}
       </form>

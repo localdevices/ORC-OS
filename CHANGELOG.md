@@ -1,5 +1,5 @@
-## [0.5.0] - 2026-xx-xx
-This is a **preproduction alpha release**, not yet fit for production and operational environments.
+## [0.5.0] - 2026-03-04
+This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
 - piloting
@@ -13,6 +13,17 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - Video configuration selection modal is more instructive with a better understanding of current status and the
   options.
 - The bounding box in the Video Configuration image window can be rotated and moved after first creation.
+- Additional background services may be added. To do this, start FastAPI with DEV_MODE by setting `ORC_DEV_MODE=1`
+  as environment variable.
+  Background services run as systemd service, and run a python or bash script. You can add parameters as environment
+  variables. Once the service is created and deployed, any user (without DEV_MODE) can change the parameters through
+  a new option menu item, added as part of the web interface. The script should in turn ingest parameter from these
+  environment variables. This extension allows you to virtually add any additional service to your setup, including
+  specific hardware, specific communication options, or power management additions.
+- A command line interface has been added for fast background settings of database, videos (uploads, listing, deleting),
+  video-configs (adding only) and services (adding, importing, exporting, listing, deleting). Login to a console,
+  activate the python backend environment and type `orc --help` after upgrading/installing to see the options.
+
 ### Changed
 - Video table loads much faster and responds to changes made by user without a full page refresh being required.
 - Video editing modal and video config selection modal now show feedback during loading and saving, preventing user
@@ -22,6 +33,10 @@ Feedback and bug reports are highly appreciated to improve future versions.
   saving and page refreshing.
 - The wetted part of the bounding box is displayed separately. This helps to identify the correct bounding box around
   the cross section.
+- Layout has changed considerably with a recognizable style for buttons, and better smartphone view.
+- All calculations now work with `numpy>=2` and higher. This means that on raspberry pi, Trixie is the minimum version
+  to be used, as the PiCamera2 library is updated to work with `numpy>=2` as well.
+
 ### Deprecated
 ### Removed
 ### Fixed
