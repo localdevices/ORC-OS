@@ -20,7 +20,7 @@ async def get_log(count=500):
     if not logger.handlers or len(logger.handlers) < 2:
         raise HTTPException(status_code=500, detail="Log file handler not found!")
     handler = logger.handlers[1]
-    if not isinstance(handler, FileHandler) or not isinstance(handler, RotatingFileHandler):
+    if not isinstance(handler, FileHandler) and not isinstance(handler, RotatingFileHandler):
         raise HTTPException(status_code=500, detail="Log file handler is not a FileHandler!")
     fn = handler.baseFilename
     try:
@@ -39,7 +39,7 @@ async def stream_log(websocket: WebSocket):
         await websocket.close(code=1003, reason="Log file handler not found!")
         return
     handler = logger.handlers[1]
-    if not isinstance(handler, FileHandler) or not isinstance(handler, RotatingFileHandler):
+    if not isinstance(handler, FileHandler) and not isinstance(handler, RotatingFileHandler):
         await websocket.close(code=1003, reason="Log file handler is not a FileHandler!")
         return
     fn = handler.baseFilename

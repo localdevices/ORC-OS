@@ -1,10 +1,26 @@
+import subprocess
+from unittest.mock import MagicMock, patch
+
 from orc_api import crud, schemas
 from orc_api.db.service import ServiceType
 
 
-def test_get_patch_post_delete_service(auth_client, db_session, tmpdir, monkeypatch):
+def test_get_patch_post_delete_service(auth_client, db_session, tmpdir, mocker, monkeypatch):
+    original_run = subprocess.run
+
+    def subprocess_side_effect(cmd, **kwargs):
+        """Conditionally mock subprocess.run based on command."""
+        # Only mock daemon-reload, let others run
+        if cmd[1] == "systemctl":
+            return MagicMock(returncode=0)
+        # Let sudo commands actually run, but without the sudo since we are in a temp directory
+        if cmd[0] == "sudo":
+            return original_run(cmd[1:], **kwargs)
+        return original_run(cmd, **kwargs)
+
     # replace service directory by a temporary directory for testing
     monkeypatch.setattr("orc_api.schemas.service.SERVICE_DIRECTORY", str(tmpdir))
+    monkeypatch.setattr("orc_api.schemas.service.get_session", lambda: db_session)
 
     service = schemas.service.ServiceCreate(
         service_short_name="some-service",
@@ -38,6 +54,11 @@ def test_get_patch_post_delete_service(auth_client, db_session, tmpdir, monkeypa
         description="This is another test service.",
     )
     r = auth_client.post("/api/service/", json=service2.model_dump(mode="json"))
+    assert r.status_code == 403
+    # now patch to DEV_MODE and try again, expected is 201 and service is created successfully
+    mocker.patch("orc_api.routers.service.DEV_MODE", True)
+    r = auth_client.post("/api/service/", json=service2.model_dump(mode="json"))
+    assert r.status_code == 201
     # check if amount of services is 2
     r = auth_client.get("/api/service/")
     assert r.status_code == 200
@@ -98,7 +119,10 @@ def test_get_patch_post_delete_service(auth_client, db_session, tmpdir, monkeypa
     r = auth_client.get(f"/api/service/{service.id}/")
     assert len(r.json()["parameters"]) == 1
     # delete the second service through the router
-    r = auth_client.delete("/api/service/2/")
+    with patch("orc_api.schemas.service.subprocess.run", side_effect=subprocess_side_effect) as _:
+        # deletion of service files requires sudo, instead we run mocks or run without sudo
+        r = auth_client.delete("/api/service/2/")
+
     assert r.status_code == 204
     # check if amount of services is back to 1
     r = auth_client.get("/api/service/")
@@ -106,7 +130,7 @@ def test_get_patch_post_delete_service(auth_client, db_session, tmpdir, monkeypa
     assert len(r.json()) == 1
 
 
-def test_executor_service(auth_client, monkeypatch):
+def test_executor_service(auth_client, mocker, monkeypatch):
     # create a service with executor
     def mock_deploy_service(*args, **kwargs):
         return True
@@ -143,6 +167,11 @@ def test_executor_service(auth_client, monkeypatch):
         service_type=ServiceType.ONE_TIME,
         description="This is a test service with executor.",
     )
+    # first call without DEV_MODE, expected is 403 because executor is not allowed to be used without DEV_MODE
+    r = auth_client.post("/api/service/", json=service.model_dump(mode="json"))
+    assert r.status_code == 403
+    # now call with DEV_MODE, expected is 201 and service is created successfully
+    mocker.patch("orc_api.routers.service.DEV_MODE", True)
     r = auth_client.post("/api/service/", json=service.model_dump(mode="json"))
     assert r.status_code == 201
     service_id = r.json()["id"]

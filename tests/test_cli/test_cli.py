@@ -1,6 +1,8 @@
 import json
 import os
+import subprocess
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from orc_api.cli import video as cli_video
 from orc_api.cli.service import delete_service, export_service, import_service
@@ -26,7 +28,21 @@ service_data = {
 }
 
 
-def test_import_export_service_roundtrip(session_empty, tmpdir):
+def test_import_export_service_roundtrip(session_empty, tmpdir, monkeypatch):
+    # make sure get_session gives the current test session
+    original_run = subprocess.run
+    monkeypatch.setattr("orc_api.schemas.service.get_session", lambda: session_empty)
+
+    def subprocess_side_effect(cmd, **kwargs):
+        """Conditionally mock subprocess.run based on command."""
+        # Only mock daemon-reload, let others run
+        if cmd[1] == "systemctl":
+            return MagicMock(returncode=0)
+        # Let sudo commands actually run, but without the sudo since we are in a temp directory
+        if cmd[0] == "sudo":
+            return original_run(cmd[1:], **kwargs)
+        return original_run(cmd, **kwargs)
+
     # Test importing and exporting a service
     # Create a temporary service file
     tmp_service_file = Path(tmpdir / "service.json")
@@ -45,7 +61,9 @@ def test_import_export_service_roundtrip(session_empty, tmpdir):
         service_result_export = ServiceExportData.model_validate(exported)
         assert service_result_export == service_data_export
         # delete service and check
-        delete_service(service_id=1, db=session_empty)
+        with patch("orc_api.schemas.service.subprocess.run", side_effect=subprocess_side_effect) as _:
+            r = delete_service(service_id=1, db=session_empty)
+        assert r["status"] == "success"
         # check if error is received when trying to export deleted service
         r = export_service(service_id=1, db=session_empty, output_path=tmp_service_file_out)
         assert r["status"] == "error"

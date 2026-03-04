@@ -126,6 +126,7 @@ def test_service_executor_create_service_file():
         service_long_name=service.service_long_name,
         service_type=service.service_type,
         parameters=None,
+        script_type="bash",
     )
 
     # Create systemd unit file content
@@ -156,6 +157,7 @@ def test_service_executor_deploy(tmp_path, monkeypatch):
         service_long_name=service.service_long_name,
         service_type=service.service_type,
         parameters=None,
+        script_type="bash",
     )
 
     # Set up temporary paths for deployment

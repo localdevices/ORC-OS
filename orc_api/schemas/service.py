@@ -694,6 +694,8 @@ WantedBy=timers.target
             Output message
 
         """
+        # make sure service symbolic link is available (recreated) before attempting to start
+        self.create_service_links()
         try:
             subprocess.run(
                 ["sudo", "systemctl", "start", self.service_enabler],
