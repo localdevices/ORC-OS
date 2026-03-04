@@ -104,7 +104,7 @@ const Layout = ({ children, requiresRestart, setRequiresRestart, devStatus, setI
         videoRunState={videoRunState}
       />}
       <div className="main-content">{children}</div>
-      {!hideLayout && <Footer />}
+      {!hideLayout && window.innerWidth > 768 && <Footer />}
     </div>
   );
 };
@@ -134,8 +134,6 @@ const App = () => {
                     setDevStatus(true);
                   }
                 } else {
-                  console.log(response)
-
                   // throw new Error("Invalid API response: " + response.status);
                 }
             } catch (error) {

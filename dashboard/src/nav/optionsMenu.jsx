@@ -16,7 +16,6 @@ export const OptionsMenu = ({ devStatus }) => {
   useEffect(() => {
     api.get("/service/")
       .then((response) => {
-        console.log(response.data);
         setServices(response.data);
       })
       .catch((error) => console.error("Error fetching services:", error));

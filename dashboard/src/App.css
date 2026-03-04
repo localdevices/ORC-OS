@@ -1,3 +1,5 @@
+/* Top-level styles for the entire application */
+
 #root {
   margin: 0 auto;
   padding: 0;
@@ -53,6 +55,7 @@ a:hover {
 }
 
 
+/* container styles */
 .flex-container {
   display: flex;
   gap: 2px;
@@ -85,10 +88,59 @@ a:hover {
   box-shadow: none;
 }
 
+
+@media (max-width: 768px) {
+  .flex-container {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 768px) {
     .home-header {
         display: none !important;
     }
+}
+
+/* Grid container for two equal columns */
+.split-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns of equal width */
+  max-height: 100%; /* Full height of the viewport */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.split-screen.flex {}
+
+@media (max-width: 960px) {
+  .split-screen.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+.split-screen.three-columns {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.split-screen.three-columns.flex {
+
+}
+
+@media (max-width: 768px) {
+  .split-screen.three-columns.flex {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+}
+
+.split-screen > .flex-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  max-height: 100%; /* Constrain height to the size of its container */
+  overflow: auto; /* Allow scrolling for overflowing content */
+  /*box-sizing: border-box; !* Include padding and border in dimensions *!*/
 }
 
 .image-container {
@@ -144,47 +196,6 @@ a:hover {
   /*color: #cc5200;      !* Optional: darker shade on hover *!*/
 }
 
-/* Grid container for two equal columns */
-.split-screen {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two columns of equal width */
-  max-height: 100%; /* Full height of the viewport */
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.split-screen.flex {}
-
-@media (max-width: 960px) {
-  .split-screen.flex {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-}
-
-.split-screen.three-columns {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-.split-screen.three-columns.flex {
-
-}
-
-@media (max-width: 768px) {
-  .split-screen.three-columns.flex {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-  }
-}
-
-.split-screen > .flex-container {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  max-height: 100%; /* Constrain height to the size of its container */
-  overflow: auto; /* Allow scrolling for overflowing content */
-  /*box-sizing: border-box; !* Include padding and border in dimensions *!*/
-}
 
 /* container around a set of tabs */
 .tabbed-form-container {
@@ -211,6 +222,8 @@ a:hover {
     border: 1px solid #ccc;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+/* tabbed layouts */
 
 /* container inside a tab */
 .container.tab {
@@ -305,12 +318,7 @@ a:hover {
   margin-right: 300px;
 }
 
-@media (max-width: 768px) {
-  .flex-container {
-    flex-direction: column;
-  }
-}
-
+/* application-wide button styles */
 .btn {
   background-color: #0a4777;
   border-color: #0a4777;
@@ -385,7 +393,7 @@ button.btn-icon:disabled .document {
     margin-bottom: 20px;
 }
 
-
+/* logo styles and animations */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -466,6 +474,7 @@ button.btn-icon:disabled .document {
   cursor: pointer;
 }
 
+/* spinner and loading screen styles */
 .spinner-viewport {
   position: fixed;
   top: 0;
@@ -522,4 +531,23 @@ button.btn-icon:disabled .document {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* table stylings */
+.sticky-actions-header {
+  position: sticky;
+  white-space: nowrap;
+  right: 0;
+  z-index: 0;
+  background: #ffffff !important;
+  box-shadow: -5px 0 10px -5px rgba(255, 255, 255, 0.2) !important;
+}
+
+.sticky-actions-cell {
+  position: sticky;
+  white-space: nowrap;
+  right: 0;
+  z-index: 0;
+  background: #ffffff !important;
+  box-shadow: -5px 0 10px -5px rgba(255, 255, 255, 0.2);
 }

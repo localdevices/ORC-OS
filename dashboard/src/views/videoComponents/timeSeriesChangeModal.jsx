@@ -248,7 +248,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 onClick={closeModal}
               ></button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body" style={{height: "100%", overflowY: "visible"}}>
               {waterLevel !== null && (
                 <div className="mb-3 mt-0">
                   <label htmlFor="waterLevel" className="form-label">

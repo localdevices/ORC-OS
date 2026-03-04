@@ -364,7 +364,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
               <th style={{width: "250px", whiteSpace: "nowrap"}}>Time series</th>
               <th style={{width: "100px", whiteSpace: "nowrap"}}>Status</th>
               <th style={{width: "100px", whiteSpace: "nowrap"}}>Sync status</th>
-              <th style={{position: "sticky", width: "189px", whiteSpace: "nowrap", right: 0, zIndex: 0, background: "#ffffff"}}>Actions</th>
+              <th className="sticky-actions-header">Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -414,7 +414,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 </td>
                 <td>{getStatusIcon(video.status)}</td>
                 <td>{getSyncStatusIcon(video.sync_status)}</td>
-                <td style={{position: "sticky", width: "189px", whiteSpace: "nowrap", right: 0, zIndex: 0, background: "#ffffff"}}>
+                <td className="sticky-actions-cell" style={{width: "189px"}}>
                   <button className="btn-icon"
                           onClick={() => handleView(video)}
                   >

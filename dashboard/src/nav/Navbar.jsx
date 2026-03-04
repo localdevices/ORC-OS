@@ -105,7 +105,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
           <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" onClick={() => handleToggle(isOpen, setIsOpen)}>
             <span className="navbar-toggler-icon"></span>
           </button>
-          <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px' }}>
+          <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px'}}>
             {videoRunState?.video_file !== "" && (
               <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>
                         {getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}
