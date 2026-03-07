@@ -196,14 +196,13 @@ const Home = () => {
         <h1> OpenRiverCam-OS</h1>
       </div>
       <div className="split-screen flex">
-        <div className="flex-container column no-padding"  style={{height: "100%"}}>
-          <div className="flex-container column" style={{height: "calc(100vh - 300px", minHeight: "723px"}}>
-
+        <div className="flex-container column no-padding"  style={{height: "calc(100vh - 250px", minHeight: "723px"}}>
+          <div className="flex-container column">
             <h4>{!lastVideo ? ("Last video") : (
               `Last video taken ${lastVideo.timestamp}`
             )
             }</h4>
-            <div className="flex-container row no-padding" style={{height: "calc(100vh - 380px"}}>
+            <div className="flex-container row no-padding" style={{height: "calc(100vh - 330px"}}>
               {lastVideo ? (
                 <VideoDetails selectedVideo={lastVideo}/>
               ) : "No data"
@@ -233,7 +232,7 @@ const Home = () => {
               </div>
             </div>
           </div>
-          <div className="flex-container column" style={{height: "calc(100vh - 692px", minHeight: "370px"}}>
+          <div className="flex-container column" style={{height: "calc(100vh - 646px", minHeight: "370px"}}>
             <h4>Device status</h4>
 
             <div className="mb-0 mt-0">

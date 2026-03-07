@@ -50,7 +50,6 @@ const ServiceDetail = ({ devStatus }) => {
 
       // Initialize parameter values from environment file or defaults
       const values = {};
-      console.log('Fetched parameters:', response.data.parameters);
       response.data.parameters.forEach(param => {
         const fallbackValue = ['BOOLEAN', 'INTEGER', 'FLOAT'].includes(param.parameter_type)
         ? null
@@ -64,12 +63,10 @@ const ServiceDetail = ({ devStatus }) => {
         }
       });
       setParameterValues(values);
-      console.log('Initialized parameter values:', values);
     } catch (error) {
       setMessageInfo('error',`Failed to load service: ${error.message}`);
       navigate('/services');
     } finally {
-      console.log(parameterValues);
       setLoading(false);
     }
   };
@@ -119,7 +116,6 @@ const ServiceDetail = ({ devStatus }) => {
         await api.patch(`/service/parameters/${editingParameter.id}`, formData);
         setMessageInfo('success', 'Parameter updated successfully');
       } else {
-        console.log('Creating parameter with data:', formData);
         // Create new parameter
         await api.post(`/service/${serviceId}/parameters/`, formData);
         setMessageInfo('success', 'Parameter created successfully');
@@ -173,10 +169,8 @@ const ServiceDetail = ({ devStatus }) => {
       if (!logCollapsed) {
         // If currently expanded, fetch logs before collapsing
         setLogCollapsed(true);
-        console.log('Collapsing log...');
       } else {
         setLogLoading(true);
-        console.log('Opening log...');
         fetchLogs();
         setLogCollapsed(false);
       }
@@ -201,7 +195,6 @@ const ServiceDetail = ({ devStatus }) => {
       setMessageInfo('success', response.data.message || 'Parameters updated successfully');
       fetchStatus();
     } catch (error) {
-      console.log(error.response.data.detail);
       setMessageInfo('error', `Failed to update parameters: ${error.response.data.detail}`);
     } finally {
       setControlLoading(false);
@@ -283,7 +276,6 @@ const ServiceDetail = ({ devStatus }) => {
                 // Handle inline code and code blocks in a standardized manner
                 components={{
                   code({node, inline, className, children, ...props}) {
-                    console.log(node, inline, className, children);
                     return className ? (
                         <CodeBlock code={children}/>
                     ) : (

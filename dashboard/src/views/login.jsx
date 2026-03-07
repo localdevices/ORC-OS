@@ -45,7 +45,7 @@ const Login = ({apiStatus}) => {
     <div>
     {!passAvailable && <Confetti width={width} height={height} />}
     <div className="spinner-container" style={{overflow: "hidden"}}>
-      <p>OpenRiverCam-OS "{apiStatus.release}" v{apiStatus.version} </p>
+      <p>OpenRiverCam-OS {apiStatus.release} v{apiStatus.version} </p>
       <div>
         <a href="https://openrivercam.org" target="_blank">
           <img src={orcLogo} className="logo" alt="ORC logo" style={{"height": "300px"}} />

@@ -2,7 +2,7 @@
   flex: 0 1 auto;
   background-color: #0a4777; /* Consistent color */
   color: white;
-  text-align: center;
+  text-align: left;
   padding: 1rem;
   position: relative; /* Static positioning by default */
   z-index: 10;

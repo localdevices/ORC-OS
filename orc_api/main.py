@@ -52,6 +52,7 @@ from orc_api.schedulers import (
 from orc_api.schemas.video import VideoResponse
 from orc_api.utils import auth_helpers, queue
 from orc_api.utils.states import video_run_state
+from orc_api.utils.sys_utils import get_server_timezone_info
 
 
 @asynccontextmanager
@@ -227,6 +228,7 @@ async def root():
         "version": __version__,
         "release": __release__,
         "uptime_seconds": int(time.time() - app.state.start_time),
+        "server_timeinfo": get_server_timezone_info(),
     }
 
 

@@ -55,7 +55,7 @@ const ServiceForm = ({ onSave, onCancel, isNew = false, initialData = null }) =>
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content modal-lg">
+      <div className="modal-content modal-lg" style={{minWidth: "1200px"}}>
         <h2>{isNew ? 'Create New Service' : 'Edit Service'}</h2>
 
         <form onSubmit={handleSubmit} className="form-group">
