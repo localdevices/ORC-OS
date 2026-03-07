@@ -243,7 +243,7 @@ const ServiceDetail = ({ devStatus }) => {
 
         <div className="service-warning">
         <p>You must run ORC-OS back-end with passwordless root privileges
-          to use the control panel. AFter modifying one or more parameter values,
+          to use the control panel. After modifying one or more parameter values,
           click on <code>Update Parameters</code> to save them.</p>
         {devStatus && (
           <div>

@@ -89,6 +89,16 @@ const Layout = ({
   // Hide Navbar and Footer on login or 404 routes
   const hideLayout = location.pathname === "/login" || isInvalidRoute;
 
+  // State that checks if we are on desktop or smaller
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth > 768);
+
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth > 768);
+    window.addEventListener("resize", onResize);
+    onResize(); // ensure correct state after mount
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       const ws = createWebSocketConnection("videoRunStatus",`/video/status/`, setVideoRunState);
@@ -113,7 +123,7 @@ const Layout = ({
         videoRunState={videoRunState}
       />}
       <div className="main-content">{children}</div>
-      {!hideLayout && window.innerWidth > 768 && <Footer
+      {!hideLayout && isDesktop && <Footer
         apiStatus={apiStatus}
       />}
     </div>
