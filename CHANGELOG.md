@@ -1,4 +1,4 @@
-## [0.5.0] - 2026-03-04
+## [0.5.0] - 2026-03-07
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -12,6 +12,8 @@ Feedback and bug reports are highly appreciated to improve future versions.
   view is also available for a quick view on the water level - discharge relationship.
 - Video configuration selection modal is more instructive with a better understanding of current status and the
   options.
+- A clock is added in the bottom-right showing the current clock and timezone on the device, and current clock and
+  timezone on the client.
 - The bounding box in the Video Configuration image window can be rotated and moved after first creation.
 - Additional background services may be added. To do this, start FastAPI with DEV_MODE by setting `ORC_DEV_MODE=1`
   as environment variable.
