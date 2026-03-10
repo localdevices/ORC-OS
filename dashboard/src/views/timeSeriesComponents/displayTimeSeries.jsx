@@ -86,7 +86,6 @@ const DisplayTimeSeries = () => {
   useEffect(() => {
     const loadData = async (minDate, maxDate, currentMinDate, currentMaxDate, needsDataBefore, needsDataAfter) => {
       // load new data
-      console.log(`Loading additional data: ${minDate} to ${maxDate}`);
       setIsLoading(true);
       let uniqueSorted = data;
       // try updating
@@ -194,7 +193,6 @@ const DisplayTimeSeries = () => {
         return value > (filterFractionVel.value || 0);
       });
     }
-    console.log(filtered, data);
     setFilteredData(filtered);
   }, [data, filterH, filterQ50, filterFractionVel]);
 
@@ -620,8 +618,13 @@ const DisplayTimeSeries = () => {
         />
       )}
       {/*Modal for running video */}
+
       {showRunModal && selectedVideo && (
-        <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo} />
+        <TimeSeriesChangeModal
+          video={selectedVideo}
+          setVideo={setSelectedVideo}
+          closeModal={() => setShowRunModal(false)}
+        />
       )}
     </div>
   );

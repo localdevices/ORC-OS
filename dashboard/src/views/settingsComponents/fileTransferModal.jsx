@@ -137,37 +137,6 @@ export const FileTransferModal = ({setShowModal, settings}) => {
                   🔐 NOTE: This is very secure because your private key never leaves your computer. Only the public key is stored on the device.
                 </p>
               </div>
-
-              {/*<div className="mb-0 mt-0">*/}
-              {/*  <label htmlFor={codeId} className="form-label">*/}
-              {/*    {title}*/}
-              {/*  </label>*/}
-              {/*  <div className="position-relative mt-2">*/}
-              {/*    <pre className="bg-dark text-light p-3 rounded mb-0">*/}
-              {/*      <code id={codeId}>*/}
-              {/*        {code}*/}
-
-              {/*      </code>*/}
-              {/*    </pre>*/}
-
-              {/*    /!* Copy button *!/*/}
-              {/*    <button*/}
-              {/*      type="button"*/}
-              {/*      // className="btn btn-sm btn-dark position-absolute top-0 end-0 m-2"*/}
-              {/*      className="btn btn-sm bg-dark text-light position-absolute top-0 end-0 m-2 border-0"*/}
-              {/*      onClick={handleCopy}*/}
-              {/*      title="Copy to clipboard"*/}
-              {/*      aria-label="Copy to clipboard"*/}
-              {/*      style={{ transition: "background-color 0.15s ease" }}*/}
-              {/*    >*/}
-              {/*      {copied ? <FiCheck /> : <FiCopy />}*/}
-              {/*    </button>*/}
-              {/*  </div>*/}
-              {/*  <div className="help-block" style={{marginTop: "80px"}}>*/}
-              {/*    Select or improve the set water level visually with this slider, before processing. If you want to*/}
-              {/*    remove a set water level and optically re-estimate it, click on the right-hand button below.*/}
-              {/*  </div>*/}
-              {/*</div>*/}
             </div>
             <div className="modal-footer">
               <button
