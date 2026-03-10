@@ -129,8 +129,8 @@ const PaginatedRecipes = ({initialData}) => {
   }
 
   return (
-    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
-      <div style={{width: "80%", flex: 1, overflow: "auto", padding: "20px"}}>
+    <div style={{display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0px", width: "100%"}}>
+      <div style={{width: "100%", flex: 1, overflow: "auto", padding: "0px"}}>
         <div>
           {/* Table */}
           <table className="table table-bordered table-striped">
@@ -158,7 +158,7 @@ const PaginatedRecipes = ({initialData}) => {
               <tr key={idxFirst + index + 1}>
                 <td>
                   <input
-                    type="checkbox"
+                    type="checkbox" style={{height: "initial"}}
                     checked={selectedIds.includes(recipe.id)}
                     onChange={() => toggleSelect(recipe.id)}
                   />
@@ -192,7 +192,7 @@ const PaginatedRecipes = ({initialData}) => {
           />
         </div>
       </div>
-      <div style={{flexDirection: "column", flex: 0}}>
+      {/* <div style={{flexDirection: "column", flex: 0, display: "flex", alignItems: "center"}}> */}
         <div className="ms-3" style={{minWidth: "250px", flex: 1}}>
           <button
             className="btn btn-danger"
@@ -203,7 +203,7 @@ const PaginatedRecipes = ({initialData}) => {
           </button>
         </div>
 
-      </div>
+      {/* </div> */}
 
       {/*Modal*/}
       {showModal && selectedRecipe && (

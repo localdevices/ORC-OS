@@ -37,18 +37,6 @@ const PaginatedCrossSections = ({initialData}) => {
 
   }, [selectedCrossSection]);
 
-  const getSyncStatusIcon = (status) => {
-    switch (status) {
-      case null:
-        return <div><FaSync style={{color: "grey"}}/> not synced yet</div>// Spinner for processing
-      case true:
-        return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
-      case false:
-        return <div><FaSync style={{color: "cadetblue"}} className="spinner"/> out of sync</div>; // Error
-      default:
-        return <FaSync style={{color: "grey"}}/>; // Default spinner
-    }
-  };
 
   const toggleSelect = (id) => {
     setSelectedIds((prevSelectedIds) =>
@@ -175,8 +163,8 @@ const PaginatedCrossSections = ({initialData}) => {
   }
 
   return (
-    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
-      <div style={{width: "80%", flex: 1, overflow: "auto", padding: "20px"}}>
+    <div style={{display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0px", width: "100%"}}>
+      <div style={{width: "100%", flex: 1, overflow: "auto", padding: "0px"}}>
         <div>
           {/* Table */}
           <table className="table table-bordered table-striped">
@@ -204,7 +192,7 @@ const PaginatedCrossSections = ({initialData}) => {
               <tr key={idxFirst + index + 1}>
                 <td>
                   <input
-                    type="checkbox"
+                    type="checkbox" style={{height: "initial"}}
                     checked={selectedIds.includes(crossSection.id)}
                     onChange={() => toggleSelect(crossSection.id)}
                   />
