@@ -4,7 +4,7 @@ import os
 import socket
 import warnings
 
-__version__ = "0.5.0"  # version number
+__version__ = "0.5.1"  # version number
 __release__ = "Ngwerere"  # major version name
 
 # default key in case none is set in env variables
