@@ -152,14 +152,29 @@ const PaginatedCrossSections = ({initialData}) => {
   }
 
   const saveCrossSection = async () => {
-    const cs_id = selectedCrossSection.id;
-    const response = await api.get(`/cross_section/${cs_id}/download/`, {}, {
-      responseType: "blob"});
-    const blob = new Blob([response.data], {type: "application/json;charset=utf-8"});
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    link.download = `cross_section_${cs_id}.geojson`;
-    link.click();
+    try {
+      const cs_id = selectedCrossSection.id;
+      const response = await api.get(`/cross_section/${cs_id}/download/`, {
+        responseType: "blob"});
+      // Prefer backend filename from Content-Disposition
+      const disposition = response.headers?.["content-disposition"] || "";
+      const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+      const filename = match
+      ? decodeURIComponent(match[1].replace(/"/g, ""))
+      : `cross_section_${csId}.geojson`;
+      const link = document.createElement("a");
+      // const blob = new Blob([response.data], {type: "application/json;charset=utf-8"});
+      const url = window.URL.createObjectURL(response.data);
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading cross section:", error);
+      setMessageInfo('error', `Error downloading cross section: ${error.response?.data?.detail || error.message}`);
+    }
   }
 
   return (
