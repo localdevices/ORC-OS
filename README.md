@@ -4,10 +4,16 @@ OpenRiverCam OS web dashboard for use on personal computer or Raspberry Pi devic
 <figure>
     <img src="https://raw.githubusercontent.com/localdevices/pyorc/main/docs/_static/orc_logo_color.svg"
 width=100 align="right">
+
 </figure>
 <br>
 
-[![License](https://img.shields.io/github/license/localdevices/nodeorc?style=flat)](https://github.com/localdevices/nodeorc/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/localdevices/ORC-OS?style=flat)](https://github.com/localdevices/ORC-OS/blob/main/LICENSE)
+[![Tag](https://img.shields.io/github/v/tag/localdevices/ORC-OS)](https://github.com/localdevices/nodeorc/blob/main/LICENSE)
+![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Flocaldevices%2FORC-OS%2Fmain%2Fpyproject.toml)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/localdevices/ORC-OS/total)
+
+
 
 * [What is OpenRiverCam OS](#what-is-openrivercam-os)
 * [Installation](#installation)
@@ -120,6 +126,9 @@ computer that has Raspberry Pi Imager installed
 > * type in the exact capital sensitive (!) name of your WiFi SSID in the SSID field.
 > * type the exact capital sensitive password in the password field.
 > * Choose your 2-letter country code in the Wireless LAN country dropdown menu.
+> * (!) Either disable "Set username and password" OR enable it and *set "Username" to "pi"* and choose a password.
+    If you set the "Username" to something other than "pi", this will render ORC-OS unusable so ALWAYS use "pi"
+    as username.
 > * Click on "SAVE"
 > * Click on "YES".
 
