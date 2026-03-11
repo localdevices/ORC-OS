@@ -1,9 +1,11 @@
 import ReactSlider from "react-slider";
 import FilterDates from "../../utils/filterDates.jsx";
+import { useEffect } from "react";
 
 const FiltersTimeSeries = ({
-    filterH, setFilterH, filterQ50, setFilterQ50, filterFractionVel, setFilterFractionVel, selectedVideoConfigIds,
-    allVideoConfigIds, dateRange, setStartDate, setEndDate, data }) => {
+    filterH, setFilterH, filterQ50, setFilterQ50, filterFractionVel, setFilterFractionVel, setShowVideoConfigModal,
+    setShowVariablesModal, selectedVideoConfigIds, allVideoConfigIds, dateRange, setStartDate, setEndDate,
+    data }) => {
 
 
     // helper functions to get the min / max values for the sliders, without getting Inf
@@ -249,7 +251,14 @@ const FiltersTimeSeries = ({
                 </div>
             </div>
             <div style={{ "flex": "0 0 auto", "width": "300px" }}>
-                <div className="mb-3">
+                <FilterDates
+                    startDate={dateRange.startDate}
+                    endDate={dateRange.endDate}
+                    setStartDate={setStartDate}
+                    setEndDate={setEndDate}
+                    title={"Select date range"}
+                />
+                <div className="mb-0">
                     <button
                         className="btn btn-primary"
                         onClick={() => setShowVideoConfigModal(true)}
@@ -260,14 +269,14 @@ const FiltersTimeSeries = ({
                             selectedVideoConfigIds.length > 0 &&
                             ` (${selectedVideoConfigIds.length} selected)`}
                     </button>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => setShowVariablesModal(true)}
+                    >
+                        Variables
+                    </button>
                 </div>
-                <FilterDates
-                    startDate={dateRange.startDate}
-                    endDate={dateRange.endDate}
-                    setStartDate={setStartDate}
-                    setEndDate={setEndDate}
-                    title={"Select date range"}
-                />
+
             </div>
         </div>
     )

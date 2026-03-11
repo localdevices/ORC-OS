@@ -1,6 +1,7 @@
 import api from "../../api/api.js";
 import {useState} from "react";
 import {get_videos} from "../../utils/apiCalls/video.jsx";
+import {SelectDates} from "../../utils/filterDates.jsx";
 
 const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}) => {
   const [downloadStartDate, setDownloadStartDate] = useState(null);
@@ -47,29 +48,17 @@ const DownloadModal = ({showDownloadModal, setShowDownloadModal, setMessageInfo}
               ></button>
             </div>
             <div className="modal-body">
+              <h5>Select dates:</h5>
               {/* Start and End Date Selection */}
-              <div className="form-group">
-                <label>Start Date:</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={downloadStartDate}
-                  onChange={(e) => setDownloadStartDate(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>End Date:</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={downloadEndDate}
-                  onChange={(e) => setDownloadEndDate(e.target.value)}
-                />
-              </div>
-
+              <SelectDates
+                startDate={downloadStartDate}
+                endDate={downloadEndDate}
+                setStartDate={setDownloadStartDate}
+                setEndDate={setDownloadEndDate}
+              />
               {/* Checkbox Options */}
               <div className="form-group">
-                <label>What to download:</label>
+                <h5>What to download:</h5>
                 <div>
                   <input
                     type="checkbox"
