@@ -14,7 +14,7 @@ const Footer = ({apiStatus}) => {
   // Initialize offset and formatter on mount
   useEffect(() => {
     const t0 = Date.now();
-    const serverTimeEpoch = apiStatus?.server_timeinfo.epoch_seconds * 1000;
+    const serverTimeEpoch = apiStatus?.server_timeinfo?.epoch_seconds * 1000;
 
   //   const offsetClient = new Date().getTimezoneOffset() * -60 * 1000; // Client offset in ms (positive if ahead of UTC)
 
@@ -23,7 +23,7 @@ const Footer = ({apiStatus}) => {
     setOffsetMs(offsetServerClient || 0);
 
     const fmt = new Intl.DateTimeFormat(navigator.language, {
-      timeZone: apiStatus?.server_timeinfo.timezone || 'UTC',
+      timeZone: apiStatus?.server_timeinfo?.timezone || 'UTC',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

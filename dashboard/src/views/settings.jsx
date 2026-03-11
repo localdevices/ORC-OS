@@ -83,7 +83,7 @@ const Settings = ({setRequiresRestart}) => {
   const validateSettings = () => {
     // daemon runner can only be active when video format, allowed time difference, and video config is set
     // to a valid input
-    if (formData.video_file_fmt && formData.allowed_dt && formData.video_config_id) {
+    if (formData.video_file_fmt && formData.allowed_dt) {
       return true;
     }
     return false;

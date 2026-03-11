@@ -1,3 +1,29 @@
+## [0.5.1] - 2026-03-11
+This is a **testing beta release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+### Added
+- Filter for variables in time series view to prevent clutter. Defaults to water level and discharge only.
+
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- fixed bug in front end, not showing any page unless user would refresh the page.
+- fixed poor visibility of cross section and recipe tables in front end.
+- fixed surface velocity not showing in time series view.
+- fixed Close buttons not working in video edit opened from time series view.
+- fixed GeoJSON download button, was not saving the actual content of the file.
+- fixed Video Configuration filter button in time series view. Was not working.
+- fixed Copy code block button in README sections of services.
+
+### Security
+
 ## [0.5.0] - 2026-03-07
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:

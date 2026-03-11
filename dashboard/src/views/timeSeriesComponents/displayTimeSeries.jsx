@@ -20,6 +20,7 @@ import api from "../../api/api.js";
 import { TimeSeriesChangeModal } from "../videoComponents/timeSeriesChangeModal.jsx";
 import { getVideoId } from "../../utils/apiCalls/video.jsx";
 import FilterTimeSeries from "./filterTimeSeries.jsx";
+import VariablesFilterModal from "./variablesFilterModal.jsx";
 
 ChartJS.register(
   CategoryScale,
@@ -40,6 +41,14 @@ const DisplayTimeSeries = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  // default set v_av and v_bulk to false, as these may cause clutter
+  const [variables, setVariables] = useState([
+
+    {id: "h", name: "Water level", show: true},
+    {id: "q_50", name: "Discharge", show: true},
+    {id: "v_av", name: "Surface velocity", show: false},
+    {id: "v_bulk", name: "Bulk velocity", show: false},
+  ]);
   const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
   const chartRef = useRef(null);
   const loadDataTimeoutRef = useRef(null);
@@ -54,6 +63,7 @@ const DisplayTimeSeries = () => {
   // Video config filter
   const [selectedVideoConfigIds, setSelectedVideoConfigIds] = useState(null);
   const [showVideoConfigModal, setShowVideoConfigModal] = useState(false);
+  const [showVariablesModal, setShowVariablesModal] = useState(false);
   const [allVideoConfigIds, setAllVideoConfigIds] = useState([]);
   const startDateTimeoutRef = useRef(null); // debouncers for preventing too frequent changes in calendar dates
   const endDateTimeoutRef = useRef(null);
@@ -86,7 +96,6 @@ const DisplayTimeSeries = () => {
   useEffect(() => {
     const loadData = async (minDate, maxDate, currentMinDate, currentMaxDate, needsDataBefore, needsDataAfter) => {
       // load new data
-      console.log(`Loading additional data: ${minDate} to ${maxDate}`);
       setIsLoading(true);
       let uniqueSorted = data;
       // try updating
@@ -194,7 +203,6 @@ const DisplayTimeSeries = () => {
         return value > (filterFractionVel.value || 0);
       });
     }
-    console.log(filtered, data);
     setFilteredData(filtered);
   }, [data, filterH, filterQ50, filterFractionVel]);
 
@@ -297,7 +305,7 @@ const DisplayTimeSeries = () => {
   // Prepare chart data based on view mode
   const chartData = viewMode === 'timeSeries' ? {
     datasets: [
-      {
+      variables[0].show && {
         label: 'Water Level',
         data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.h || NaN })),
         borderColor: 'rgba(30,63,192,0.8)',
@@ -306,7 +314,7 @@ const DisplayTimeSeries = () => {
         tension: 0.0,
         fill: 'origin',
       },
-      {
+      variables[1].show && {
         label: 'Discharge (median)',
         data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.q_50 || NaN })),
         borderColor: 'rgb(255,99,99)',
@@ -314,15 +322,15 @@ const DisplayTimeSeries = () => {
         yAxisID: 'y1',
         tension: 0.0,
       },
-      {
+      variables[2].show && {
         label: 'Surface Velocity',
-        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_surf || NaN })),
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_av || NaN })),
         borderColor: 'rgb(85,218,53)',
         backgroundColor: 'rgba(85,218,53, 0.5)',
         yAxisID: 'y2',
         tension: 0.0,
       },
-      {
+      variables[3].show && {
         label: 'Bulk Velocity',
         data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_bulk || NaN })),
         borderColor: 'rgb(33,81,21)',
@@ -418,7 +426,7 @@ const DisplayTimeSeries = () => {
       },
       y: {
         type: 'linear',
-        // display: showH,
+        display: variables[0]?.show,
         position: 'left',
         title: {
           display: true,
@@ -427,7 +435,7 @@ const DisplayTimeSeries = () => {
       },
       y1: {
         type: 'linear',
-        // display: showQ50,
+        display: variables[1]?.show,
         position: 'right',
         min: 0,
         title: {
@@ -440,7 +448,7 @@ const DisplayTimeSeries = () => {
       },
       y2: {
         type: 'linear',
-        // display: showVSurf,
+        display: variables[2]?.show,
         position: 'right',
         min: 0,
         title: {
@@ -453,7 +461,7 @@ const DisplayTimeSeries = () => {
       },
       y3: {
         type: 'linear',
-        // display: showVBulk,
+        display: variables[3]?.show,
         position: 'right',
         min: 0,
         title: {
@@ -564,6 +572,8 @@ const DisplayTimeSeries = () => {
             setFilterQ50={setFilterQ50}
             filterFractionVel={filterFractionVel}
             setFilterFractionVel={setFilterFractionVel}
+            setShowVideoConfigModal={setShowVideoConfigModal}
+            setShowVariablesModal={setShowVariablesModal}
             selectedVideoConfigIds={selectedVideoConfigIds}
             allVideoConfigIds={allVideoConfigIds}
             dateRange={dateRange}
@@ -620,8 +630,20 @@ const DisplayTimeSeries = () => {
         />
       )}
       {/*Modal for running video */}
+
       {showRunModal && selectedVideo && (
-        <TimeSeriesChangeModal setShowModal={setShowRunModal} video={selectedVideo} setVideo={setSelectedVideo} />
+        <TimeSeriesChangeModal
+          video={selectedVideo}
+          setVideo={setSelectedVideo}
+          closeModal={() => setShowRunModal(false)}
+        />
+      )}
+      {showVariablesModal && (
+        <VariablesFilterModal
+          setShowModal={setShowVariablesModal}
+          variables={variables}
+          setVariables={setVariables}
+        />
       )}
     </div>
   );

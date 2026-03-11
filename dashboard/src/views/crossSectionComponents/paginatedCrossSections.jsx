@@ -37,18 +37,6 @@ const PaginatedCrossSections = ({initialData}) => {
 
   }, [selectedCrossSection]);
 
-  const getSyncStatusIcon = (status) => {
-    switch (status) {
-      case null:
-        return <div><FaSync style={{color: "grey"}}/> not synced yet</div>// Spinner for processing
-      case true:
-        return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
-      case false:
-        return <div><FaSync style={{color: "cadetblue"}} className="spinner"/> out of sync</div>; // Error
-      default:
-        return <FaSync style={{color: "grey"}}/>; // Default spinner
-    }
-  };
 
   const toggleSelect = (id) => {
     setSelectedIds((prevSelectedIds) =>
@@ -164,19 +152,34 @@ const PaginatedCrossSections = ({initialData}) => {
   }
 
   const saveCrossSection = async () => {
-    const cs_id = selectedCrossSection.id;
-    const response = await api.get(`/cross_section/${cs_id}/download/`, {}, {
-      responseType: "blob"});
-    const blob = new Blob([response.data], {type: "application/json;charset=utf-8"});
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    link.download = `cross_section_${cs_id}.geojson`;
-    link.click();
+    try {
+      const cs_id = selectedCrossSection.id;
+      const response = await api.get(`/cross_section/${cs_id}/download/`, {
+        responseType: "blob"});
+      // Prefer backend filename from Content-Disposition
+      const disposition = response.headers?.["content-disposition"] || "";
+      const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+      const filename = match
+      ? decodeURIComponent(match[1].replace(/"/g, ""))
+      : `cross_section_${csId}.geojson`;
+      const link = document.createElement("a");
+      // const blob = new Blob([response.data], {type: "application/json;charset=utf-8"});
+      const url = window.URL.createObjectURL(response.data);
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading cross section:", error);
+      setMessageInfo('error', `Error downloading cross section: ${error.response?.data?.detail || error.message}`);
+    }
   }
 
   return (
-    <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "20px", width: "100%"}}>
-      <div style={{width: "80%", flex: 1, overflow: "auto", padding: "20px"}}>
+    <div style={{display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0px", width: "100%"}}>
+      <div style={{width: "100%", flex: 1, overflow: "auto", padding: "0px"}}>
         <div>
           {/* Table */}
           <table className="table table-bordered table-striped">
@@ -204,7 +207,7 @@ const PaginatedCrossSections = ({initialData}) => {
               <tr key={idxFirst + index + 1}>
                 <td>
                   <input
-                    type="checkbox"
+                    type="checkbox" style={{height: "initial"}}
                     checked={selectedIds.includes(crossSection.id)}
                     onChange={() => toggleSelect(crossSection.id)}
                   />
