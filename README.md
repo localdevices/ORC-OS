@@ -105,36 +105,47 @@ If you have a Raspberry Pi Compute Module, please go to the next section. If you
 At this stage you will not need your Raspberry Pi yet. Just leave it in the box and start the laptop or desktop
 computer that has Raspberry Pi Imager installed
 
-1. Put your SD card in a free SD-card reader slot on your laptop or desktop computer that has the Raspberry Pi imager
-   installed
-2. Download our image from the provided link to a location on your machine that you can find back easily, e.g.
-   `C:\User\myuser\Downloads`. The file has the extension `img.gz`. *Do not* unpack this file. This is not necessary.
-3. Start the Raspberry Pi imager application.
-4. In the field "Raspberry Pi Device", click on "CHOOSE DEVICE" and select your Raspberry Pi device in the list.
-   This can only be Raspberry Pi 4 or 5!
-5. In the field "Operating System", click on "CHOOSE OS", scroll all the way down and select "Use custom".
-   Now navigate to the folder in which you stored the `img.gz` file and double-click it to select it.
-6. In the field "Storage", click on "CHOOSE STORAGE". Select the SD card, typically called something like "Internal SD
-   card reader."
-7. Click on "NEXT"
-8. When the application asks "Would you like to apply OS customisation settings?", click on NO.
+* Put your SD card in a free SD-card reader slot on your laptop or desktop computer that has the Raspberry Pi imager
+  installed.
+* Download our image from the provided link to a location on your machine that you can find back easily, e.g.
+  `C:\User\myuser\Downloads`. The file has the extension `img.gz`. *Do not* unpack this file. This is not necessary.
+* Start the Raspberry Pi imager application.
+* In the field "Raspberry Pi Device", click on "CHOOSE DEVICE" and select your Raspberry Pi device in the list.
+  This can only be Raspberry Pi 4 or 5!
+* In the field "Operating System", click on "CHOOSE OS", scroll all the way down and select "Use custom".
+  Now navigate to the folder in which you stored the `img.gz` file and double-click it to select it.
+* In the field "Storage", click on "CHOOSE STORAGE". Select the SD card, typically called something like "Internal SD
+  card reader".
+* Click on "NEXT".
+* When the application asks "Would you like to apply OS customisation settings?", click on NO or check our
+  instructions in the tip field below. If you select "NO" your device will get the name `orcos` by default.
+* When the application asks "All existing data on '-your selected SD card-' will be erased. Are you sure you want to
+  continue?", click on YES.
+* When Raspberry OS Imager asks for your computer's root/super user password, please provide this.
 
 > [!TIP]
-> If you do not have a UTP cable or free UTP slot conveniently nearby but instead want to rely on WiFi, then select
-> "EDIT SETTINGS" and follow the instruction below.
-> * In the "GENERAL" tab, activate "Configure wireless LAN"
-> * type in the exact capital sensitive (!) name of your WiFi SSID in the SSID field.
-> * type the exact capital sensitive password in the password field.
-> * Choose your 2-letter country code in the Wireless LAN country dropdown menu.
-> * (!) Either disable "Set username and password" OR enable it and *set "Username" to "pi"* and choose a password.
-    If you set the "Username" to something other than "pi", this will render ORC-OS unusable so ALWAYS use "pi"
-    as username.
-> * Click on "SAVE"
-> * Click on "YES".
-
-9. When the application asks "All existing data on '-your selected SD card-' will be erased. Are you sure you want to
-   continue?", click on YES.
-10. When Raspberry OS Imager asks for your computer's root/super user password, please provide this.
+> You may edit settings if you want. If you do not have a UTP cable or free UTP slot conveniently nearby but instead
+  want to rely on WiFi, then you should do this to enable WiFi! To do this Click on "EDIT SETTINGS" and follow the
+  instructions below. **WARNING** do NOT change the user name!
+> 1. Click on the "GENERAL" tab.
+> 2. If you wish, activate "Set hostname" and set it to a clearly recognizable name only using small characters,
+     numbers and normal hyphens `-`. This is particularly useful if you have a larger fleet of devices and wish them to
+     have clearly recognizable names, e.g. defining the station number or station name or both. If you are installing
+     stations throughout the city of Accra, you may for instance use the names `accra-0001` `accra-0002`, `accra-0003`
+     and so on. You could also use your institute name like `rainbow-00001`, `rainbow-00002`, and so on. If you deselect
+     the hostname will become `orcos`.
+> 3. In case you are relying on WiFi to configure your device, activate "Configure wireless LAN". If not go to step
+     7.
+> 4. type in the exact capital sensitive (!) name of your WiFi SSID in the SSID field.
+> 5. type the exact capital sensitive password in the password field.
+> 6. Choose your 2-letter country code in the Wireless LAN country dropdown menu.
+> 7. (!) Either disable "Set username and password" OR enable it and **set "Username" to `pi`** and choose a password.
+     If you set the "Username" to something other than `pi`, this will render ORC-OS unusable so ALWAYS use `pi`
+     as username!
+> 8. Click on "SERVICES".
+> 9. Make sure that "Enable SSH" is marked. You may login via SSH with your set password.
+> 10. Click on "SAVE".
+> 11. Click on "YES".
 
 The SD card will now be prepared and verified. This will only take a few minutes. Time for a 🍵 or ☕.
 
@@ -156,20 +167,32 @@ device is connected to your computer in USB-mode, and select this device in the 
 Elaborate instructions how to get an image onto your compute module are provided on
 https://www.raspberrypi.com/documentation/computers/compute-module.html#flash-compute-module-emmc
 
+> [!NOTE]
+> Sometimes carrier boards have difficulty getting mounted using the provided  instructions with the `rpiboot` tool.
+> You may see that it is trying to mount but then it will fall back to standby in the midst.
+  In this case try out the following steps:
+  * Try to specify a moujnt folder by using `rpiboot -d mass-storage-gadget`.
+  * Try resetting the mount directory using `./mass-storage-gadget/reset.sh`. After this retry mounting.
+  * Reboot your computer, and retry the mount.
+
 ### Test your installation
 
-1. In case you use an SD card, take it out of the reader and put it into your Raspberry Pi. With a Compute Module, switch
-   back to normal operations.
+1. In case you use an SD card, take it out of the reader and put it into your Raspberry Pi. With a Compute Module,
+   switch back to normal operation mode. Usually this is done by removing power, removing a jumper and reapplying
+   power.
 2. Connect the Raspberry Pi's power adapter or other power source (e.g. 12V - 5V connection) and connect the UTP cable
    to your router or network switch. This should bring the device onto the same network as your computer.
-3. Open a browser and navigate to http://orcos.local. This should bring up the following page. If this page cannot
-   be found, then try http://orcos.home or http://orcos
+3. Open a browser and navigate to `http://orcos.local`. Replace `orcos` by your set hostname if you used OS
+   customisation settings and applied a hostname. This should bring up the following page. If this page cannot
+   be found, then try `http://orcos.home` or `http://orcos`
 
-You now have to select your password. *Please ensure you remember this password*. If you forget it, you will not be able
-to login anymore and since the service runs locally on the device, you will not be able to perform any recovery.
+You now have to select your password. **Please ensure you remember this password**. If you forget it, you will not be
+able to login anymore and since the service runs locally on the device, you will not be able to perform any recovery
+without logging into the back-end.
 
-You should now reach the home page of the device. From here onwards, please follow our documentation pages
-(forthcoming).
+> [!TIP]
+> You should now reach the home page of the device. From here onwards, please follow our documentation pages
+> (forthcoming).
 
 # Installation via Docker on a server or your own computer
 
@@ -195,14 +218,12 @@ linux.
     # Generate a secure secret key and update it in .env
     sed -i "s/^ORC_SECRET_KEY=.*/ORC_SECRET_KEY=$(openssl rand -hex 32)/" .env
     sed -i "s|^ORC_DATA_PATH=.*|ORC_DATA_PATH=$HOME/.ORC-OS|" .env
-
     ```
-3. Build and start all services (replace `$HOME/.ORC-OS` for the desired folder:
+3. Build and start all services:
    ```bash
    docker-compose up --build -d
    ```
    You should now be able to reach the web interface at http://localhost:3000
-
 
 4. View logs
     ```bash
@@ -212,12 +233,6 @@ linux.
     ```bash
     docker-compose down
     ```
-
-
-
-
-3.
-
 
 # Installation on your own device
 For installation on your own device, we provide examples for Debian-based systems only. As each device or OS may be
@@ -233,7 +248,7 @@ following concepts to be able to install OpenRiverCam OS on your own device:
 > [!CAUTION]
 > Rainbow Sensing does not provide free support for installation on your own device. We cannot guarantee that the
 > provided instructions will work for you. If you encounter any problems during installation, and you want us to assist
-> or make a special recipe for your device please contact us for support at info@rainbowsensing.com
+> or make a special recipe for your device please contact us for a support agreement at info@rainbowsensing.com
 
 ## Prerequisites
 At minimum your device should have:
@@ -248,7 +263,7 @@ At minimum your device should have:
 
 Of course, you will need a camera feed as well. Camera data should lead to files on your device with a recognizable
 time stamp with date and time. For instance, `video_20250121T131523.mp4`. The exact format and naming convention can be
-configured.
+configured once ORC-OS is set up.
 
 ## Installation of components
 The following components must be installed on your device.
@@ -295,7 +310,7 @@ echo "Installing ORC-API $VERSION"
 pip install git+https://github.com/localdevices/ORC-OS.git@$ORC_VERSION
 # ensure a fresh database it created
 cd $HOME/venv/orc-api/lib/python3.12/site-packages/orc-api
-alembic upgrade head
+orc db migrate
 # deactivate the virtual environment
 deactivate
 ```
@@ -304,9 +319,9 @@ To test if the installation was successful, you can run the following command:
 # activate the virtual environment
 source $HOME/venv/orc-api/bin/activate
 # start the API interactively, wait up to a few minutes for the first start
-$HOME/venv/orc-os/bin/uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
+uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
 ```
-This should start the API interactively. Note that a number of functions must
+This should start the API interactively on port 5000. Note that a number of functions must
 be compiled and loaded into memory. This may take a few seconds to a few minutes to complete.
 This is only required once. The second time the API is started, it will start much faster.
 If this runs without errors, press Ctrl+C to stop the API.
@@ -331,7 +346,7 @@ systemd service that starts the API automatically on boot, and restarts it if fo
 Crashes could happen e.g. when the service runs out of memory. Normal closes happen when the OTA updates
 are performed or when the user selects a restart of the API from the front end by clicking on the restart button.
 
-We also strongly recommend to set a `ORC_SECRET_KEY` environment variable. This ensures that the API is protected
+We **strongly recommend to set a `ORC_SECRET_KEY` environment variable**. This ensures that the API is protected
 against unauthorized access. You can generate a random key with the following command:
 
 ```bash
@@ -340,25 +355,28 @@ echo $SECRET_KEY
 ```
 
 An example of a systemd service file is provided below. You need to adapt the paths to your system.
-Also you must replace `YOUR_SECRET_KEY_GOES_HERE` by the actual secret key you generated for the device.
+Also you must replace:
+- `YOUR_USERNAME` by the user running this service (does not need to be root).
+- `YOUR_SECRET_KEY_GOES_HERE` by the actual secret key you generated for the device.
 
 Place this file in `etc/systemd/system/orc-api.service`.
-```
+```ini
 [Unit]
 Description=FastAPI for ORC-OS
 Before=nginx.service
 After=network.target
 
 [Service]
-User=user
-WorkingDirectory=/home/user/venv/orc-os/lib/python3.12/site-packages/orc_api
-Environment="PATH=/home/user/venv/orc-os/bin:/usr/bin"
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+Environment="PATH=/home/YOUR_UERNAME/venv/orc-os/bin:/usr/bin"
 Environment="ORC_INCOMING_DIRECTORY=/home/user/.ORC-OS/incoming"
-Environment="ORC_HOME=/home/user/.ORC-OS"
+Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
 Environment="ORC_SECRET_KEY=YOUR_SECRET_KEY_GOES_HERE"
-ExecStart=/home/user/venv/orc-os/bin/uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
+ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
 Restart=always
 RestartSec=10
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -459,17 +477,21 @@ server {
 ```
 The `root` directive must point to the folder where the web front end is stored.
 To enable the nginx configuration, first remove any symlink enabled site, such as the default site
-`/etc/nginx/sites-enabled/default`, then create the symlink for the orc-os front end, finally restart nginx.
+`/etc/nginx/sites-enabled/default`, then create the symlink for the orc-os front end, finally restart nginx. You can
+do this as follows
 
 ```bash
+# get rid of any existing default site
 sudo rm /etc/nginx/sites-enabled/default
+# create a symlink to your brand new orc-os front end
 sudo ln -s /etc/nginx/sites-available/orc-os /etc/nginx/sites-enabled/orc-os
+# restart nginx to refresh
 sudo systemctl restart nginx
 ```
 
-Open your favorite browser and navigate to `http://orc-os`. You should see the ORC OS home page from where you can set
-a password and start using the device.
-
+Open your favorite browser and navigate to the hostname of the device on which you have installed. E.g. `http://orc-os`
+or `http://orc-os.local`. If you installed on your own computer, then this should be `http://localhost`.
+You will arrive at the landing page from where you can set a password and start using the device.
 
 ### For developers
 
@@ -488,7 +510,7 @@ pip install -e .
 
 ```
 
-Make sure you install pre-commit hooks so that code is properly linted before pushing.
+Make sure you install pre-commit hooks so that FastAPI python code is properly linted before pushing.
 ```
 pip install pre-commit
 pre-commit install
