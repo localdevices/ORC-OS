@@ -171,9 +171,9 @@ https://www.raspberrypi.com/documentation/computers/compute-module.html#flash-co
 > Sometimes carrier boards have difficulty getting mounted using the provided  instructions with the `rpiboot` tool.
 > You may see that it is trying to mount but then it will fall back to standby in the midst.
   In this case try out the following steps:
-  * Try to specify a moujnt folder by using `rpiboot -d mass-storage-gadget`.
+  * Try to specify a mount folder by using `rpiboot -d mass-storage-gadget`.
   * Try resetting the mount directory using `./mass-storage-gadget/reset.sh`. After this retry mounting.
-  * Reboot your computer, and retry the mount.
+  * Reboot your computer, and retry the mount after the reboot is complete.
 
 ### Test your installation
 
@@ -182,7 +182,11 @@ https://www.raspberrypi.com/documentation/computers/compute-module.html#flash-co
    power.
 2. Connect the Raspberry Pi's power adapter or other power source (e.g. 12V - 5V connection) and connect the UTP cable
    to your router or network switch. This should bring the device onto the same network as your computer.
-3. Open a browser and navigate to `http://orcos.local`. Replace `orcos` by your set hostname if you used OS
+3. Upon the first boot, a number of services and code compilations will take place in the background. The file system
+   will be expanded to the full size and the device set to a low power usage during sleep time. This will take 2-3
+   minutes. After this the device will automatically reboot itself. On a Raspberry Pi 5 you can notice this by the
+   behaviour of the cooling fan. It will suddenly spin at full speed for a few seconds.
+4. Open a browser and navigate to `http://orcos.local`. Replace `orcos` by your set hostname if you used OS
    customisation settings and applied a hostname. This should bring up the following page. If this page cannot
    be found, then try `http://orcos.home` or `http://orcos`
 
