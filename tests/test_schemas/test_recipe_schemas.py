@@ -62,9 +62,13 @@ def test_recipe_sync_not_permitted(session_recipe, recipe_response, monkeypatch)
     # let's assume we are posting on site 1
     institute = 1
 
+    def mock_json(x):
+        return {"detail": "Forbidden"}
+
     def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
+            json = mock_json
 
         return MockResponse()
 

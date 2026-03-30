@@ -1,3 +1,29 @@
+## [0.6.0] - YYYY-MM-DD
+This is a **testing beta release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+> [!IMPORTANT]
+> Since version 0.6.0 any connected LiveORC server MUST be version > 0.3.0
+
+### Added
+### Changed
+- Video files are only communicated to LiveORC when the video was never synced before. This saves bandwidth in case
+  resyncing is needed.
+
+### Deprecated
+### Removed
+### Fixed
+- All remote sync methods are updated to work with LiveORC >= 0.3.0 only. This is to ensure that the database models
+  in ORC-OS and LiveORC are similar.
+
+### Security
+
+
 ## [0.5.1] - 2026-03-11
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:

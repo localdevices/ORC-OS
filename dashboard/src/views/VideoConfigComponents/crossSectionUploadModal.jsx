@@ -162,7 +162,7 @@ const CrossSectionUpload = ({setShowModal, setMessageInfo, callback, ws}) => {
               </div>
             </div>
 
-            <button type='submit' className='btn'>
+            <button type='submit' className='btn btn-primary'>
               Upload
             </button>
           </form>

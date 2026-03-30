@@ -46,9 +46,13 @@ def test_time_series_sync_not_permitted(session_video_with_config, time_series_r
     # let's assume we are posting on site 1
     site = 1
 
+    def mock_json(x):
+        return {"detail": "Forbidden"}
+
     def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
+            json = mock_json
 
         return MockResponse()
 

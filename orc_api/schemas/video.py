@@ -385,8 +385,14 @@ class VideoResponse(VideoBase, RemoteModel):
                     self.time_series = self.time_series.sync_remote(session=session, site=site)
                     self.time_series_id = self.time_series.id
 
-            # only sync if an image and/or video file should be submitted. Otherwise only time series is sufficient.
-            sync_file_required = self.file and os.path.exists(self.get_video_file(base_path=base_path)) and sync_file
+            # only sync if video has no remote_id yet, is available as file, and is required to sync
+            sync_file_required = (
+                self.file
+                and os.path.exists(self.get_video_file(base_path=base_path))
+                and sync_file
+                and self.remote_id is None
+            )
+            # only sync if image is required and available
             sync_image_required = self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image
             if sync_file_required or sync_image_required:
                 if self.remote_id is None:
@@ -397,7 +403,7 @@ class VideoResponse(VideoBase, RemoteModel):
                     endpoint = f"api/site/{site}/video/"
                 data = {
                     "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "camera_config": self.video_config.remote_id,
+                    "video_config": self.video_config.remote_id,
                     "status": self.status.value,
                 }
                 if self.created_at:
@@ -416,7 +422,7 @@ class VideoResponse(VideoBase, RemoteModel):
                     session=session, endpoint=endpoint, data=data, files=files, timeout=timeout
                 )
                 if response_data is not None:
-                    response_data.pop("camera_config", None)
+                    response_data.pop("video_config", None)
                     response_data.pop("created_at", None)
                     response_data.pop(
                         "file", None

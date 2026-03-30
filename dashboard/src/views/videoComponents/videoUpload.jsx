@@ -172,7 +172,7 @@ const VideoUploader = ({uploadedVideo, setUploadedVideo}) => {
           </div>
 
           <div>
-            <button className="btn" onClick={handleSubmit}>
+            <button className="btn btn-primary" onClick={handleSubmit}>
               Upload
             </button>
           </div>

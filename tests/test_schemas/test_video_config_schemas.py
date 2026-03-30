@@ -59,7 +59,7 @@ def test_video_config_sync(session_video_config, video_config_response, monkeypa
                     "name": video_config_response.name,
                     "camera_config": {"some": "data"},
                     "recipe": 4,
-                    "profile": 3,
+                    "cross_section": 3,
                     "server": 0,
                 }
 
@@ -67,7 +67,8 @@ def test_video_config_sync(session_video_config, video_config_response, monkeypa
 
     # ensure that only relevant parts of code are tested.
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    # we here already store recipe and cross section in database with SYNCED statusses. This prevents syncing.
+    # we here already store camera_config, recipe and cross_section in database with SYNCED statusses.
+    # This prevents syncing.
     video_config_response.recipe.sync_status = SyncStatus.SYNCED
     video_config_response.recipe.remote_id = 4
     # prepare remote recipe for update
@@ -80,6 +81,15 @@ def test_video_config_sync(session_video_config, video_config_response, monkeypa
         1,
         video_config_response.cross_section.model_dump(
             include=["id", "created_at", "remote_id", "sync_status", "timestamp", "name", "features"]
+        ),
+    )
+    video_config_response.camera_config.sync_status = SyncStatus.SYNCED
+    video_config_response.camera_config.remote_id = 2
+    crud.camera_config.update(
+        session_video_config,
+        1,
+        video_config_response.camera_config.model_dump(
+            include=["id", "created_at", "remote_id", "sync_status", "name", "data"]
         ),
     )
 
@@ -107,9 +117,13 @@ def test_video_config_sync_not_permitted(session_video_config, video_config_resp
     # let's assume we are posting on site 1
     site = 1
 
+    def mock_json(x):
+        return {"detail": "Forbidden"}
+
     def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
+            json = mock_json
 
         return MockResponse()
 

@@ -1,6 +1,7 @@
 import {useState} from "react";
 import { FiCopy, FiCheck } from "react-icons/fi";
 
+
 export const CodeBlock = ({code, title, codeId, helpText}) => {
 
   const [copied, setCopied] = useState(false);
@@ -31,18 +32,20 @@ export const CodeBlock = ({code, title, codeId, helpText}) => {
           </code>
         </pre>
 
-        {/* Copy button */}
-        <button
-          type="button"
-          // className="btn btn-sm btn-dark position-absolute top-0 end-0 m-2"
-          className="btn btn-sm bg-dark text-light position-absolute top-0 end-0 m-2 border-0"
-          onClick={handleCopy}
-          title="Copy to clipboard"
-          aria-label="Copy to clipboard"
-          style={{ transition: "background-color 0.15s ease" }}
-        >
-          {copied ? <FiCheck /> : <FiCopy />}
-        </button>
+        {/* Copy button, only show if clipboard API is available, typically with HTTPS only */}
+        {navigator.clipboard && (
+          <button
+            type="button"
+            // className="btn btn-sm btn-dark position-absolute top-0 end-0 m-2"
+            className="btn btn-sm bg-dark text-light position-absolute top-0 end-0 m-2 border-0"
+            onClick={handleCopy}
+            title="Copy to clipboard"
+            aria-label="Copy to clipboard"
+            style={{ transition: "background-color 0.15s ease" }}
+          >
+            {copied ? <FiCheck /> : <FiCopy />}
+          </button>
+        )}
       </div>
     </div>
   )};
