@@ -13,12 +13,12 @@ import zipfile
 from typing import List, Optional
 
 import httpx
+from alembic import command
+from alembic.config import Config
 from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 import orc_api
-from alembic import command
-from alembic.config import Config
 
 router = APIRouter(prefix="/updates", tags=["updates"])
 
@@ -396,6 +396,18 @@ async def update_status():
 async def shutdown_api():
     """Stop or restart the API by shutting it down. The restart must be orchestrated by a systemd or Docker process."""
     os._exit(0)
+
+
+@router.post("/reboot")
+async def reboot_device():
+    """Reboot the device."""
+    subprocess.run(["sudo", "reboot", "now"], check=True)
+
+
+@router.post("/shutdown_device")
+async def shutdown_device():
+    """Shutdown the device."""
+    subprocess.run(["sudo", "shutdown", "now"], check=True)
 
 
 @router.websocket("/status_ws")

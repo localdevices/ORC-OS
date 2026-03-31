@@ -69,11 +69,10 @@ const Footer = ({apiStatus}) => {
     <footer className="footer">
       <div className="footer-content">
         <p style={{left: "0px"}}>
-        <img src={orcLogo} alt="ORC Logo" width="20" className="footer-logo"/>
-          {' '}
-        <p>ORC-OS {apiStatus?.release} v{apiStatus.version} © {new Date().getFullYear()}
+        <img style={{marginRight: "7px"}} src={orcLogo} alt="ORC Logo" width="20" className="footer-logo"/>
+        ORC-OS {apiStatus?.release} v{apiStatus.version} © {new Date().getFullYear()}
           <a className="dark-link" href="https://rainbowsensing.com"> https://rainbowsensing.com</a>
-        </p>
+
         </p>
       </div>
       <div className="footer-content" style={{fontFamily: "monospace", fontSize: "0.8rem", position: "absolute", right: "10px", bottom: "5px",textAlign: "right"}}>
