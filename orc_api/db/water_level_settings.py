@@ -43,9 +43,12 @@ class WaterLevelSettings(Base):
     )
     optical: Mapped[bool] = mapped_column(
         Boolean,
-        default=True,
+        default=False,
         comment="Whether to measure water level optically if no water level can be retrieved from the database or "
         "files. ",
+    )
+    enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Whether to enable water level retrieval using the script."
     )
 
     def __str__(self):

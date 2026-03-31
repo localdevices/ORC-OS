@@ -52,8 +52,8 @@ def schedule_water_level(scheduler, logger, session):
     """Schedule the water level job."""
     # with get_session() as session:
     wl_settings = crud.water_level.get(session)
-    if wl_settings:
-        logger.info('Water level settings found: setting up interval job "water_level_job"')
+    if wl_settings and wl_settings.enabled:
+        logger.info('Water level settings found and enabled: setting up interval job "water_level_job"')
         scheduler.add_job(
             func=wl_settings.get_new,
             trigger="interval",
@@ -61,6 +61,10 @@ def schedule_water_level(scheduler, logger, session):
             start_date=datetime.now() + timedelta(seconds=1),
             id="water_level_job",
             replace_existing=True,
+        )
+    elif wl_settings and not wl_settings.enabled:
+        logger.info(
+            "Water level settings found, but not enabled. Activate the water level retrieval for automated retrieval."
         )
     else:
         logger.info("No water level settings available. If you require water level retrievals, please set this up.")
