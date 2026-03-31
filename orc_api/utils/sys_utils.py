@@ -1,11 +1,61 @@
 """System utilities."""
 
 import getpass
+import os
 import socket
 import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
+
+
+def _detect_timezone_iana(local_now: datetime) -> str:
+    """Detect the server's timezone in IANA format (e.g. 'Europe/Amsterdam').
+
+    This is not standard practice for Python applications, but needed for front-end compatibility.
+    """
+    # first try to get tzinfo from the local_now datetime object, which should be timezone-aware
+    tzinfo = local_now.tzinfo
+
+    # try to retrieve from "key"
+    key = getattr(tzinfo, "key", None)
+    if isinstance(key, str) and "/" in key:
+        return key
+
+    # 2) Some tz implementations expose "zone"
+    zone = getattr(tzinfo, "zone", None)
+    if isinstance(zone, str) and "/" in zone:
+        return zone
+
+    # 3) Environment variable (common in containers/systemd)
+    tz_env = os.environ.get("TZ")
+    if tz_env and "/" in tz_env:
+        return tz_env
+
+    # 4) Debian/Ubuntu style
+    tz_file = Path("/etc/timezone")
+    if tz_file.exists():
+        try:
+            value = tz_file.read_text().strip()
+            if value and "/" in value:
+                return value
+        except Exception:
+            pass
+
+    # 5) /etc/localtime symlink into /usr/share/zoneinfo
+    localtime = Path("/etc/localtime")
+    try:
+        target = localtime.resolve(strict=True)
+        parts = target.parts
+        if "zoneinfo" in parts:
+            idx = parts.index("zoneinfo")
+            candidate = "/".join(parts[idx + 1 :])
+            if candidate and "/" in candidate:
+                return candidate
+    except Exception:
+        pass
+
+    return "UTC"
 
 
 def get_hostname() -> str:
@@ -88,4 +138,5 @@ def get_server_timezone_info():
         "offset_seconds": offset_seconds,
         "offset_string": offset_string,
         "timezone": str(local_now.tzinfo),
+        "timezone_iana": _detect_timezone_iana(local_now),  # for the front-end
     }

@@ -23,7 +23,7 @@ const Footer = ({apiStatus}) => {
     setOffsetMs(offsetServerClient || 0);
 
     const fmt = new Intl.DateTimeFormat(navigator.language, {
-      timeZone: apiStatus?.server_timeinfo?.timezone || 'UTC',
+      timeZone: apiStatus?.server_timeinfo?.timezone_iana || 'UTC',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
