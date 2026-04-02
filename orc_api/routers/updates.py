@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 import zipfile
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import httpx
 from alembic import command
@@ -19,6 +19,15 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 import orc_api
+from orc_api.manifest.perform_checks import run_manifest_checks_from_source
+from orc_api.schemas.updates import (
+    CheckStatus,
+    ManifestCheckResult,
+    ManifestPreflightResult,
+    ReleaseItem,
+    ReleaseListResponse,
+    VersionedPreflightResponse,
+)
 
 router = APIRouter(prefix="/updates", tags=["updates"])
 
@@ -41,6 +50,95 @@ websocket_conns: List[WebSocket] = []
 
 # Event used to notify state changes
 state_update_queue = asyncio.Queue()
+
+
+def _asset_digest(asset: dict) -> str:
+    """Extract sha256 digest value from release asset metadata."""
+    digest = asset.get("digest", "")
+    if not digest:
+        raise HTTPException(status_code=500, detail=f"Release asset '{asset.get('name', 'unknown')}' has no digest")
+    return digest.removeprefix("sha256:")
+
+
+def _release_asset_by_name(release_data: dict, asset_name: str) -> dict:
+    """Return a release asset by exact name or raise."""
+    asset = next((item for item in release_data.get("assets", []) if item.get("name") == asset_name), None)
+    if asset is None:
+        raise HTTPException(status_code=500, detail=f"Release asset '{asset_name}' not found")
+    return asset
+
+
+async def fetch_release_by_tag(tag_name: str) -> dict[str, Any]:
+    """Fetch release data from GitHub by tag name."""
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/tags/{tag_name}",
+            timeout=httpx.Timeout(connect=3.0, read=8.0, write=5.0, pool=5.0),
+        )
+        if r.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"Release tag '{tag_name}' not found")
+        if r.status_code != 200:
+            raise HTTPException(status_code=502, detail="Failed to fetch release by tag")
+        return r.json()
+
+
+async def fetch_github_releases() -> list[dict[str, Any]]:
+    """Fetch all available releases from GitHub, newest first."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases",
+            timeout=httpx.Timeout(connect=3.0, read=8.0, write=5.0, pool=5.0),
+        )
+
+    if response.status_code == 200:
+        payload = response.json()
+        if isinstance(payload, list):
+            return payload
+        raise HTTPException(status_code=502, detail="Unexpected GitHub releases response format")
+
+    if response.status_code == 403:
+        try:
+            message = response.json().get("message", "GitHub API rate limit or permission issue")
+        except Exception as e:
+            message = f"GitHub API rate limit or permission issue: {e}"
+        raise HTTPException(status_code=403, detail=message)
+    raise HTTPException(status_code=502, detail="Failed to fetch releases from GitHub")
+
+
+async def run_release_preflight(release_data: dict[str, Any]) -> ManifestPreflightResult:
+    """Download and execute release manifest checks before updating."""
+    try:
+        manifest_asset = _release_asset_by_name(release_data, "manifest.py")
+    # catch 500 errors containing "not found" in its detail. These must be handled with assumed no blockages in updates
+    except HTTPException as e:
+        if e.status_code == 500 and "not found" in str(e.detail).lower():
+            return ManifestPreflightResult(
+                ok_to_update=True,
+                blocking_statuses=[],
+                results=[
+                    ManifestCheckResult(
+                        check_id="manifest_presence",
+                        status=CheckStatus.NOT_AVAILABLE,
+                        message="No release manifest found, skipping compatibility checks.",
+                        remedy=None,
+                    )
+                ],
+            )
+        raise e
+
+    manifest_content = await download_release_asset(
+        manifest_asset["browser_download_url"],
+        expected_sha256=_asset_digest(manifest_asset),
+    )
+    source_code = manifest_content.decode("utf-8")
+    return await run_manifest_checks_from_source(source_code=source_code, timeout_s=10.0)
+
+
+# def _ensure_release_data(value: Any) -> dict[str, Any]:
+#     """Validate release data shape from remote response."""
+#     if isinstance(value, dict):
+#         return value
+#     raise HTTPException(status_code=500, detail="Invalid release data format")
 
 
 def clear_directory(path):
@@ -68,7 +166,7 @@ def copy_directory_content(src, dst):
             shutil.copy2(s, d)
 
 
-async def check_github_version():
+async def check_latest_github_version():
     """Check the remote latest version of the API from GitHub.
 
     Returns a dictionary with current version, latest version, update available and raw JSON release data from response.
@@ -157,7 +255,7 @@ def migrate_dbase(config_location, script_location, db_engine):
         # database restore will be done elsewhere
 
 
-async def do_update(backup_distribution=False):
+async def do_update(tag_name, backup_distribution=False):
     """Perform the update."""
 
     async def _rollback_backend(e):
@@ -202,37 +300,48 @@ async def do_update(backup_distribution=False):
     await asyncio.sleep(1)
     await modify_state_update_event(True, "Starting update...")
     try:
-        # Check for latest release
-        # ========================
-        version_info = await check_github_version()
-        if not version_info["online"]:
-            await asyncio.sleep(1)
-            await modify_state_update_event(True, "Not online, cannot update")
-            return {"status": "Not online, cannot update"}
-        if "timeout" in version_info["latest_version"]:
-            msg = "Timeout reached while retrieving update. Connection not stable enough for updating."
-            await asyncio.sleep(1)
+        # # Check for latest release
+        # # ========================
+        # version_info = await check_latest_github_version()
+        # if not version_info["online"]:
+        #     await asyncio.sleep(1)
+        #     await modify_state_update_event(True, "Not online, cannot update")
+        #     return {"status": "Not online, cannot update"}
+        # if "timeout" in version_info["latest_version"]:
+        #     msg = "Timeout reached while retrieving update. Connection not stable enough for updating."
+        #     await asyncio.sleep(1)
+        #     await modify_state_update_event(True, msg)
+        #     return {"status": msg}
+        # if not version_info["update_available"]:
+        #     await asyncio.sleep(1)
+        #     await modify_state_update_event(True, "No update available")
+        #     return {"status": "No update available"}
+
+        # if "error" in version_info:
+        #     raise Exception("Failed to get release information")
+
+        # release_data = _ensure_release_data(version_info.get("release_data"))
+        # tag_name = str(release_data.get("tag_name", ""))
+        # if not tag_name:
+        #     raise HTTPException(status_code=500, detail="Release tag is missing")
+
+        # Run release-specific compatibility checks before any installation work.
+        await asyncio.sleep(1)
+        release_data = await fetch_release_by_tag(tag_name)
+        await modify_state_update_event(True, "Running compatibility checks...")
+        preflight_result = await run_release_preflight(release_data)
+        if not preflight_result.ok_to_update:
+            failed = [
+                f"{result.check_id}: {result.message}"
+                for result in preflight_result.results
+                if result.status != CheckStatus.OK
+            ]
+            msg = "Update blocked by compatibility checks: " + " | ".join(failed)
             await modify_state_update_event(True, msg)
-            return {"status": msg}
-        if not version_info["update_available"]:
-            await asyncio.sleep(1)
-            await modify_state_update_event(True, "No update available")
-            return {"status": "No update available"}
-
-        if "error" in version_info:
-            raise Exception("Failed to get release information")
-
-        release_data = version_info["release_data"]
+            return {"status": msg, "preflight": preflight_result.model_dump()}
 
         # Find the frontend build asset (assuming it's named 'frontend-build.zip')
-        frontend_asset = next(
-            (asset for asset in release_data["assets"] if asset["name"] == "frontend-build.zip"), None
-        )
-
-        if not frontend_asset:
-            # finalize state and raise
-            await modify_state_update_event(True, "No frontend build asset found in release")
-            raise Exception("Frontend build asset not found in release, cannot update front end. Contact support.")
+        frontend_asset = await _release_asset_by_name(release_data, "frontend-build.zip")
 
         # Checks are complete and update seems available and complete
 
@@ -273,7 +382,7 @@ async def do_update(backup_distribution=False):
                 # Download and extract frontend build
                 frontend_content = await download_release_asset(
                     frontend_asset["browser_download_url"],
-                    expected_sha256=frontend_asset["digest"].removeprefix("sha256:"),
+                    expected_sha256=_asset_digest(frontend_asset),
                 )
                 await unzip_frontend(frontend_content, temp_dir)
                 await asyncio.sleep(1)
@@ -282,8 +391,8 @@ async def do_update(backup_distribution=False):
                 try:
                     # Install the new version directly from GitHub using pip
                     await asyncio.sleep(1)
-                    await modify_state_update_event(True, f"Preparing new backend {release_data['tag_name']}...")
-                    repo_url = f"git+https://github.com/{repo_owner}/{repo_name}.git@{release_data['tag_name']}"
+                    await modify_state_update_event(True, f"Preparing new backend {tag_name}...")
+                    repo_url = f"git+https://github.com/{repo_owner}/{repo_name}.git@{tag_name}"
                     subprocess.run(
                         [
                             sys.executable,
@@ -316,6 +425,8 @@ async def do_update(backup_distribution=False):
                     await _rollback_backend(e)
 
                 if api_update_success:
+                    www_root = None
+                    www_root_backup = None
                     try:
                         # Deploy frontend build
                         await asyncio.sleep(1)
@@ -340,7 +451,8 @@ async def do_update(backup_distribution=False):
                         await modify_state_update_event(
                             True, f"Problem occurred during updating front-end: {str(e)}, rolling back..."
                         )
-                        shutil.move(www_root_backup, www_root)
+                        if www_root_backup and www_root:
+                            shutil.move(www_root_backup, www_root)
                         # when this happens, also rollback the back-end
                         await _rollback_backend(e)
                 # Everything complete, we can now move the temporary ORC API install to its final destination,
@@ -366,33 +478,104 @@ async def do_update(backup_distribution=False):
         await modify_state_update_event(True, f"Update failed: {str(e)}. Refresh page (Ctrl+R)  to continue...")
         # Log the error here
         update_success = False
-        raise f"Error occurred during update: {str(e)}"
+        raise RuntimeError(f"Error occurred during update: {str(e)}")
     finally:
         if update_success:
             await asyncio.sleep(5)
             await modify_state_update_event(False)
 
 
-@router.get("/check")
+@router.get("/check/")
 async def check_updates():
     """Check for updates."""
-    return await check_github_version()
+    return await check_latest_github_version()
 
 
-@router.post("/start")
-async def start_update(background_tasks: BackgroundTasks):
+@router.get("/releases/", response_model=ReleaseListResponse)
+async def list_releases(include_prerelease: bool = False, limit: int = 20):
+    """Return available release tags from GitHub."""
+    releases_raw = await fetch_github_releases()
+
+    releases: list[ReleaseItem] = []
+    for rel in releases_raw:
+        if rel.get("draft", False):
+            continue
+        if not include_prerelease and rel.get("prerelease", False):
+            continue
+
+        tag_name = rel.get("tag_name")
+        if not tag_name:
+            continue
+
+        releases.append(
+            ReleaseItem(
+                tag_name=str(tag_name),
+                published_at=rel.get("published_at"),
+                prerelease=bool(rel.get("prerelease", False)),
+            )
+        )
+
+    safe_limit = max(1, min(limit, 100))
+    return ReleaseListResponse(releases=releases[:safe_limit])
+
+
+# @router.get("/preflight")
+# async def check_update_preflight():
+#     """Run release preflight compatibility checks using release manifest."""
+#     version_info = await check_github_version()
+#     if not version_info.get("online", False):
+#         return {"ok_to_update": False, "message": "Not online, cannot run preflight checks", "results": []}
+#     if "error" in version_info:
+#         raise HTTPException(status_code=500, detail=version_info["error"])
+
+#     release_data_raw = version_info.get("release_data")
+#     if not release_data_raw:
+#         raise HTTPException(status_code=500, detail="No release data available for preflight checks")
+#     release_data = _ensure_release_data(release_data_raw)
+#     result = await run_release_preflight(release_data)
+#     payload = result.model_dump()
+#     payload["tag_name"] = release_data.get("tag_name")
+#     return payload
+
+
+@router.get("/preflight/{tag_name}/", response_model=VersionedPreflightResponse)
+async def preflight_for_tag(tag_name: str):
+    """Run all preflight checks for a specific release tag."""
+    try:
+        release_data = await fetch_release_by_tag(tag_name)
+    except HTTPException as http_exc:
+        if http_exc.status_code == 500:
+            # apparently a server error occurred, if detauils contain "not found", we can assume the tag was not found,
+            # otherwise it's a server error
+            detail = http_exc.detail
+            if isinstance(detail, str) and "not found" in detail.lower():
+                raise HTTPException(status_code=404, detail=f"Release tag '{tag_name}' not found")
+            else:
+                # default to the existing exception, which is a 500 with the original error message
+                raise http_exc
+    try:
+        preflight_result = await run_release_preflight(release_data)
+        payload = preflight_result.model_dump()
+        payload["tag_name"] = tag_name
+        return payload
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to run preflight checks for the release: {e}")
+
+
+@router.post("/start/{tag_name}/")
+async def start_update(tag_name: str, background_tasks: BackgroundTasks):
     """Start the update process."""
-    background_tasks.add_task(do_update)
+    background_tasks.add_task(do_update, tag_name)
     return {"status": "Update process started"}
 
 
-@router.get("/status")
+@router.get("/status/")
 async def update_status():
     """Get the current status of the update process."""
     return {"is_updating": update_state.is_updating, "status": update_state.last_status}
 
 
-@router.post("/shutdown")
+@router.post("/shutdown/")
 async def shutdown_api():
     """Stop or restart the API by shutting it down. The restart must be orchestrated by a systemd or Docker process."""
     os._exit(0)

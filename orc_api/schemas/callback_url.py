@@ -7,6 +7,7 @@ from typing import Optional
 from urllib.parse import urljoin
 
 import requests
+from fastapi import HTTPException
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -192,6 +193,19 @@ class CallbackUrlResponse(CallbackUrlBase):
         # no response so all health checks false
         except requests.RequestException as e:
             return CallbackUrlHealth(serverOnline=False, tokenValid=False, error=str(e))
+
+    def get_version(self):
+        """Get LiveORC version from the callback URL."""
+        try:
+            response = self.get("/api/version")
+            if response.status_code == 200:
+                return response.json().get("version")
+            else:
+                raise HTTPException(
+                    status_code=response.status_code, detail=f"Error retrieving version, response: {response.text}"
+                )
+        except requests.RequestException as e:
+            raise HTTPException(status_code=404, detail=f"Error retrieving version, exception: {str(e)}")
 
     def get_site(self, site_id: int):
         """Get site information from the callback URL."""
