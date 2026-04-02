@@ -519,6 +519,16 @@ async def list_releases(include_prerelease: bool = False, limit: int = 20):
     return ReleaseListResponse(releases=releases[:safe_limit])
 
 
+@router.get("/releases/{tag_name}/", response_model=dict[str, Any])
+async def get_release_by_tag(tag_name: str):
+    """Return release details for a specific tag."""
+    try:
+        release_data = await fetch_release_by_tag(tag_name)
+        return release_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cannot fetch release tag '{tag_name}': {str(e)}")
+
+
 # @router.get("/preflight")
 # async def check_update_preflight():
 #     """Run release preflight compatibility checks using release manifest."""
