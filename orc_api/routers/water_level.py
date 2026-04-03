@@ -23,12 +23,12 @@ async def get_water_level(db: Session = Depends(get_db)):
 @router.post("/", response_model=WaterLevelResponse, status_code=201, description="Update water level configuration")
 async def update_water_level(request: Request, water_level_settings: WaterLevelCreate, db: Session = Depends(get_db)):
     """Update water level settings."""
-    # Check if there is already a device
     if hasattr(request.app.state, "scheduler"):
         scheduler = request.app.state.scheduler
     else:
         scheduler = None
     try:
+        # Check if there is already a water level settings record
         wl_settings = crud.water_level.get(db)
         if wl_settings:
             # Update the existing record's fields
@@ -46,14 +46,18 @@ async def update_water_level(request: Request, water_level_settings: WaterLevelC
             db.refresh(wl_settings)
             # update the water level job
         if scheduler:
-            scheduler.add_job(
-                func=wl_settings.get_new,
-                trigger="interval",
-                seconds=wl_settings.frequency,
-                start_date=datetime.now() + timedelta(seconds=5),
-                id="water_level_job",
-                replace_existing=True,  # ensure the existing job if any, is removed
-            )
+            if wl_settings.enabled:
+                scheduler.add_job(
+                    func=wl_settings.get_new,
+                    trigger="interval",
+                    seconds=wl_settings.frequency,
+                    start_date=datetime.now() + timedelta(seconds=5),
+                    id="water_level_job",
+                    replace_existing=True,  # ensure the existing job if any, is removed
+                )
+            else:
+                if scheduler.get_job("water_level_job"):
+                    scheduler.remove_job("water_level_job")
 
         return wl_settings
     except Exception as e:

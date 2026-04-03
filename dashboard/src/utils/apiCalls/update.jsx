@@ -1,17 +1,10 @@
 import api from "../../api/api.js";
 
-export const orcVersion = async () => {
-  try {
-    const response = await api.get("/updates/check");
-    // console.log(response.data);
-    return response.data;
-  } catch (error) {
-    console.log(error);
-  }
-}
 
-export const startUpdate = async () => {
+export const startUpdate = async (tagName) => {
   // start the update process
-  const response = await api.post("/updates/start");
+  const url = `/updates/start/${tagName}/`;
+  console.log("Starting update with URL: ", url);
+  const response = await api.post(url);
   return response.data;
 }

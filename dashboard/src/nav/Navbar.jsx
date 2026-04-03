@@ -14,6 +14,7 @@ import {
   FaVideo,
   FaFilm,
   FaFileAlt,
+  FaPowerOff,
   FaProjectDiagram,
   FaUtensils,
 } from 'react-icons/fa'; // Import User, Cog and Restart icons
@@ -48,6 +49,26 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
   const handleUserButtonClick = async () => {
     await logout();
   };
+
+  const handleReboot = () => {
+    if (window.confirm("Are you sure you want to reboot the device?")) {
+      setIsLoading(true);
+      api.post("/updates/reboot").then(r => {return r})
+    }
+  }
+
+  const handleShutdown = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to shutdown the device? If you are not physically close to the device, make sure you " +
+        "have a power management mechanism active that brings back your device. If you do not have this, you will be " +
+        "locked out until you physically switch on the device. "
+      )
+    ) {
+      setIsLoading(true);
+      api.post("/updates/shutdown_device").then(r => {return r})
+    }
+  }
 
   const handleRestartClick = () => {
     setIsLoading(true);
@@ -107,7 +128,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
           </button>
           <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px'}}>
             {videoRunState?.video_file !== "" && (
-              <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: '700px', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>
+              <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: 'calc(100vw - 200px)', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>
                         {getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}
                       </span>
             )}
@@ -177,6 +198,23 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
                     <FaSignOutAlt style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                     Logout
                   </div>
+                  <div
+                    className="user-menu-item"
+                    onClick={handleReboot}
+                  >
+                    <FaSync style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                    Reboot device
+                  </div>
+
+                  <div
+                    className="user-menu-item"
+                    onClick={handleShutdown}
+                    style={{ color: 'orange' }}
+                  >
+                    <FaPowerOff style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                    Shutdown device
+                  </div>
+
                 </div>
               )}
             </div>

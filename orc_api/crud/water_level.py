@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 from orc_api import db as models
 
 
+def delete(db: Session):
+    """Delete the water level settings."""
+    db.query(models.WaterLevelSettings).delete()
+    db.commit()
+
+
 def get(db: Session):
     """Get the water level settings."""
     # Retrieve the first water level.

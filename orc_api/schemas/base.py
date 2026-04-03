@@ -44,4 +44,4 @@ class RemoteModel(BaseModel):
             return response_data
         else:
             self.sync_status = SyncStatus.FAILED
-            raise ValueError(f"Remote update failed with status code {r.status_code}.")
+            raise ValueError(f"Remote update failed with status code {r.status_code}, detail: {r.json()['detail']}")

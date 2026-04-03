@@ -24,6 +24,9 @@ class WaterLevelBase(BaseModel):
         "value to screen (stdout) in the form '%Y-%m-%dT%H:%M:%SZ, <value>'",
     )
     optical: Optional[bool] = Field(default=False, description="Allow optical water level detection (false/true)")
+    enabled: Optional[bool] = Field(
+        default=False, description="Whether to enable water level retrieval using the script."
+    )
 
 
 class WaterLevelResponse(WaterLevelBase):

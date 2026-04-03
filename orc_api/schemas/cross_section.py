@@ -88,19 +88,17 @@ class CrossSectionResponse(CrossSectionBase, RemoteModel):
         """Send the cross-section to LiveORC API."""
         if not self.id:
             raise ValueError("CrossSection must have an ID to sync remotely.")
-        endpoint = f"/api/site/{site}/profile/"
+        endpoint = f"/api/site/{site}/crosssection/"
         data = {
             "name": self.name if self.name else f"CrossSection {self.id}",
             "timestamp": self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             if self.timestamp
             else datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "data": self.features,
+            "features": self.features,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
         response_data = super().sync_remote(session=session, endpoint=endpoint, json=data)
         if response_data is not None:
-            # patch the record in the database, where necessary
-            response_data["features"] = response_data.pop("data")
             # update schema instance
             update_cross_section = CrossSectionResponse.model_validate(response_data)
             r = crud.cross_section.update(

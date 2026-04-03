@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from orc_api.routers.updates import clear_directory, copy_directory_content, do_update, router
+from orc_api.schemas.updates import ManifestPreflightResult
 
 app = FastAPI()
 app.include_router(router)
@@ -15,7 +16,10 @@ MOCK_VERSION_INFO = {
     "online": True,
     "update_available": True,
     "release_data": {
-        "assets": [{"name": "frontend-build.zip", "browser_download_url": "http://mock_url", "digest": "mock_digest"}],
+        "assets": [
+            {"name": "frontend-build.zip", "browser_download_url": "http://mock_url", "digest": "sha256:mock_digest"},
+            {"name": "manifest.py", "browser_download_url": "http://mock_manifest", "digest": "sha256:mock_digest"},
+        ],
         "tag_name": "v1.2.3",
     },
     "latest_version": "v1.2.3",
@@ -38,10 +42,23 @@ def mock_modify_state_update_event():
 
 
 @pytest.fixture
-def mock_check_github_version():
-    with patch("orc_api.routers.updates.check_github_version", new_callable=AsyncMock) as mock_version:
-        mock_version.return_value = MOCK_VERSION_INFO
-        yield mock_version
+def mock_fetch_release_by_tag():
+    with patch("orc_api.routers.updates.fetch_release_by_tag", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = MOCK_VERSION_INFO
+        yield mock_fetch
+
+
+@pytest.fixture
+def mock_run_release_preflight():
+    with patch("orc_api.routers.updates.run_release_preflight", new_callable=AsyncMock) as mock_preflight:
+        mock_preflight.return_value = ManifestPreflightResult.model_validate(
+            {
+                "ok_to_update": True,
+                "results": [],
+                "blocking_statuses": ["OUTDATED", "ERROR"],
+            },
+        )
+        yield mock_preflight
 
 
 @pytest.fixture
@@ -49,6 +66,34 @@ def mock_do_update():
     with patch("orc_api.routers.updates.do_update", new_callable=AsyncMock) as mock_update:
         mock_update.return_value = None
         yield mock_update
+
+
+# @pytest.fixture
+# def mock_run_release_preflight():
+#     with patch("orc_api.routers.updates.run_release_preflight", new_callable=AsyncMock) as mock_preflight:
+#         mock_preflight.return_value = type(
+#             "PreflightResult",
+#             (),
+#             {
+#                 "ok_to_update": True,
+#                 "results": [],
+#                 "model_dump": lambda self: {
+#                     "ok_to_update": True,
+#                     "blocking_statuses": ["OUTDATED", "ERROR"],
+#                     "results": [],
+#                 },
+#             },
+#         )()
+#         yield mock_preflight
+@pytest.fixture
+def mock_release_asset_by_name():
+    with patch("orc_api.routers.updates._release_asset_by_name", new_callable=Mock) as mock_asset:
+        mock_asset.return_value = {
+            "name": "frontend-build.zip",
+            "browser_download_url": "http://mock_url",
+            "digest": "sha256:mock_digest",
+        }
+        yield mock_asset
 
 
 @pytest.fixture
@@ -107,18 +152,21 @@ def mock_unzip_frontend():
 @pytest.mark.asyncio
 async def test_do_update_error_handling(
     mock_asyncio_sleep,
-    mock_check_github_version,
+    mock_fetch_release_by_tag,
+    mock_release_asset_by_name,
     mock_modify_state_update_event,
     mock_download_release_asset,
+    mock_run_release_preflight,
     mock_subprocess_run,
 ):
     # Simulate an error during backend installation
     mock_subprocess_run.side_effect = BaseException("Mocked subprocess error")
 
     with pytest.raises(BaseException, match="Mocked subprocess error"):
-        await do_update()
+        await do_update("v1.2.3")
 
-    mock_check_github_version.assert_called_once()
+    mock_fetch_release_by_tag.assert_awaited_once_with("v1.2.3")
+    mock_release_asset_by_name.assert_called_once()
     # mock_download_release_asset.assert_awaited()
     mock_modify_state_update_event.assert_awaited()
 
@@ -126,8 +174,10 @@ async def test_do_update_error_handling(
 @pytest.mark.asyncio
 async def test_do_update_success(
     mock_asyncio_sleep,
-    mock_check_github_version,
+    mock_fetch_release_by_tag,
+    mock_release_asset_by_name,
     mock_modify_state_update_event,
+    mock_run_release_preflight,
     mock_shutil_operations,
     mock_subprocess_run,
     mock_download_release_asset,
@@ -144,9 +194,11 @@ async def test_do_update_success(
         mock_copy_directory_content,
     ) = mock_shutil_operations
 
-    _ = await do_update()
+    _ = await do_update("v1.2.3")
 
-    mock_check_github_version.assert_called_once()
+    mock_fetch_release_by_tag.assert_awaited_once_with("v1.2.3")
+    mock_release_asset_by_name.assert_called_once()
+    mock_run_release_preflight.assert_awaited_once()
     mock_download_release_asset.assert_awaited()
     mock_modify_state_update_event.assert_awaited()
     mock_subprocess_run.assert_called()
@@ -159,16 +211,6 @@ async def test_do_update_success(
     mock_unzip_frontend.assert_awaited()
 
 
-@pytest.mark.asyncio
-async def test_do_update_no_version(mock_asyncio_sleep, mock_check_github_version, mock_modify_state_update_event):
-    # Simulate no new update available
-    mock_check_github_version.return_value["update_available"] = False
-    response = await do_update()
-    assert response["status"] == "No update available"
-    mock_check_github_version.assert_called_once()
-    mock_modify_state_update_event.assert_awaited()
-
-
 # Endpoint-specific tests
 @pytest.mark.asyncio
 async def test_check_updates():
@@ -179,8 +221,19 @@ async def test_check_updates():
 
 
 @pytest.mark.asyncio
+async def test_preflight_endpoint(mock_fetch_release_by_tag, mock_run_release_preflight):
+    response = client.get("/updates/preflight/v1.2.3/")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok_to_update"] is True
+    assert body["tag_name"] == "v1.2.3"
+    mock_fetch_release_by_tag.assert_awaited_once_with("v1.2.3")
+    mock_run_release_preflight.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_start_update(mock_modify_state_update_event, mock_do_update):
-    response = client.post("/updates/start/")
+    response = client.post("/updates/start/v0.1.0/")
     assert response.status_code == 200
     assert response.json() == {"status": "Update process started"}
 
@@ -225,11 +278,9 @@ def test_copy_content(tmpdir):
 
 
 # also test the websocket
-
-
 @pytest.mark.asyncio
 async def test_update_status_ws_message_handling():
-    with client.websocket_connect("/updates/status_ws") as websocket:
+    with client.websocket_connect("/updates/status_ws/") as websocket:
 
         def mock_status_update():
             return {"is_updating": True, "status": "In Progress"}
@@ -242,5 +293,5 @@ async def test_update_status_ws_message_handling():
 @pytest.mark.asyncio
 async def test_update_status_ws_disconnect_handling():
     """Check if client gracefully disconnects."""
-    with client.websocket_connect("/updates/status_ws") as websocket:
+    with client.websocket_connect("/updates/status_ws/") as websocket:
         websocket.close(code=1001)

@@ -10,6 +10,7 @@ from pyorc import CameraConfig as pyorcCameraConfig
 from pyorc import cv
 from pyorc.cv import get_cam_mtx
 from pyproj.crs import CRS
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.db import CameraConfig
@@ -135,18 +136,28 @@ class CameraConfigInteraction(CameraConfigRemote):
 
         return True
 
-    def sync_remote(self, site: int):
-        """Send the recipe to LiveORC API.
-
-        Recipes belong to an institute, hence also the institute ID is required.
-        """
-        # endpoint = f"/api/site/{site}/cameraconfig/"
-        # data = {
-        #     "name": self.name,
-        #     "camera_config": self.data,
-        # }
-        # TODO: this end point is not yet implemented, as it requires a restructuring on LiveORC
-        pass
+    def sync_remote(self, session: Session, site: int, **kwargs):
+        """Send the camera config to LiveORC API at given site."""
+        if not self.id:
+            raise ValueError("CameraConfig must have an ID to sync remotely.")
+        endpoint = f"/api/site/{site}/cameraconfig/"
+        json = {
+            "name": self.name,
+            "data": self.data.model_dump(),
+        }
+        response_data = super().sync_remote(session=session, endpoint=endpoint, json=json)
+        if response_data is not None:
+            update_camera_config = CameraConfigResponse.model_validate(response_data)
+            # only update values relevant for ORC-OS
+            r = crud.camera_config.update(
+                session,
+                id=self.id,
+                camera_config=update_camera_config.model_dump(include={"data", "remote_id", "sync_status"}),
+            )
+            camera_config = CameraConfigResponse.model_validate(r)
+            return camera_config
+        else:
+            return self
 
 
 class CameraConfigResponse(CameraConfigInteraction):

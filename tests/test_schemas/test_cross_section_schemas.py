@@ -71,7 +71,7 @@ def test_cross_section_sync(session_cross_section, cross_section_response, monke
                     "id": 3,
                     "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "name": cross_section_response.name,
-                    "data": cross_section_response.features,
+                    "features": cross_section_response.features,
                     "timestamp": cross_section_response.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "site": site,
                 }
@@ -89,14 +89,18 @@ def test_cross_section_sync_not_permitted(session_cross_section, cross_section_r
     # let's assume we are posting on site 1
     site = 1
 
+    def mock_json(x):
+        return {"detail": "Forbidden"}
+
     def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
         class MockResponse:
             status_code = 403
+            json = mock_json
 
         return MockResponse()
 
     monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
-    with pytest.raises(ValueError, match="Remote update failed with status code 403."):
+    with pytest.raises(ValueError, match="Remote update failed with status code 403, detail: Forbidden"):
         _ = cross_section_response.sync_remote(session=session_cross_section, site=site)
 
 

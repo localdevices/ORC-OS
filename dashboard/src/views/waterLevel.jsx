@@ -10,7 +10,8 @@ const WaterLevel = ({ setRequiresRestart }) => {
         frequency: '',
         script_type: '',
         script: '',
-        optical: false
+        optical: false,
+        enabled: false,
     });
     // set up message box
     const { setMessageInfo } = useMessage();
@@ -33,9 +34,21 @@ const WaterLevel = ({ setRequiresRestart }) => {
                 script_type: waterLevel.script_type || null,
                 script: waterLevel.script,
                 optical: waterLevel.optical || false,
+                enabled: waterLevel.enabled || false,
             });
         }
     }, [waterLevel]);
+
+
+  const validateSettings = () => {
+    // daemon runner can only be active when video format, allowed time difference, and video config is set
+    // to a valid input
+    if (formData.frequency && formData.script) {
+      return true;
+    }
+    return false;
+  }
+
     const handleInputChange = (event) => {
         const { name, type } = event.target;
         const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
@@ -81,7 +94,8 @@ const WaterLevel = ({ setRequiresRestart }) => {
                 frequency: '',
                 script_type: '',
                 script: '',
-                optical: ''
+                optical: '',
+                enabled: ''
             });
         } catch (err) {
             setMessageInfo("error", err.response.data);
@@ -138,6 +152,33 @@ const WaterLevel = ({ setRequiresRestart }) => {
                             Allow attempting to resolve water levels optically
                         </label>
                     </div>
+                    <div className='mb-3 mt-3'>Activate the water level retrieval daemon.
+                        <div className="form-check form-switch">
+                            <label className="form-label" htmlFor="enabled" style={{ marginLeft: '0' }}></label>
+                            <input
+                                style={{ width: "40px", height: "20px", borderRadius: "15px" }}
+                                className="form-check-input"
+                                type="checkbox"
+                                id="enabled"
+                                name="enabled"
+                                onChange={handleInputChange}
+                                value={validateSettings() ? (formData.enabled) : false}
+                                checked={validateSettings() ? (formData.enabled) : false}
+                                disabled={!validateSettings()}
+                            />
+                        </div>
+                        {validateSettings() ? (
+                            <div className="help-block">
+                                You can switch on the water level retrieval daemon after entering all fields and creating a valid script.
+                            </div>
+                        ) : (
+                            <div className="help-block">
+                                Switch on the water level retrieval daemon and save settings if you are ready.
+                            </div>
+                        )
+                        }
+                    </div>
+
                     <button type='submit' className='btn btn-primary'>
                         Save changes
                     </button>

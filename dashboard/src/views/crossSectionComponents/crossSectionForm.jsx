@@ -161,7 +161,7 @@ const CrossSectionForm = ({selectedCrossSection, setSelectedCrossSection, setMes
           </label>
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required />
         </div>
-        <button type='submit' className='btn'>
+        <button type='submit' className='btn btn-primary'>
           Submit
         </button>
 

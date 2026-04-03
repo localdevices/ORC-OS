@@ -222,45 +222,79 @@ class VideoConfigResponse(VideoConfigRemote):
     def sync_remote(self, session: Session, site: int):
         """Send the video config to LiveORC API.
 
-        Recipes belong to an institute, hence also the institute ID is required. Will be taken from the site.
+        Video configs belong to a site, hence they are submitted to a site end point.
         """
-        # first check if the recipe and cross section are synced
-        if self.recipe is not None:
-            if self.recipe.sync_status != SyncStatus.SYNCED:
-                # first sync/update recipe, we need the institute belonging to the site
-                callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(session))
-                r = callback_url.get_site(site_id=site)
-                institute = r.json()["institute"] if r.status_code == 200 else None
-                self.recipe = self.recipe.sync_remote(session=session, institute=institute)
-                self.recipe_id = self.recipe.id
+        if self.id is None:
+            raise ValueError("VideoConfig must have an ID to sync remotely.")
+        if self.camera_config is None:
+            raise HTTPException(status_code=400, detail="Camera configuration is required to sync video config.")
+        if self.recipe is None:
+            raise HTTPException(status_code=400, detail="Recipe is required to sync video config.")
+        # first check if the recipe, camera config and cross sections are synced
+        if self.camera_config.sync_status != SyncStatus.SYNCED:
+            # first sync/update camera config
+            self.camera_config = self.camera_config.sync_remote(session=session, site=site)
+            self.camera_config_id = self.camera_config.id
+        if self.recipe.sync_status != SyncStatus.SYNCED:
+            # first sync/update recipe, we need the institute belonging to the site
+            callback_url = CallbackUrlResponse.model_validate(crud.callback_url.get(session))
+            r = callback_url.get_site(site_id=site)
+            if r.status_code != 200:
+                raise HTTPException(
+                    status_code=r.status_code,
+                    detail=f"Could not retrieve site information for site {site} from LiveORC. Detail: {r.json()}",
+                )
+            institute = r.json()["institute"]
+            self.recipe = self.recipe.sync_remote(session=session, institute=institute)
+            self.recipe_id = self.recipe.id
         if self.cross_section is not None:
             if self.cross_section.sync_status != SyncStatus.SYNCED:
-                # first sync/update cross-section
+                # sync/update cross-section discharge
                 self.cross_section = self.cross_section.sync_remote(session=session, site=site)
                 self.cross_section_id = self.cross_section.id
+        else:
+            self.cross_section_id = None
+        if self.cross_section_wl is not None:
+            # only sync if not the same as discharge cross section
+            if self.cross_section_wl.id == self.cross_section_id:
+                self.cross_section_wl = self.cross_section
+            else:
+                if self.cross_section_wl.sync_status != SyncStatus.SYNCED:
+                    # sync/update cross-section water level
+                    self.cross_section_wl = self.cross_section_wl.sync_remote(session=session, site=site)
+            self.cross_section_wl_id = self.cross_section_wl.id
+        else:
+            self.cross_section_wl_id = None
         # now report the entire video config (this currently reports to cameraconfig,
         # should be updated after LiveORC restructuring)
-        endpoint = f"/api/site/{site}/cameraconfig/"
+        endpoint = f"/api/site/{site}/videoconfig/"
         data = {
             "name": self.name,
-            "camera_config": self.camera_config.data.model_dump(),
+            "camera_config": self.camera_config.remote_id,
+            # "camera_config": self.camera_config.data.model_dump(),
             "recipe": self.recipe.remote_id,
-            "profile": self.cross_section.remote_id,
+            "cross_section": self.cross_section.remote_id if self.cross_section else None,
+            "cross_section_wl": self.cross_section_wl.remote_id if self.cross_section_wl else None,
+            "rvec": self.rvec,
+            "tvec": self.tvec,
+            # "profile": self.cross_section.remote_id,
         }
         # sync remotely with the updated data, following the LiveORC end point naming
         response_data = super().sync_remote(session=session, endpoint=endpoint, json=data)
         # ids of recipe and profile are already known and remote ids already updated, so remove
         if response_data is not None:
-            response_data.pop("recipe")  # these are different on LiveORC, as they are with a datetime stamp
-            response_data.pop("profile")  # same
-            response_data.pop("camera_config")
-            response_data.pop("server")
+            response_data.pop("recipe", None)  # these are different on LiveORC, as they are with a datetime stamp
+            response_data.pop("cross_section", None)  # same
+            response_data.pop("cross_section_wl", None)  # same
+            response_data.pop("camera_config", None)
+            response_data.pop("creator", None)  # this is the user on LiveORC, which is not relevant here
             response_data["camera_config_id"] = self.camera_config_id
             response_data["recipe_id"] = self.recipe_id
             response_data["cross_section_id"] = self.cross_section_id
+            response_data["cross_section_wl_id"] = self.cross_section_wl_id
             # LiveORC has not tvec / rvec logic yet, so add from existing
-            response_data["rvec"] = self.rvec
-            response_data["tvec"] = self.tvec
+            # response_data["rvec"] = self.rvec
+            # response_data["tvec"] = self.tvec
 
             # patch the record in the database, where necessary
             # update schema instance
@@ -268,8 +302,10 @@ class VideoConfigResponse(VideoConfigRemote):
             r = crud.video_config.update(
                 session, id=self.id, video_config=update_video_config.model_dump(exclude_unset=True)
             )
-        video_config = VideoConfigResponse.model_validate(r)
-        return video_config
+            video_config = VideoConfigResponse.model_validate(r)
+            return video_config
+        # if no update was retrieved, then return the existing instance
+        return self
 
     def patch_post_children(self, db: Session):
         """Patch or post children of this instance."""

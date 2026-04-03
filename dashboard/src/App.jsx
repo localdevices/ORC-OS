@@ -225,7 +225,9 @@ const App = () => {
                 } />
                 <Route path="/updates" element={
                   <ProtectedRoute>
-                    <Updates />
+                    <Updates
+                      currentVersion={apiStatus?.version}
+                    />
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={
