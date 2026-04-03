@@ -1,4 +1,4 @@
-## [0.6.0] - YYYY-MM-DD
+## [0.6.0] - 2026-04-03
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -11,15 +11,22 @@ Feedback and bug reports are highly appreciated to improve future versions.
 > Since version 0.6.0 any connected LiveORC server MUST be version > 0.3.0
 
 ### Added
+- Reboot and shutdown options in user menu.
+- Water level retrieval by script can be enabled and disabled with a button
+
 ### Changed
 - Video files are only communicated to LiveORC when the video was never synced before. This saves bandwidth in case
   resyncing is needed.
+- Update page now performs preflight checks on all updates and allows to update to earlier versions. This does increase
+  the amount of Github calls, so it may lead to "Forbidden" errors if a user requests information on this page too
+  many times.
 
 ### Deprecated
 ### Removed
 ### Fixed
 - All remote sync methods are updated to work with LiveORC >= 0.3.0 only. This is to ensure that the database models
   in ORC-OS and LiveORC are similar.
+- Timezone reading of server-side was not working with some selected time zones. This has now been fixed.
 
 ### Security
 

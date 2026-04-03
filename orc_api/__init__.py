@@ -4,14 +4,9 @@ import os
 import socket
 import warnings
 
-__version__ = "0.5.1"  # version number
+__version__ = "0.6.0"  # version number
 __release__ = "Ngwerere"  # major version name
 
-MANIFEST = {
-    "LiveORC": "0.3.0",
-    "ORC-OS-upgrade": "0.5.1",
-    "sqlite": "3.34.1",  # on Bullseye, but should be updated to trixie minimum version
-}
 
 # default key in case none is set in env variables
 ORC_DEFAULT_KEY = "ORC_DEFAULT_KEY"
@@ -23,27 +18,8 @@ ORC_COOKIE_MAX_AGE = 3600  # one hour
 # hash algorithm used
 ALGORITHM = "HS256"
 
-# define origins
-# HOSTNAMES = [socket.gethostname(), socket.gethostname().lower()]
-# HOSTIPS = [
-#     socket.gethostbyname(HOSTNAMES[0]),
-#     socket.gethostbyname(HOSTNAMES[0]) + ".home",
-#     socket.gethostbyname(HOSTNAMES[0]) + ".local",
-# ]
-# ports = ["80", "5173"]
-# subdomains = ["", ".home", ".local"]
+# only allow direct children
 ORIGINS = []
-# ORIGINS += ["http://localhost"]
-# for HOSTNAME in HOSTNAMES:
-#     ORIGINS += [f"http://{HOSTNAME}{subdomain}" for subdomain in subdomains]
-# for ip in HOSTIPS:
-#     ORIGINS += [f"http://{ip}"]
-# for port in ports:
-#     ORIGINS += ["http://localhost:" + port]
-#     for HOSTNAME in HOSTNAMES:
-#         ORIGINS += [f"http://{HOSTNAME}{subdomain}:{port}" for subdomain in subdomains]
-#     for ip in HOSTIPS:
-#         ORIGINS += [f"http://{ip}:{port}"]
 
 __home__ = os.getenv("ORC_HOME")
 UPLOAD_DIRECTORY = os.getenv("ORC_UPLOAD_DIRECTORY")
