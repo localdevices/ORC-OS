@@ -19,6 +19,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 import orc_api
+from orc_api.log import logger
 from orc_api.manifest.perform_checks import run_manifest_checks_from_source
 from orc_api.schemas.updates import (
     CheckStatus,
@@ -60,7 +61,7 @@ def _asset_digest(asset: dict) -> str:
     return digest.removeprefix("sha256:")
 
 
-def _release_asset_by_name(release_data: dict, asset_name: str) -> dict:
+async def _release_asset_by_name(release_data: dict, asset_name: str) -> dict:
     """Return a release asset by exact name or raise."""
     asset = next((item for item in release_data.get("assets", []) if item.get("name") == asset_name), None)
     if asset is None:
@@ -243,6 +244,7 @@ async def unzip_frontend(content: bytes, temp_dir: str):
 def migrate_dbase(config_location, script_location, db_engine):
     """Migrate the database."""
     try:
+        logger.info("Starting database migration...")
         # Run Alembic migrations
         alembic_cfg = Config(config_location)
         alembic_cfg.set_main_option("script_location", script_location)
@@ -253,6 +255,8 @@ def migrate_dbase(config_location, script_location, db_engine):
     except Exception as migration_error:
         raise Exception(f"Database migration failed and was rolled back. Error: {migration_error}")
         # database restore will be done elsewhere
+    finally:
+        logger.info("Database migration process completed.")
 
 
 async def do_update(tag_name, backup_distribution=False):
@@ -344,7 +348,7 @@ async def do_update(tag_name, backup_distribution=False):
             return {"status": msg, "preflight": preflight_result.model_dump()}
 
         # Find the frontend build asset (assuming it's named 'frontend-build.zip')
-        frontend_asset = await _release_asset_by_name(release_data, "frontend-build.zip")
+        frontend_asset = _release_asset_by_name(release_data, "frontend-build.zip")
 
         # Checks are complete and update seems available and complete
 
@@ -621,6 +625,7 @@ async def modify_state_update_event(is_updating: bool, last_status: Optional[str
     """Change state handler and notify websocket."""
     update_state.is_updating = is_updating
     if last_status is not None:
+        logger.info(last_status)
         update_state.last_status = last_status
     # notify change after a short time, to avoid hrottling
     await state_update_queue.put({"is_updating": update_state.is_updating, "status": update_state.last_status})
