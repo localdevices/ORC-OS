@@ -31,7 +31,9 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          files: frontend-build.zip
+          files: |
+            frontend-build.zip
+            orc_api/manifest/manifest.py
           draft: false
           prerelease: false
         env:
