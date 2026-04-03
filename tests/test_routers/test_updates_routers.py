@@ -87,7 +87,7 @@ def mock_do_update():
 #         yield mock_preflight
 @pytest.fixture
 def mock_release_asset_by_name():
-    with patch("orc_api.routers.updates._release_asset_by_name", new_callable=AsyncMock) as mock_asset:
+    with patch("orc_api.routers.updates._release_asset_by_name", new_callable=Mock) as mock_asset:
         mock_asset.return_value = {
             "name": "frontend-build.zip",
             "browser_download_url": "http://mock_url",
@@ -166,7 +166,7 @@ async def test_do_update_error_handling(
         await do_update("v1.2.3")
 
     mock_fetch_release_by_tag.assert_awaited_once_with("v1.2.3")
-    mock_release_asset_by_name.assert_awaited_once()
+    mock_release_asset_by_name.assert_called_once()
     # mock_download_release_asset.assert_awaited()
     mock_modify_state_update_event.assert_awaited()
 
@@ -197,7 +197,7 @@ async def test_do_update_success(
     _ = await do_update("v1.2.3")
 
     mock_fetch_release_by_tag.assert_awaited_once_with("v1.2.3")
-    mock_release_asset_by_name.assert_awaited_once()
+    mock_release_asset_by_name.assert_called_once()
     mock_run_release_preflight.assert_awaited_once()
     mock_download_release_asset.assert_awaited()
     mock_modify_state_update_event.assert_awaited()
@@ -280,7 +280,7 @@ def test_copy_content(tmpdir):
 # also test the websocket
 @pytest.mark.asyncio
 async def test_update_status_ws_message_handling():
-    with client.websocket_connect("/updates/status_ws") as websocket:
+    with client.websocket_connect("/updates/status_ws/") as websocket:
 
         def mock_status_update():
             return {"is_updating": True, "status": "In Progress"}
@@ -293,5 +293,5 @@ async def test_update_status_ws_message_handling():
 @pytest.mark.asyncio
 async def test_update_status_ws_disconnect_handling():
     """Check if client gracefully disconnects."""
-    with client.websocket_connect("/updates/status_ws") as websocket:
+    with client.websocket_connect("/updates/status_ws/") as websocket:
         websocket.close(code=1001)
