@@ -232,14 +232,17 @@ class VideoResponse(VideoBase, RemoteModel):
                     h_a = self.video_config.camera_config.gcps.h_ref
 
                 # assemble all information
-                logger.info(f"Water level set to {h_a:.3f} m.")
+                if h_a:
+                    logger.info(f"Water level set to {h_a:.3f} m.")
+                    validate_h_a_cross = self.video_config.cross_section_rt.validate_h_a(h_a=h_a)
+                    if not validate_h_a_cross:
+                        raise Exception(
+                            f"Provided water level {h_a:.3f} m is not above the lowest point in the cross section. "
+                            f"Please provide a higher water level, or adjust the cross section."
+                        )
+                else:
+                    logger.info("Running without water level, will estimate optically if possible.")
                 # check if h_a is above lowest point in cross section for discharge estimation
-                validate_h_a_cross = self.video_config.cross_section_rt.validate_h_a(h_a=h_a)
-                if not validate_h_a_cross:
-                    raise Exception(
-                        f"Provided water level {h_a:.3f} m is not above the lowest point in the cross section. "
-                        f"Please provide a higher water level, or adjust the cross section."
-                    )
                 output = os.path.join(self.get_path(base_path=base_path), "output")
                 cameraconfig = self.video_config.camera_config.data.model_dump()
                 # get the rotated/translated cross-section
