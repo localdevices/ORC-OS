@@ -5,11 +5,12 @@ from __future__ import annotations
 import asyncio
 import inspect
 from types import ModuleType
-from typing import Any, Awaitable, Callable, cast
+from typing import Any, Awaitable, Callable, Optional, Union, cast
 
 from orc_api.schemas.updates import CheckStatus, ManifestCheckResult, ManifestPreflightResult
 
-CheckCallable = Callable[[], ManifestCheckResult | dict[str, Any] | Awaitable[ManifestCheckResult | dict[str, Any]]]
+CheckResult = Union[ManifestCheckResult, dict[str, Any]]
+CheckCallable = Callable[[], Union[CheckResult, Awaitable[CheckResult]]]
 
 
 def _load_manifest_module(source_code: str) -> ModuleType:
@@ -19,7 +20,7 @@ def _load_manifest_module(source_code: str) -> ModuleType:
     return module
 
 
-def _normalize_result(check_name: str, raw_result: ManifestCheckResult | dict[str, Any]) -> ManifestCheckResult:
+def _normalize_result(check_name: str, raw_result: CheckResult) -> ManifestCheckResult:
     """Normalize check output into a typed result model."""
     if isinstance(raw_result, ManifestCheckResult):
         if not raw_result.check_id:
@@ -79,7 +80,7 @@ async def _run_check(check: CheckCallable, timeout_s: float) -> ManifestCheckRes
             raw_result = await asyncio.wait_for(asyncio.to_thread(check), timeout=timeout_s)
         if inspect.isawaitable(raw_result):
             raw_result = await asyncio.wait_for(raw_result, timeout=timeout_s)
-        raw_result = cast(ManifestCheckResult | dict[str, Any], raw_result)
+        raw_result = cast(CheckResult, raw_result)
         return _normalize_result(check_name=check_name, raw_result=raw_result)
     except asyncio.TimeoutError:
         return ManifestCheckResult(
@@ -100,7 +101,7 @@ async def _run_check(check: CheckCallable, timeout_s: float) -> ManifestCheckRes
 async def run_manifest_checks_from_source(
     source_code: str,
     timeout_s: float = 10.0,
-    blocking_statuses: list[CheckStatus] | None = None,
+    blocking_statuses: Optional[list[CheckStatus]] = None,
 ) -> ManifestPreflightResult:
     """Execute all checks in a release manifest and aggregate results."""
     if blocking_statuses is None:
