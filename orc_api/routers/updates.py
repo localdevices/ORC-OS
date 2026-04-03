@@ -61,7 +61,7 @@ def _asset_digest(asset: dict) -> str:
     return digest.removeprefix("sha256:")
 
 
-async def _release_asset_by_name(release_data: dict, asset_name: str) -> dict:
+def _release_asset_by_name(release_data: dict, asset_name: str) -> dict:
     """Return a release asset by exact name or raise."""
     asset = next((item for item in release_data.get("assets", []) if item.get("name") == asset_name), None)
     if asset is None:
