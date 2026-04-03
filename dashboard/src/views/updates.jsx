@@ -70,7 +70,6 @@ const Updates = ({ currentVersion }) => {
 
   const dropdownItems = useMemo(() => {
     // create dropdown items from API response of list of release tags
-    console.log(releaseData);
     return (releaseData || []).map((release, index) => ({
       id: index + 1,
       value: release.tag_name,
@@ -111,6 +110,7 @@ const Updates = ({ currentVersion }) => {
     prevIsUpdatingRef.current = messages.is_updating;
   }, [messages.is_updating]);
 
+
   useEffect(() => {
     async function fetchInitialData() {
       try {
@@ -121,7 +121,6 @@ const Updates = ({ currentVersion }) => {
         if (releases.length > 0) {
           const latest = releases[0];
           // at mounting, default to the latest release available
-          console.log("LATEST RELEASE: ", latest);
           setSelectedReleaseTag(latest.tag_name);
           setSelectedReleaseInfo(latest);
           setNewVersion(latest.tag_name);
@@ -129,23 +128,25 @@ const Updates = ({ currentVersion }) => {
           setSelectedReleaseInfo(latestReleaseResponse.data);
         }
       } catch (error) {
-        console.log("Error fetching update info: ", error);
+        console.error("Error fetching update info: ", error);
         setUpdateStatusMessages(error?.message || "Error fetching update info");
       } finally {
         setIsLoading(false);
-        console.log("UPDATE MSG: ", updateStatusMessages);
       }
     }
 
     setIsLoading(true);
     fetchInitialData();
-
-    const ws = createWebSocketConnection("updates", "/updates/status_ws", setMessages);
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-    };
+    const timeout = setTimeout(() => {
+      const ws = createWebSocketConnection("updates", "/updates/status_ws/", setMessages);
+      return () => {
+        if (ws) {
+          ws.close();
+          console.log("WebSocket connection closed.");
+        }
+      };
+    }, 100);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {

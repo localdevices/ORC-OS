@@ -307,31 +307,6 @@ async def do_update(tag_name, backup_distribution=False):
     await asyncio.sleep(1)
     await modify_state_update_event(True, "Starting update...")
     try:
-        # # Check for latest release
-        # # ========================
-        # version_info = await check_latest_github_version()
-        # if not version_info["online"]:
-        #     await asyncio.sleep(1)
-        #     await modify_state_update_event(True, "Not online, cannot update")
-        #     return {"status": "Not online, cannot update"}
-        # if "timeout" in version_info["latest_version"]:
-        #     msg = "Timeout reached while retrieving update. Connection not stable enough for updating."
-        #     await asyncio.sleep(1)
-        #     await modify_state_update_event(True, msg)
-        #     return {"status": msg}
-        # if not version_info["update_available"]:
-        #     await asyncio.sleep(1)
-        #     await modify_state_update_event(True, "No update available")
-        #     return {"status": "No update available"}
-
-        # if "error" in version_info:
-        #     raise Exception("Failed to get release information")
-
-        # release_data = _ensure_release_data(version_info.get("release_data"))
-        # tag_name = str(release_data.get("tag_name", ""))
-        # if not tag_name:
-        #     raise HTTPException(status_code=500, detail="Release tag is missing")
-
         # Run release-specific compatibility checks before any installation work.
         await asyncio.sleep(1)
         release_data = await fetch_release_by_tag(tag_name)
@@ -591,7 +566,7 @@ async def shutdown_device():
     subprocess.run(["sudo", "shutdown", "now"], check=True)
 
 
-@router.websocket("/status_ws")
+@router.websocket("/status_ws/")
 async def update_status_ws(websocket: WebSocket):
     """Get continuous status of the update process via websocket."""
     await websocket.accept()
