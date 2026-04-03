@@ -1,7 +1,7 @@
 """Schemas for update-related API endpoints."""
 
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -21,8 +21,8 @@ class ManifestCheckResult(BaseModel):
     check_id: str = Field(description="Stable identifier for the check.")
     status: CheckStatus = Field(description="Machine-readable status.")
     message: str = Field(description="User-facing explanation.")
-    remedy: str | None = Field(default=None, description="Suggested action to resolve a failing check.")
-    details: dict[str, Any] | None = Field(default=None, description="Extra debug details.")
+    remedy: Optional[str] = Field(default=None, description="Suggested action to resolve a failing check.")
+    details: Optional[dict[str, Any]] = Field(default=None, description="Extra debug details.")
 
 
 class ManifestPreflightResult(BaseModel):
@@ -43,7 +43,7 @@ class ReleaseItem(BaseModel):
     """Single release item from GitHub API response."""
 
     tag_name: str = Field(description="Release tag, e.g. v0.6.1")
-    published_at: str | None = Field(default=None, description="GitHub release publish timestamp")
+    published_at: Optional[str] = Field(default=None, description="GitHub release publish timestamp")
     prerelease: bool = Field(default=False, description="Whether this is a prerelease")
 
 
