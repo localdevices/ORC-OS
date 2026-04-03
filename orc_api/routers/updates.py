@@ -291,6 +291,9 @@ async def do_update(tag_name, backup_distribution=False):
     base_dir = os.path.split(orc_api.__file__)[0]
     package_dir = str(importlib.metadata.distribution("orc_api").locate_file(""))
     db_path = orc_api.db.db_path_config
+    # make sure the backup of the database is side-by-side with the original so that in case of failure it can be
+    # easily moved back.
+    backup_db_path = os.path.join(os.path.split(db_path)[0], "orc_api_backup.db")
     db_engine = orc_api.db.sqlite_engine
     api_update_success = False  # start with false, if successful, will be set to true
     update_success = True  # will be made False during exception
@@ -371,7 +374,7 @@ async def do_update(tag_name, backup_distribution=False):
             # backup the database before migration
             time.sleep(1)
             await modify_state_update_event(True, "Backing up database...")
-            backup_db_path = os.path.join(backup_dir, "orc_api_backup.db")
+            # copy database side-by-side with original for easier rollback
             shutil.copyfile(db_path, backup_db_path)
 
             # Create another temporary directory for the update
@@ -527,25 +530,6 @@ async def get_release_by_tag(tag_name: str):
         return release_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cannot fetch release tag '{tag_name}': {str(e)}")
-
-
-# @router.get("/preflight")
-# async def check_update_preflight():
-#     """Run release preflight compatibility checks using release manifest."""
-#     version_info = await check_github_version()
-#     if not version_info.get("online", False):
-#         return {"ok_to_update": False, "message": "Not online, cannot run preflight checks", "results": []}
-#     if "error" in version_info:
-#         raise HTTPException(status_code=500, detail=version_info["error"])
-
-#     release_data_raw = version_info.get("release_data")
-#     if not release_data_raw:
-#         raise HTTPException(status_code=500, detail="No release data available for preflight checks")
-#     release_data = _ensure_release_data(release_data_raw)
-#     result = await run_release_preflight(release_data)
-#     payload = result.model_dump()
-#     payload["tag_name"] = release_data.get("tag_name")
-#     return payload
 
 
 @router.get("/preflight/{tag_name}/", response_model=VersionedPreflightResponse)
