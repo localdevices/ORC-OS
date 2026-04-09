@@ -6,76 +6,6 @@ import pytest
 
 from orc_api.utils import disk_management, io
 
-GEOJSON_WITH_CRS = """
-{
-    "type": "FeatureCollection",
-    "crs": {
-        "type": "name",
-        "properties": {
-            "name": "EPSG:32636"
-        }
-    },
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [0, 0, 0]
-            },
-            "properties": {}
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [1, 1, 1]
-            },
-            "properties": {}
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [2, 4, 2]
-            },
-            "properties": {}
-        }
-    ]
-}
-"""
-
-GEOJSON_WITHOUT_CRS = """
-{
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [0, 0, 0]
-            },
-            "properties": {}
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [1, 1, 1]
-            },
-            "properties": {}
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [2, 4, 2]
-            },
-            "properties": {}
-        }
-    ]
-}
-"""
-
 
 def test_get_file_timestamp_datetimestr():
     fn_fmt = "video_{%Y%m%d_%H%M%S}.mp4"
@@ -113,13 +43,14 @@ def test_read_cross_section_csv(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "json_string",
+    "json_string_def",
     [
-        GEOJSON_WITH_CRS,
-        GEOJSON_WITHOUT_CRS,
+        "cross_section_with_crs",
+        "cross_section_without_crs",
     ],
 )
-def test_read_cross_section_geojson(tmpdir, json_string):
+def test_read_cross_section_geojson(request, tmpdir, json_string_def):
+    json_string = request.getfixturevalue(json_string_def)
     # Create a temporary CSV file for testing
     test_json_path = Path(tmpdir) / "test_cross_section.geojson"
     with open(test_json_path, "w") as f:

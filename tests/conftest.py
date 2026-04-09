@@ -126,3 +126,79 @@ def session_config(session_empty, tmpdir):
     # commit to give all an id
     session.commit()
     return session  # Provide the session to tests
+
+
+@pytest.fixture
+def cross_section_with_crs():
+    return """
+{
+    "type": "FeatureCollection",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "EPSG:32636"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [0, 0, 0]
+            },
+            "properties": {}
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1, 1, 1]
+            },
+            "properties": {}
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [2, 4, 2]
+            },
+            "properties": {}
+        }
+    ]
+}
+"""
+
+
+@pytest.fixture
+def cross_section_without_crs():
+    return """
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [0, 0, 0]
+            },
+            "properties": {}
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1, 1, 1]
+            },
+            "properties": {}
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [2, 4, 2]
+            },
+            "properties": {}
+        }
+    ]
+}
+"""
