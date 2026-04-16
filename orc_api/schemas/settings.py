@@ -10,7 +10,7 @@ from typing_extensions import Self
 
 from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
-from orc_api.routers.video import upload_video
+from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import disk_management, queue, sys_utils
 
@@ -146,9 +146,10 @@ class SettingsResponse(SettingsBase):
                 # Add a new record for the provided file, first only timestamp
                 file = UploadFile(filename=os.path.split(tmp_file)[1], file=open(tmp_file, "rb"))
                 with get_session() as session:
-                    video_response = await upload_video(
-                        file=file, timestamp=timestamp, video_config_id=self.video_config_id, db=session
+                    video_instance = await crud.video.create_from_upload(
+                        db=session, file=file, timestamp=timestamp, video_config_id=self.video_config_id
                     )
+                    video_response = VideoResponse.model_validate(video_instance)
                 # move video to queue
                 video_response = await queue.process_video(
                     session=session,

@@ -1,5 +1,6 @@
 alembic
-apscheduler
+celery[redis]>=5.4
+concurrent-log-handler
 fastapi[standard]
 pillow<=9.5.0
 pydantic
@@ -8,4 +9,5 @@ pyyaml
 rasterio<=1.3.11
 sqlalchemy
 typing_extensions
+redis>=5.0
 zipstream

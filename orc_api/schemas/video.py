@@ -1,6 +1,7 @@
 """Video schema."""
 
 import glob
+import json
 import os
 import subprocess
 import time
@@ -8,6 +9,7 @@ from datetime import datetime
 from typing import Optional
 
 import numpy as np
+import redis
 import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from pyorc.service import velocity_flow_subprocess
@@ -22,7 +24,7 @@ from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse, VideoConfigUpdate
 from orc_api.utils.image import get_frame_count, get_height_width
-from orc_api.utils.states import SyncRunStatus, VideoRunStatus, video_run_state
+from orc_api.utils.states import SyncRunStatus, VideoRunStatus
 
 
 # Pydantic model for responses
@@ -130,6 +132,48 @@ class VideoResponse(VideoBase, RemoteModel):
         # check if all run components are available
         return self.allowed_to_run
 
+    def _publish_status(
+        self,
+        message: str,
+        run_status: Optional[VideoRunStatus] = None,
+        sync_status: Optional[SyncRunStatus] = None,
+        channel: str = "video_status",
+    ):
+        """Publish runtime status updates to Redis for websocket consumers."""
+        redis_url = os.getenv("ORC_CELERY_BROKER_URL", "redis://localhost:6379/0")
+        filename = os.path.split(self.file)[1] if self.file else None
+
+        if run_status is None:
+            run_status = self._map_video_status_to_run_status()
+        if sync_status is None:
+            sync_status = SyncRunStatus.IDLE
+
+        payload = {
+            "video_id": self.id,
+            "video_file": filename,
+            "status": run_status.value,
+            "sync_status": sync_status.value,
+            "message": message,
+        }
+
+        try:
+            client = redis.from_url(redis_url)
+            client.set(f"video:{self.id}:status", json.dumps(payload))
+            client.publish(channel, json.dumps(payload))
+        except Exception:
+            # Status publishing should not block processing.
+            logger.debug("Failed to publish video status update to Redis.", exc_info=True)
+
+    def _map_video_status_to_run_status(self) -> VideoRunStatus:
+        """Map persisted video status to websocket run status codes."""
+        if self.status == models.VideoStatus.TASK:
+            return VideoRunStatus.PROCESSING
+        if self.status == models.VideoStatus.DONE:
+            return VideoRunStatus.SUCCESS
+        if self.status == models.VideoStatus.ERROR:
+            return VideoRunStatus.ERROR
+        return VideoRunStatus.IDLE
+
     def patch_post(self, db):
         """Patch or post instance dependent on whether an ID is already set or not."""
         video_dict = self.model_dump(
@@ -207,12 +251,10 @@ class VideoResponse(VideoBase, RemoteModel):
                 session.refresh(rec)
                 # now also show the state PROCESSING in web socket
                 filename = os.path.split(self.file)[1] if self.file else None
-                video_run_state.update(
-                    video_id=self.id,
-                    video_file=filename,
-                    status=VideoRunStatus.PROCESSING,
-                    sync_status=SyncRunStatus.IDLE,
+                self._publish_status(
                     message=f"Starting processing of video: {filename}",
+                    run_status=VideoRunStatus.PROCESSING,
+                    sync_status=SyncRunStatus.IDLE,
                 )
                 if self.time_series:
                     # for older versions (python 3.9) check and validate
@@ -261,14 +303,15 @@ class VideoResponse(VideoBase, RemoteModel):
                     key = next(iter(recipe["plot"]))
                     img_fn = os.path.join(self.get_path(base_path=base_path), "output", f"{key}.jpg")
                     rel_img_fn = os.path.relpath(img_fn, base_path)
-                    if h_a is not None:
-                        h_a_str = f"{np.round(h_a, 3)} m."
-                    else:
-                        h_a_str = "None"
-                    video_run_state.update(
-                        message=f"Processing with h: {h_a_str} to "
-                        f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}"
-                    )
+                if h_a is not None:
+                    h_a_str = f"{np.round(h_a, 3)} m."
+                else:
+                    h_a_str = "None"
+                self._publish_status(
+                    message=f"Processing with h: {h_a_str} to "
+                    f"{self.get_output_path(base_path=base_path).split(base_path)[-1]}",
+                    run_status=VideoRunStatus.PROCESSING,
+                )
                 # run the video with pyorc with an additional logger handler
                 logger.info(
                     "Starting video processing with pyorc. You can check logs per video record after running in "
@@ -297,12 +340,12 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.update_timeseries(session=session, base_path=base_path)
                 # update status
                 self.status = models.VideoStatus.DONE
-                video_run_state.update(status=VideoRunStatus.SUCCESS, message="Processing successful.")
+                self._publish_status(message="Processing successful.", run_status=VideoRunStatus.SUCCESS)
             except Exception as e:
                 # ensure status is ERROR, but continue afterwards
                 self.status = models.VideoStatus.ERROR
                 # also show this state in the web socket
-                video_run_state.update(status=VideoRunStatus.ERROR, message=f"Error running video: {filename}: {e}")
+                self._publish_status(message=f"Error running video: {filename}: {e}", run_status=VideoRunStatus.ERROR)
                 logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
             # finally:
             #     # the last handler should be our file handler.
@@ -339,7 +382,6 @@ class VideoResponse(VideoBase, RemoteModel):
                 subprocess.call("sudo shutdown -h now", shell=True)
             # only do a raise after the shutdown has been done, to avoid not shutting down at all.
             if self.status == models.VideoStatus.ERROR:
-                video_run_state.update(status=VideoRunStatus.ERROR)
                 raise Exception("Error running video, VideoStatus set to ERROR.")
 
             return
@@ -364,13 +406,12 @@ class VideoResponse(VideoBase, RemoteModel):
         try:
             # first update Sync Status to QUEUE so that syncing may be re-attempted upon reboot
             _ = crud.video.update(session, id=self.id, video={"sync_status": models.SyncStatus.QUEUE})
-            filename = os.path.split(self.file)[1]
-            video_run_state.update(
-                video_id=self.id,
-                video_file=filename,
-                sync_status=SyncRunStatus.SYNCING,
-                status=self.status,
+            # filename = os.path.split(self.file)[1]
+            self._publish_status(
                 message=f"Syncing to remote site {site}",
+                run_status=self._map_video_status_to_run_status(),
+                sync_status=SyncRunStatus.SYNCING,
+                channel="video_sync_status",
             )
             # first check if the video config and time series are synced
             if self.video_config is not None:
@@ -447,9 +488,11 @@ class VideoResponse(VideoBase, RemoteModel):
                         video=update_video.serialize_for_db(),  # model_dump(exclude_unset=True, exclude_none=True)
                     )
                     logger.info(f"Syncing to remote site {site} successful.")
-                    video_run_state.update(
-                        sync_status=SyncRunStatus.SUCCESS,
+                    self._publish_status(
                         message=f"Syncing to remote site {site} successful.",
+                        run_status=self._map_video_status_to_run_status(),
+                        sync_status=SyncRunStatus.SUCCESS,
+                        channel="video_sync_status",
                     )
                     return VideoResponse.model_validate(r)
                 return None
@@ -457,16 +500,20 @@ class VideoResponse(VideoBase, RemoteModel):
             logger.debug(
                 f"Skipping syncing of video {self.id} - {self.file}. No image or video file requested to sync."
             )
-            video_run_state.update(
-                sync_status=SyncRunStatus.SUCCESS,
+            self._publish_status(
                 message=f"Syncing to remote site {site} without video sucessful.",
+                run_status=self._map_video_status_to_run_status(),
+                sync_status=SyncRunStatus.SUCCESS,
+                channel="video_sync_status",
             )
             _ = crud.video.update(session, id=self.id, video={"sync_status": models.SyncStatus.LOCAL})
         except Exception as e_sync:
             logger.error(f"Error syncing video to remote site: {e_sync}. Full traceback below.")
-            video_run_state.update(
-                sync_status=SyncRunStatus.FAILED,
+            self._publish_status(
                 message=f"Error syncing to remote site {site}: {e_sync}",
+                run_status=self._map_video_status_to_run_status(),
+                sync_status=SyncRunStatus.FAILED,
+                channel="video_sync_status",
             )
             # also update record
             _ = crud.video.update(session, id=self.id, video={"sync_status": models.SyncStatus.FAILED})

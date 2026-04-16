@@ -117,12 +117,13 @@ export const sync_videos = async (api, syncStartDate, syncEndDate, syncSettings,
     )
     if ( response.status === 200 ) {
       setMessageInfo("success", "Video sync job sent and received");
-    } else {
-      new Error("Error syncing videos");
     }
   } catch (error) {
-    setMessageInfo("error", error);
-  }
+    console.error("Error syncing the video:", error);
+    // Handle error and send the message to container
+    const errorMessage =
+      error.response?.data?.detail || "An unexpected error occurred while syncing the video.";
+    setMessageInfo("error", errorMessage);  }
 }
 
 
@@ -203,7 +204,6 @@ export const sync_video = async(video, setMessageInfo) => {
     setMessageInfo("success", "Video has been submitted for syncing.");
   } catch (error) {
     console.error("Error syncing the video:", error);
-
     // Handle error and send the message to container
     const errorMessage =
       error.response?.data?.detail || "An unexpected error occurred while syncing the video.";

@@ -1,4 +1,12 @@
 services:
+  redis:
+    image: redis:8.6.2-alpine
+    container_name: orc-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks:
+      - orc-network
+
   orcapi:
     build:
       context: .
@@ -13,10 +21,15 @@ services:
       - ORC_INCOMING_DIRECTORY=/app/data/uploads/incoming
       - ORC_SECRET_KEY=${ORC_SECRET_KEY}
       - ORC_DEV_MODE=${ORC_DEV_MODE:-0}
+      - ORC_CELERY_BROKER_URL=redis://redis:6379/0
+      - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
     volumes:
       - ${ORC_DATA_PATH:-./data}:/app/data
     ports:
       - "3001:5000"
+    depends_on:
+      redis:
+        condition: service_started
     networks:
       - orc-network
     healthcheck:
@@ -25,6 +38,56 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orc-celery-worker
+    restart: unless-stopped
+    environment:
+      - ORC_HOME=/app/data
+      - ORC_UPLOAD_DIRECTORY=/app/data/uploads
+      - ORC_INCOMING_DIRECTORY=/app/data/uploads/incoming
+      - ORC_SECRET_KEY=${ORC_SECRET_KEY}
+      - ORC_DEV_MODE=${ORC_DEV_MODE:-0}
+      - ORC_CELERY_BROKER_URL=redis://redis:6379/0
+      - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ${ORC_DATA_PATH:-./data}:/app/data
+    command: ["celery", "-A", "orc_api.celery_app", "worker", "--loglevel=info"]
+    depends_on:
+      redis:
+        condition: service_started
+      orcapi:
+        condition: service_healthy
+    networks:
+      - orc-network
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orc-celery-beat
+    restart: unless-stopped
+    environment:
+      - ORC_HOME=/app/data
+      - ORC_UPLOAD_DIRECTORY=/app/data/uploads
+      - ORC_INCOMING_DIRECTORY=/app/data/uploads/incoming
+      - ORC_SECRET_KEY=${ORC_SECRET_KEY}
+      - ORC_DEV_MODE=${ORC_DEV_MODE:-0}
+      - ORC_CELERY_BROKER_URL=redis://redis:6379/0
+      - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ${ORC_DATA_PATH:-./data}:/app/data
+    command: ["celery", "-A", "orc_api.celery_app", "beat", "--loglevel=info"]
+    depends_on:
+      redis:
+        condition: service_started
+      orcapi:
+        condition: service_healthy
+    networks:
+      - orc-network
 
   dashboard:
     build:

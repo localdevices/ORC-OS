@@ -9,8 +9,9 @@ authors = [
 ]
 dependencies = [
     "alembic",
-    "apscheduler",
     "bcrypt",
+    "celery[redis]>=5.4",
+    "concurrent-log-handler",
     "fastapi[standard]",
     "numpy<2; python_version <= '3.9'",  # for compatibility with older picamera2 version on Bullseye
     "numpy>=2; python_version >= '3.10'",
@@ -26,6 +27,7 @@ dependencies = [
     "sqlalchemy",
     "typing_extensions",
     "requests",
+    "redis>=5.0",
     "zipstream"
 ]
 requires-python = ">=3.9" # fix tests to support older versions

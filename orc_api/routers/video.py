@@ -29,21 +29,21 @@ from starlette.websockets import WebSocketDisconnect
 # Directory to save uploaded files
 from orc_api import DEV_MODE, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_db
-from orc_api.db import SyncStatus, Video, VideoStatus
+from orc_api.db import SyncStatus, VideoStatus
 from orc_api.log import logger
 from orc_api.routers.ws.video import WSVideoMsg, WSVideoState
 from orc_api.schemas.video import (
     DeleteVideosRequest,
     DownloadVideosRequest,
     SyncVideosRequest,
-    VideoCreate,
     VideoListResponse,
     VideoPatch,
     VideoResponse,
 )
 from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue, websockets
-from orc_api.utils.states import video_run_state
+from orc_api.utils.redis_pubsub import get_redis_pubsub_manager
+from orc_api.utils.states import SyncRunStatus, VideoRunStatus
 
 router: APIRouter = APIRouter(prefix="/video", tags=["video"])
 
@@ -52,6 +52,16 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 # start a websockets connection manager
 conn_manager = websockets.ConnectionManager()
+
+
+async def redis_available() -> None:
+    """Check if Redis connection is available for video synchronization."""
+    try:
+        pubsub_manager = await get_redis_pubsub_manager()
+        if await pubsub_manager.is_available() is False:
+            raise HTTPException(status_code=500, detail="Redis connection is not available for video synchronization.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect to Redis for video synchronization: {str(e)}")
 
 
 def get_video_record(db: Session, id: int) -> VideoResponse:
@@ -70,7 +80,7 @@ async def zip_generator(files, base_path):
     # Find common base path
     for f in files:
         if not os.path.isfile(f):
-            print(f"File {f} does not exist. Skipping.")
+            logger.warning(f"File {f} does not exist. Skipping.")
             continue
         relative_path = os.path.relpath(f, base_path)
         z.write(f, arcname=relative_path)
@@ -330,16 +340,14 @@ async def play_video(id: int, range: str = Header(None), db: Session = Depends(g
 
 @router.get("/{id}/run/", response_model=VideoPatch, status_code=200)
 async def run_video(id: int, request: Request, db: Session = Depends(get_db)):
-    """Retrieve a video file and stream it to the client."""
+    """Submit a video for processing to the Celery queue."""
+    await redis_available()
     video = get_video_record(db, id)
-    executor = request.app.state.executor
     # session = request.app.state.session
     video_patch = await queue.process_video(
         session=db,
         video=video,
         logger=logger,
-        executor=executor,
-        upload_directory=UPLOAD_DIRECTORY,
     )
     return video_patch
 
@@ -380,35 +388,9 @@ async def upload_video(
     db: Session = Depends(get_db),
 ):
     """Upload a video file and create a new entry in the database."""
-    # validate the individual inputs
-    video = VideoCreate(timestamp=timestamp, video_config_id=video_config_id)
-    # Create a new Video instance to retrieve an id
-    video_instance = Video(**video.model_dump(exclude_none=True))
-
-    # Save to database
-    video_instance = crud.video.add(db=db, video=video_instance)
-
-    # now the video has an ID and we can create a logical storage location
-    file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", timestamp.strftime("%Y%m%d"), str(video_instance.id))
-    os.makedirs(file_dir, exist_ok=True)
-    # Save file to disk
-    rel_file_path = os.path.join("videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), file.filename)
-    abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
-
-    # Save the file in chunks
-    with open(abs_file_path, "wb") as f:
-        while True:
-            chunk = await file.read(1024 * 1024)  # Read in 1MB chunks
-            if not chunk:
-                break  # Stop when no more data is left
-            f.write(chunk)
-
-    # now update the video instance
-    video_instance.file = rel_file_path
-    # video_instance.thumbnail = rel_thumb_path
-    db.commit()
-    db.refresh(video_instance)
-    # return a VideoResponse instance
+    video_instance = await crud.video.create_from_upload(
+        db=db, file=file, timestamp=timestamp, video_config_id=video_config_id
+    )
     return VideoResponse.model_validate(video_instance)
 
 
@@ -487,6 +469,8 @@ async def download_videos_on_ids(
 @router.post("/{id}/sync/", status_code=200, response_model=None)
 async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
     """Sync a selected video."""
+    # first check if redis connection is available, if not, return error immediately
+    await redis_available()
     # if no settings found assume everything should be synced
     sync_file = True
     sync_image = True
@@ -512,8 +496,7 @@ async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
         sync_file = settings.sync_file
         sync_image = settings.sync_image
 
-    # retrieve the executor instance
-    executor = request.app.state.executor
+    # Submit to Celery queue
     video_patch = await queue.sync_video(
         session=db,
         video=video,
@@ -521,15 +504,20 @@ async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
         site=callback_url.remote_site_id,
         sync_file=sync_file,
         sync_image=sync_image,
-        executor=executor,
-        upload_directory=UPLOAD_DIRECTORY,
     )
     return video_patch
 
 
 @router.post("/sync/", status_code=200, response_model=List[VideoResponse])
 async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Session = Depends(get_db)):
-    """Sync a list of videos."""
+    """Sync a list of videos using Celery queue."""
+    # first check if redis connection is available, if not, return error immediately
+    try:
+        pubsub_manager = await get_redis_pubsub_manager()
+        if await pubsub_manager.is_available() is False:
+            raise HTTPException(status_code=500, detail="Redis connection is not available for video synchronization.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect to Redis for video synchronization: {str(e)}")
     sync_image = params.sync_image
     sync_file = params.sync_file
     start = params.start
@@ -545,19 +533,15 @@ async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Sess
                 "email/password and a site ID to report on.",
             )
         site = url.remote_site_id
-    timeout = min(url.retry_timeout, 150) if url.retry_timeout else 150
     try:
         videos = await queue.sync_videos_start_stop(
             session=db,
-            executor=request.app.state.executor,
-            upload_directory=UPLOAD_DIRECTORY,
             start=start,
             stop=stop,
             logger=logger,
             site=site,
             sync_file=sync_file,
             sync_image=sync_image,
-            timeout=timeout,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error syncing videos: {str(e)}")
@@ -568,27 +552,43 @@ async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Sess
 
 @router.websocket("/status/")
 async def update_video_ws(websocket: WebSocket):
-    """Get continuous status of the update process via websocket."""
+    """Get continuous status of the update process via websocket using Redis pub/sub."""
     await conn_manager.connect(websocket)
-    print(f"Connected websocket: {websocket}")
-    await conn_manager.send_json(websocket=websocket, json=video_run_state.json)
+    logger.info(f"Connected websocket: {websocket}")
+
+    await conn_manager.send_json(
+        websocket=websocket,
+        json={
+            "video_id": 0,
+            "video_file": "",
+            "status": VideoRunStatus.IDLE.value,
+            "sync_status": SyncRunStatus.IDLE.value,
+            "message": "Subscribed to video status updates.",
+        },
+    )
 
     try:
-        while True:
-            # then just wait until the message changes
-            status_msg = await video_run_state.queue.get()
-            await conn_manager.send_json(websocket=websocket, json=status_msg)
-            await asyncio.sleep(0.1)
+        # Get Redis pub/sub manager and subscribe to video status channels
+        pubsub_manager = await get_redis_pubsub_manager()
+
+        # Create tasks for both channels
+        video_status_task = asyncio.create_task(
+            pubsub_manager.subscribe_and_stream(websocket, ["video_status", "video_sync_status"])
+        )
+
+        # Wait for the pub/sub stream (will run until disconnected or error)
+        await video_status_task
+
     except WebSocketDisconnect:
-        f"Websocket {websocket} disconnected."
+        logger.info(f"Websocket {websocket} disconnected.")
         conn_manager.disconnect(websocket)
     except Exception as e:
         if DEV_MODE:
             traceback.print_exc()
-        print(f"Websocket error: {e}")
+        logger.error(f"Websocket error: {e}")
         conn_manager.disconnect(websocket)
     except asyncio.CancelledError:
-        print(f"Websocket {websocket} cancelled.")
+        logger.info(f"Websocket {websocket} cancelled.")
         conn_manager.disconnect(websocket)
 
 
@@ -596,7 +596,7 @@ async def update_video_ws(websocket: WebSocket):
 async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
     """Get continuous status of video config belonging to video via websocket."""
     await conn_manager.connect(websocket)
-    print(f"Connected websocket for video config data exchange: {websocket}")
+    logger.info(f"Connected websocket for video config data exchange: {websocket}")
     # initialize the websocket state
     try:
         db = next(get_db())
@@ -611,7 +611,7 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
         await websocket.send_json({"error": str(e)})
         if DEV_MODE:
             traceback.print_exc()
-        print(f"Error sending video config data to websocket: {e}")
+        logger.error(f"Error sending video config data to websocket: {e}")
         await websocket.close()
         return
 
@@ -620,7 +620,7 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
             # read requests from client
             msg = await websocket.receive_json()
             if DEV_MODE:
-                print(f"Received message from websocket: {msg}")
+                logger.debug(f"Received message from websocket: {msg}")
             # validate message
             msg = WSVideoMsg.model_validate(msg)
             # perform operations on video config
@@ -634,14 +634,14 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
                 r = video_state.update_video_config(**msg.model_dump(exclude={"action"}))
             await websocket.send_json(r.model_dump(mode="json"))
     except WebSocketDisconnect:
-        print(f"Websocket {websocket} for video_config_id {id} disconnected.")
+        logger.info(f"Websocket {websocket} for video_config_id {id} disconnected.")
         conn_manager.disconnect(websocket)
         # await websocket.close()
     except Exception as e:
         if DEV_MODE:
             traceback.print_exc()
-        print(f"Websocket error: {e}")
+        logger.error(f"Websocket error: {e}")
         conn_manager.disconnect(websocket)
     except asyncio.CancelledError:
-        print(f"Websocket {websocket} for video_config_id {id} cancelled.")
+        logger.info(f"Websocket {websocket} for video_config_id {id} cancelled.")
         conn_manager.disconnect(websocket)
