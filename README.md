@@ -274,10 +274,11 @@ configured once ORC-OS is set up.
 The following components must be installed on your device.
 1. A FastAPI back-end. This component is used by the front end to communicate with the device. It is a Python package
    that can be installed via pip.
-2. A web front-end. This component has a  is used by the user to interact with the device. It is a Python package that can
-   be installed via pip.
-3. A reverse proxy to serve the web server to the user. This component is used to serve the web server to the user. It is
-   a Python package that can be installed via pip.
+2. A Redis service. This acts as Celery broker and result backend.
+3. A Celery beat process. Celery schedules recurring tasks, such as maintenance and water-level jobs.
+4. Celery worker processes. Although you can only define one worker for all of the jobs, we recommend two workers,
+   split by queue type (see queue model below).
+5. A web front-end and reverse proxy (`nginx` in this guide) to serve the dashboard and proxy `/api` requests.
 
 We will go over each component in detail below. The commands are all based on Debian-based systems. If you use a
 different system, you will need to adapt the commands accordingly.
@@ -290,7 +291,9 @@ First update your repositories and install the necessary linux libraries.
 sudo apt update
 sudo apt upgrade
 # update the required dependencies
-sudo apt install -y ffmpeg git libsm6 libxext6 libgl1 nginx python3-dev python3-venv libgdal-dev vim jq
+sudo apt install -y ffmpeg git libsm6 libxext6 libgl1 nginx python3-dev python3-venv libgdal-dev vim jq redis-server
+# ensure redis starts automatically
+sudo systemctl enable --now redis.service
 ```
 
 ### FastAPI back-end
@@ -345,66 +348,188 @@ see a folder for `incoming` and `uploads`. In `incoming` you should eveentually 
 automatically process. In `uploads` you will find the processed videos, once you start running videos. A user
 will usually never look at these files and folders directly. They are only used internally by the API.
 
-### Run the ORC-API as a service
-Naturally you do not want to manually start the API every time you want to use it. Hence, we recommend to set up a
-systemd service that starts the API automatically on boot, and restarts it if for some reason it stops or crashes.
-Crashes could happen e.g. when the service runs out of memory. Normal closes happen when the OTA updates
-are performed or when the user selects a restart of the API from the front end by clicking on the restart button.
+### Run ORC-OS back-end services with systemd
+Naturally you do not want to manually start FastAPI, Celery workers and Celery beat every time the device boots.
+To automatically orchestrate starting of all services in your
+native installation, we recommend one `target` unit (`orc-os.target`) that groups dependent services:
 
-We **strongly recommend to set a `ORC_SECRET_KEY` environment variable**. This ensures that the API is protected
-against unauthorized access. You can generate a random key with the following command:
+- `orc-api.service` for FastAPI.
+- `orc-celery-beat.service` for periodic schedule publishing.
+- `orc-celery-worker-general.service` for `sync` and `periodic` queues.
+- `orc-celery-worker-video.service` for `video` queue only, with `concurrency=1`.
 
-```bash
-SECRET_KEY=$(head -c 16 /dev/urandom | base64)
-echo $SECRET_KEY
+The queue split is important for stability:
+
+- `periodic`: recurring maintenance tasks started by beat (e.g. disk maintenance, water level retrieval). These do not
+  require large amounts of resources and memory, and therefore may be expected to always run side-by-side with any
+  video processing.
+- `sync`: video synchronization tasks (`sync_video`, `sync_videos_batch`). These may take time, but not significant
+  resources and therefore also can run side-by-side with video processing.
+- `video`: heavy video processing tasks (`run_video`). Entirely separated from the other queues.
+
+We strongly recommend running `video` on a dedicated worker with `--concurrency=1`. This prevents multiple concurrent
+video processes from running at once and consuming too much memory. A second worker can safely process `sync` and
+`periodic` jobs in parallel as these do not require significant resources.
+
+```mermaid
+flowchart TD
+  T[orc-os.target] --> API[orc-api.service\nFastAPI]
+  T --> BEAT[orc-celery-beat.service\ncelery beat]
+  T --> WG[orc-celery-worker-general.service\nqueues: sync, periodic]
+  T --> WV[orc-celery-worker-video.service\nqueue: video, concurrency=1]
+  BEAT --> QP[(periodic queue)]
+  API --> QS[(sync queue)]
+  API --> QV[(video queue)]
+  WG --> QS
+  WG --> QP
+  WV --> QV
 ```
 
-An example of a systemd service file is provided below. You need to adapt the paths to your system.
-Also you must replace:
+> [!TIP]
+> We **strongly encourage to set a `ORC_SECRET_KEY` environment variable** in the FastAPI unit file. This ensures that
+> the API is protected against unauthorized access. You can generate a random key with the following command:
+>
+> ```bash
+> SECRET_KEY=$(head -c 16 /dev/urandom | base64)
+> echo $SECRET_KEY
+> ```
+
+Below are example unit files. You need to adapt the paths to your system.
+Also replace:
 - `YOUR_USERNAME` by the user running this service (does not need to be root).
 - `YOUR_SECRET_KEY_GOES_HERE` by the actual secret key you generated for the device.
 
-Place this file in `etc/systemd/system/orc-api.service`.
+Place these files in `/etc/systemd/system/`.
+
+`orc-os.target`
 ```ini
 [Unit]
-Description=FastAPI for ORC-OS
+Description=ORC-OS Application Stack
+Requires=redis.service
+After=network.target redis.service
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`orc-api.service`
+```ini
+[Unit]
+Description=ORC-OS API
 Before=nginx.service
-After=network.target
+After=network.target redis.service
+PartOf=orc-os.target
+Wants=orc-celery-beat.service orc-celery-worker-general.service orc-celery-worker-video.service
+Upholds=orc-celery-beat.service orc-celery-worker-general.service orc-celery-worker-video.service
 
 [Service]
 User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
-Environment="PATH=/home/YOUR_UERNAME/venv/orc-os/bin:/usr/bin"
-Environment="ORC_INCOMING_DIRECTORY=/home/user/.ORC-OS/incoming"
+WorkingDirectory=/home/YOUR_USERNAME
+Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
+Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
 Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
 Environment="ORC_SECRET_KEY=YOUR_SECRET_KEY_GOES_HERE"
-ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
+ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/uvicorn orc_api.main:app --host 0.0.0.0 --port 5000 --workers 1
 Restart=always
 RestartSec=10
 TimeoutStopSec=10
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=orc-os.target
 
 ```
 
-After creating this file, you can enable (for each boot) and immediately start the service.
+`orc-celery-beat.service`
+```ini
+[Unit]
+Description=ORC-OS Celery Beat Scheduler
+After=redis.service orc-api.service
+PartOf=orc-os.target orc-api.service
+BindsTo=orc-api.service
+
+[Service]
+type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
+Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
+Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
+Environment="ORC_SECRET_KEY=YOUR_SECRET_KEY_GOES_HERE"
+ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/celery -A orc_api.celery_app:celery_app beat --loglevel=info
+Restart=always
+RestartSec=10
+TimeoutStopSec=10
+
+[Install]
+WantedBy=orc-os.target
+```
+
+`orc-celery-worker-general.service`
+```ini
+[Unit]
+type=simple
+Description=ORC-OS Celery Worker for sync and periodic schedulers
+After=redis.service orc-api.service
+PartOf=orc-os.target orc-api.service
+BindsTo=orc-api.service
+
+[Service]
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
+Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
+Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
+ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/celery -A orc_api.celery_app:celery_app worker -Q sync,periodic --loglevel=info
+Restart=always
+RestartSec=10
+TimeoutStopSec=10
+
+[Install]
+WantedBy=orc-os.target
+```
+
+`orc-celery-worker-video.service`
+```ini
+[Unit]
+Description=ORC-OS Celery Worker for video processing
+After=redis.service orc-api.service
+PartOf=orc-os.target orc-api.service
+BindsTo=orc-api.service
+
+[Service]
+type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
+Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
+Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
+ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/celery -A orc_api.celery_app:celery_app worker -Q video --pool=solo --concurrency=1 --loglevel=info
+Restart=always
+RestartSec=10
+TimeoutStopSec=10
+KillMode=control-group
+
+[Install]
+WantedBy=orc-os.target
+
+```
+
+After creating these files, reload systemd and start the full stack.
 ```bash
 # refresh systemd services
 sudo systemctl daemon-reload
 # enable for starting automatically on boot
-sudo systemctl enable orc-api.service
-# start the service
-sudo systemctl start orc-api.service
+sudo systemctl enable orc-os.target
+# start the full stack (api + beat + both workers)
+sudo systemctl start orc-os.target
 ```
-To check what is going on in the back end, you can check the journal whilst filtering out messages
-related to this service as follows:
+To inspect logs from all back-end services:
 ```bash
-sudo journalctl -u orc-api.service
+sudo journalctl -u orc-api.service -u orc-celery-beat.service -u orc-celery-worker-general.service -u orc-celery-worker-video.service
 ```
-or for live updating messages type:
+or for live updating messages:
 ```bash
-sudo journalctl -u orc-api.service -f
+sudo journalctl -u orc-api.service -u orc-celery-beat.service -u orc-celery-worker-general.service -u orc-celery-worker-video.service -f
 ```
 
 ### Web front-end
