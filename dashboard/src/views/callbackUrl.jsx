@@ -4,7 +4,7 @@ import ServerStatus from './callbackUrlComponents/serverStatus.jsx'
 import {useMessage} from '../messageContext';
 import {getCallbackUrl} from '../utils/apiCalls/callbackUrl.jsx'
 
-const CallbackUrl = ({setRequiresRestart}) => {
+const CallbackUrl = () => {
 
   const [callbackUrl, setCallbackUrl] = useState([]);
   const [serverStatus, setServerStatus] = useState({
@@ -108,10 +108,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       }
-      console.log(response);
       setMessageInfo('success', response.data);
-      setRequiresRestart(true);
-
       // read back the device after posting
       fetchCallbackUrl();
       fetchServerStatus();

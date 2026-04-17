@@ -71,6 +71,7 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
   }
 
   const handleRestartClick = () => {
+    if (!requiresRestart) return; // Prevent restart if not required
     setIsLoading(true);
     setRequiresRestart(false);
     // shutdown the API. Systemd or Docker process should restart the API
@@ -141,11 +142,11 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
               style={{
                 color: requiresRestart ? "orange" : "grey",
                 strokeWidth: requiresRestart ? "30px" : "5px",
-                cursor: 'pointer'
+                cursor: requiresRestart ? 'pointer' : 'not-allowed',
               }}
-              title={requiresRestart ? "Restart required" : "No restart required"}
+              title={requiresRestart ? "Reboot required" : "No reboot required"}
               disabled={!requiresRestart}
-              onClick={handleRestartClick}
+              onClick={requiresRestart ? handleRestartClick : undefined}
             />
             <OptionsMenu
               devStatus={devStatus}
@@ -205,16 +206,16 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
                     <FaSync style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                     Reboot device
                   </div>
-
-                  <div
-                    className="user-menu-item"
-                    onClick={handleShutdown}
-                    style={{ color: 'orange' }}
-                  >
-                    <FaPowerOff style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                    Shutdown device
-                  </div>
-
+                  {devStatus && (
+                    <div
+                      className="user-menu-item"
+                      onClick={handleShutdown}
+                      style={{ color: 'orange' }}
+                    >
+                      <FaPowerOff style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                      Shutdown device
+                    </div>
+                  )}
                 </div>
               )}
             </div>
