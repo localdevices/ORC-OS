@@ -87,14 +87,15 @@ const DiskManagement = ({setRequiresRestart}) => {
     return (
         <div className='container'>
             <h2>Change your disk management settings</h2>
+            Make sure your disks remain healthy by deleting old video and result files automatically below a certain threshold.
             <div className="flex-container column">
             <form onSubmit={handleFormSubmit}>
-                <div className='mb-3 mt-3'>
+                {/* <div className='mb-3 mt-3'>
                     <label htmlFor='created_at' className='form-label'>
                         Date of creation
                     </label>
                     <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled/>
-                </div>
+                </div> */}
                 <div className='mb-3 mt-3'>
                     <label htmlFor='min_free_space' className='form-label'>
                         Minimum space [GB] below which cleanup will take place
@@ -103,13 +104,13 @@ const DiskManagement = ({setRequiresRestart}) => {
                 </div>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='critical_space' className='form-label'>
-                        Critical space [GB] below which service will be turned off.
+                        Critical space [GB] below which service will be turned off (currently not in use)
                     </label>
                     <input type='number' className='form-control' id='critical_space' name='critical_space' step="0.1" onChange={handleInputChange} value={formData.critical_space} />
                 </div>
                 <div className='mb-3 mt-3'>
                     <label htmlFor='frequency' className='form-label'>
-                        Frequency [s] for checking space and performing cleanup.
+                        Frequency [s] for checking space and performing cleanup (minimum 600s)
                     </label>
                     <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
                 </div>
