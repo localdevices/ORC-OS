@@ -445,7 +445,9 @@ async def do_update(tag_name, backup_distribution=False):
             await asyncio.sleep(1)
             for secs in range(5, -1, -1):
                 await modify_state_update_event(
-                    True, f"API is restarting. You will be redirected to the home page in {secs} seconds."
+                    True,
+                    f"Device is rebooting in {secs} seconds. Please wait a short while...\n"
+                    f"Please press Ctrl+Shift+R to clean Web-UI cache after rebooting.",
                 )
                 await asyncio.sleep(1)
             await modify_state_update_event(False, "Update completed")
@@ -453,7 +455,8 @@ async def do_update(tag_name, backup_distribution=False):
             # at the very final stage, move the new lib in place
         # one more second sleep before restarting
         await asyncio.sleep(1)
-        os._exit(0)
+        # reboot
+        subprocess.run(["sudo", "reboot", "now"], check=True)
 
     except Exception as e:
         await asyncio.sleep(1)
@@ -526,6 +529,8 @@ async def preflight_for_tag(tag_name: str):
             else:
                 # default to the existing exception, which is a 500 with the original error message
                 raise http_exc
+        else:
+            raise http_exc
     try:
         preflight_result = await run_release_preflight(release_data)
         payload = preflight_result.model_dump()
@@ -550,8 +555,11 @@ async def update_status():
 
 @router.post("/shutdown/")
 async def shutdown_api():
-    """Stop or restart the API by shutting it down. The restart must be orchestrated by a systemd or Docker process."""
-    os._exit(0)
+    """Stop or restart the API by restarting device.
+
+    This does exactly the same as reboot_device
+    """
+    subprocess.run(["sudo", "reboot", "now"], check=True)
 
 
 @router.post("/reboot")

@@ -512,12 +512,7 @@ async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
 async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Session = Depends(get_db)):
     """Sync a list of videos using Celery queue."""
     # first check if redis connection is available, if not, return error immediately
-    try:
-        pubsub_manager = await get_redis_pubsub_manager()
-        if await pubsub_manager.is_available() is False:
-            raise HTTPException(status_code=500, detail="Redis connection is not available for video synchronization.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to connect to Redis for video synchronization: {str(e)}")
+    await redis_available()
     sync_image = params.sync_image
     sync_file = params.sync_file
     start = params.start

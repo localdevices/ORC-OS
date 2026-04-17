@@ -185,6 +185,7 @@ def test_list_videos_with_pagination(auth_client):
 def test_sync_video(auth_client, mocker):
     """Test successful video sync."""
     mocker.patch("orc_api.utils.queue.celery_app.send_task")
+    mocker.patch("orc_api.routers.video.redis_available", return_value=True)
 
     db_session = next(get_db_override())
     video = models.Video(timestamp=datetime(2023, 1, 1, 0, 0))
@@ -206,7 +207,7 @@ def test_sync_video(auth_client, mocker):
 async def test_sync_list_videos_no_site(auth_client, mocker):
     """Test sync_list_videos when no site is provided and a callback URL is not configured."""
     mocker.patch("orc_api.utils.queue.celery_app.send_task")
-
+    mocker.patch("orc_api.routers.video.redis_available", return_value=True)
     db_session = next(get_db_override())
     videos = [models.Video(timestamp=datetime(2023, 1, 1, 0, 0) + timedelta(hours=i)) for i in range(5)]
     callback_url = models.CallbackUrl(
@@ -217,8 +218,6 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
     db_session.add(callback_url)
     db_session.commit()
 
-    # mock_db = MagicMock()
-    # mocker.patch("orc_api.crud.callback_url.get", return_value=None)
     params = {
         "start": "2023-01-01T00:00:00",
         "stop": "2023-01-02T00:00:00",
@@ -226,6 +225,7 @@ async def test_sync_list_videos_no_site(auth_client, mocker):
         "sync_image": True,
     }
     response = auth_client.post("/api/video/sync/", json=params)
+    print(response.json())
     assert response.status_code == 200
     # call should return a list of dicts with each dict having "sync_status": 5 (queued)
     assert all([rec["sync_status"] == 5 for rec in response.json()])

@@ -13,13 +13,12 @@ from orc_api.schemas.callback_url import CallbackUrlResponse
 MANIFEST_API = "1"
 
 # Fix version numbers below. This must be modified before release in case version numbers should increase.
-MIN_ORC_VERSION = (0, 5, 0)
+MIN_PYTHON = (3, 9)
+MIN_ORC_VERSION = (0, 6, 0)
 MIN_LIVEORC_VERSION = (0, 3, 0)
-MIN_SQLITE_VERSION = (
-    3,
-    34,
-    1,
-)  # minimum version available on Bullseye, should be updated to trixie minimum version when we update the base image
+# SQLite minimum version available on Bullseye, should be updated to trixie minimum version when we update
+# the base image
+MIN_SQLITE_VERSION = (3, 34, 1)
 
 
 def get_checks():
@@ -33,7 +32,7 @@ def get_checks():
 
 def check_python_version():
     """Verify that local Python runtime satisfies release requirements."""
-    min_python = (3, 9)
+    min_python = MIN_PYTHON
     if sys.version_info < min_python:
         version_str = f"{sys.version_info.major}.{sys.version_info.minor}"
         return {
