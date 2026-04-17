@@ -8,6 +8,9 @@ __pycache__/
 # C extensions
 *.so
 
+# celery related
+celerybeat-schedule*
+
 # Distribution / packaging
 .Python
 build/
