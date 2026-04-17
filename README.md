@@ -380,9 +380,9 @@ flowchart TD
   BEAT --> QP[(periodic queue)]
   API --> QS[(sync queue)]
   API --> QV[(video queue)]
-  WG --> QS
-  WG --> QP
-  WV --> QV
+  QS --> WG
+  QP --> WG
+  QV --> WV
 ```
 
 > [!TIP]
