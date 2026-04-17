@@ -55,7 +55,7 @@ def _build_beat_schedule() -> dict:
                 "task": "orc_api.tasks.run_water_level_job",
                 "schedule": wl_settings.frequency,
                 "args": (),
-                "options": {"queue": "periodic"},
+                "options": {"queue": "periodic", "expires": wl_settings.frequency - 2},
             }
         dm_settings = crud.disk_management.get(session)
         if not dm_settings:
@@ -66,7 +66,7 @@ def _build_beat_schedule() -> dict:
                 "task": "orc_api.tasks.run_disk_maintenance_job",
                 "schedule": dm_settings.frequency,
                 "args": (),
-                "options": {"queue": "periodic"},
+                "options": {"queue": "periodic", "expires": dm_settings.frequency - 2},
             }
 
     return beat_schedule
