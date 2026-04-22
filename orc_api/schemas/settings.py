@@ -8,7 +8,7 @@ from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 from typing_extensions import Self
 
-from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
+from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, crud
 from orc_api.database import get_session
 from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigResponse
@@ -114,11 +114,11 @@ class SettingsResponse(SettingsBase):
             self.sample_file = os.path.join(INCOMING_DIRECTORY, self.file_format)
         return self
 
-    async def check_new_videos(self, path_incoming, app, logger):
+    async def check_new_videos(self, path_incoming: str, start_time: Optional[float], logger):
         """Check for new videos in incoming folder, add to database and queue if ready to run."""
         # check the incoming folder
         if self.reboot_after:
-            sys_utils.reboot_after_time(start_time=app.state.start_time, timeout=max(self.reboot_after, 300))
+            sys_utils.reboot_after_time(start_time=start_time, timeout=max(self.reboot_after, 300))
 
         file_paths = disk_management.scan_folder(path_incoming, self.video_file_fmt.split(".")[-1])
         for file_path in file_paths:
@@ -155,10 +155,8 @@ class SettingsResponse(SettingsBase):
                     session=session,
                     video=video_response,
                     logger=logger,
-                    executor=app.state.executor,
-                    upload_directory=UPLOAD_DIRECTORY,
                     shutdown_after_task=self.shutdown_after_task if self.shutdown_after_task else False,
-                    priority=0,  # highest priority for tasks that are initiated from daemon settings
+                    priority=1,  # highest priority for tasks that are initiated from daemon settings
                 )
                 # whatever happens, remove the file if not successful, prevent clogging
                 os.remove(tmp_file)

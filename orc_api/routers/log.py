@@ -27,7 +27,9 @@ async def stream_log(websocket: WebSocket):
     print(f"Connected websocket for logging: {websocket}")
     files = get_log_files()
     if not any(__import__("os").path.exists(fn) for fn in files):
-        await websocket.close(code=1003, reason="Log files not configured!")
+        # disconnect the websocket if no log files are found
+        conn_manager.disconnect(websocket)
+        # await websocket.close(code=1003, reason="Log files not configured!")
         return
     try:
         await stream_new_lines(websocket, files)  # Stream changes from both files

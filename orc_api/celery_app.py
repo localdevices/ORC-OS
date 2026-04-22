@@ -1,9 +1,12 @@
 """Celery application configuration for ORC-OS background jobs."""
 
 import os
+import time
 
 from celery import Celery
 from celery.signals import beat_init
+
+from orc_api import INCOMING_DIRECTORY
 
 CELERY_BROKER_URL = os.getenv("ORC_CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("ORC_CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
@@ -30,6 +33,7 @@ celery_app.conf.update(
         "orc_api.tasks.sync_video": {"queue": "sync"},
         "orc_api.tasks.sync_videos_batch": {"queue": "sync"},
         "orc_api.tasks.run_water_level_job": {"queue": "periodic"},
+        "orc_api.tasks.check_new_videos": {"queue": "periodic"},
         "orc_api.tasks.run_disk_maintenance_job": {"queue": "periodic"},
     },
 )
@@ -39,12 +43,16 @@ def _build_beat_schedule() -> dict:
     """Build beat schedule entries from database settings."""
     from orc_api import crud
     from orc_api.database import get_session
+    from orc_api.schemas.settings import SettingsResponse
 
     beat_schedule = {}
-
+    start_time = time.time()
     with get_session() as session:
-        # Only set up beat schedule if we can access settings, otherwise beat will fail to start.
+        # Only set up beat schedule if the settings are adequate
         wl_settings = crud.water_level.get(session)
+        settings = crud.settings.get(session)
+        dm_settings = crud.disk_management.get(session)
+
         if not wl_settings:
             print("Skipping water level job: no water level settings found.")
         elif not wl_settings.enabled:
@@ -57,7 +65,6 @@ def _build_beat_schedule() -> dict:
                 "args": (),
                 "options": {"queue": "periodic", "expires": wl_settings.frequency - 2},
             }
-        dm_settings = crud.disk_management.get(session)
         if not dm_settings:
             print("Skipping disk maintenance job: no disk management settings found.")
         else:
@@ -68,7 +75,25 @@ def _build_beat_schedule() -> dict:
                 "args": (),
                 "options": {"queue": "periodic", "expires": dm_settings.frequency - 2},
             }
-
+        if settings and dm_settings:
+            if settings.active:
+                # validate the settings model instance
+                settings = SettingsResponse.model_validate(settings)
+                print(
+                    f'Daemon settings found: setting up interval job "video_check_job" with path: {INCOMING_DIRECTORY} '
+                    f"and file template: {settings.video_file_fmt}"
+                )
+                beat_schedule["video_check_job"] = {
+                    "task": "orc_api.tasks.check_new_videos",
+                    "schedule": 5,
+                    "args": (INCOMING_DIRECTORY, settings.model_dump(mode="dict"), start_time),
+                    "options": {"queue": "periodic", "expires": 30},
+                }
+            else:
+                # settings found but not yet activated
+                print("Daemon settings found, but not activated. Activate the daemon for automated processing.")
+        else:
+            print("No daemon settings available, ORC-OS will run interactively only.")
     return beat_schedule
 
 

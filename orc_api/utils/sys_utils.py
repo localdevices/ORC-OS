@@ -7,6 +7,7 @@ import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 
 def _detect_timezone_iana(local_now: datetime) -> str:
@@ -86,7 +87,7 @@ def get_user() -> str:
     return getpass.getuser()
 
 
-def reboot_after_time(start_time: float, timeout: float):
+def reboot_after_time(start_time: Optional[float], timeout: float):
     """Check and trigger a system reboot if the specified timeout period has elapsed.
 
     Parameters
@@ -103,7 +104,7 @@ def reboot_after_time(start_time: float, timeout: float):
 
     """
     # check if a reboot is required
-    if time.time() > start_time + timeout:
+    if start_time is not None and time.time() > start_time + timeout:
         # time to reboot!
         subprocess.run(["sudo", "reboot", "now"])
 

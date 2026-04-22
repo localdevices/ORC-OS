@@ -1,5 +1,6 @@
 """Recurring Celery tasks for ORC-OS."""
 
+import asyncio
 import os
 import shutil
 
@@ -9,7 +10,13 @@ from orc_api.database import get_session
 from orc_api.db.video import Video
 from orc_api.log import logger
 from orc_api.schemas.disk_management import DiskManagementResponse
+from orc_api.schemas.settings import SettingsResponse
 from orc_api.schemas.video import VideoResponse
+
+
+def async_job_wrapper(func, kwargs):
+    """Wrap call to async functions synchronously, needed for scheduler."""
+    asyncio.run(func(**kwargs))  # Run the async function in the event loop
 
 
 @celery_app.task(name="orc_api.tasks.run_water_level_job")
@@ -49,6 +56,20 @@ def run_disk_maintenance_job() -> dict:
         return {"status": "ok"}
     finally:
         session.close()
+
+
+@celery_app.task(name="orc_api.tasks.check_new_videos")
+def check_new_videos(path_incoming: str, settings_dict: dict, start_time: float) -> dict:
+    """Check for new videos in the incoming directory and add them to the database."""
+    try:
+        settings = SettingsResponse.model_validate(settings_dict)
+        async_job_wrapper(
+            settings.check_new_videos, {"path_incoming": path_incoming, "start_time": start_time, "logger": logger}
+        )
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Error checking for new videos: {str(e)}", exc_info=True)
+        return {"status": "error", "message": str(e)}
 
 
 @celery_app.task(name="orc_api.tasks.run_video")
