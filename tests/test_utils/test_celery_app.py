@@ -1,3 +1,4 @@
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -30,6 +31,16 @@ def test_configure_beat_schedule_supports_service_sender(mocker, session_context
     mocker.patch("orc_api.database.get_session", return_value=session_context)
     mocker.patch("orc_api.crud.water_level.get", return_value=SimpleNamespace(enabled=True, frequency=60))
     mocker.patch("orc_api.crud.disk_management.get", return_value=SimpleNamespace(frequency=120))
+    mocker.patch(
+        "orc_api.crud.settings.get",
+        return_value=SimpleNamespace(
+            id=1,
+            created_at=datetime(2000, 1, 1, 0, 0, 0),
+            active=True,
+            shutdown_after_task=False,
+            video_file_fmt="video_{unix}.mp4",
+        ),
+    )
 
     app_mock = MagicMock()
     sender = SimpleNamespace(app=app_mock)
