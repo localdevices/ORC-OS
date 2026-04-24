@@ -661,6 +661,8 @@ WantedBy=timers.target
         # check if symlink to service exists in systemd directory, if not, create the symbolic link as super-user
         self.create_service_links()
         try:
+            # first always perform daemon-reload to ensure .env file changes are picked up.
+            subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
             subprocess.run(
                 ["sudo", "systemctl", "enable", self.service_enabler],
                 check=True,
@@ -678,6 +680,8 @@ WantedBy=timers.target
 
         """
         try:
+            # first always perform daemon-reload to ensure .env file changes are picked up.
+            subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
             subprocess.run(
                 ["sudo", "systemctl", "disable", self.service_enabler],
                 check=True,
