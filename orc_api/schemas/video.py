@@ -12,14 +12,14 @@ import numpy as np
 import redis
 import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from pyorc.service import velocity_flow_subprocess
+from pyorc.service import velocity_flow
 from sqlalchemy.orm import Session
 
 from orc_api import crud, timeout_before_shutdown
 from orc_api import db as models
 from orc_api.database import get_session
 from orc_api.db import Video
-from orc_api.log import logger
+from orc_api.log import logger, setuplog
 from orc_api.schemas.base import RemoteModel
 from orc_api.schemas.time_series import TimeSeriesResponse
 from orc_api.schemas.video_config import VideoConfigBase, VideoConfigResponse, VideoConfigUpdate
@@ -317,7 +317,10 @@ class VideoResponse(VideoBase, RemoteModel):
                     "Starting video processing with pyorc. You can check logs per video record after running in "
                     "the video view."
                 )
-                res = velocity_flow_subprocess(
+                # make a new logger for the subprocess
+                fn_log = self.get_log_file(base_path=base_path)
+                logger_sub = setuplog(name="pyorc", path=fn_log, append=False)
+                velocity_flow(
                     recipe=recipe,
                     videofile=videofile,
                     cameraconfig=cameraconfig,
@@ -326,14 +329,16 @@ class VideoResponse(VideoBase, RemoteModel):
                     h_a=h_a,
                     cross=cross,
                     cross_wl=cross_wl,
-                    logger=logger,
+                    logger=logger_sub,
                 )
-                if res.returncode != 0:
-                    raise Exception(
-                        f"Error running video, pyorc returned non-zero exit code: {res.returncode} and error output "
-                        f"{res.stderr}"
-                        "Please check the log belonging to video"
-                    )
+                # TODO: remove commented code once in-line processing is confirmed stable enough. OTherwise add `res =`
+                # and revert to `velocity_flow_process`
+                # if res.returncode != 0:
+                #     raise Exception(
+                #         f"Error running video, pyorc returned non-zero exit code: {res.returncode} and error output "
+                #         f"{res.stderr}"
+                #         "Please check the log belonging to video"
+                #     )
                 self.image = rel_img_fn
                 # update time series (before video, in case time series with optical water level is added in the process
                 logger.info("Updating time series belonging to video.")
@@ -346,7 +351,10 @@ class VideoResponse(VideoBase, RemoteModel):
                 self.status = models.VideoStatus.ERROR
                 # also show this state in the web socket
                 self._publish_status(message=f"Error running video: {filename}: {e}", run_status=VideoRunStatus.ERROR)
-                logger.error(f"Error running video, response: {e}, VideoStatus set to ERROR.")
+                logger.error(
+                    f"Error running video, response: {e}, VideoStatus set to ERROR. "
+                    f"Please check the log belonging to the video"
+                )
             # finally:
             #     # the last handler should be our file handler.
             #     remove_file_handler(logger, name_contains="pyorc.log")

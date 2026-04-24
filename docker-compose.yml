@@ -39,11 +39,11 @@ services:
       retries: 3
       start_period: 40s
 
-  celery-worker:
+  celery-worker-general:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: orc-celery-worker
+    container_name: orc-celery-worker-general
     restart: unless-stopped
     environment:
       - ORC_HOME=/app/data
@@ -55,7 +55,33 @@ services:
       - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
     volumes:
       - ${ORC_DATA_PATH:-./data}:/app/data
-    command: ["celery", "-A", "orc_api.celery_app", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "orc_api.celery_app", "worker", "-Q", "sync,periodic", "--loglevel=info"]
+    depends_on:
+      redis:
+        condition: service_started
+      orcapi:
+        condition: service_healthy
+    networks:
+      - orc-network
+
+  celery-worker-video:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orc-celery-worker-video
+    restart: unless-stopped
+    environment:
+      - ORC_HOME=/app/data
+      - ORC_UPLOAD_DIRECTORY=/app/data/uploads
+      - ORC_INCOMING_DIRECTORY=/app/data/uploads/incoming
+      - ORC_SECRET_KEY=${ORC_SECRET_KEY}
+      - ORC_DEV_MODE=${ORC_DEV_MODE:-0}
+      - ORC_CELERY_BROKER_URL=redis://redis:6379/0
+      - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ${ORC_DATA_PATH:-./data}:/app/data
+    # Use a non-forking pool for OpenMP-based workloads (numba/dask/pyorc).
+    command: ["celery", "-A", "orc_api.celery_app", "worker", "-Q", "video", "--pool=solo", "--concurrency=1", "--loglevel=info"]
     depends_on:
       redis:
         condition: service_started
