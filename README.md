@@ -536,7 +536,8 @@ sudo journalctl -u orc-api.service -u orc-celery-beat.service -u orc-celery-work
 To ensure that the web front end is served out and can be updated by the Over-The-Air update
 process, you must ensure that the web files are unpacked in `$HOME/.ORC-OS/www` and that a symbolic link to the
 typical location of web-files is made. Also, your `$USER` must be able to write to this folder and have www access
-rights to serve out the files on a web server. This is done as follows:
+rights to serve out the files on a web server. The updated front end files will then be written to `$HOME/.ORC-OS/www`.
+This is done as follows:
 
 ```bash
 # make sure the www folder exists

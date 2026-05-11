@@ -50,6 +50,15 @@
     color: #28a745;
 }
 
+
 .no-update.error {
     color: #dc3545;
+}
+
+.update.error {
+    color: #28a745;
+    border: 1px solid #28a745;
+    background: #EEFFEE;
+
+
 }
