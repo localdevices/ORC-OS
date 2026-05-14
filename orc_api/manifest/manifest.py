@@ -15,7 +15,7 @@ MANIFEST_API = "1"
 # Fix version numbers below. This must be modified before release in case version numbers should increase.
 MIN_PYTHON = (3, 9)
 MIN_ORC_VERSION = (0, 6, 0)
-MIN_LIVEORC_VERSION = (0, 3, 0)
+MIN_LIVEORC_VERSION = (0, 3, 1)
 # SQLite minimum version available on Bullseye, should be updated to trixie minimum version when we update
 # the base image
 MIN_SQLITE_VERSION = (3, 34, 1)
