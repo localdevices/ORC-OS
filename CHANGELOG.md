@@ -4,7 +4,7 @@ First **full release** of OpenRiverCam Operating System (ORC-OS)
 Feedback and bug reports are highly appreciated to improve future versions.
 
 > [!IMPORTANT]
-> Since version 0.6.0 any connected LiveORC server MUST be version > 0.3.0
+> Since version 0.6.0 any connected LiveORC server MUST be version > 0.3.1
 
 ### Added
 - A separate worker for longer running and scheduled background tasks using Celery and a redis server as broker.
@@ -16,10 +16,13 @@ Feedback and bug reports are highly appreciated to improve future versions.
   workers, and is read by the API and forwarded to front end. This results in no noticeable change in the front end.
 - Running and syncing of videos via the API is now offloaded to celery processes automatically. Front end is modified
   to return a clear error when the broker redis server cannot be reached.
+- Based on experiences, delay check for changing file sizes in daemon incoming folder is changed from 1 to 3 seconds.
 
 ### Deprecated
 ### Removed
 ### Fixed
+- Sometimes zero-bytes files were imported into the database. Zero-byte files are now automatically skipped.
+
 ### Security
 
 

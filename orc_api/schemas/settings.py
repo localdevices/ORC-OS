@@ -123,8 +123,12 @@ class SettingsResponse(SettingsBase):
         file_paths = disk_management.scan_folder(path_incoming, self.video_file_fmt.split(".")[-1])
         for file_path in file_paths:
             # each file is checked if it is not yet in the queue and not
-            # being written into
-            if os.path.isfile(file_path) and not disk_management.is_file_size_changing(file_path):
+            # being written into or zero-bytes
+            if (
+                os.path.isfile(file_path)
+                and not disk_management.is_file_size_changing(file_path)
+                and os.path.getsize(file_path) > 0
+            ):
                 # first move the file to a temporary location
                 tmp_file = os.path.join(TMP_DIRECTORY, os.path.split(file_path)[1])
                 os.makedirs(os.path.split(tmp_file)[0], exist_ok=True)
