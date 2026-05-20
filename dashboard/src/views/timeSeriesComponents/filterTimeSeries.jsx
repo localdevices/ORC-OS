@@ -3,7 +3,7 @@ import FilterDates from "../../utils/filterDates.jsx";
 import { useEffect } from "react";
 
 const FiltersTimeSeries = ({
-    filterH, setFilterH, filterQ50, setFilterQ50, filterFractionVel, setFilterFractionVel, setShowVideoConfigModal,
+    filterH, setFilterH, filterDischarge, setFilterDischarge, filterFractionVel, setFilterFractionVel, setShowVideoConfigModal,
     setShowVariablesModal, selectedVideoConfigIds, allVideoConfigIds, dateRange, setStartDate, setEndDate,
     data }) => {
 
@@ -42,16 +42,16 @@ const FiltersTimeSeries = ({
         setFilterH(updatedFilterH);
     }
 
-    const handlefilterQ50Change = async (values) => {
-        let [minQ50, maxQ50] = values;
+    const handlefilterDischargeChange = async (values) => {
+        let [minDischarge, maxDischarge] = values;
 
         // Ensure values are at least `minimumDifference` apart
-        const updatedFilterQ50 = {
-            ...filterQ50,
-            min: minQ50,
-            max: maxQ50
+        const updatedFilterDischarge = {
+            ...filterDischarge,
+            min: minDischarge,
+            max: maxDischarge
         }
-        setFilterQ50(updatedFilterQ50);
+        setFilterDischarge(updatedFilterDischarge);
     }
 
   const convertToCSV = (data) => {
@@ -164,28 +164,28 @@ const FiltersTimeSeries = ({
                         </div>
                     </div>
                     <div className="mb-5 mt-3 form-horizontal">
-                        <label htmlFor="filterQ50Slider" className="form-label">
+                        <label htmlFor="filterDischargeSlider" className="form-label">
                             <input
                                 type="checkbox"
-                                checked={filterQ50.enabled}
+                                checked={filterDischarge.enabled}
                                 // disabled={viewMode !== 'timeSeries'}
-                                onChange={(e) => setFilterQ50({ ...filterQ50, enabled: e.target.checked })}
+                                onChange={(e) => setFilterDischarge({ ...filterDischarge, enabled: e.target.checked })}
                                 className="me-1"
                             />
                             Discharge (m³/s)
                         </label>
                         <div className="slider-container">
-                            <div className="slider-min">{Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0}</div>
-                            <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1}</div>
+                            <div className="slider-min">{Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0}</div>
+                            <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1}</div>
                             <ReactSlider
                                 className="horizontal-slider small"
-                                disabled={!filterQ50.enabled}
+                                disabled={!filterDischarge.enabled}
                                 value={[
-                                    filterQ50.min || Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0,
-                                    filterQ50.max || Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1
+                                    filterDischarge.min || Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0,
+                                    filterDischarge.max || Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1
                                 ]} // Default values if unset
-                                min={Math.floor(safeMin(data.map(d => d.q_50), 0) * 1000) / 1000 || 0}
-                                max={Math.ceil(safeMax(data.map(d => d.q_50), 1) * 1000) / 1000 || 1}
+                                min={Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0}
+                                max={Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1}
                                 step={0.001}
                                 renderThumb={(props, state) => {
                                     const { key, ...rest } = props;
@@ -193,13 +193,13 @@ const FiltersTimeSeries = ({
                                         <div
                                             key={key}
                                             {...rest}
-                                            className={!filterQ50.enabled ? 'thumb thumb-disabled' : 'thumb'}
+                                            className={!filterDischarge.enabled ? 'thumb thumb-disabled' : 'thumb'}
                                         >
                                             <div className="thumb-value">{state.valueNow}</div>
                                         </div>
                                     );
                                 }}
-                                onAfterChange={handlefilterQ50Change}
+                                onAfterChange={handlefilterDischargeChange}
                             />
                         </div>
                     </div>

@@ -85,7 +85,7 @@ def get_timestamp(
     return timestamp
 
 
-def is_file_size_changing(fn, delay=3):
+def is_file_size_changing(fn, delay=1):
     """Check if the file size changes over a certain amount of time.
 
     Can be used to check if a file is being written into by another process.
@@ -95,7 +95,7 @@ def is_file_size_changing(fn, delay=3):
     fn : str
         path to file
     delay : float, optional
-        amount of delay time (sec) to check if file size changes (default 3)
+        amount of delay time (sec) to check if file size changes (default 1)
 
     Returns
     -------

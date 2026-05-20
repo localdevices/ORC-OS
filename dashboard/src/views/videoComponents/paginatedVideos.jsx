@@ -409,7 +409,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 <td style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
                 <td style={{minWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
                   <strong><i>h</i></strong>: {video.time_series && video.time_series?.h ? Math.round(video.time_series.h * 1000) / 1000 + " m " : "N/A "}
-                  | <strong><i>Q</i></strong>: {video.time_series && video.time_series?.q_50 ? Math.round(video.time_series.q_50 * 100) / 100 + " m3/s " : "N/A "}
+                  | <strong><i>Q</i></strong>: {video.time_series && video.time_series?.discharge ? Math.round(video.time_series.discharge * 100) / 100 + " m3/s " : "N/A "}
                   | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series && video.time_series?.v_av ? Math.round(video.time_series.v_av * 100) / 100 + " m/s " : "N/A "}
                   | <strong><i>v<sub>bulk</sub></i></strong>: {video.time_series && video.time_series?.v_bulk ? Math.round(video.time_series.v_bulk * 100) / 100 + " m/s " : "N/A "}
                 </td>

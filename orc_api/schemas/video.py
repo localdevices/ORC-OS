@@ -12,7 +12,7 @@ import numpy as np
 import redis
 import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from pyorc.service import velocity_flow
+from pyorc.service import velocity_flow_subprocess
 from sqlalchemy.orm import Session
 
 from orc_api import crud, timeout_before_shutdown
@@ -131,6 +131,11 @@ class VideoResponse(VideoBase, RemoteModel):
             return False, "Video already in process or queued for processing."
         # check if all run components are available
         return self.allowed_to_run
+
+    @property
+    def correlation_average(self):
+        """Check if video config has correlation average set."""
+        return self.video_config.recipe.correlation_average if self.video_config and self.video_config.recipe else None
 
     def _publish_status(
         self,
@@ -262,7 +267,12 @@ class VideoResponse(VideoBase, RemoteModel):
                 allowed_to_run, msg = self.allowed_to_run
                 if not allowed_to_run:
                     raise Exception(msg)
-
+                if self.video_config is None:
+                    raise Exception("No video configuration available, cannot run video.")
+                if self.video_config.camera_config is None:
+                    raise Exception("No camera configuration available in video configuration, cannot run video.")
+                if self.video_config.recipe is None:
+                    raise Exception("No recipe available in video configuration, cannot run video.")
                 # check for h_a
                 h_a = None if self.time_series is None else self.time_series.h
                 if h_a:
@@ -296,6 +306,8 @@ class VideoResponse(VideoBase, RemoteModel):
                     cross_wl = None
                 # get the recipe with any required fields filled
                 recipe = self.video_config.recipe_transect_filled.data
+                if recipe is None:
+                    raise Exception("No recipe available in video configuration, cannot run video.")
                 videofile = self.get_video_file(base_path=base_path)
                 # find expected image file name
                 rel_img_fn = None
@@ -320,7 +332,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 # make a new logger for the subprocess
                 fn_log = self.get_log_file(base_path=base_path)
                 logger_sub = setuplog(name="pyorc", path=fn_log, append=False)
-                velocity_flow(
+                res = velocity_flow_subprocess(
                     recipe=recipe,
                     videofile=videofile,
                     cameraconfig=cameraconfig,
@@ -331,18 +343,19 @@ class VideoResponse(VideoBase, RemoteModel):
                     cross_wl=cross_wl,
                     logger=logger_sub,
                 )
-                # TODO: remove commented code once in-line processing is confirmed stable enough. OTherwise add `res =`
-                # and revert to `velocity_flow_process`
-                # if res.returncode != 0:
-                #     raise Exception(
-                #         f"Error running video, pyorc returned non-zero exit code: {res.returncode} and error output "
-                #         f"{res.stderr}"
-                #         "Please check the log belonging to video"
-                #     )
+
+                if res.returncode != 0:
+                    raise Exception(
+                        f"Error running video, pyorc returned non-zero exit code: {res.returncode} and error output "
+                        f"{res.stderr}"
+                        "Please check the log belonging to video"
+                    )
                 self.image = rel_img_fn
                 # update time series (before video, in case time series with optical water level is added in the process
                 logger.info("Updating time series belonging to video.")
-                self.update_timeseries(session=session, base_path=base_path)
+                self.update_timeseries(
+                    session=session, base_path=base_path, correlation_average=self.correlation_average
+                )
                 # update status
                 self.status = models.VideoStatus.DONE
                 self._publish_status(message="Processing successful.", run_status=VideoRunStatus.SUCCESS)
@@ -588,7 +601,7 @@ class VideoResponse(VideoBase, RemoteModel):
         else:
             return None
 
-    def update_timeseries(self, session: Session, base_path: str):
+    def update_timeseries(self, session: Session, base_path: str, correlation_average: Optional[bool] = None):
         """Get discharge data."""
         id = None if self.time_series is None else self.time_series.id
         fn = self.get_discharge_file(base_path=base_path)
@@ -617,11 +630,12 @@ class VideoResponse(VideoBase, RemoteModel):
             perc_measured = np.nan * Q
         update_data = {
             "h": h if np.isfinite(h) else None,
-            "q_05": Q[0] if np.isfinite(Q[0]) else None,
-            "q_25": Q[1] if np.isfinite(Q[1]) else None,
-            "q_50": Q[2] if np.isfinite(Q[2]) else None,
-            "q_75": Q[3] if np.isfinite(Q[3]) else None,
-            "q_95": Q[4] if np.isfinite(Q[4]) else None,
+            "q_05": Q[0] if np.isfinite(Q[0]) and not correlation_average else None,
+            "q_25": Q[1] if np.isfinite(Q[1]) and not correlation_average else None,
+            "q_50": Q[2] if np.isfinite(Q[2]) and not correlation_average else None,
+            "q_75": Q[3] if np.isfinite(Q[3]) and not correlation_average else None,
+            "q_95": Q[4] if np.isfinite(Q[4]) and not correlation_average else None,
+            "q_raw": Q[0] if np.isfinite(Q[0]) and correlation_average else None,
             "v_av": v_av,
             "v_bulk": v_bulk,
             "wetted_surface": ds.transect.wetted_surface,

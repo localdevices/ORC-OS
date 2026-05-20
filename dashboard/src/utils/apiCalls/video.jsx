@@ -171,7 +171,6 @@ export const run_video = async(video, setMessageInfo) => {
     const response = await api.get(`/video/${video.id}/run/`);
     // update the status of the video
     video.status = response.data.status;
-    console.log("Run video response:", response.data);
 
     // Display the success message
     setMessageInfo("success", "Video has been submitted for processing.");

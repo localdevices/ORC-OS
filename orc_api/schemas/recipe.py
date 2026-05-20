@@ -160,6 +160,9 @@ class RecipeResponse(RecipeRemote):
         default=0.01, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     window_size: int = Field(default=64, description="Size of interrogation window")
+    correlation_average: bool = Field(
+        default=True, description="Use correlation averaging for more stable and operational velocity estimates."
+    )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
     wl_preprocess: Optional[Literal["natural", "manmade", "movements", "grayscale", "saturation"]] = Field(
         default="manmade", description="Method for treating frames for water level estimation."
@@ -222,6 +225,10 @@ class RecipeResponse(RecipeRemote):
         instance.resolution = data.frames.project["resolution"]
         if "window_size" in data.velocimetry.get_piv:
             instance.window_size = data.velocimetry.get_piv["window_size"]
+        if "ensemble_corr" in data.velocimetry.get_piv:
+            instance.correlation_average = data.velocimetry.get_piv["ensemble_corr"]
+        else:
+            instance.correlation_average = True  # revert to the default
         # instance.velocimetry = "piv"  # make variable once other methods are available
         if "distance" in data.transect.transect_1["get_transect"]:
             instance.v_distance = data.transect.transect_1["get_transect"]["distance"]
@@ -308,6 +315,9 @@ class RecipeUpdate(RecipeRemote):
         default=None, ge=0.001, le=0.05, description="Resolution of the projected video in meters."
     )
     window_size: Optional[int] = Field(default=64, description="Size of interrogation window")
+    correlation_average: Optional[bool] = Field(
+        default=True, description="Use correlation averaging for more stable and operational velocity estimates."
+    )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
     wl_preprocess: Optional[Literal["natural", "manmade", "movements", "grayscale", "saturation"]] = Field(
         default="manmade", description="Method for processing video for water level estimation."
@@ -373,6 +383,10 @@ class RecipeUpdate(RecipeRemote):
         data.frames.project["resolution"] = getattr(instance, "resolution", 0.02)
         if instance.window_size is not None:
             data.velocimetry.get_piv["window_size"] = getattr(instance, "window_size", 64)
+        if instance.correlation_average is not None:
+            data.velocimetry.get_piv["ensemble_corr"] = instance.correlation_average
+        else:
+            data.velocimetry.get_piv["ensemble_corr"] = True
         data.transect.transect_1.setdefault("get_transect", {})["distance"] = getattr(instance, "v_distance", 0.5)
         data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
         data.plot.plot_quiver.setdefault("velocimetry", {})["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)

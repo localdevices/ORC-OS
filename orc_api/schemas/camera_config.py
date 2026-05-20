@@ -284,9 +284,12 @@ class CameraConfigUpdate(CameraConfigInteraction):
 
         # handle the control points
         if instance.gcps:
-            if instance.gcps.control_points:
+            if "control_points" in instance.gcps or instance.gcps.control_points:
                 # validate the control points
-                instance.gcps = ControlPointSet.model_validate(instance.gcps.model_dump())
+                if isinstance(instance.gcps, dict):
+                    instance.gcps = ControlPointSet.model_validate(instance.gcps)
+                else:
+                    instance.gcps = ControlPointSet.model_validate(instance.gcps.model_dump())
                 # parse to src / dst
                 src, dst = instance.gcps.parse()
                 # only parse if serc and dst are not None
