@@ -232,7 +232,7 @@ class RecipeResponse(RecipeRemote):
         if "ensemble_corr" in data.velocimetry.get_piv:
             instance.correlation_average = data.velocimetry.get_piv["ensemble_corr"]
         else:
-            instance.correlation_average = True  # revert to the default
+            instance.correlation_average = False  # revert to the default
         instance.signal_threshold = 0.2  # for the moment cannot be configured and set to 0.2
         # instance.velocimetry = "piv"  # make variable once other methods are available
         if "distance" in data.transect.transect_1["get_transect"]:
@@ -322,7 +322,7 @@ class RecipeUpdate(RecipeRemote):
     window_size: Optional[int] = Field(default=64, description="Size of interrogation window")
     correlation_average: Optional[bool] = Field(
         default=True, description="Use correlation averaging for more stable and operational velocity estimates."
-    )
+    )  # for a completely new recipe, set to True, for old recipes keep False if not explicitly set
     signal_threshold: Optional[float] = Field(
         default=0.2,
         description="Threshold for signal-to-noise ratio. For the moment cannot be configured and set to 0.2",
@@ -395,7 +395,7 @@ class RecipeUpdate(RecipeRemote):
         if instance.correlation_average is not None:
             data.velocimetry.get_piv["ensemble_corr"] = instance.correlation_average
         else:
-            data.velocimetry.get_piv["ensemble_corr"] = True
+            data.velocimetry.get_piv["ensemble_corr"] = False
         data.velocimetry.get_piv["signal_threshold"] = 0.2  # for the moment cannot be configured and set to 0.2
         data.transect.transect_1.setdefault("get_transect", {})["distance"] = getattr(instance, "v_distance", 0.5)
         data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
