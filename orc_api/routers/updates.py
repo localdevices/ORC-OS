@@ -391,7 +391,10 @@ async def do_update(tag_name, backup_distribution=False):
                     )
                     await modify_state_update_event(True, "Updating dependencies...")
                     await asyncio.sleep(1)
-                    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", repo_url], check=True)
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "--upgrade", "--upgrade-strategy", "eager", repo_url],
+                        check=True,
+                    )
                     # perform database migrations from the temporary install location of the orc api
                     script_location = os.path.join(temp_dir, "orc-os-update", "orc_api", "alembic")
                     config_location = os.path.join(temp_dir, "orc-os-update", "orc_api", "alembic.ini")
