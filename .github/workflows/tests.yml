@@ -65,3 +65,4 @@ jobs:
         with:
           args: >
             -Dsonar.verbose=true
+            -Dsonar.scanner.skipSystemTruststore=true
