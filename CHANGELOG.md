@@ -1,13 +1,21 @@
-## [1.0.0] Ngwerere - xxxx-xx-xx
-First **full release** of OpenRiverCam Operating System (ORC-OS)
+## [0.7.0] Ngwerere - 2026-05-27
+This is a **testing beta release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
 
 Feedback and bug reports are highly appreciated to improve future versions.
 
 > [!IMPORTANT]
-> Since version 0.6.0 any connected LiveORC server MUST be version > 0.3.1
+> Since version 0.6.0 any connected LiveORC server MUST be version >= 0.3.0
+> Since version 0.7.0 several new service files are required. You cannot automatically update via OTA if these
+> files are not in place. Contact your system administrator to update the service file structure following the
+> README of https://github.com/localdevices/ORC-OS
 
 ### Added
 - A separate worker for longer running and scheduled background tasks using Celery and a redis server as broker.
+- Preflight check for updates that checks if required service files are in place.
 
 ### Changed
 - Refactored all queue processing to entirely separated worker(s), communicating over a redis server. This allows for
@@ -16,12 +24,12 @@ Feedback and bug reports are highly appreciated to improve future versions.
   workers, and is read by the API and forwarded to front end. This results in no noticeable change in the front end.
 - Running and syncing of videos via the API is now offloaded to celery processes automatically. Front end is modified
   to return a clear error when the broker redis server cannot be reached.
-- Based on experiences, delay check for changing file sizes in daemon incoming folder is changed from 1 to 3 seconds.
 
 ### Deprecated
 ### Removed
 ### Fixed
-- Sometimes zero-bytes files were imported into the database. Zero-byte files are now automatically skipped.
+- Sometimes zero-bytes files were imported into the database. Zero-byte files are now automatically skipped. Dependent
+  on first experiences this may still change.
 
 ### Security
 

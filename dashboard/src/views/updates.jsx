@@ -242,9 +242,20 @@ const Updates = ({ currentVersion }) => {
             <div className="flex-container no-padding">
               <div style={{width: "100%"}}>
               <div className="service-warning">
-                <p><FaExclamationTriangle color="red"/> When updating make sure you are not running in power management
-                  mode or any other mode causing autonomous shutdowns or reboots. Make sure your device has sufficient
-                  battery and a stable internet connection. Consider backing up your database before updating.
+                <p><FaExclamationTriangle color="red"/> Before updating consider the following:
+                <ul>
+                  <li>make sure you first STOP and DISABLE any power management mode or any other mode causing
+                    autonomous shutdowns or reboots. This is because during updating the device should not shutdown,
+                    and because during restarting, recompilation may be required, which takes a few
+                    minutes of time.
+                  </li>
+                  <li>
+                    Make sure your device has sufficient battery and a stable internet connection.
+                  </li>
+                  <li>
+                    Consider backing up your database before updating.
+                  </li>
+                </ul>
                 </p>
 
               </div>
