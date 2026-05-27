@@ -1,13 +1,14 @@
 """Router for water level settings."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Union
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Response
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.database import get_db
-from orc_api.db import Session, WaterLevelSettings
+from orc_api.db import WaterLevelSettings
 from orc_api.schemas.water_level import WaterLevelCreate, WaterLevelResponse
 
 router: APIRouter = APIRouter(prefix="/water_level", tags=["water_level"])
@@ -21,12 +22,8 @@ async def get_water_level(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=WaterLevelResponse, status_code=201, description="Update water level configuration")
-async def update_water_level(request: Request, water_level_settings: WaterLevelCreate, db: Session = Depends(get_db)):
+async def update_water_level(water_level_settings: WaterLevelCreate, db: Session = Depends(get_db)):
     """Update water level settings."""
-    if hasattr(request.app.state, "scheduler"):
-        scheduler = request.app.state.scheduler
-    else:
-        scheduler = None
     try:
         # Check if there is already a water level settings record
         wl_settings = crud.water_level.get(db)
@@ -44,20 +41,6 @@ async def update_water_level(request: Request, water_level_settings: WaterLevelC
             db.add(wl_settings)
             db.commit()
             db.refresh(wl_settings)
-            # update the water level job
-        if scheduler:
-            if wl_settings.enabled:
-                scheduler.add_job(
-                    func=wl_settings.get_new,
-                    trigger="interval",
-                    seconds=wl_settings.frequency,
-                    start_date=datetime.now() + timedelta(seconds=5),
-                    id="water_level_job",
-                    replace_existing=True,  # ensure the existing job if any, is removed
-                )
-            else:
-                if scheduler.get_job("water_level_job"):
-                    scheduler.remove_job("water_level_job")
 
         return wl_settings
     except Exception as e:

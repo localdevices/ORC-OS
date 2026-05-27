@@ -3,10 +3,11 @@
 from typing import List, Union
 
 from fastapi import APIRouter, Depends, Response
+from sqlalchemy.orm import Session
 
 from orc_api import crud
 from orc_api.database import get_db
-from orc_api.db import Session, Settings
+from orc_api.db import Settings
 from orc_api.schemas.settings import SettingsCreate, SettingsResponse
 
 router: APIRouter = APIRouter(prefix="/settings", tags=["settings"])

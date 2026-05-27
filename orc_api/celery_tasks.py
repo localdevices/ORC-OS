@@ -68,8 +68,9 @@ def check_new_videos(path_incoming: str, settings_dict: dict, start_time: float)
         )
         return {"status": "ok"}
     except Exception as e:
-        logger.error(f"Error checking for new videos: {str(e)}", exc_info=True)
-        return {"status": "error", "message": str(e)}
+        error_msg = f"Error checking for new videos: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"status": "error", "message": error_msg}
 
 
 @celery_app.task(name="orc_api.tasks.run_video")
@@ -106,8 +107,9 @@ def run_video(video_id: int, shutdown_after_task: bool = False) -> dict:
         logger.info(f"Video {video_id} processed successfully")
         return {"status": "ok", "video_id": video_id}
     except Exception as e:
-        logger.error(f"Error processing video {video_id}: {str(e)}", exc_info=True)
-        return {"status": "error", "video_id": video_id, "message": str(e)}
+        error_msg = f"Error processing video {video_id}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"status": "error", "video_id": video_id, "message": error_msg}
 
 
 @celery_app.task(name="orc_api.tasks.sync_video")
@@ -150,8 +152,9 @@ def sync_video_task(video_id: int, site: int, sync_file: bool, sync_image: bool)
         logger.info(f"Video {video_id} synced successfully to site {site}")
         return {"status": "ok", "video_id": video_id, "site": site}
     except Exception as e:
-        logger.error(f"Error syncing video {video_id}: {str(e)}", exc_info=True)
-        return {"status": "error", "video_id": video_id, "message": str(e)}
+        error_msg = f"Error syncing video {video_id}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"status": "error", "video_id": video_id, "message": error_msg}
 
 
 @celery_app.task(name="orc_api.tasks.sync_videos_batch")

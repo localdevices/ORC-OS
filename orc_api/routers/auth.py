@@ -5,10 +5,10 @@ from datetime import datetime, timedelta, timezone
 # from datetime import UTC  # TODO: uncomment when deprecating python3.9
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from sqlalchemy.orm import Session
 
 from orc_api import ALGORITHM, DEV_MODE, ORC_COOKIE_MAX_AGE, ORC_COOKIE_NAME, SECRET_KEY, crud
 from orc_api.database import get_db
-from orc_api.db import Session
 
 router: APIRouter = APIRouter(prefix="/auth", tags=["auth"])
 
