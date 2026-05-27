@@ -85,7 +85,7 @@ async def test_check_new_videos_no_video(mock_incoming_directory, mocker):
         parse_dates_from_file=True,
         reboot_after=False,
     )
-    await settings.check_new_videos(path_incoming=mock_incoming_directory, app=None, logger=logging)
+    await settings.check_new_videos(path_incoming=mock_incoming_directory, start_time=None, logger=logging)
     process_video_mock.assert_not_called()
 
 
@@ -117,5 +117,5 @@ async def test_check_new_videos_with_video(
     os.makedirs(mock_tmp_directory, exist_ok=True)
     with open(os.path.join(mock_incoming_directory, "video_20230101_123456.mp4"), "w") as f:
         f.write("test_video_file")
-    await settings.check_new_videos(path_incoming=mock_incoming_directory, app=app, logger=logging)
+    await settings.check_new_videos(path_incoming=mock_incoming_directory, start_time=None, logger=logging)
     process_video_mock.assert_called_once()

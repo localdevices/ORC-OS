@@ -68,23 +68,6 @@ def mock_do_update():
         yield mock_update
 
 
-# @pytest.fixture
-# def mock_run_release_preflight():
-#     with patch("orc_api.routers.updates.run_release_preflight", new_callable=AsyncMock) as mock_preflight:
-#         mock_preflight.return_value = type(
-#             "PreflightResult",
-#             (),
-#             {
-#                 "ok_to_update": True,
-#                 "results": [],
-#                 "model_dump": lambda self: {
-#                     "ok_to_update": True,
-#                     "blocking_statuses": ["OUTDATED", "ERROR"],
-#                     "results": [],
-#                 },
-#             },
-#         )()
-#         yield mock_preflight
 @pytest.fixture
 def mock_release_asset_by_name():
     with patch("orc_api.routers.updates._release_asset_by_name", new_callable=Mock) as mock_asset:
@@ -109,10 +92,16 @@ def mock_migrate_dbase():
         yield mock_migrate
 
 
+# @pytest.fixture
+# def mock_os_exit():
+#     with patch("os._exit", new_callable=Mock) as mock_exit:
+#         yield mock_exit
+
+
 @pytest.fixture
-def mock_os_exit():
-    with patch("os._exit", new_callable=Mock) as mock_exit:
-        yield mock_exit
+def mock_device_shutdown():
+    with patch("subprocess.run", new_callable=Mock) as mock_device_shutdown:
+        yield mock_device_shutdown
 
 
 @pytest.fixture
@@ -183,7 +172,6 @@ async def test_do_update_success(
     mock_download_release_asset,
     mock_migrate_dbase,
     mock_unzip_frontend,
-    mock_os_exit,
 ):
     # Mock success for all operations
     (
@@ -246,8 +234,16 @@ async def test_update_status():
 
 
 @pytest.mark.asyncio
-async def test_shutdown_api(mock_os_exit):
+async def test_shutdown_api(mock_device_shutdown):
     response = client.post("/updates/shutdown/")
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_shutdown_device(mock_device_shutdown):
+    response = client.post("/updates/shutdown_device/")
+    assert response.status_code == 200
+    response = client.post("/updates/reboot/")
     assert response.status_code == 200
 
 

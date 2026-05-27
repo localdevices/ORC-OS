@@ -4,7 +4,7 @@ import ServerStatus from './callbackUrlComponents/serverStatus.jsx'
 import {useMessage} from '../messageContext';
 import {getCallbackUrl} from '../utils/apiCalls/callbackUrl.jsx'
 
-const CallbackUrl = ({setRequiresRestart}) => {
+const CallbackUrl = () => {
 
   const [callbackUrl, setCallbackUrl] = useState([]);
   const [serverStatus, setServerStatus] = useState({
@@ -26,20 +26,6 @@ const CallbackUrl = ({setRequiresRestart}) => {
 
   const fetchCallbackUrl = async () => {
     const callbackUrlData = await getCallbackUrl();
-    // const response = await api.get('/callback_url/');
-    // if (response.data != null) {
-    //   console.log("RESPONSE:", response.data);
-    //   const received_data = {
-    //     "url": response.data.url,
-    //     "user": '',
-    //     "password": '',
-    //     "retry_timeout": response.data.retry_timeout,
-    //     "remote_site_id": response.data.remote_site_id,
-    //     "createdAt": response.data.created_at,
-    //     "tokenRefresh": response.data.token_refresh,
-    //     "tokenAccess": response.data.token_access,
-    //     "tokenExpiration": response.data.token_expiration
-    //   }
     setCallbackUrl(callbackUrlData)
     // }
 
@@ -108,10 +94,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         const errorData = await response.json()
         throw new Error(errorData.message || `Invalid form data. Status Code: ${response.status}`);
       }
-      console.log(response);
       setMessageInfo('success', response.data);
-      setRequiresRestart(true);
-
       // read back the device after posting
       fetchCallbackUrl();
       fetchServerStatus();
@@ -165,8 +148,9 @@ const CallbackUrl = ({setRequiresRestart}) => {
 
   return (
     <div className='container'>
+      <h2>LiveORC connection</h2>
       Setup or change a Live connection with a LiveOpenRiverCam server to exchange videos, and receive task forms.
-      <hr/>
+      <div className="flex-container column">
       <form onSubmit={handleFormSubmit}>
         <div className='mb-3 mt-3'>
           <label htmlFor='url' className='form-label'>
@@ -191,7 +175,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='remote_site_id' className='form-label'>
-            Site ID (number) of the site, as known on configured LiveORC server.
+            Site ID (number) of the site, as known on configured LiveORC server
           </label>
           <input type='number' className='form-control' id='remote_site_id' name='remote_site_id' step="1"
                  onChange={handleInputIntChange} value={formData.remote_site_id}/>
@@ -203,7 +187,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         </div>
         <div className='mb-3 mt-3'>
           <label htmlFor='password' className='form-label'>
-            Time [s] to retry requests in case the device seems offline. 0 means that only one try is performed.
+            Time [s] to retry requests in case the device seems offline. 0 means that only one try is performed
           </label>
           <input type='number' step='1' min='0' max='600' className='form-control' id='retry_timeout' name='retry_timeout' onChange={handleInputChange}
                  value={formData.retry_timeout}/>
@@ -289,6 +273,7 @@ const CallbackUrl = ({setRequiresRestart}) => {
         </button>
 
       </form>
+      </div>
     </div>
 
   );

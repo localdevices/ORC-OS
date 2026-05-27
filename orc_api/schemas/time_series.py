@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 from sqlalchemy.orm import Session
 
 from orc_api import crud
@@ -69,6 +69,20 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
 
     id: int = Field(description="TimeSeries ID")
 
+    @computed_field
+    @property
+    def discharge(self) -> Optional[float]:
+        """Return discharge as either q_raw or q_50 depending on which one is available.
+
+        q_raw has provenance over q_50 but normally they should never be available at the same time.
+        """
+        if self.q_raw:
+            return self.q_raw
+        elif self.q_50:
+            return self.q_50
+        else:
+            return None
+
     def sync_remote(self, session: Session, site: int):
         """Send the time series record to LiveORC API.
 
@@ -76,7 +90,24 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
         """
         endpoint = f"/api/site/{site}/timeseries/"
         data = self.model_dump(
-            exclude_unset=True, exclude_none=True, exclude={"id", "remote_id", "created_at", "sync_status"}, mode="json"
+            exclude_unset=True,
+            include={
+                "timestamp",
+                "h",
+                "q_raw",
+                "q_05",
+                "q_25",
+                "q_50",
+                "q_75",
+                "q_95",
+                "v_av",
+                "v_bulk",
+                "wetted_surface",
+                "wetted_perimeter",
+                "fraction_velocimetry",
+                "misc",
+            },
+            mode="json",
         )
 
         # sync remotely with the updated data, following the LiveORC end point naming
@@ -86,7 +117,9 @@ class TimeSeriesResponse(TimeSeriesBase, RemoteModel):
             # update schema instance
             update_time_series = TimeSeriesResponse.model_validate(response_data)
             r = crud.time_series.update(
-                session, id=self.id, time_series=update_time_series.model_dump(exclude_unset=True)
+                session,
+                id=self.id,
+                time_series=update_time_series.model_dump(exclude_unset=True, exclude={"discharge"}),
             )
             return TimeSeriesResponse.model_validate(r)
 

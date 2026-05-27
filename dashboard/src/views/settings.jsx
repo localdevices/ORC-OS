@@ -165,7 +165,7 @@ const Settings = ({setRequiresRestart}) => {
               style={{marginRight: '10px'}}
             />
             <label htmlFor='parse_dates_from_file' className='form-label'>
-              Parse dates from the video file name.
+              Parse dates from the video file name
             </label>
             <div className="help-block">
               File must have a name template such as &#34;{"{%Y%m%dT%H%M%S}.mp4"}&#34;
@@ -205,7 +205,7 @@ const Settings = ({setRequiresRestart}) => {
               style={{marginRight: '10px'}}
             />
             <label htmlFor='shutdown_after_task' className='form-label'>
-              Shutdown the device after an automated task.
+              Shutdown the device after an automated task
             </label>
             <div className="help-block">
               Choosing this implies that you use power cycling and one video per cycle in processing. Please check this
@@ -215,14 +215,14 @@ const Settings = ({setRequiresRestart}) => {
           <div className='mb-3 mt-3'>
             <label htmlFor='reboot_after' className='form-label'>
               Reboot device after some time [sec]. Just in case a system fails, the device may go back online after this
-              time.
+              time
             </label>
             <input type='number' min='300' max='86400' className='form-control' id='reboot_after' name='reboot_after' step='1'
                    onChange={handleInputIntChange} value={formData.reboot_after}/>
           </div>
           <div className='mb-3 mt-3'>
             <DropdownMenu
-              dropdownLabel={"Video configurations."}
+              dropdownLabel={"Video configurations"}
               callbackFunc={handleInputDropdown}
               data={videoConfigs}
               value={formData.video_config_id}
@@ -267,7 +267,7 @@ const Settings = ({setRequiresRestart}) => {
             <i className="text-danger">Only time series records will be synced as you did not select any files to sync</i>
           )}
 
-          <div className='mb-3 mt-3'>Activate the daemon runner.
+          <div className='mb-3 mt-3'>Activate the daemon runner
             <div className="form-check form-switch">
               <label className="form-label" htmlFor="active" style={{marginLeft: '0'}}></label>
               <input

@@ -110,19 +110,19 @@ const WaterLevel = ({ setRequiresRestart }) => {
                 <form onSubmit={handleFormSubmit}>
                     <div className='mb-3 mt-3'>
                         <label htmlFor='created_at' className='form-label'>
-                            Date of creation or last update.
+                            Date of creation or last update
                         </label>
                         <input type='datetime-local' className='form-control' id='created_at' name='created_at' onChange={handleInputChange} value={formData.created_at} disabled />
                     </div>
                     <div className='mb-3 mt-3'>
                         <label htmlFor='frequency' className='form-label'>
-                            Frequency [s] for checking for new water level using the script. E.g. a value of 1800 checks every half hour.
+                            Frequency [s] for checking for new water level using the script. E.g. a value of 1800 checks every half hour
                         </label>
                         <input type='number' className='form-control' id='frequency' name='frequency' step="1" onChange={handleInputChange} value={formData.frequency} />
                     </div>
                     <div className='mb-3 mt-3'>
                         <label htmlFor='script_type' className='form-label'>
-                            Script type of the provided script.
+                            Script type of the provided script
                         </label>
                         <select name="script_type" id="script_type" className="form-select" onChange={handleScriptTypeChange} value={scriptTypeStatus}>
                             <option value="0">PYTHON</option>
@@ -152,7 +152,7 @@ const WaterLevel = ({ setRequiresRestart }) => {
                             Allow attempting to resolve water levels optically
                         </label>
                     </div>
-                    <div className='mb-3 mt-3'>Activate the water level retrieval daemon.
+                    <div className='mb-3 mt-3'>Activate the water level retrieval daemon
                         <div className="form-check form-switch">
                             <label className="form-label" htmlFor="enabled" style={{ marginLeft: '0' }}></label>
                             <input

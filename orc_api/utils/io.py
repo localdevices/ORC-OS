@@ -62,7 +62,7 @@ def read_cross_section_from_geojson(input: Union[Path, str], linearize=False) ->
             # add the crs, this gets lost in translation
             cs["crs"] = crs
         else:
-            cs.pop("crs")
+            cs.pop("crs", None)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return cs

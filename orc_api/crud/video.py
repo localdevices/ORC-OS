@@ -1,11 +1,14 @@
 """CRUD operations for videos."""
 
+import os
 from datetime import datetime
 from typing import List, Optional
 
+from fastapi import UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.query import Query
 
+from orc_api import UPLOAD_DIRECTORY
 from orc_api import db as models
 from orc_api.crud import generic
 
@@ -178,3 +181,39 @@ def update(db: Session, id: int, video: dict):
     db.commit()
     db.flush()
     return rec.first()
+
+
+async def create_from_upload(
+    db: Session,
+    file: UploadFile,
+    timestamp: datetime,
+    video_config_id: Optional[int] = None,
+) -> models.Video:
+    """Save an uploaded video file and create its database record.
+
+    This is the framework-agnostic core of the upload operation. It can be
+    called from an API router or from internal code (e.g. the daemon scheduler)
+    without importing router modules.
+    """
+    video_instance = models.Video(timestamp=timestamp, video_config_id=video_config_id)
+    video_instance = add(db=db, video=video_instance)
+
+    file_dir = os.path.join(UPLOAD_DIRECTORY, "videos", timestamp.strftime("%Y%m%d"), str(video_instance.id))
+    os.makedirs(file_dir, exist_ok=True)
+
+    # absolute path is for storing the file, relative path is for storing the file reference in the database
+    rel_file_path = os.path.join("videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), file.filename)
+    abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
+
+    with open(abs_file_path, "wb") as f:
+        while True:
+            chunk = await file.read(1024 * 1024)  # Read in 1 MB chunks
+            if not chunk:
+                break
+            f.write(chunk)
+
+    video_instance.file = rel_file_path
+    db.commit()
+    db.refresh(video_instance)
+    # return the raw database model
+    return video_instance

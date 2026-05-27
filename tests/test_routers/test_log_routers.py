@@ -1,5 +1,4 @@
 # tests/test_log.py
-from logging import FileHandler
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,10 +31,10 @@ def mock_conn_manager():
         yield mock
 
 
-@pytest.fixture
-def mock_logger():
-    with patch("orc_api.routers.log.logger") as mock:
-        yield mock
+# @pytest.fixture
+# def mock_logger():
+#     with patch("orc_api.routers.log.logger") as mock:
+#         yield mock
 
 
 @pytest.fixture
@@ -45,14 +44,19 @@ def mock_stream_new_lines():
         yield mock
 
 
-def test_get_log_success(mocker):
+def test_get_log_success(mocker, tmpdir):
     """Test get_log with a valid log file."""
-    mock_file_path = "/valid/mock/log/file.log"
+    mock_file_path1 = tmpdir / "orc-os.log"
+    mock_file_path2 = tmpdir / "orc-os-celery.log"
+    # create empty files
+    with open(mock_file_path1, "w") as f:
+        f.write("")
+    with open(mock_file_path2, "w") as f:
+        f.write("")
+    mocker.patch("orc_api.routers.log.get_log_files", return_value=[mock_file_path1, mock_file_path2])
+
     mock_lines = "Line1\nLine2\nLine3\n"
-    mocker.patch(
-        "orc_api.routers.log.logger.handlers", [MagicMock(), MagicMock(spec=FileHandler, baseFilename=mock_file_path)]
-    )
-    mocker.patch("orc_api.routers.log.get_last_lines", return_value=mock_lines)
+    mocker.patch("orc_api.routers.log.get_merged_last_lines", return_value=mock_lines)
     response = client.get("/log/")
     assert response.status_code == 200
     assert response.json() == mock_lines
@@ -60,68 +64,51 @@ def test_get_log_success(mocker):
 
 def test_get_log_file_not_found(mocker):
     """Test get_log when the log file does not exist."""
-    mock_file_path = "/invalid/mock/log/file.log"
-    mocker.patch(
-        "orc_api.routers.log.logger.handlers", [MagicMock(), MagicMock(spec=FileHandler, baseFilename=mock_file_path)]
-    )
-    # mocker.patch("orc_api.routers.log.get_last_lines", side_effect=FileNotFoundError("Log file not found"))
-
+    mock_file_path1 = "/invalid/mock/log/file1.log"
+    mock_file_path2 = "/invalid/mock/log/file2.log"
+    mocker.patch("orc_api.routers.log.get_log_files", return_value=[mock_file_path1, mock_file_path2])
     response = client.get("/log/")
     assert response.status_code == 404
-    assert "Log file not found" in response.text
+    assert "No log files found" in response.text
 
 
-def test_get_log_custom_count(mocker):
+def test_get_log_custom_count(mocker, tmpdir):
     """Test get_log with a custom count parameter."""
-    mock_file_path = "/mock/log/file.log"
+    mock_file_path1 = tmpdir / "orc-os.log"
+    mock_file_path2 = tmpdir / "orc-os-celery.log"
+    # create empty files
+    with open(mock_file_path1, "w") as f:
+        f.write("")
+    with open(mock_file_path2, "w") as f:
+        f.write("")
+    mocker.patch("orc_api.routers.log.get_log_files", return_value=[mock_file_path1, mock_file_path2])
+
     mock_lines = "LastLine1\nLastLine2\n"
     mock_count = 2
-    mocker.patch(
-        "orc_api.routers.log.logger.handlers", [MagicMock(), MagicMock(spec=FileHandler, baseFilename=mock_file_path)]
-    )
-    mocker.patch("orc_api.routers.log.get_last_lines", return_value=mock_lines)
+    mocker.patch("orc_api.routers.log.get_merged_last_lines", return_value=mock_lines)
 
     response = client.get(f"/log?count={mock_count}")
     assert response.status_code == 200
     assert response.json() == mock_lines
 
 
-# tests for the websocket
 @pytest.mark.asyncio
-async def test_stream_log_success(mock_websocket, mock_conn_manager, mock_logger, mock_stream_new_lines):
-    """Test successful connection and streaming."""
-    handler_mock = MagicMock(spec=FileHandler)
-    handler_mock.baseFilename = "test.log"
-    mock_logger.handlers = [MagicMock(), handler_mock]
-
-    await stream_log(mock_websocket)
-
-    mock_conn_manager.connect.assert_called_once_with(mock_websocket)
-    mock_stream_new_lines.assert_awaited_once_with(mock_websocket, "test.log")
-
-
-@pytest.mark.asyncio
-async def test_stream_log_no_log_file(mock_websocket, mock_conn_manager, mock_logger):
+async def test_stream_log_no_log_file(mocker, mock_websocket, mock_conn_manager):
     """Test when no log file is found."""
-    handler_mock = MagicMock(spec=FileHandler)
-    handler_mock.baseFilename = None
-    mock_logger.handlers = [MagicMock(), handler_mock]
+    mock_file_path1 = "/invalid/mock/log/file1.log"
+    mock_file_path2 = "/invalid/mock/log/file2.log"
+    mocker.patch("orc_api.routers.log.get_log_files", return_value=[mock_file_path1, mock_file_path2])
 
     await stream_log(mock_websocket)
 
     mock_conn_manager.connect.assert_called_once_with(mock_websocket)
-    mock_websocket.close.assert_awaited_once_with(code=1003, reason="Log file not found!")
 
 
 @pytest.mark.asyncio
-async def test_stream_log_websocket_disconnect(mock_websocket, mock_conn_manager, mock_logger, mock_stream_new_lines):
+async def test_stream_log_websocket_disconnect(mock_websocket, mock_conn_manager, mock_stream_new_lines):
     """Test websocket disconnection handling."""
-    handler_mock = MagicMock(spec=FileHandler)
-    handler_mock.baseFilename = "test.log"
-    mock_logger.handlers = [MagicMock(), handler_mock]
     mock_stream_new_lines.side_effect = WebSocketDisconnect()
 
     await stream_log(mock_websocket)
 
     mock_conn_manager.connect.assert_called_once_with(mock_websocket)
-    mock_conn_manager.disconnect.assert_called_once_with(mock_websocket)

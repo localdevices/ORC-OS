@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 
 from orc_api import __version__, crud
@@ -13,13 +14,44 @@ from orc_api.schemas.callback_url import CallbackUrlResponse
 MANIFEST_API = "1"
 
 # Fix version numbers below. This must be modified before release in case version numbers should increase.
-MIN_ORC_VERSION = (0, 5, 0)
-MIN_LIVEORC_VERSION = (0, 3, 0)
-MIN_SQLITE_VERSION = (
-    3,
-    34,
-    1,
-)  # minimum version available on Bullseye, should be updated to trixie minimum version when we update the base image
+MIN_PYTHON = (3, 9)
+MIN_ORC_VERSION = (0, 6, 0)
+MIN_LIVEORC_VERSION = (0, 3, 1)
+# SQLite minimum version available on Bullseye, should be updated to trixie minimum version when we update
+# the base image
+MIN_SQLITE_VERSION = (3, 34, 1)
+
+REQUIRED_SERVICES = ["orc-os.target", "orc-api.service"]
+
+
+def _read_unit_state(unit: str) -> dict:
+    # Returns parsed systemd fields for one unit.
+    cp = subprocess.run(
+        [
+            "systemctl",
+            "show",
+            unit,
+            "--property=LoadState",
+            "--value",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+
+    # systemctl show --value prints one line per property, in requested order
+    # Example: loaded / enabled / active
+    if cp.returncode != 0:
+        return {"error": cp.stderr.strip() or cp.stdout.strip() or "systemctl failed"}
+
+    lines = [x.strip() for x in cp.stdout.splitlines()]
+    # Defensive padding in case output is shorter than expected
+    while len(lines) < 1:
+        lines.append("unknown")
+
+    return {
+        "load_state": lines[0],  # loaded, not-found, masked...
+    }
 
 
 def get_checks():
@@ -28,12 +60,18 @@ def get_checks():
     Add new tests as these become essential for guaranteeing working versions of ORC-OS after an update.
     """
     # return list of check functions
-    return [check_python_version, check_orc_version, check_liveorc_version, check_sqlite_version]
+    return [
+        check_python_version,
+        check_orc_version,
+        check_liveorc_version,
+        check_sqlite_version,
+        check_systemd_services,
+    ]
 
 
 def check_python_version():
     """Verify that local Python runtime satisfies release requirements."""
-    min_python = (3, 9)
+    min_python = MIN_PYTHON
     if sys.version_info < min_python:
         version_str = f"{sys.version_info.major}.{sys.version_info.minor}"
         return {
@@ -153,10 +191,49 @@ def check_sqlite_version():
     }
 
 
+def check_systemd_services():
+    """Check that the required systemd services are present and enabled."""
+    missing = []
+    errors = []
+
+    for unit in REQUIRED_SERVICES:
+        state = _read_unit_state(unit)
+
+        if "error" in state:
+            errors.append(f"{unit}: {state['error']}")
+            continue
+
+        if state["load_state"] == "not-found":
+            missing.append(unit)
+            continue
+
+    if errors:
+        return {
+            "check_id": "systemd_services",
+            "status": "ERROR",
+            "message": "Failed to query one or more systemd units: " + "; ".join(errors),
+            "remedy": "Check systemd availability and permissions.",
+        }
+
+    if missing:
+        return {
+            "check_id": "systemd_services",
+            "status": "OUTDATED",
+            "message": "Required systemd units are missing: " + ", ".join(missing),
+            "remedy": "Request your system administrator to install ORC-OS units before updating.",
+        }
+
+    return {
+        "check_id": "systemd_services",
+        "status": "OK",
+        "message": "Required systemd units are installed and active.",
+    }
+
+
 # Uncomment for testing, replace the function to test specific checks.
 if __name__ == "__main__":
     import json
 
     # select check to test below
-    result = check_sqlite_version()
+    result = check_systemd_services()
     print(json.dumps(result, indent=2))

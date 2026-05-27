@@ -80,7 +80,7 @@ export const VideoDetails = ({selectedVideo}) => {
               <div className="readonly">Water
                 level: {`${selectedVideo?.time_series?.h ? selectedVideo.time_series.h.toFixed(3) : "-"} m`}</div>
               <div
-                className="readonly">Discharge: {`${selectedVideo?.time_series?.q_50 ? selectedVideo.time_series.q_50.toFixed(3) : "-"} m3/s`}</div>
+                className="readonly">Discharge: {`${selectedVideo?.time_series?.discharge ? selectedVideo.time_series.discharge.toFixed(3) : "-"} m3/s`}</div>
             </div>
           </div>
           <div className="mb-0 mt-0">
@@ -126,7 +126,7 @@ VideoDetails.propTypes = {
     site_id: PropTypes.number,
     time_series: PropTypes.shape({
       h: PropTypes.number,
-      q_50: PropTypes.number,
+      discharge: PropTypes.number,
     }),
   }).isRequired,
 };

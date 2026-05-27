@@ -249,40 +249,6 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
               ></button>
             </div>
             <div className="modal-body" style={{height: "100%", overflowY: "visible"}}>
-              {waterLevel !== null && (
-                <div className="mb-3 mt-0">
-                  <label htmlFor="waterLevel" className="form-label">
-                    Water level [m]
-                  </label>
-                  <div className="slider-container">
-                    <div className="slider-min">{(waterLevelMin + yOffset).toFixed(2)}</div>
-                    <div className="slider-max">{(waterLevelMax + yOffset).toFixed(2)}</div>
-                    <ReactSlider
-                      title="Move slider to adjust water level manually"
-                      className="horizontal-slider"
-                      thumbClassName="thumb"
-                      trackClassName="track"
-                      disabled={waterLevel == null}
-                      value={waterLevel !== null ? waterLevel : Number.NaN}
-                      min={waterLevelMin + yOffset}
-                      max={waterLevelMax + yOffset}
-                      step={0.01}
-                      renderThumb={(props, state) => {
-                        return (
-                        <div {...props}>
-                          <div className="thumb-value">{state.valueNow !== null ? state.valueNow : "N/A"}</div>
-                        </div>
-                        );
-                      }}
-                      onChange={handleChangeWaterLevel}
-                    />
-                  </div>
-                    <div className="help-block" style={{marginTop: "80px"}}>
-                      Select or improve the set water level visually with this slider, before processing. If you want to
-                      remove a set water level and optically re-estimate it, click on the right-hand button below.
-                    </div>
-                </div>
-              )}
               {!waterLevel && (<div role="alert" style={{color: "green", fontStyle: "italic"}}>
                 No water level is set. Click on "Add water level" to set a water level manually.
               </div>
@@ -335,14 +301,51 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
             {loadingConfig ? (
               <div className="container"><div className="mt-0 mb-3"><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> Loading side view...</div></div>
             ) : (
-              <SideView
-                CSWaterLevel={videoConfig?.cross_section_wl}
-                CSDischarge={videoConfig?.cross_section}
-                zMin={videoConfig?.recipe?.min_z}
-                zMax={videoConfig?.recipe?.max_z}
-                waterLevel={waterLevel ? waterLevel - yOffset : null}
-                yRightOffset={yOffset}
-              />
+              <>
+                <SideView
+                  CSWaterLevel={videoConfig?.cross_section_wl}
+                  CSDischarge={videoConfig?.cross_section}
+                  zMin={videoConfig?.recipe?.min_z}
+                  zMax={videoConfig?.recipe?.max_z}
+                  waterLevel={waterLevel ? waterLevel - yOffset : null}
+                  yRightOffset={yOffset}
+                />
+
+                {waterLevel !== null && (
+                <div className="mb-3 mt-0">
+                  <label htmlFor="waterLevel" className="form-label">
+                    Water level [m]
+                  </label>
+                  <div className="slider-container">
+                    <div className="slider-min">{(waterLevelMin + yOffset).toFixed(2)}</div>
+                    <div className="slider-max">{(waterLevelMax + yOffset).toFixed(2)}</div>
+                    <ReactSlider
+                      title="Move slider to adjust water level manually"
+                      className="horizontal-slider"
+                      thumbClassName="thumb"
+                      trackClassName="track"
+                      disabled={waterLevel == null}
+                      value={waterLevel !== null ? waterLevel : Number.NaN}
+                      min={waterLevelMin + yOffset}
+                      max={waterLevelMax + yOffset}
+                      step={0.01}
+                      renderThumb={(props, state) => {
+                        return (
+                        <div {...props}>
+                          <div className="thumb-value">{state.valueNow !== null ? state.valueNow : "N/A"}</div>
+                        </div>
+                        );
+                      }}
+                      onChange={handleChangeWaterLevel}
+                    />
+                  </div>
+                    <div className="help-block" style={{marginTop: "80px"}}>
+                      Select or improve the set water level visually with this slider, before processing. If you want to
+                      remove a set water level and optically re-estimate it, click on the right-hand button below.
+                    </div>
+                </div>
+              )}
+              </>
             )}
             <div>
             <div className="image-container">

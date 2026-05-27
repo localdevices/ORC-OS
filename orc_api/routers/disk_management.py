@@ -1,37 +1,29 @@
-from fastapi import APIRouter, Depends, Response
-from orc_api.db import Session, DiskManagement
+"""Disk management API router for ORC-OS."""
+
 from typing import List, Union
 
-from orc_api.schemas.disk_management import DiskManagementResponse, DiskManagementCreate
-from orc_api.database import get_db
+from fastapi import APIRouter, Depends, Response
+
 from orc_api import crud
+from orc_api.database import get_db
+from orc_api.db import DiskManagement, Session
+from orc_api.schemas.disk_management import DiskManagementCreate, DiskManagementResponse
 
 router: APIRouter = APIRouter(prefix="/disk_management", tags=["disk_management"])
 
+
 @router.get("/", response_model=Union[DiskManagementResponse, None], description="Get disk management configuration.")
 async def get_disk_management_settings(db: Session = Depends(get_db)):
+    """Get the current disk management settings."""
     disk_management: List[DiskManagement] = crud.disk_management.get(db)
     return disk_management
 
 
 @router.post("/", response_model=None, status_code=201, description="Update disk management configuration.")
 async def update_disk_management(dm: DiskManagementCreate, db: Session = Depends(get_db)):
-    # Check if there is already a device
-    existing_dm = crud.disk_management.get(db)
+    """Update or create disk management settings."""
+    # Update or create
     try:
-        if existing_dm:
-            # Update the existing record's fields
-            for key, value in dm.model_dump(exclude_none=True).items():
-                setattr(existing_dm, key, value)
-            db.commit()
-            db.refresh(existing_dm)  # Refresh to get the updated fields
-            return existing_dm
-        else:
-            # Create a new device record if none exists
-            new_dm = DiskManagement(**dm.model_dump(exclude_none=True, exclude={"id"}))
-            db.add(new_dm)
-            db.commit()
-            db.refresh(new_dm)
-            return new_dm
+        crud.disk_management.create_update(db, dm)
     except Exception as e:
         return Response(f"Error: {e}", status_code=500)

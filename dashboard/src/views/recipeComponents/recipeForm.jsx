@@ -39,6 +39,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
         freq: selectedRecipe.freq || '',
         resolution: selectedRecipe.resolution || '',
         window_size: selectedRecipe.window_size || '',
+        correlation_average: selectedRecipe.correlation_average || '',
         data: JSON.stringify(selectedRecipe.data, null, 4) || '',
         v_distance: selectedRecipe.v_distance,
         alpha: selectedRecipe.alpha,
@@ -64,6 +65,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
         freq: '',
         resolution: '',
         window_size: '',
+        correlation_average: '',
         v_distance: '',
         alpha: '',
         quiver_scale_grid: '',
@@ -332,8 +334,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
           </div>
           <div className="mb-3 mt-3 form-horizontal">
             <div role="alert" style={{color: "green", fontStyle: "italic"}}>
-              Assuming you record at 30 frames-per-second, 1 px/frame would translate
-              to {30 / formData.freq * formData.resolution} m/s. This is probably the minimum bulk velocity you can
+              Assuming you record at 15 (recommended) frames-per-second, 1 px/frame would translate
+              to {(15 / formData.freq * formData.resolution).toFixed(3)} m/s. This is probably the minimum bulk velocity you can
               reliably measure. If you likely need to measure lower bulk velocities, consider a smaller pixel
               resampling size (i.e. higher resolution) or a higher resample frame distance.
             </div>
@@ -349,7 +351,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
               value={formData.window_size || 64} // Default values if unset
               min={32}
               max={128}
-              step={1}
+              step={32}
               renderThumb={(props, state) => (
                 <div {...props}>
                   <div className="thumb-value">{state.valueNow}</div>
@@ -359,6 +361,37 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
                 handleSliderChange("window_size", value)
               }}
             />
+          </div>
+          <div className="mb-3 mt-3 form-horizontal" onChange={handleInputBooleanChange}>
+            <label htmlFor="correlation_average" className="form-label">
+              Produce one velocity estimate over entire frame-range?
+            </label>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="correlation_average"
+                id="true"
+                value="true"
+                checked={formData.correlation_average}
+              />
+              <label className="form-check-label" htmlFor="correlation_average">
+                Yes (no error estimates but cleaner velocities)
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="correlation_average"
+                id="false"
+                value="false"
+                checked={!formData.correlation_average}
+              />
+              <label className="form-check-label" htmlFor="hue">
+                No (may give less clean velocity but with error estimates)
+              </label>
+            </div>
           </div>
 
           <hr></hr>

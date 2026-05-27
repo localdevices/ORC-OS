@@ -45,7 +45,7 @@ const DisplayTimeSeries = () => {
   const [variables, setVariables] = useState([
 
     {id: "h", name: "Water level", show: true},
-    {id: "q_50", name: "Discharge", show: true},
+    {id: "discharge", name: "Discharge", show: true},
     {id: "v_av", name: "Surface velocity", show: false},
     {id: "v_bulk", name: "Bulk velocity", show: false},
   ]);
@@ -58,7 +58,7 @@ const DisplayTimeSeries = () => {
   const [viewMode, setViewMode] = useState('timeSeries');
   // Threshold filters
   const [filterH, setFilterH] = useState({ enabled: false, min: null, max: null });
-  const [filterQ50, setFilterQ50] = useState({ enabled: false, min: null, max: null });
+  const [filterDischarge, setFilterDischarge] = useState({ enabled: false, min: null, max: null });
   const [filterFractionVel, setFilterFractionVel] = useState({ enabled: false, value: 20 });
   // Video config filter
   const [selectedVideoConfigIds, setSelectedVideoConfigIds] = useState(null);
@@ -188,11 +188,11 @@ const DisplayTimeSeries = () => {
       });
     }
 
-    if (filterQ50.enabled) {
+    if (filterDischarge.enabled) {
       filtered = filtered.filter(d => {
-        const value = d.q_50;
+        const value = d.discharge;
         if (value == null) return true;
-        return value <= (filterQ50.max || Infinity) && value >= (filterQ50.min || -Infinity);
+        return value <= (filterDischarge.max || Infinity) && value >= (filterDischarge.min || -Infinity);
       });
     }
 
@@ -204,7 +204,7 @@ const DisplayTimeSeries = () => {
       });
     }
     setFilteredData(filtered);
-  }, [data, filterH, filterQ50, filterFractionVel]);
+  }, [data, filterH, filterDischarge, filterFractionVel]);
 
   // helper function to get a difference in date in days
   const getDateDiff = (date, days) => {
@@ -316,7 +316,7 @@ const DisplayTimeSeries = () => {
       },
       variables[1].show && {
         label: 'Discharge (median)',
-        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.q_50 || NaN })),
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.discharge || NaN })),
         borderColor: 'rgb(255,99,99)',
         backgroundColor: 'rgba(255,99,99,0.5)',
         yAxisID: 'y1',
@@ -340,10 +340,10 @@ const DisplayTimeSeries = () => {
       },
     ].filter(Boolean),
   } : {
-    // Rating curve: x = h (water level), y = q_50 (discharge)
+    // Rating curve: x = h (water level), y = discharge
     datasets: [{
       label: 'Rating Curve',
-      data: filteredData.map(d => ({ x: d.h, y: d.q_50 || NaN })).filter(d => d.y !== null),
+      data: filteredData.map(d => ({ x: d.h, y: d.discharge || NaN })).filter(d => d.y !== null),
       borderColor: 'rgb(30, 63, 192)',
       backgroundColor: 'rgba(30, 63, 192, 0.5)',
       showLine: false,
@@ -568,8 +568,8 @@ const DisplayTimeSeries = () => {
           <FilterTimeSeries
             filterH={filterH}
             setFilterH={setFilterH}
-            filterQ50={filterQ50}
-            setFilterQ50={setFilterQ50}
+            filterDischarge={filterDischarge}
+            setFilterDischarge={setFilterDischarge}
             filterFractionVel={filterFractionVel}
             setFilterFractionVel={setFilterFractionVel}
             setShowVideoConfigModal={setShowVideoConfigModal}

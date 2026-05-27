@@ -95,7 +95,7 @@ def is_file_size_changing(fn, delay=1):
     fn : str
         path to file
     delay : float, optional
-        amount of delay time to check if file size changes
+        amount of delay time (sec) to check if file size changes (default 1)
 
     Returns
     -------

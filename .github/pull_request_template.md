@@ -9,6 +9,7 @@ Explain how you addressed the bug/feature request, what choices you made and why
 - [ ] Fork is up-to-date with `main`
 - [ ] Tests pass
 - [ ] Front end functionalities tested
+- [ ] Preflight tests updated
 - [ ] Updated documentation
 - [ ] Updated CHANGELOG.md
 

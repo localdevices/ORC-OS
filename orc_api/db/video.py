@@ -57,8 +57,10 @@ class Video(RemoteBase):
         The image associated with the video. Can be null.
     thumbnail : str or None
         The thumbnail of the video. Can be null.
-    camera_config : int
-        Foreign key linking to the associated camera configuration.
+    video_config_id : int
+        Foreign key linking to the associated video configuration.
+    time_series_id : int
+        Foreign key linking to the associated time series.
 
     """
 

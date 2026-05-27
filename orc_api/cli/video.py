@@ -228,7 +228,7 @@ def add_config(
             try:
                 if Path(cross_section_wl_file).suffix.lower() == ".csv":
                     cross_section_wl = read_cross_section_from_csv(Path(cross_section_wl_file))
-                elif Path(cross_section_wl_file).suffix.lower() in [".json"]:
+                elif Path(cross_section_wl_file).suffix.lower() in [".json", ".geojson"]:
                     cross_section_wl = read_cross_section_from_geojson(Path(cross_section_wl_file))
                 else:
                     click.echo(f"✗ Unsupported cross-section file format: {cross_section_wl_file}", err=True)

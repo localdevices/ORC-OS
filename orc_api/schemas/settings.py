@@ -8,9 +8,9 @@ from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 from typing_extensions import Self
 
-from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, crud
+from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, crud
 from orc_api.database import get_session
-from orc_api.routers.video import upload_video
+from orc_api.schemas.video import VideoResponse
 from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import disk_management, queue, sys_utils
 
@@ -114,17 +114,21 @@ class SettingsResponse(SettingsBase):
             self.sample_file = os.path.join(INCOMING_DIRECTORY, self.file_format)
         return self
 
-    async def check_new_videos(self, path_incoming, app, logger):
+    async def check_new_videos(self, path_incoming: str, start_time: Optional[float], logger):
         """Check for new videos in incoming folder, add to database and queue if ready to run."""
         # check the incoming folder
         if self.reboot_after:
-            sys_utils.reboot_after_time(start_time=app.state.start_time, timeout=max(self.reboot_after, 300))
+            sys_utils.reboot_after_time(start_time=start_time, timeout=max(self.reboot_after, 300))
 
         file_paths = disk_management.scan_folder(path_incoming, self.video_file_fmt.split(".")[-1])
         for file_path in file_paths:
             # each file is checked if it is not yet in the queue and not
-            # being written into
-            if os.path.isfile(file_path) and not disk_management.is_file_size_changing(file_path):
+            # being written into or zero-bytes
+            if (
+                os.path.isfile(file_path)
+                and not disk_management.is_file_size_changing(file_path)
+                and os.path.getsize(file_path) > 0
+            ):
                 # first move the file to a temporary location
                 tmp_file = os.path.join(TMP_DIRECTORY, os.path.split(file_path)[1])
                 os.makedirs(os.path.split(tmp_file)[0], exist_ok=True)
@@ -146,18 +150,17 @@ class SettingsResponse(SettingsBase):
                 # Add a new record for the provided file, first only timestamp
                 file = UploadFile(filename=os.path.split(tmp_file)[1], file=open(tmp_file, "rb"))
                 with get_session() as session:
-                    video_response = await upload_video(
-                        file=file, timestamp=timestamp, video_config_id=self.video_config_id, db=session
+                    video_instance = await crud.video.create_from_upload(
+                        db=session, file=file, timestamp=timestamp, video_config_id=self.video_config_id
                     )
+                    video_response = VideoResponse.model_validate(video_instance)
                 # move video to queue
                 video_response = await queue.process_video(
                     session=session,
                     video=video_response,
                     logger=logger,
-                    executor=app.state.executor,
-                    upload_directory=UPLOAD_DIRECTORY,
                     shutdown_after_task=self.shutdown_after_task if self.shutdown_after_task else False,
-                    priority=0,  # highest priority for tasks that are initiated from daemon settings
+                    priority=1,  # highest priority for tasks that are initiated from daemon settings
                 )
                 # whatever happens, remove the file if not successful, prevent clogging
                 os.remove(tmp_file)

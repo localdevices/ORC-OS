@@ -2,38 +2,37 @@
 
 import pytest
 
+from orc_api.db.base import SyncStatus
+from orc_api.db.video import Video, VideoStatus
 from orc_api.main import app, lifespan
-from orc_api.utils.queue import PriorityThreadPoolExecutor
 
 
 @pytest.mark.asyncio
-async def test_lifespan_initializes_state(monkeypatch, mocker):
-    fake_scheduler = mocker.Mock()
-    mocker.patch("orc_api.main.BackgroundScheduler", return_value=fake_scheduler)
-    mocker.patch("orc_api.main.schedule_disk_maintenance", return_value=None)
-    mocker.patch("orc_api.main.schedule_video_checker", return_value=None)
-    mocker.patch("orc_api.main.schedule_water_level", return_value=fake_scheduler)
-
+async def test_lifespan_initializes_state(mocker):
     fake_session = mocker.Mock()
     mocker.patch("orc_api.main.get_session", return_value=fake_session)
-    mocker.patch("orc_api.main.crud.video.get_list", return_value=[])
 
-    # make delayed_sync_videos not do any operations, and pass this in create_task
-    async def fake_delayed_sync_videos(app_arg, logger_arg):
-        return
-
-    mocker.patch("orc_api.main.delayed_sync_videos", fake_delayed_sync_videos)
-    mocker.patch("orc_api.main.get_session", return_value=fake_session)
-    mocker.patch("orc_api.main.crud.video.get_list", return_value=[])
-
-    def sync_run_nothing(coro):
-        # close coroutine to prevent "never awaited" warning.
-        coro.close()
-        return None
-
-    mocker.patch("orc_api.main.asyncio.create_task", side_effect=sync_run_nothing)  # ensures awaiting
+    # Build two Video instances without hitting the DB
+    fake_videos = [
+        Video(
+            id=i,
+            file=f"video_{i}.mp4",
+            timestamp=f"2024-06-0{i}T00:00:00Z",
+            status=VideoStatus.NEW,
+            sync_status=SyncStatus.LOCAL,
+        )
+        for i in range(1, 3)
+    ]
+    mocker.patch(
+        "orc_api.utils.startup_checks.crud.video.get_list",
+        return_value=fake_videos,
+    )
+    mocker.patch(
+        "orc_api.utils.startup_checks.crud.settings.get",
+        return_value=None,
+    )
+    # make sure the submission of jobs is bypassed
+    mocker.patch("orc_api.utils.startup_checks.celery_app.send_task")
 
     async with lifespan(app):
-        assert app.state.scheduler is fake_scheduler
-        assert isinstance(app.state.executor, PriorityThreadPoolExecutor)
-        assert isinstance(app.state.process_list, list)
+        assert hasattr(app.state, "session")

@@ -1,3 +1,4 @@
+import {FaExclamationTriangle} from 'react-icons/fa';
 import {useState, useEffect, useRef, useMemo} from 'react';
 import ReactMarkdown from 'react-markdown';
 
@@ -15,7 +16,6 @@ function normalizeVersion(version) {
   // in case prefix is 'v' remove prefix
   return String(version).trim().replace(/^v/i, "");
 }
-
 
 function compareVersions(a, b) {
   // Normalize and split versions into parts, converting to integers, used for comparing versions.
@@ -85,6 +85,15 @@ const Updates = ({ currentVersion }) => {
     }
     return compareVersions(currentVersion, selectedReleaseTag) > 0;
   }, [currentVersion, selectedReleaseTag]);
+
+  const currentVersionEqualToSelected = useMemo(() => {
+    // compare current version with selected release version to determine if update should be blocked
+    if (!currentVersion || !selectedReleaseTag) {
+      return false;
+    }
+    return compareVersions(currentVersion, selectedReleaseTag) === 0;
+  }, [currentVersion, selectedReleaseTag]);
+
 
   const selectedReleaseAllowed = useMemo(() => {
     // determine if the selected release is allowed based on preflight results
@@ -232,6 +241,25 @@ const Updates = ({ currentVersion }) => {
         <>
             <div className="flex-container no-padding">
               <div style={{width: "100%"}}>
+              <div className="service-warning">
+                <p><FaExclamationTriangle color="red"/> Before updating consider the following:
+                <ul>
+                  <li>make sure you first STOP and DISABLE any power management mode or any other mode causing
+                    autonomous shutdowns or reboots. This is because during updating the device should not shutdown,
+                    and because during restarting, recompilation may be required, which takes a few
+                    minutes of time.
+                  </li>
+                  <li>
+                    Make sure your device has sufficient battery and a stable internet connection.
+                  </li>
+                  <li>
+                    Consider backing up your database before updating.
+                  </li>
+                </ul>
+                </p>
+
+              </div>
+
                 <div className="update-info">
                   <DropdownMenu
                     dropdownLabel={"Select available releases"}
@@ -290,6 +318,11 @@ const Updates = ({ currentVersion }) => {
                 {currentVersionHigherThanSelected && (
                   <div className="no-update error">
                     The selected version is older than your current version. Update is disabled.
+                  </div>
+                )}
+                {currentVersionEqualToSelected && (
+                  <div className="update error">
+                    You are already running the selected version. Update will re-attempt installation in case of any suspected issues.
                   </div>
                 )}
 

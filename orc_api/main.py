@@ -1,12 +1,10 @@
 """Main ORC-OS API module."""
 
-import asyncio
 import multiprocessing
 import time
 from contextlib import asynccontextmanager
 
 import uvicorn
-from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,13 +13,11 @@ from orc_api import (
     DEV_MODE,
     ORIGINS,
     SECRET_KEY,
-    UPLOAD_DIRECTORY,
     __release__,
     __version__,
     crud,
 )
 from orc_api.database import get_session
-from orc_api.db import VideoStatus
 from orc_api.log import logger
 from orc_api.routers import (
     auth,
@@ -43,21 +39,15 @@ from orc_api.routers import (
     video_stream,
     water_level,
 )
-from orc_api.schedulers import (
-    delayed_sync_videos,
-    schedule_disk_maintenance,
-    schedule_video_checker,
-    schedule_water_level,
-)
-from orc_api.schemas.video import VideoResponse
-from orc_api.utils import auth_helpers, queue
-from orc_api.utils.states import video_run_state
+from orc_api.utils import auth_helpers
+from orc_api.utils.redis_pubsub import redis_pubsub_manager
+from orc_api.utils.startup_checks import check_and_restore_queued_videos
 from orc_api.utils.sys_utils import get_server_timezone_info
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the scheduler and logger."""
+    """Initialize app state and logger."""
     logger.info(f"ORC-OS API v{__version__}")
 
     if SECRET_KEY == "ORC_DEFAULT_KEY":
@@ -66,57 +56,37 @@ async def lifespan(app: FastAPI):
             "changed in a production environment.",
         )
 
-    scheduler = BackgroundScheduler()
-    scheduler.start()
     session = get_session()
-    # add scheduler to api state for use in routers
-    app.state.scheduler = scheduler  # scheduler is accessible throughout the app
-    app.state.process_list = []  # state with queue of videos to run
-    app.state.executor = queue.PriorityThreadPoolExecutor(max_workers=1)  # ThreadPoolExecutor(max_workers=1)
-    # app.state.processing = False  # state processing yes/no
-    app.state.video_run_state = video_run_state  # initialize video run status queue
-    # app.state.processing_message = None  # string defining last status condition
+    # Note: Executor removed - now using Celery for background tasks
     app.state.session = session
     app.state.start_time = time.time()
 
-    schedule_water_level(scheduler, logger, session)
-    schedule_disk_maintenance(scheduler, logger, session)
+    # Initialize Redis pub/sub for websockets
+    try:
+        await redis_pubsub_manager.connect()
+        logger.info("Redis pub/sub manager connected")
+    except Exception as e:
+        logger.error(f"Failed to connect Redis pub/sub manager: {e}")
+        # Don't fail startup if Redis is unavailable, but log the error
 
-    # delay syncing of non-synced videos to ensure any video jobs for daemon are always prioritized
-    asyncio.create_task(delayed_sync_videos(app, logger))
+    # Check for queued videos at startup
+    try:
+        check_and_restore_queued_videos(session)
+    except Exception as e:
+        logger.error(f"Error checking queued videos at startup: {e}")
 
-    process_queue_videos = schedule_video_checker(scheduler, logger, session, app)
-    if process_queue_videos:
-        # finally check if there are any jobs left to do from an earlier occasion
-        videos_left = []
-        videos_task = crud.video.get_list(session, status=VideoStatus.TASK)
-        videos_queue = crud.video.get_list(session, status=VideoStatus.QUEUE)
-        videos_left += videos_task
-        videos_left += videos_queue
-        if len(videos_left) > 0:
-            logger.info(f"There are {len(videos_left)} videos left to process from earlier work.")
-            for video_rec in videos_left:
-                # with get_session() as db:
-                # ensure state is set back to new so that processing will be accepted.
-                # db.commit()
-                # session.refresh(video_rec)
-                video_rec = crud.video.update(session, video_rec.id, {"status": VideoStatus.NEW})
-                video_instance = VideoResponse.model_validate(video_rec)
-                if video_instance.ready_to_run[0]:
-                    _ = await queue.process_video(
-                        session=session,
-                        video=video_instance,
-                        logger=logger,
-                        executor=app.state.executor,
-                        upload_directory=UPLOAD_DIRECTORY,
-                    )
-        else:
-            logger.info("No videos left to process from earlier work.")
-    else:
-        logger.info("Daemon active and set to shutdown after task. Earlier videos will NOT be processed.")
+    try:
+        yield
+    finally:
+        # Disconnect Redis pub/sub manager
+        try:
+            await redis_pubsub_manager.disconnect()
+            logger.info("Redis pub/sub manager disconnected")
+        except Exception as e:
+            logger.error(f"Error disconnecting Redis pub/sub manager: {e}")
 
-    yield
-    logger.info("Shutting down FastAPI server, goodbye!")
+        session.close()
+        logger.info("Shutting down FastAPI server, goodbye!")
 
 
 # set up API with the lifespan approach, to do things before starting and after closing the API.
