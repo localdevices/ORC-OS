@@ -335,7 +335,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
           <div className="mb-3 mt-3 form-horizontal">
             <div role="alert" style={{color: "green", fontStyle: "italic"}}>
               Assuming you record at 15 (recommended) frames-per-second, 1 px/frame would translate
-              to {15 / formData.freq * formData.resolution} m/s. This is probably the minimum bulk velocity you can
+              to {(15 / formData.freq * formData.resolution).toFixed(3)} m/s. This is probably the minimum bulk velocity you can
               reliably measure. If you likely need to measure lower bulk velocities, consider a smaller pixel
               resampling size (i.e. higher resolution) or a higher resample frame distance.
             </div>

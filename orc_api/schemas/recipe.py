@@ -163,6 +163,10 @@ class RecipeResponse(RecipeRemote):
     correlation_average: bool = Field(
         default=True, description="Use correlation averaging for more stable and operational velocity estimates."
     )
+    signal_threshold: float = Field(
+        default=0.2,
+        description="Threshold for signal-to-noise ratio. For the moment cannot be configured and set to 0.2",
+    )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default="piv", description="Velocimetry method.")
     wl_preprocess: Optional[Literal["natural", "manmade", "movements", "grayscale", "saturation"]] = Field(
         default="manmade", description="Method for treating frames for water level estimation."
@@ -229,6 +233,7 @@ class RecipeResponse(RecipeRemote):
             instance.correlation_average = data.velocimetry.get_piv["ensemble_corr"]
         else:
             instance.correlation_average = True  # revert to the default
+        instance.signal_threshold = 0.2  # for the moment cannot be configured and set to 0.2
         # instance.velocimetry = "piv"  # make variable once other methods are available
         if "distance" in data.transect.transect_1["get_transect"]:
             instance.v_distance = data.transect.transect_1["get_transect"]["distance"]
@@ -318,6 +323,10 @@ class RecipeUpdate(RecipeRemote):
     correlation_average: Optional[bool] = Field(
         default=True, description="Use correlation averaging for more stable and operational velocity estimates."
     )
+    signal_threshold: Optional[float] = Field(
+        default=0.2,
+        description="Threshold for signal-to-noise ratio. For the moment cannot be configured and set to 0.2",
+    )
     velocimetry: Optional[Literal["piv", "stiv"]] = Field(default=None, description="Velocimetry method.")
     wl_preprocess: Optional[Literal["natural", "manmade", "movements", "grayscale", "saturation"]] = Field(
         default="manmade", description="Method for processing video for water level estimation."
@@ -387,6 +396,7 @@ class RecipeUpdate(RecipeRemote):
             data.velocimetry.get_piv["ensemble_corr"] = instance.correlation_average
         else:
             data.velocimetry.get_piv["ensemble_corr"] = True
+        data.velocimetry.get_piv["signal_threshold"] = 0.2  # for the moment cannot be configured and set to 0.2
         data.transect.transect_1.setdefault("get_transect", {})["distance"] = getattr(instance, "v_distance", 0.5)
         data.transect.transect_1.setdefault("get_q", {})["v_corr"] = getattr(instance, "alpha", 0.85)
         data.plot.plot_quiver.setdefault("velocimetry", {})["scale"] = 1 / getattr(instance, "quiver_scale_grid", 1.0)
