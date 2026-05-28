@@ -71,7 +71,7 @@ const Footer = ({apiStatus}) => {
         <p style={{left: "0px"}}>
         <img style={{marginRight: "7px"}} src={orcLogo} alt="ORC Logo" width="20" className="footer-logo"/>
         ORC-OS {apiStatus?.release} v{apiStatus.version} © {new Date().getFullYear()}
-          <a className="dark-link" href="https://rainbowsensing.com"> https://rainbowsensing.com</a>
+          <a className="dark-link" href="https://openrivercam.org"> https://openrivercam.org</a>
 
         </p>
       </div>

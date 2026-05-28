@@ -202,7 +202,9 @@ async def create_from_upload(
     os.makedirs(file_dir, exist_ok=True)
 
     # absolute path is for storing the file, relative path is for storing the file reference in the database
-    rel_file_path = os.path.join("videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), file.filename)
+    rel_file_path = os.path.join(
+        "videos", timestamp.strftime("%Y%m%d"), str(video_instance.id), os.path.basename(str(file.filename))
+    )
     abs_file_path = os.path.join(UPLOAD_DIRECTORY, rel_file_path)
 
     with open(abs_file_path, "wb") as f:

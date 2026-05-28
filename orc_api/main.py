@@ -1,10 +1,8 @@
 """Main ORC-OS API module."""
 
-import multiprocessing
 import time
 from contextlib import asynccontextmanager
 
-import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -206,8 +204,3 @@ async def root():
 async def no_access():
     """Refuse access to user."""
     return HTTPException(status_code=401, detail="No access")
-
-
-if __name__ == "__main__":
-    multiprocessing.freeze_support()  # For Windows support
-    uvicorn.run("orc_api.main:app", host="0.0.0.0", port=5000, reload=False, workers=1)
