@@ -308,7 +308,7 @@ const Updates = ({ currentVersion }) => {
                           key={result.check_id}
                           style={{color: getStatusColor(result.status), marginBottom: "0.4rem"}}
                         >
-                          <strong>{result.status}</strong>: {result.message}
+                          <strong>{result.status}</strong>: {result.message}{result.remedy ? (` - `) : ""}<strong>{result.remedy ? `Remedy: ${result.remedy}` : ""}</strong>
                         </li>
                       ))}
                     </ul>
