@@ -30,13 +30,8 @@ def pose_info_complete(camera_config: CameraConfigResponse):
 class CrossSectionBase(BaseModel):
     """Base model for a cross-section."""
 
-    @staticmethod
-    def _get_timestamp() -> datetime:
-        """Get the current timestamp during initialization of the instance."""
-        return datetime.now()
-
     timestamp: Optional[datetime] = Field(
-        default_factory=_get_timestamp, description="Moment at which cross section was measured."
+        default_factory=lambda: datetime.now(), description="Moment at which cross section was measured."
     )
     name: Optional[str] = Field(default=None, description="Free recognizable description of cross section.")
     features: dict = Field(description="GeoJSON formatted features of the cross section.")
