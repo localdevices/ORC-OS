@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import importlib.metadata
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -11,6 +12,7 @@ import tempfile
 import time
 import zipfile
 from typing import Any, List, Optional
+from urllib.parse import quote
 
 import httpx
 from alembic import command
@@ -47,10 +49,20 @@ repo_owner = "localdevices"
 repo_name = "ORC-OS"
 service_name = "ORC-API.service"
 
+TAG_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+BASE_URL = f"https://api.github.com/repos/{repo_owner}/{repo_name}"
+
 websocket_conns: List[WebSocket] = []
 
 # Event used to notify state changes
 state_update_queue = asyncio.Queue()
+
+
+def _validate_tag_name(tag_name: str) -> str:
+    """Validate the format of the release tag name."""
+    if not TAG_RE.fullmatch(tag_name):
+        raise HTTPException(status_code=422, detail="Invalid release tag format")
+    return tag_name
 
 
 def _asset_digest(asset: dict) -> str:
@@ -71,9 +83,12 @@ def _release_asset_by_name(release_data: dict, asset_name: str) -> dict:
 
 async def fetch_release_by_tag(tag_name: str) -> dict[str, Any]:
     """Fetch release data from GitHub by tag name."""
+    tag_name = _validate_tag_name(tag_name)
+    safe_tag = quote(tag_name, safe="")  # path super-secure encoding to prevent any issues with special characters
+    tag_url = f"{BASE_URL}/releases/tags/{safe_tag}"
     async with httpx.AsyncClient() as client:
         r = await client.get(
-            f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/tags/{tag_name}",
+            tag_url,
             timeout=httpx.Timeout(connect=3.0, read=8.0, write=5.0, pool=5.0),
         )
         if r.status_code == 404:
@@ -86,8 +101,9 @@ async def fetch_release_by_tag(tag_name: str) -> dict[str, Any]:
 async def fetch_github_releases() -> list[dict[str, Any]]:
     """Fetch all available releases from GitHub, newest first."""
     async with httpx.AsyncClient() as client:
+        releases_url = f"{BASE_URL}/releases"
         response = await client.get(
-            f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases",
+            releases_url,
             timeout=httpx.Timeout(connect=3.0, read=8.0, write=5.0, pool=5.0),
         )
 
@@ -175,8 +191,9 @@ async def check_latest_github_version():
     current_version = orc_api.__version__
     try:
         async with httpx.AsyncClient() as client:
+            latest_url = f"{BASE_URL}/releases/latest"
             response = await client.get(
-                f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest",
+                latest_url,
                 timeout=httpx.Timeout(connect=3.0, read=5.0, write=5.0, pool=5.0),
             )
             if response.status_code == 200:

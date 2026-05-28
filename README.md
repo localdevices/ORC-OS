@@ -317,7 +317,6 @@ echo "Installing ORC-API $VERSION"
 # install the latest ORC-OS API
 pip install git+https://github.com/localdevices/ORC-OS.git@$ORC_VERSION
 # ensure a fresh database it created
-cd $HOME/venv/orc-api/lib/python3.12/site-packages/orc-api
 orc db migrate
 # deactivate the virtual environment
 deactivate
@@ -327,7 +326,7 @@ To test if the installation was successful, you can run the following command:
 # activate the virtual environment
 source $HOME/venv/orc-api/bin/activate
 # start the API interactively, wait up to a few minutes for the first start
-uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
+uvicorn orc_api.main:app --host 0.0.0.0 --port 5000 --workers 1
 ```
 This should start the API interactively on port 5000. Note that a number of functions must
 be compiled and loaded into memory. This may take a few seconds to a few minutes to complete.
@@ -394,7 +393,9 @@ flowchart TD
 > echo $SECRET_KEY
 > ```
 
-Below are example unit files. You need to adapt the paths to your system.
+Below are example unit files. You need to adapt the paths to your system. Particularly, note that your python
+version may be different. We support up to python 3.14.
+
 Also replace:
 - `YOUR_USERNAME` by the user running this service (does not need to be root).
 - `YOUR_SECRET_KEY_GOES_HERE` by the actual secret key you generated for the device.
@@ -450,7 +451,7 @@ BindsTo=orc-api.service
 [Service]
 type=simple
 User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+WorkingDirectory=/home/YOUR_USERNAME
 Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
 Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
 Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
@@ -475,7 +476,7 @@ BindsTo=orc-api.service
 
 [Service]
 User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+WorkingDirectory=/home/YOUR_USERNAME
 Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
 Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
 Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
@@ -499,7 +500,7 @@ BindsTo=orc-api.service
 [Service]
 type=simple
 User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/venv/orc-os/lib/python3.12/site-packages/orc_api
+WorkingDirectory=/home/YOUR_USERNAME
 Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
 Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
 Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
