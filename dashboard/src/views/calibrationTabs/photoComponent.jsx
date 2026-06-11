@@ -538,7 +538,7 @@ const PhotoComponent = (
           points={bBoxPolygon}
           fill={"rgba(255, 255, 255, 0.3)"}
           stroke={"white"}
-          strokeWidth={2 / transformState.scale}
+          strokeWidth={1 / transformState.scale}
           zIndex={0}
 
         />
@@ -579,9 +579,8 @@ const PhotoComponent = (
         <PolygonDrawer
           points={line}
           key={`bbox wet pol ${idx}`}
-          fill={"rgba(75, 75, 192, 0.3)"}
-          stroke={"rgba(75, 75, 192, 1)"}
-          strokeWidth={2 / transformState.scale}
+          fill={"rgba(0, 0, 0, 0.3)"}
+          strokeWidth={0 / transformState.scale}
           zIndex={1}
         />
 

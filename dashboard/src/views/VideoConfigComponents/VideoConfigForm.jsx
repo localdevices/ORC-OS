@@ -96,7 +96,8 @@ const VideoConfigForm = (
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange}
                  value={formData.name} required/>
         </div>
-        <div className="mb-3 mt-3">
+        {/* This part currently disabled until new camera calibration options are available*/}
+        {/* <div className="mb-3 mt-3">
           <label htmlFor="videoMode" className="form-label">
             Mode of video
           </label>
@@ -140,7 +141,7 @@ const VideoConfigForm = (
             />
             <label htmlFor="modeDrone" style={{ marginLeft: '8px' }}>Nadir drone with 2 points x, y</label>
           </div>
-        </div>
+        </div> */}
         <div className="mb-3 mt-3">
           <label htmlFor="videoMode" className="form-label">
             Rotate video

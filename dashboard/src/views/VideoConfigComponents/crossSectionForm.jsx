@@ -16,6 +16,7 @@ const CrossSectionForm = (
     setCSWaterLevel,
     setBboxSelected,
     handleBboxStart,
+    handleEstimateBbox,
     setMessageInfo,
     ws
   }
@@ -63,12 +64,14 @@ const CrossSectionForm = (
 
   const validateBboxReady = () => {
     // check if all fields are complete for defining a bounding box
+    // also a Discharge cross section must be selected.
     const fieldsComplete = (
       cameraConfig?.gcps?.z_0 &&
       cameraConfig?.f && cameraConfig?.k1 &&
       cameraConfig?.k2 &&
       cameraConfig?.camera_rotation &&
-      cameraConfig?.camera_position
+      cameraConfig?.camera_position &&
+      CSDischarge
     );
 
     if (!fieldsComplete) {
@@ -132,6 +135,34 @@ const CrossSectionForm = (
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+        <h5>Cross sections</h5>
+        <button className='btn btn-primary' onClick={() => setShowCrossSectionUploadModal(true)}>
+          Upload new
+        </button>
+        <div className='container' style={{marginTop: '5px'}}>
+          <h5>Select discharge cross section</h5>
+          <DropdownMenu
+            dropdownLabel="Discharge cross section"
+            name="discharge"
+            callbackFunc={(event) => handleCS(event, setCSDischarge)}
+            data={availableCrossSections}
+            value={CSDischarge?.id}
+            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
+          />
+        </div>
+        <div className='container' style={{marginTop: '5px'}}>
+          <h5>Select optical water level cross section</h5>
+          <DropdownMenu
+            dropdownLabel="Optical water level cross section"
+            name="water level"
+            callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
+            data={availableCrossSections}
+            value={CSWaterLevel?.id}
+            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
+          />
+        </div>
+      </div>
+      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Set water levels</h5>
         <div className='mb-3 mt-3'>
           <label htmlFor='z_0' className='form-label small'>
@@ -161,7 +192,20 @@ const CrossSectionForm = (
           />
         </div>
         <span
-          title={validateBboxReady() ? "Draw Bounding Box" : "you must set water levels first"}
+          title={validateBboxReady() ? "Draw Bounding box around cross section" : "you must set water levels and a discharge cross section first"}
+          className="d-inline-block"
+          data-bs-toggle="tooltip"
+        >
+        <button
+          className='btn btn-primary'
+          onClick={() => handleEstimateBbox()}
+          disabled={!validateBboxReady()}
+        >
+          Estimate bounding box
+        </button>
+        </span>
+        <span
+          title={validateBboxReady() ? "Draw Bounding box around the selected cross section" : "you must set water levels and a discharge cross section first"}
           className="d-inline-block"
           data-bs-toggle="tooltip"
         >
@@ -172,36 +216,7 @@ const CrossSectionForm = (
         >
           Draw bounding box
         </button>
-          </span>
-
-      </div>
-      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        <h5>Cross sections</h5>
-        <button className='btn btn-primary' onClick={() => setShowCrossSectionUploadModal(true)}>
-          Upload new
-        </button>
-        <div className='container' style={{marginTop: '5px'}}>
-          <h5>Select discharge cross section</h5>
-          <DropdownMenu
-            dropdownLabel="Discharge cross section"
-            name="discharge"
-            callbackFunc={(event) => handleCS(event, setCSDischarge)}
-            data={availableCrossSections}
-            value={CSDischarge?.id}
-            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
-          />
-        </div>
-        <div className='container' style={{marginTop: '5px'}}>
-          <h5>Select optical water level cross section</h5>
-          <DropdownMenu
-            dropdownLabel="Optical water level cross section"
-            name="water level"
-            callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
-            data={availableCrossSections}
-            value={CSWaterLevel?.id}
-            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
-          />
-        </div>
+        </span>
 
       </div>
       {showCrossSectionUploadModal && (

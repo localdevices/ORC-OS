@@ -357,6 +357,14 @@ const VideoConfig = ({devStatus}) => {
     setActiveView(view);
   };
 
+  const handleEstimateBbox = () => {
+    const msg = {
+      action: 'update_video_config',
+      op: 'set_bbox_from_cross_section',
+    }
+    sendDebouncedMsg(msg);
+  }
+
   const handleBboxStart = () => {
     setBboxSelected(true);
     const msg = {
@@ -565,6 +573,7 @@ const VideoConfig = ({devStatus}) => {
                         setCSWaterLevel={setCSWaterLevel}
                         setBboxSelected={setBboxSelected}
                         handleBboxStart={handleBboxStart}
+                        handleEstimateBbox={handleEstimateBbox}
                         setMessageInfo={setMessageInfo}
                         ws={ws.current}
                       />
