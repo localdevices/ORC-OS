@@ -20,7 +20,11 @@ width=100 align="right">
   * [Installation on Raspberry Pi](#installation-on-raspberry-pi)
   * [Getting the image on the SD card](#getting-the-image-on-the-sd-card)
   * [Getting the image on the Compute Module](#getting-the-image-on-the-compute-module)
-
+* [Installation via Docker on a server or your own computer](#installation-via-docker-on-a-server-or-your-own-computer)
+* [Installation on your own device](#installation-on-your-own-device)
+  * [Prerequisites](#prerequisites)
+  * [Installation of components](#installation-of-components)
+* [For developers](#for-developers)
 
 > [!TIP]
 > Rainbow Sensing is the company behind this entirely Open-Source software framework. We provide ready-to-use images
@@ -51,10 +55,10 @@ What can you do with OpenRiverCam OS?
 - Stay up-to-date with the latest developments of OpenRiverCam OS through Over-The-Air updates.
 
 > [!NOTE]
-> This README is only meant to instruct how to install OpenRiverCam OS on a device. For more information on how to use
-> OpenRiverCam OS, please refer to the [documentation] which is forthcoming. We here do not provide any advice on how to
-> build or water proof a device, or how to perform surveys. If you are interested in these topics, please contact us for
-> a dedicated training package.
+> This README is only meant to instruct how to install OpenRiverCam OS on a device. For more information on how to
+  build devices or how to use OpenRiverCam OS, please refer to the
+  [documentation](https://localdevices.github.io/ORC-OS). If you are interested in our support or training modules,
+  please visit https://openrivercam.com/contact.
 
 Two approaches to installation are provided.
 
@@ -105,26 +109,29 @@ If you have a Raspberry Pi Compute Module, please go to the next section. If you
 At this stage you will not need your Raspberry Pi yet. Just leave it in the box and start the laptop or desktop
 computer that has Raspberry Pi Imager installed
 
+> [!NOTE]
+> The instructions below are written for Raspberry Pi imager >= 2.0. If you use an older version (1.x),
+> the navigation is very similar, but slightly different.
+
 * Put your SD card in a free SD-card reader slot on your laptop or desktop computer that has the Raspberry Pi imager
   installed.
 * Download our image from the provided link to a location on your machine that you can find back easily, e.g.
   `C:\User\myuser\Downloads`. The file has the extension `img.gz`. *Do not* unpack this file. This is not necessary.
 * Start the Raspberry Pi imager application.
-* In the field "Raspberry Pi Device", click on "CHOOSE DEVICE" and select your Raspberry Pi device in the list.
+* In the field "Device", select your Raspberry Pi device in the list.
   This can only be Raspberry Pi 4 or 5!
-* In the field "Operating System", click on "CHOOSE OS", scroll all the way down and select "Use custom".
-  Now navigate to the folder in which you stored the `img.gz` file and double-click it to select it.
+* In the field OS (Operating System), scroll all the way down and select "Use custom".
+  Now navigate to the folder in which you stored the `img.gz` file and double-click it to select it. Click NEXT.
 * In the field "Storage", click on "CHOOSE STORAGE". Select the SD card, typically called something like "Internal SD
   card reader".
 * Click on "NEXT".
-* When the application asks "Would you like to apply OS customisation settings?", click on NO or check our
-  instructions in the tip field below. If you select "NO" your device will get the name `orcos` by default.
-* When the application asks "All existing data on '-your selected SD card-' will be erased. Are you sure you want to
-  continue?", click on YES.
+* You should now be on the Writing field. Click on WRITE.
+* The application warns that you are about to ERASE all data. Click on I UNERSTAND, ERASE AND WRITE.
 * When Raspberry OS Imager asks for your computer's root/super user password, please provide this.
 
 > [!TIP]
-> You may edit settings if you want. If you do not have a UTP cable or free UTP slot conveniently nearby but instead
+> If you run Raspberry imager < 2.0, you can modify certain settings.
+> If you do not have a UTP cable or free UTP slot conveniently nearby but instead
   want to rely on WiFi, then you should do this to enable WiFi! To do this Click on "EDIT SETTINGS" and follow the
   instructions below. **WARNING** do NOT change the user name!
 > 1. Click on the "GENERAL" tab.
@@ -149,7 +156,8 @@ computer that has Raspberry Pi Imager installed
 
 The SD card will now be prepared and verified. This will only take a few minutes. Time for a 🍵 or ☕.
 
-Are you back after your 🍵 or ☕? You should now see a box with title "Write Successful".
+Are you back after your 🍵 or ☕? You should now see a message "Write complete!". Click on FINISH.
+
 If you do not see this, but instead get an error, then likely there is
 something wrong with your SD card. Please check the following:
 
@@ -625,7 +633,7 @@ Open your favorite browser and navigate to the hostname of the device on which y
 or `http://orc-os.local`. If you installed on your own computer, then this should be `http://localhost`.
 You will arrive at the landing page from where you can set a password and start using the device.
 
-### For developers
+# For developers
 
 Clone the repository with ssh and move into the cloned folder.
 
