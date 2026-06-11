@@ -1,11 +1,15 @@
 """WebSocket video config interactive operations."""
 
+import io
+import json
 import traceback
 from typing import Any, Dict, Literal, Optional
 
+import geopandas as gpd
 import numpy as np
 from pydantic import BaseModel
-from pyorc import CameraConfig
+from pyorc import CameraConfig, CrossSection
+from shapely import Polygon
 
 from orc_api import DEV_MODE, UPLOAD_DIRECTORY, crud
 from orc_api.database import get_session
@@ -330,17 +334,11 @@ class WSVideoState(BaseModel):
             }
         }, "rotation of video modified"
 
-    def set_bbox(self, op=None, inplace=True, **params):
+    def set_bbox(self, bbox: Optional[Polygon] = None):
+        # def set_bbox(self, op=None, inplace=True, **params):
         """Set bbox-related camera config properties."""
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
-        # perform operation
-        if op is not None:
-            if inplace:
-                # operation sets property
-                getattr(cc, op)(**params)
-            else:
-                # operation returns new instance
-                cc = getattr(cc, op)(**params)
+        cc.bbox = bbox
         data = CameraConfigData.model_validate(cc.to_dict_str())
         new_cc = CameraConfigResponse(
             name=self.video.video_config.camera_config.name, id=self.video.video_config.camera_config.id, data=data
@@ -369,9 +367,39 @@ class WSVideoState(BaseModel):
         # new_cc = self.update_cam_config("set_bbox_from_width_length", **params)
         return self.submodel_bbox
 
+    def rotate_translate_bbox(self, **params):
+        """Rotate and translate bbox according to params."""
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
+        cc_new = cc.rotate_translate_bbox(**params)
+        bbox = cc_new.bbox
+        return self.set_bbox(bbox)
+        # return self.submodel_bbox
+
     def set_bbox_from_width_length(self, **params):
         """Set bounding box from width and length."""
-        self.set_bbox("set_bbox_from_width_length", **params)
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
+        # perform operation, result is cc.bbox is (re)set.
+        cc.set_bbox_from_width_length(**params)
+        bbox = cc.bbox
+        # self.set_bbox("set_bbox_from_width_length", **params)
+        return self.set_bbox(bbox)
+        # return self.submodel_bbox
+
+    def set_bbox_from_cross_section(self):
+        """Set bounding box from cross section."""
+        if self.video.video_config.cross_section is None:
+            raise ValueError("No discharge cross section selected. Cannot set bounding box from cross section.")
+        cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
+
+        feats = self.video.video_config.cross_section.features
+        string_io_buffer = io.StringIO(json.dumps(feats))
+        gdf = gpd.read_file(string_io_buffer)
+        cs = CrossSection(camera_config=cc, cross_section=gdf)
+        # get minimum value of outermost left and right bank
+        z_max = min(cs.z[0], cs.z[-1])
+        h_max = cc.z_to_h(z_max)
+        bbox = cs.get_bbox(h=h_max, length=5)
+        self.set_bbox(bbox)
         return self.submodel_bbox
 
     def set_camera_config_data(self, data: Optional[Dict] = None) -> Dict:
@@ -484,7 +512,7 @@ class WSVideoState(BaseModel):
         # check if recipe is None, if so make a default recipe
         if vc.recipe is None:
             frame_count = self.video.frame_count(base_path=UPLOAD_DIRECTORY)
-            vc.recipe = RecipeResponse(name=vc.name, end_frame=frame_count)
+            vc.recipe = RecipeResponse(name=vc.name, data={"video": {"end_frame": frame_count}})
         if vc.camera_config is None:
             # initialize camera config with default values
             height, width = self.video.dims(base_path=UPLOAD_DIRECTORY)
@@ -496,11 +524,6 @@ class WSVideoState(BaseModel):
             video=self.video.model_dump(),
             saved=self.saved,
         )
-
-    def rotate_translate_bbox(self, **params):
-        """Resizes bbox according to params."""
-        self.set_bbox("rotate_translate_bbox", **params, inplace=False)
-        return self.submodel_bbox
 
 
 class WSVideoResponse(BaseModel):
