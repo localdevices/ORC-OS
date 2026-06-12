@@ -4,11 +4,11 @@ import os
 from unittest.mock import patch
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine
 
 import orc_api
-from alembic import command
-from alembic.config import Config
 
 
 @pytest.fixture

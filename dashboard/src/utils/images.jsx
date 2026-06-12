@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
+import api, {createWebSocketConnection, closeWebSocketConnection, useDebouncedWsSender} from "../api/api.js";
 
-import api from "../api/api.js";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createDebounce } from "./helpers.jsx";
 
 // Check if an image URL is already cached by the browser
@@ -15,9 +15,87 @@ export const isImageCached = (url) => {
 export const getFrameUrl = (video, frameNr, rotate) => {
   if (!video) return "";
   const apiHost = api.defaults.baseURL.replace(/\/$/, "");
-  const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
+  // const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
+  const frameUrl = `${apiHost}/video/${String(video.id)}/frames_with_state/`;
   return rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
 };
+
+
+/**
+ * Hook for interactive frame streaming via WebSocket
+ * @param {number} videoId - The video ID to stream
+ * @param {function} onFrameUpdate - Callback when frame updates
+ * @returns {object} State and control methods
+ */
+
+export const useInteractiveFrameStream = (videoId) => {
+  const [state, setState] = useState({
+    current_frame: 0,
+    total_frames: 0,
+    is_playing: false,
+  });
+
+  const wsRef = useRef(null);
+  const frameImageRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
+  // Initialize WebSocket
+  useEffect(() => {
+    if (!videoId) return;
+
+    const connectionId = `video_${videoId}_frame_stream`;
+    const callbackVideoPlayerStates = (message, ws) => {
+      if (message.type === "state") {
+        setState((prev) => ({
+          ...prev,
+          current_frame: message.current_frame,
+          total_frames: message.total_frames,
+          is_playing: message.is_playing,
+        }));
+      };
+    }
+
+    const ws = createWebSocketConnection(
+      connectionId,
+      `/video/${videoId}/frames_interactive/`,
+      callbackVideoPlayerStates,
+      true,
+    );
+    wsRef.current = ws;
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [videoId]);
+
+  // Send command to backend
+  const sendCommand = useCallback((command, params = {}) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: "command",
+          command,
+          ...params,
+        })
+      );
+    }
+  }, []);
+
+  return {
+    ...state,
+    play: () => sendCommand("play"),
+    pause: () => sendCommand("pause"),
+    stop: () => sendCommand("stop"),
+    seek: (frame) => sendCommand("seek", { frame }),
+    forward: () => sendCommand("forward"),
+    rewind: () => sendCommand("rewind"),
+    setRotate: (rotate) => sendCommand("set_rotate", { rotate }),
+  };
+};
+
+
 
 export const useDebouncedImageUrl = ({
   setImageUrl,

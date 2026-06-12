@@ -1,11 +1,13 @@
 """Video routers."""
 
 import asyncio
-import io
+import copy
 import mimetypes
 import os
+import time
 import traceback  # only used in DEV_MODE
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional, Union
 from zipfile import ZIP_DEFLATED
 
@@ -42,6 +44,7 @@ from orc_api.schemas.video import (
 )
 from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue, websockets
+from orc_api.utils.image import get_frame_count, get_frame_from_cap, yield_frames_from_fn
 from orc_api.utils.redis_pubsub import get_redis_pubsub_manager
 from orc_api.utils.states import SyncRunStatus, VideoRunStatus
 
@@ -52,6 +55,9 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 # start a websockets connection manager
 conn_manager = websockets.ConnectionManager()
+
+# Add state manager for tracking playback per video
+_frame_stream_states = {}
 
 
 async def redis_available() -> None:
@@ -137,29 +143,156 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     # set to frame
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
     # Read the frame
-    success, frame = cap.read()
+    success, io_buf = get_frame_from_cap(cap, rotate)
+
     if not success:
         raise HTTPException(status_code=500, detail="Failed to read frame")
 
-    # Validate and apply rotation if specified
-    if rotate is not None:
-        if rotate not in [90, 180, 270]:
-            raise HTTPException(status_code=400, detail="Rotation must be None, 90, 180 or 270 degrees")
-        if rotate == 90:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        elif rotate == 180:
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
-        elif rotate == 270:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    # # Validate and apply rotation if specified
+    # if rotate is not None:
+    #     if rotate not in [90, 180, 270]:
+    #         raise HTTPException(status_code=400, detail="Rotation must be None, 90, 180 or 270 degrees")
+    #     if rotate == 90:
+    #         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    #     elif rotate == 180:
+    #         frame = cv2.rotate(frame, cv2.ROTATE_180)
+    #     elif rotate == 270:
+    #         frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-    # Convert the frame to jpg format
-    _, buffer = cv2.imencode(".jpg", frame)
-    io_buf = io.BytesIO(buffer.tobytes())
+    # # Convert the frame to jpg format
+    # _, buffer = cv2.imencode(".jpg", frame)
+    # io_buf = io.BytesIO(buffer.tobytes())
     # Clean up
     cap.release()
-
     # Return the frame as a streaming response
     return StreamingResponse(io_buf, media_type="image/jpeg")
+
+
+@router.get("/{id}/frames/")  # , response_class=FileResponse, status_code=200)
+async def get_frames(
+    id: int,
+    start_frame: Optional[int] = None,
+    end_frame: Optional[int] = None,
+    rotate: Optional[int] = None,
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
+    """Retrieve frames with repetition from video."""
+    # convert into schema and return data
+    if start_frame is None:
+        start_frame = 0
+    video = get_video_record(db, id)
+    if not video.file:
+        raise HTTPException(status_code=404, detail="Video record is found, but video file is not found.")
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+    # check for physical presence
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Video file not found on local data store.")
+    if end_frame is None:
+        end_frame = get_frame_count(file_path)
+
+    # prevent unnecessarily long database connection, close!
+    db.close()
+
+    async def frame_generator():
+        for frame in yield_frames_from_fn(file_path, rotate, start_frame, end_frame):
+            if await request.is_disconnected():
+                logger.info(f"Client disconnected while streaming frames for video {id}. Stopping generator.")
+                break
+            yield frame
+
+    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+
+@router.get("/{id}/frames_with_state/")
+async def get_frames_with_state(
+    id: int,
+    rotate: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Stream frames, respecting play/pause/seek state from control WebSocket."""
+    video = get_video_record(db, id)
+    if not video.file:
+        raise HTTPException(status_code=404, detail="Video file not found")
+
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Video file not found on disk")
+
+    db.close()
+
+    async def frame_generator():
+        """Stream frames while respecting state from control channel."""
+        cap = cv2.VideoCapture(file_path)
+        try:
+            # set initial states
+            last_frame_sent_time = time.time()
+            frame_send_interval = 1.0 / cap.get(cv2.CAP_PROP_FPS)
+            paused = False  # used to detect if already paused or not. Only send last frame if just paused
+            paused_frame = 0  # used to track which frame we are on when paused, so we can resend if seek is called
+            # state = {"is_playing": True, "current_frame": 0, "total_frames": get_frame_count(file_path)}
+            while True:
+                # Get current state (modified by control WebSocket)
+                state = _frame_stream_states.get(id)
+                if state is None:
+                    break
+
+                if state["is_playing"]:
+                    paused = False
+                    if state["current_frame"] >= state["total_frames"]:
+                        state["current_frame"] = 0  # Loop back to start
+                        # reopen the cap
+                        cap.release()
+                        del cap
+                        cap = cv2.VideoCapture(file_path)
+                    # Set to current frame
+                    success, io_buf = get_frame_from_cap(cap, rotate)
+
+                    if not success:
+                        state["is_playing"] = False
+                    else:
+                        io_buf.seek(0)
+                        while time.time() - last_frame_sent_time < frame_send_interval:
+                            await asyncio.sleep(0.001)  # Wait until it's time to send the next frame
+                        last_frame_sent_time = time.time()
+                        frame_data = b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + io_buf.read() + b"\r\n"
+                        state["current_frame"] += 1
+                        yield frame_data
+                    # await asyncio.sleep(0.01)  # ~30 FPS
+                else:
+                    if not paused or paused_frame != state["current_frame"]:
+                        # apparently we just paused, so we will forward the last frame and then wait until we start
+                        # playing again
+                        paused = True
+                        # Paused: still serve current frame
+                        if state["current_frame"] >= state["total_frames"]:
+                            state["current_frame"] = 0  # Loop back to start
+                            # reopen the cap
+                            cap.release()
+                            del cap
+                            cap = cv2.VideoCapture(file_path)
+
+                        success, io_buf = get_frame_from_cap(cap, rotate)
+                        # reset to previous frame
+                        cap.release()
+                        del cap
+                        cap = cv2.VideoCapture(file_path)
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, state["current_frame"])
+
+                        if success:
+                            io_buf.seek(0)
+                            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + io_buf.read() + b"\r\n")
+                            # send another time, otherwise the browser does not render it
+                            io_buf.seek(0)
+                            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + io_buf.read() + b"\r\n")
+                        paused_frame = state["current_frame"]
+
+                    await asyncio.sleep(0.01)  # Lower frequency when paused
+        finally:
+            cap.release()
+            del cap
+
+    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 
 @router.get("/", response_model=List[VideoListResponse], status_code=200)
@@ -233,10 +366,11 @@ async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
     # close db connection
     db.close()
     # open video
-    cap = cv2.VideoCapture(file_path)
-    # check amount of frames
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    return frame_count
+    return get_frame_count(file_path)
+    # cap = cv2.VideoCapture(file_path)
+    # # check amount of frames
+    # frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    # return frame_count
 
 
 @router.delete("/{id}/", status_code=204, response_model=None)
@@ -639,4 +773,257 @@ async def video_ws(websocket: WebSocket, id: int, name: Optional[str] = None):
         conn_manager.disconnect(websocket)
     except asyncio.CancelledError:
         logger.info(f"Websocket {websocket} for video_config_id {id} cancelled.")
+        conn_manager.disconnect(websocket)
+
+
+class FrameStreamCommand(str, Enum):
+    """Commands for frame streaming."""
+
+    PLAY = "play"
+    PAUSE = "pause"
+    STOP = "stop"
+    SEEK = "seek"  # Seek to specific frame
+    FORWARD = "forward"  # Next frame
+    REWIND = "rewind"  # Previous frame
+
+
+# @router.websocket("/{id}/frames_interactive/")
+# async def frames_interactive_ws(websocket: WebSocket, id: int):
+#     """Interactive frame streaming via WebSocket."""
+#     await conn_manager.connect(websocket)
+#     logger.info(f"Connected WebSocket for interactive frames: {websocket}")
+
+#     is_playing = True
+#     rotate = None
+
+#     try:
+#         db = next(get_db())
+#         video = get_video_record(db, id)
+#         if not video.file:
+#             await websocket.send_json({"error": "Video file not found"})
+#             await websocket.close()
+#             return
+
+#         file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+#         db.close()
+
+#         # Frame streaming state
+#         total_frames = get_frame_count(file_path)
+#         current_frame = 0
+#         # Send initial state to client
+#         await websocket.send_json(
+#             {
+#                 "type": "state",
+#                 "total_frames": total_frames,
+#                 "current_frame": current_frame,
+#                 "is_playing": is_playing,
+#             }
+#         )
+
+#         # Create OpenCV capture once
+#         cap = cv2.VideoCapture(file_path)
+#     except Exception as e:
+#         if DEV_MODE:
+#             traceback.print_exc()
+#         logger.error(f"Error initializing interactive frame streaming: {e}")
+#         await websocket.send_json({"error": str(e)})
+#         await websocket.close()
+#         return
+
+#     is_playing = True
+#     rotate = None
+
+#     try:
+#         while True:
+#             # Check for incoming commands (non-blocking)
+#             try:
+#                 msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.01)
+
+#                 if msg.get("type") == "command":
+#                     command = msg.get("command")
+
+#                     if command == FrameStreamCommand.PLAY:
+#                         is_playing = True
+#                         logger.debug("Play command received")
+
+#                     elif command == FrameStreamCommand.PAUSE:
+#                         is_playing = False
+#                         logger.debug("Pause command received")
+
+#                     elif command == FrameStreamCommand.STOP:
+#                         break
+
+#                     elif command == FrameStreamCommand.SEEK:
+#                         target_frame = msg.get("frame", 0)
+#                         current_frame = max(0, min(target_frame, total_frames - 1))
+#                         cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+#                         logger.debug(f"Seek to frame {current_frame}")
+
+#                     elif command == FrameStreamCommand.FORWARD:
+#                         if current_frame < total_frames - 1:
+#                             current_frame += 1
+#                             cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+#                             logger.debug(f"Forward to frame {current_frame}")
+
+#                     elif command == FrameStreamCommand.REWIND:
+#                         if current_frame > 0:
+#                             current_frame -= 1
+#                             cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+#                         logger.debug(f"Rewind to frame {current_frame}")
+
+#                     elif command == "set_rotate":
+#                         rotate = msg.get("rotate")
+#                         logger.debug(f"Rotate set to {rotate}")
+
+#             except asyncio.TimeoutError:
+#                 # No message received, continue streaming if playing
+#                 pass
+
+#             # Stream frame if playing
+#             if is_playing and current_frame < total_frames:
+#                 print(f"Streaming frame {current_frame}/{total_frames}")
+#                 success, io_buf = get_frame_from_cap(cap, rotate)
+
+#                 if not success:
+#                     print(f"Failed to read frame {current_frame}. Stopping playback.")
+#                     # End of video reached
+#                     is_playing = False
+#                     await websocket.send_json(
+#                         {
+#                             "type": "state",
+#                             "current_frame": current_frame,
+#                             "is_playing": False,
+#                             "message": "End of video",
+#                         }
+#                     )
+#                 else:
+#                     # Send frame data as base64
+#                     # import base64
+
+#                     # io_buf.seek(0)
+#                     # frame_data = base64.b64encode(io_buf.read()).decode("utf-8")
+
+#                     await websocket.send_json(
+#                         {
+#                             "type": "frame_header",
+#                             "current_frame": current_frame,
+#                             "total_frames": total_frames,
+#                             # "frame_data": frame_data,  # Base64 encoded JPEG
+#                             "is_playing": is_playing,
+#                         }
+#                     )
+#                     io_buf.seek(0)
+#                     # send io buffer separately and directly as binary blob
+#                     await websocket.send_bytes(io_buf.read())
+
+#                     current_frame += 1
+#                     # Small delay to simulate playback speed (adjust as needed)
+#                     # await asyncio.sleep(0.033)  # ~30 FPS
+
+#             else:
+#                 # Not playing, just check for commands
+#                 await asyncio.sleep(0.01)
+
+#     except Exception as e:
+#         logger.error(f"WebSocket error: {e}")
+#         if DEV_MODE:
+#             traceback.print_exc()
+#         conn_manager.disconnect(websocket)
+#     except asyncio.CancelledError:
+#         logger.info("WebSocket cancelled")
+#         conn_manager.disconnect(websocket)
+#     finally:
+#         cap.release()
+
+
+@router.websocket("/{id}/frames_interactive/")
+async def frames_control_ws(websocket: WebSocket, id: int):
+    """Control WebSocket - only handles play/pause/seek commands."""
+    await conn_manager.connect(websocket)
+    logger.info(f"Connected control WebSocket for video {id}")
+
+    # Initialize state
+    _frame_stream_states[id] = {
+        "current_frame": 0,
+        "is_playing": False,
+        "total_frames": 0,
+    }
+
+    try:
+        db = next(get_db())
+        video = get_video_record(db, id)
+        file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+        db.close()
+
+        total_frames = get_frame_count(file_path)
+        _frame_stream_states[id]["total_frames"] = total_frames
+
+        # Send initial state
+        await websocket.send_json(
+            {
+                "type": "state",
+                "total_frames": total_frames,
+                "current_frame": 0,
+                "is_playing": False,
+            }
+        )
+        # initialize empty
+        frame_stream_state_id = {}
+        while True:
+            # send new state to client
+            # await websocket.send_json({
+            #     "type": "state",
+            #     "current_frame": _frame_stream_states[id]["current_frame"],
+            #     "is_playing": _frame_stream_states[id]["is_playing"],
+            #     "total_frames": _frame_stream_states[id]["total_frames"],
+            # })
+
+            try:
+                msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.001)
+                # msg = await websocket.receive_json()
+                command = msg.get("command")
+
+                if command == "play":
+                    _frame_stream_states[id]["is_playing"] = True
+                elif command == "pause":
+                    _frame_stream_states[id]["is_playing"] = False
+                elif command == "stop":
+                    break
+                elif command == "seek":
+                    frame = msg.get("frame", 0)
+                    _frame_stream_states[id]["current_frame"] = max(0, min(frame, total_frames))
+                elif command == "forward":
+                    state = _frame_stream_states[id]
+                    if state["current_frame"] < total_frames:
+                        state["current_frame"] += 1
+                elif command == "rewind":
+                    state = _frame_stream_states[id]
+                    if state["current_frame"] > 0:
+                        state["current_frame"] -= 1
+
+            except asyncio.TimeoutError:
+                #               # No message received, continue streaming if playing
+                pass
+            # # Echo back the new state, only when a state change was observed, or a command was executed
+            # check if _frame_stream_states[id] changed from what was set earlier
+
+            # print(_frame_stream_states[id].get("current_frame"), frame_stream_state_id.get("current_frame"))
+            if frame_stream_state_id != _frame_stream_states[id]:
+                frame_stream_state_id = copy.copy(_frame_stream_states[id])
+                # print("A state change was detected")
+                # print(frame_stream_state_id.get("current_frame"))
+                await websocket.send_json(
+                    {
+                        "type": "state",
+                        "current_frame": _frame_stream_states[id]["current_frame"],
+                        "is_playing": _frame_stream_states[id]["is_playing"],
+                        "total_frames": total_frames,
+                    }
+                )
+
+    except Exception as e:
+        logger.error(f"Control WebSocket error: {e}")
+    finally:
+        if id in _frame_stream_states:
+            del _frame_stream_states[id]
         conn_manager.disconnect(websocket)
