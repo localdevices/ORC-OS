@@ -5,7 +5,7 @@ import './photoComponent.css';
 import PropTypes from 'prop-types';
 import api, {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
-import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer, useInteractiveFrameStream } from "../../utils/images.jsx";
+import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
 
 
 const PhotoComponent = (
@@ -48,21 +48,6 @@ const PhotoComponent = (
   const [CSWaterLines, setCSWaterLines] = useState([]);  // lines at water/land interface
   const [dots, setDots] = useState({}); // Array of { x, y, id } objects
 
-  const {
-    current_frame,
-    total_frames,
-    is_playing,
-    play,
-    pause,
-    stop,
-    seek,
-    forward,
-    rewind,
-    setRotate,
-  } = useInteractiveFrameStream(video?.id);
-  const [sliderValue, setSliderValue] = useState(current_frame);
-
-
   // set a mouseDown state for tracking mouse behaviour
   const mouseDownTimeRef = useRef(0);
   const sendDebouncedMsg = useDebouncedWsSender(ws, 100);
@@ -87,15 +72,6 @@ const PhotoComponent = (
     })
   }
 
-  // useEffect(() => {
-  //   // ensure if click count is 3, the camera config is updated with the set bbox
-  //   if (bboxClickCount === 3) {
-  //     setCameraConfig(lastResponse.current.data)
-  //   }
-  // }, [bboxClickCount])
-  useEffect(() => {
-    setSliderValue(current_frame);
-  }, [current_frame]);
 
   useEffect(() => {
     // check if image and dimensions are entirely intialized
@@ -305,30 +281,7 @@ const PhotoComponent = (
         }
       }
       sendDebouncedMsg(msg);
-      // debounceTimeoutRef.current = setTimeout(async () => {
-      //   // make simple list of lists for API call
-      //   const points = bboxMarkers.map(p => [p.col, p.row]);
-      //   points.push([col, row]);
-      //   const url = "/camera_config/bounding_box/";
-      //   const response = await api.post(
-      //     url,
-      //     {
-      //       "camera_config": cameraConfig,
-      //       "points": points,
-      //     }
-      //   )
-      //     .then(response => {
-      //       lastResponse.current = response;
-      //       const bbox = response.data.bbox_camera;
-      //       // set the bbox_camera on the current cameraConfig
-      //       bboxPoints = bbox.map(p => {
-      //         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-      //         const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
-      //         return {x, y};
-      //       })
-      //       setBBoxPolygon(bboxPoints);
-      //     })
-      // }, 100);
+
       setLineCoordinates(null);
     }
 
@@ -397,17 +350,7 @@ const PhotoComponent = (
     return {x, y};
   };
 
-  // const handleImageLoad = () => {
-  //   if (imageRef.current && frame_data) {
-  //     setImgDims({
-  //       width: imageRef.current.naturalWidth,
-  //       height: imageRef.current.naturalHeight
-  //     });
-  //     setLoading(false); // Ensure loading state is set to false after dimensions are set
-  //   }
-  // };
 
-  // OLD CODE WITH NON-MOVING VIDEO
   const handleImageLoad = () => {
     if (imageRef.current && imageUrl) {
       setImgDims({
@@ -662,60 +605,6 @@ const PhotoComponent = (
         </div>
       )}
     </TransformComponent>
-
-      <div className="frame-controls" style={{
-        padding: '1rem',
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderTop: '1px solid #ddd'
-      }}>
-        {/* Frame Slider */}
-        <div style={{ flex: 1 }}>
-          <input
-            type="range"
-            min="0"
-            max={total_frames - 1}
-            value={sliderValue}
-            onChange={(e) => setSliderValue(parseInt(e.target.value))}
-            onMouseUp={(e) => {
-              console.log("Mouse up detected")
-              console.log("Seeking to frame:", parseInt(e.target.value))
-              seek(parseInt(e.target.value))
-            }}
-            onTouchEnd={(e) => {
-              seek(parseInt(e.target.value))
-            }}
-            style={{ width: '100%' }}
-          />
-          <div style={{ fontSize: '0.85rem', color: '#666' }}>
-            Frame {current_frame + 1} / {total_frames}
-          </div>
-        </div>
-
-        {/* Control Buttons */}
-        <button onClick={rewind} style={{ padding: '0.5rem 1rem' }}>
-          ⏮
-        </button>
-        <button
-          onClick={play}
-          disabled={is_playing}
-          style={{ padding: '0.5rem 1rem', opacity: is_playing ? 0.5 : 1 }}
-        >
-          ▶
-        </button>
-        <button
-          onClick={pause}
-          disabled={!is_playing}
-          style={{ padding: '0.5rem 1rem', opacity: !is_playing ? 0.5 : 1 }}
-        >
-          ⏸        </button>
-        <button onClick={forward} style={{ padding: '0.5rem 1rem' }}>
-          ⏭
-        </button>
-      </div>
-
       {loading && (
         <div className="spinner-viewport">
           <div className="spinner" />

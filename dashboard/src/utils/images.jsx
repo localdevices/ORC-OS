@@ -15,7 +15,6 @@ export const isImageCached = (url) => {
 export const getFrameUrl = (video, frameNr, rotate) => {
   if (!video) return "";
   const apiHost = api.defaults.baseURL.replace(/\/$/, "");
-  // const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
   const frameUrl = `${apiHost}/video/${String(video.id)}/frames_with_state/`;
   return rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
 };
