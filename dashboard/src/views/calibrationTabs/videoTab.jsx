@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { TransformWrapper } from 'react-zoom-pan-pinch';
 import PhotoComponent from './photoComponent';
 import ControlPanel from './controlPanel';
 import PropTypes from 'prop-types';
 import {useMessage} from "../../messageContext.jsx";
 import { useInteractiveFrameStream } from "../../utils/images.jsx";
+import FrameControls from '../../utils/frameControls.jsx';
 
 const VideoTab = (
   {
@@ -37,22 +38,16 @@ const VideoTab = (
   const {setMessageInfo} = useMessage();
 
   const {
-    current_frame,
-    total_frames,
-    is_playing,
-    play,
-    pause,
-    stop,
-    seek,
-    forward,
-    rewind,
-    setRotate,
+      current_frame,
+      total_frames,
+      is_playing,
+      play,
+      pause,
+      seek,
+      forward,
+      rewind,
+      setRotate,
   } = useInteractiveFrameStream(video?.id);
-  const [sliderValue, setSliderValue] = useState(current_frame);
-
-  useEffect(() => {
-    setSliderValue(current_frame);
-  }, [current_frame]);
 
   const handleGCPClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     // Add the new dot to the state with the ID of the associated widget
@@ -114,58 +109,16 @@ const VideoTab = (
         }
       </div>
 
-      <div className="frame-controls" style={{
-        padding: '1rem',
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderTop: '1px solid #ddd'
-      }}>
-        {/* Frame Slider */}
-        <div style={{ flex: 1 }}>
-          <input
-            type="range"
-            min="0"
-            max={total_frames - 1}
-            value={sliderValue}
-            onChange={(e) => setSliderValue(parseInt(e.target.value))}
-            onMouseUp={(e) => {
-              console.log("Mouse up detected")
-              console.log("Seeking to frame:", parseInt(e.target.value))
-              seek(parseInt(e.target.value))
-            }}
-            onTouchEnd={(e) => {
-              seek(parseInt(e.target.value))
-            }}
-            style={{ width: '100%' }}
-          />
-          <div style={{ fontSize: '0.85rem', color: '#666' }}>
-            Frame {current_frame + 1} / {total_frames}
-          </div>
-        </div>
-
-        {/* Control Buttons */}
-        <button onClick={rewind} style={{ padding: '0.5rem 1rem' }}>
-          ⏮
-        </button>
-        <button
-          onClick={play}
-          disabled={is_playing}
-          style={{ padding: '0.5rem 1rem', opacity: is_playing ? 0.5 : 1 }}
-        >
-          ▶
-        </button>
-        <button
-          onClick={pause}
-          disabled={!is_playing}
-          style={{ padding: '0.5rem 1rem', opacity: !is_playing ? 0.5 : 1 }}
-        >
-          ⏸        </button>
-        <button onClick={forward} style={{ padding: '0.5rem 1rem' }}>
-          ⏭
-        </button>
-      </div>
+      <FrameControls
+        totalFrames={total_frames}
+        currentFrame={current_frame}
+        isPlaying={is_playing}
+        play={play}
+        pause={pause}
+        seek={seek}
+        forward={forward}
+        rewind={rewind}
+      />
 
       <TransformWrapper
         pinchEnabled={true}

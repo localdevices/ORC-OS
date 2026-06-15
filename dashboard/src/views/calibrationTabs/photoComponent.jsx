@@ -3,7 +3,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 
 import './photoComponent.css';
 import PropTypes from 'prop-types';
-import api, {useDebouncedWsSender} from "../../api/api.js";
+import {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
 
@@ -39,9 +39,6 @@ const PhotoComponent = (
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
   const [lineCoordinates, setLineCoordinates] = useState(null);
   const [imageUrl, setImageUrl] = useState('');  ///frame_001.jpg
-  const debounceTimeoutRef = useRef(null);  // state for timeout checking
-  const abortControllerRef = useRef(null);  // state for aborting requests to api
-  const lastResponse = useRef(null);  // store last API response
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
@@ -617,7 +614,7 @@ const PhotoComponent = (
         <div
           style={{
             position: 'absolute',
-            top: "40px",
+            top: "105px",
             left: "5px",
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             color: 'white',

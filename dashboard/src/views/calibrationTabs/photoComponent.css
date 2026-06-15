@@ -36,8 +36,8 @@
 
 .control-styles {
     position: absolute;
-    top: 110px;
-    right: 10px;
+    top: 105px;
+    right: 5px;
     display: flex;
     flex-direction: column;
     background: rgba(255,255,255,0.2);

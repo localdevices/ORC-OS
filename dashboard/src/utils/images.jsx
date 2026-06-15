@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import api, {createWebSocketConnection, closeWebSocketConnection, useDebouncedWsSender} from "../api/api.js";
+import api, {createWebSocketConnection} from "../api/api.js";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createDebounce } from "./helpers.jsx";
@@ -35,8 +35,6 @@ export const useInteractiveFrameStream = (videoId) => {
   });
 
   const wsRef = useRef(null);
-  const frameImageRef = useRef(null);
-  const abortControllerRef = useRef(null);
 
   // Initialize WebSocket
   useEffect(() => {
@@ -86,7 +84,6 @@ export const useInteractiveFrameStream = (videoId) => {
     ...state,
     play: () => sendCommand("play"),
     pause: () => sendCommand("pause"),
-    stop: () => sendCommand("stop"),
     seek: (frame) => sendCommand("seek", { frame }),
     forward: () => sendCommand("forward"),
     rewind: () => sendCommand("rewind"),

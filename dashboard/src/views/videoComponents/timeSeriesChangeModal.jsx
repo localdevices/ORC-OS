@@ -347,7 +347,8 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
               )}
               </>
             )}
-            <div>
+            <div style={{ height: '400px' }}>
+            {/* <div className="h-96"> */}
             <div className="image-container">
               <span>
               <img

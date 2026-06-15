@@ -1,4 +1,5 @@
 /* Top-level styles for the entire application */
+@import "tailwindcss";
 
 #root {
   margin: 0 auto;
@@ -196,6 +197,27 @@ a:hover {
   /*color: #cc5200;      !* Optional: darker shade on hover *!*/
 }
 
+
+/* specific CSS for video controls in the video tab of the calibration section */
+.frame-control-bar {
+  @apply bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center gap-3;
+}
+
+.frame-slider {
+  @apply flex-1 h-2 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:bg-slate-400 dark:hover:bg-slate-500 transition-colors;
+}
+
+.frame-label {
+  @apply text-xs font-mono text-slate-600 dark:text-slate-400 min-w-fit whitespace-nowrap;
+}
+
+.control-btn {
+  @apply px-3 py-2 h-10 text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded font-semibold transition-colors duration-200 active:scale-95;
+}
+
+.control-btn-group {
+  @apply flex items-center gap-2 ml-4 pl-4 border-l border-slate-200 dark:border-slate-700;
+}
 
 /* container around a set of tabs */
 .tabbed-form-container {

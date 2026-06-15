@@ -95,6 +95,8 @@
     cursor: pointer;
     font-size: 14px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
 }
 
 .user-menu-item:hover {
@@ -174,7 +176,8 @@ a:hover {
     text-decoration: none;
     color: white;
     font-size: 18px;
-    display: block;
+    display: flex;
+    align-items: center;
     padding: 10px 15px;
     border-radius: 5px;
     transition: background-color 0.2s ease;
