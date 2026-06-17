@@ -34,39 +34,76 @@ export const useInteractiveFrameStream = (videoId) => {
     current_frame: 0,
     total_frames: 0,
     is_playing: false,
+    isReady: false,  // Add ready flag
+    error: null,     // Add error state
   });
 
   const wsRef = useRef(null);
+  const callbackRef = useRef(null);
 
   // Initialize WebSocket
   useEffect(() => {
-    if (!videoId) return;
-
-    const connectionId = `video_${videoId}_frame_stream`;
-    const callbackVideoPlayerStates = (message, ws) => {
-      if (message.type === "state") {
-        setState((prev) => ({
-          ...prev,
-          current_frame: message.current_frame,
-          total_frames: message.total_frames,
-          is_playing: message.is_playing,
-        }));
-      };
+    if (!videoId) {
+      setState((prev) => ({ ...prev, isReady: false, error: "No video ID provided" }));
+      return;
     }
 
-    const ws = createWebSocketConnection(
-      connectionId,
-      `/video/${videoId}/frames_interactive/`,
-      callbackVideoPlayerStates,
-      true,
-    );
-    wsRef.current = ws;
+    const connectionId = `video_${videoId}_frame_stream`;
+
+    // Define callback BEFORE creating the connection
+    const callbackVideoPlayerStates = (message, ws) => {
+      try {
+        if (message.type === "state" || message.type === "heartbeat") {
+          setState((prev) => ({
+            ...prev,
+            current_frame: message.current_frame ?? prev.current_frame,
+            total_frames: message.total_frames ?? prev.total_frames,
+            is_playing: message.is_playing ?? prev.is_playing,
+            isReady: true,  // Mark as ready once we get first state
+            error: null,
+          }));
+        }
+      } catch (e) {
+        console.error("Error processing WebSocket message:", e);
+        setState((prev) => ({ ...prev, error: e.message }));
+      }
+    };
+
+    callbackRef.current = callbackVideoPlayerStates;
+
+    try {
+      const ws = createWebSocketConnection(
+        connectionId,
+        `/video/${videoId}/frames_interactive/`,
+        callbackVideoPlayerStates,
+        true,
+      );
+      wsRef.current = ws;
+
+      // Add onopen handler to log successful connection
+      const originalOnopen = ws.onopen;
+      ws.onopen = () => {
+        console.log(`WebSocket for video ${videoId} connected`);
+        if (originalOnopen) originalOnopen();
+      };
+
+      // Add onerror handler
+      const originalOnerror = ws.onerror;
+      ws.onerror = (event) => {
+        console.error(`WebSocket error for video ${videoId}:`, event);
+        setState((prev) => ({ ...prev, error: "WebSocket connection failed" }));
+        if (originalOnerror) originalOnerror(event);
+      };
+    } catch (e) {
+      console.error(`Failed to create WebSocket for video ${videoId}:`, e);
+      setState((prev) => ({ ...prev, error: e.message }));
+    }
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         // Send stop command before closing for graceful shutdown
         try {
-          ws.send(
+          wsRef.current.send(
             JSON.stringify({
               type: "command",
               command: "stop",
@@ -77,8 +114,8 @@ export const useInteractiveFrameStream = (videoId) => {
         }
         // Give server time to process the stop command before closing
         setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.close(1000, "Component unmounting");
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.close(1000, "Component unmounting");
           }
         }, 100);
       }
@@ -87,7 +124,17 @@ export const useInteractiveFrameStream = (videoId) => {
 
   // Send command to backend
   const sendCommand = useCallback((command, params = {}) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    if (!wsRef.current) {
+      console.warn(`WebSocket not initialized for command: ${command}`);
+      return;
+    }
+
+    if (wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn(`WebSocket not open (state=${wsRef.current.readyState}) for command: ${command}`);
+      return;
+    }
+
+    try {
       wsRef.current.send(
         JSON.stringify({
           type: "command",
@@ -95,6 +142,8 @@ export const useInteractiveFrameStream = (videoId) => {
           ...params,
         })
       );
+    } catch (e) {
+      console.error(`Failed to send command ${command}:`, e);
     }
   }, []);
 

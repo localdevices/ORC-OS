@@ -874,7 +874,7 @@ async def frames_control_ws(websocket: WebSocket, id: int):
 
         # initialize empty
         frame_stream_state_id = {}
-        message_receive_timeout = 0.1  # More reasonable timeout: 100ms
+        message_receive_timeout = 0.5  # timeout 500ms for unreliable networks
         last_heartbeat = time.time()
         heartbeat_interval = 5.0  # Send state every 5 seconds as heartbeat
 
@@ -914,8 +914,11 @@ async def frames_control_ws(websocket: WebSocket, id: int):
             except asyncio.TimeoutError:
                 # No message received, continue and send heartbeat if needed
                 pass
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket disconnected while receiving message for video {id}")
+                break
             except Exception as e:
-                logger.error(f"Error receiving message on video {id}: {e}")
+                logger.error(f"Error receiving message on video {id}: {e}", exc_info=DEV_MODE)
                 break
 
             # Check if state changed from what was sent earlier
@@ -931,8 +934,11 @@ async def frames_control_ws(websocket: WebSocket, id: int):
                         }
                     )
                     last_heartbeat = time.time()
+                except WebSocketDisconnect:
+                    logger.info(f"WebSocket disconnected while sending state for video {id}")
+                    break
                 except Exception as e:
-                    logger.error(f"Failed to send state update for video {id}: {e}")
+                    logger.error(f"Failed to send state update for video {id}: {e}", exc_info=DEV_MODE)
                     break
 
             # Send heartbeat periodically to keep connection alive
@@ -947,8 +953,11 @@ async def frames_control_ws(websocket: WebSocket, id: int):
                         }
                     )
                     last_heartbeat = time.time()
+                except WebSocketDisconnect:
+                    logger.info(f"WebSocket disconnected while sending heartbeat for video {id}")
+                    break
                 except Exception as e:
-                    logger.error(f"Failed to send heartbeat for video {id}: {e}")
+                    logger.error(f"Failed to send heartbeat for video {id}: {e}", exc_info=DEV_MODE)
                     break
 
             # Small sleep to prevent busy waiting

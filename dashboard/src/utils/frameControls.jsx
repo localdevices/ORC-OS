@@ -11,7 +11,9 @@ const FrameControls = (
     pause,
     seek,
     forward,
-    rewind
+    rewind,
+    isReady = true,  // Default to true for backward compatibility
+    error = null,
   }
 ) => {
     const [sliderValue, setSliderValue] = useState(currentFrame);
@@ -20,6 +22,26 @@ const FrameControls = (
     setSliderValue(currentFrame + 1);  // we count for the user starting at 1 instead of zero
   }, [currentFrame]);
 
+  // Show loading/error state
+  if (!isReady) {
+    return (
+      <div className="frame-controls frame-control-bar">
+        <div style={{ color: "orange", fontStyle: "italic" }}>
+          {error ? `WebSocket Error: ${error}` : "Connecting to video stream..."}
+        </div>
+      </div>
+    );
+  }
+
+  if (totalFrames === 0) {
+    return (
+      <div className="frame-controls frame-control-bar">
+        <div style={{ color: "orange", fontStyle: "italic" }}>
+          Waiting for video data...
+        </div>
+      </div>
+    );
+  }
 
     return (
         <div className="frame-controls frame-control-bar">
@@ -33,6 +55,7 @@ const FrameControls = (
                 onMouseUp={(e) => seek(Number.parseInt(e.target.value) - 1)}
                 onTouchEnd={(e) => seek(Number.parseInt(e.target.value) - 1)}
                 className="frame-slider"
+                disabled={!isReady}
             />
             <span className="frame-label">
                 {sliderValue}/{totalFrames}
@@ -43,19 +66,20 @@ const FrameControls = (
                 <button
                 onClick={rewind}
                 className="control-btn"
+                disabled={!isReady}
                 >
                 ⏮
                 </button>
                 <button
                 onClick={play}
-                disabled={isPlaying}
+                disabled={isPlaying || !isReady}
                 className="control-btn"
                 >
                 ▶
                 </button>
                 <button
                 onClick={pause}
-                disabled={!isPlaying}
+                disabled={!isPlaying || !isReady}
                 className="control-btn"
                 >
                 ⏸
@@ -63,6 +87,7 @@ const FrameControls = (
                 <button
                 onClick={forward}
                 className="control-btn"
+                disabled={!isReady}
                 >
                 ⏭
                 </button>
@@ -82,5 +107,7 @@ FrameControls.propTypes = {
     pause: PropTypes.func.isRequired,
     seek: PropTypes.func.isRequired,
     forward: PropTypes.func.isRequired,
-    rewind: PropTypes.func.isRequired
+    rewind: PropTypes.func.isRequired,
+    isReady: PropTypes.bool,
+    error: PropTypes.string,
 }

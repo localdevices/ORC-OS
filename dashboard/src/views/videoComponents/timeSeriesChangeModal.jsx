@@ -39,6 +39,8 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
       current_frame,
       total_frames,
       is_playing,
+      isReady,
+      error,
       play,
       pause,
       seek,
@@ -370,6 +372,8 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                     totalFrames={total_frames}
                     currentFrame={current_frame}
                     isPlaying={is_playing}
+                    isReady={isReady}
+                    error={error}
                     play={play}
                     pause={pause}
                     seek={seek}
