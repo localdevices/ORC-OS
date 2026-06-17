@@ -17,7 +17,7 @@ const FrameControls = (
     const [sliderValue, setSliderValue] = useState(currentFrame);
 
   useEffect(() => {
-    setSliderValue(currentFrame);
+    setSliderValue(currentFrame + 1);  // we count for the user starting at 1 instead of zero
   }, [currentFrame]);
 
 
@@ -26,16 +26,16 @@ const FrameControls = (
             {/* Frame Slider */}
             <input
                 type="range"
-                min="0"
-                max={totalFrames - 1}
+                min="1"
+                max={totalFrames}
                 value={sliderValue}
                 onChange={(e) => setSliderValue(Number.parseInt(e.target.value))}
-                onMouseUp={(e) => seek(Number.parseInt(e.target.value))}
-                onTouchEnd={(e) => seek(Number.parseInt(e.target.value))}
+                onMouseUp={(e) => seek(Number.parseInt(e.target.value) - 1)}
+                onTouchEnd={(e) => seek(Number.parseInt(e.target.value) - 1)}
                 className="frame-slider"
             />
             <span className="frame-label">
-                {sliderValue + 1}/{totalFrames}
+                {sliderValue}/{totalFrames}
             </span>
 
             {/* Control Buttons */}

@@ -225,11 +225,23 @@ async def get_frames_with_state(
         """Stream frames while respecting state from control channel."""
         cap = cv2.VideoCapture(file_path)
         try:
-            # set initial states
+            yield b"--frame\r\n"
+            # set initial states if they don't exist yet
+            if id not in _frame_stream_states:
+                total_frames = get_frame_count(file_path)
+                _frame_stream_states[id] = {
+                    "current_frame": 0,
+                    "is_playing": False,
+                    "total_frames": total_frames,
+                }
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            frame_send_interval = 1.0 / fps if fps > 0 else 0.033
             last_frame_sent_time = time.time()
-            frame_send_interval = 1.0 / cap.get(cv2.CAP_PROP_FPS)
             paused = False  # used to detect if already paused or not. Only send last frame if just paused
             paused_frame = 0  # used to track which frame we are on when paused, so we can resend if seek is called
+            last_yielded_frame = None  # used to resend last frame when paused
+            last_yielded_frame_time = 0  # used to track when the last frame was yielded
+            keep_alive_interval = 2.0  # seconds
             # state = {"is_playing": True, "current_frame": 0, "total_frames": get_frame_count(file_path)}
             while True:
                 # Get current state (modified by control WebSocket)
@@ -250,15 +262,22 @@ async def get_frames_with_state(
 
                     if not success:
                         state["is_playing"] = False
+                        await asyncio.sleep(0.01)
+                        continue
                     else:
                         io_buf.seek(0)
+                        last_frame_sent_time = time.time()
+                        frame_bytes = io_buf.read()
+                        frame_data = (
+                            b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n"
+                            b"Content-Length: " + str(len(frame_bytes)).encode() + b"\r\n"
+                            b"\r\n" + frame_bytes + b"\r\n"
+                        )
+                        state["current_frame"] += 1
                         while time.time() - last_frame_sent_time < frame_send_interval:
                             await asyncio.sleep(0.001)  # Wait until it's time to send the next frame
-                        last_frame_sent_time = time.time()
-                        frame_data = b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + io_buf.read() + b"\r\n"
-                        state["current_frame"] += 1
                         yield frame_data
-                    # await asyncio.sleep(0.01)  # ~30 FPS
                 else:
                     if not paused or paused_frame != state["current_frame"]:
                         # apparently we just paused, so we will forward the last frame and then wait until we start
@@ -269,30 +288,54 @@ async def get_frames_with_state(
                             state["current_frame"] = 0  # Loop back to start
                             # reopen the cap
                             cap.release()
-                            del cap
+                            # del cap
                             cap = cv2.VideoCapture(file_path)
-
+                        print(f"Reading frame {state['current_frame']}")
                         success, io_buf = get_frame_from_cap(cap, rotate)
                         # reset to previous frame
                         cap.release()
-                        del cap
+                        # del cap
                         cap = cv2.VideoCapture(file_path)
                         cap.set(cv2.CAP_PROP_POS_FRAMES, state["current_frame"])
 
                         if success:
                             io_buf.seek(0)
-                            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + io_buf.read() + b"\r\n")
-                            # send another time, otherwise the browser does not render it
-                            io_buf.seek(0)
-                            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + io_buf.read() + b"\r\n")
-                        paused_frame = state["current_frame"]
+                            frame_bytes = io_buf.read()
+                            frame_data = (
+                                b"--frame\r\n"
+                                b"Content-Type: image/jpeg\r\n"
+                                b"Content-Length: " + str(len(frame_bytes)).encode() + b"\r\n"
+                                b"\r\n" + frame_bytes + b"\r\n"
+                            )
+                            last_yielded_frame = frame_data
+                            last_yielded_frame_time = time.time()
+                            print("Yielding frame")
+                            yield frame_data
+                            await asyncio.sleep(0.05)
+                            yield frame_data
 
-                    await asyncio.sleep(0.01)  # Lower frequency when paused
+                            # send another time, otherwise the browser does not render it
+                        paused_frame = state["current_frame"]
+                    elif time.time() - last_yielded_frame_time > keep_alive_interval and last_yielded_frame is not None:
+                        # resend last frame to keep the connection alive
+                        # yield last_yielded_frame
+                        last_yielded_frame_time = time.time()
+                        yield b"--frame\r\n"
+
+                    await asyncio.sleep(0.1)  # Lower frequency when paused
         finally:
             cap.release()
-            del cap
+            # del cap
 
-    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(
+        frame_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @router.get("/", response_model=List[VideoListResponse], status_code=200)
@@ -790,6 +833,13 @@ class FrameStreamCommand(str, Enum):
 @router.websocket("/{id}/frames_interactive/")
 async def frames_control_ws(websocket: WebSocket, id: int):
     """Control WebSocket - only handles play/pause/seek commands."""
+    try:
+        await websocket.accept()
+        logger.info(f"Accepted control WebSocket for video {id}")
+    except Exception as e:
+        logger.error(f"Failed to accept WebSocket for video {id}: {e}")
+        return
+
     await conn_manager.connect(websocket)
     logger.info(f"Connected control WebSocket for video {id}")
 
@@ -810,73 +860,109 @@ async def frames_control_ws(websocket: WebSocket, id: int):
         _frame_stream_states[id]["total_frames"] = total_frames
 
         # Send initial state
-        await websocket.send_json(
-            {
-                "type": "state",
-                "total_frames": total_frames,
-                "current_frame": 0,
-                "is_playing": False,
-            }
-        )
+        try:
+            await websocket.send_json(
+                {
+                    "type": "state",
+                    "total_frames": total_frames,
+                    "current_frame": 0,
+                    "is_playing": False,
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to send initial state: {e}")
+            return
+
+        logger.info(f"Sent initial state for video {id}")
+
         # initialize empty
         frame_stream_state_id = {}
-        while True:
-            # send new state to client
-            # await websocket.send_json({
-            #     "type": "state",
-            #     "current_frame": _frame_stream_states[id]["current_frame"],
-            #     "is_playing": _frame_stream_states[id]["is_playing"],
-            #     "total_frames": _frame_stream_states[id]["total_frames"],
-            # })
+        message_receive_timeout = 0.1  # More reasonable timeout: 100ms
+        last_heartbeat = time.time()
+        heartbeat_interval = 5.0  # Send state every 5 seconds as heartbeat
 
+        while True:
             try:
-                msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.001)
-                # msg = await websocket.receive_json()
+                # Use reasonable timeout and handle it gracefully
+                msg = await asyncio.wait_for(websocket.receive_json(), timeout=message_receive_timeout)
                 command = msg.get("command")
 
                 if command == "play":
                     _frame_stream_states[id]["is_playing"] = True
+                    logger.debug(f"Video {id}: play command")
                 elif command == "pause":
                     _frame_stream_states[id]["is_playing"] = False
+                    logger.debug(f"Video {id}: pause command")
                 elif command == "stop":
+                    logger.info(f"Video {id}: stop command")
                     break
                 elif command == "seek":
                     frame = msg.get("frame", 0)
                     _frame_stream_states[id]["current_frame"] = max(0, min(frame, total_frames))
+                    logger.debug(f"Video {id}: seek to frame {frame}")
                 elif command == "forward":
                     state = _frame_stream_states[id]
                     if state["current_frame"] < total_frames:
                         state["current_frame"] += 1
+                    logger.debug(f"Video {id}: forward")
                 elif command == "rewind":
                     state = _frame_stream_states[id]
                     if state["current_frame"] > 0:
                         state["current_frame"] -= 1
+                    logger.debug(f"Video {id}: rewind")
+
+                # Reset heartbeat timer after receiving a message
+                last_heartbeat = time.time()
 
             except asyncio.TimeoutError:
-                #               # No message received, continue streaming if playing
+                # No message received, continue and send heartbeat if needed
                 pass
-            # # Echo back the new state, only when a state change was observed, or a command was executed
-            # check if _frame_stream_states[id] changed from what was set earlier
+            except Exception as e:
+                logger.error(f"Error receiving message on video {id}: {e}")
+                break
 
-            # print(_frame_stream_states[id].get("current_frame"), frame_stream_state_id.get("current_frame"))
+            # Check if state changed from what was sent earlier
             if frame_stream_state_id != _frame_stream_states[id]:
                 frame_stream_state_id = copy.copy(_frame_stream_states[id])
-                # print("A state change was detected")
-                # print(frame_stream_state_id.get("current_frame"))
-                await websocket.send_json(
-                    {
-                        "type": "state",
-                        "current_frame": _frame_stream_states[id]["current_frame"],
-                        "is_playing": _frame_stream_states[id]["is_playing"],
-                        "total_frames": total_frames,
-                    }
-                )
+                try:
+                    await websocket.send_json(
+                        {
+                            "type": "state",
+                            "current_frame": _frame_stream_states[id]["current_frame"],
+                            "is_playing": _frame_stream_states[id]["is_playing"],
+                            "total_frames": total_frames,
+                        }
+                    )
+                    last_heartbeat = time.time()
+                except Exception as e:
+                    logger.error(f"Failed to send state update for video {id}: {e}")
+                    break
+
+            # Send heartbeat periodically to keep connection alive
+            elif time.time() - last_heartbeat > heartbeat_interval:
+                try:
+                    await websocket.send_json(
+                        {
+                            "type": "heartbeat",
+                            "current_frame": _frame_stream_states[id]["current_frame"],
+                            "is_playing": _frame_stream_states[id]["is_playing"],
+                            "total_frames": total_frames,
+                        }
+                    )
+                    last_heartbeat = time.time()
+                except Exception as e:
+                    logger.error(f"Failed to send heartbeat for video {id}: {e}")
+                    break
+
+            # Small sleep to prevent busy waiting
+            await asyncio.sleep(0.01)
+
     except WebSocketDisconnect:
         logger.info(f"Control WebSocket {websocket} for video {id} disconnected cleanly.")
     except Exception as e:
-        # show additional output when in DEV MODE
-        logger.error(f"Control WebSocket error: {e}", exc_info=DEV_MODE)
+        logger.error(f"Control WebSocket error for video {id}: {e}", exc_info=DEV_MODE)
     finally:
         if id in _frame_stream_states:
             del _frame_stream_states[id]
         conn_manager.disconnect(websocket)
+        logger.info(f"Cleaned up state for video {id}")
