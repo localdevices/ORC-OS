@@ -787,155 +787,6 @@ class FrameStreamCommand(str, Enum):
     REWIND = "rewind"  # Previous frame
 
 
-# @router.websocket("/{id}/frames_interactive/")
-# async def frames_interactive_ws(websocket: WebSocket, id: int):
-#     """Interactive frame streaming via WebSocket."""
-#     await conn_manager.connect(websocket)
-#     logger.info(f"Connected WebSocket for interactive frames: {websocket}")
-
-#     is_playing = True
-#     rotate = None
-
-#     try:
-#         db = next(get_db())
-#         video = get_video_record(db, id)
-#         if not video.file:
-#             await websocket.send_json({"error": "Video file not found"})
-#             await websocket.close()
-#             return
-
-#         file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
-#         db.close()
-
-#         # Frame streaming state
-#         total_frames = get_frame_count(file_path)
-#         current_frame = 0
-#         # Send initial state to client
-#         await websocket.send_json(
-#             {
-#                 "type": "state",
-#                 "total_frames": total_frames,
-#                 "current_frame": current_frame,
-#                 "is_playing": is_playing,
-#             }
-#         )
-
-#         # Create OpenCV capture once
-#         cap = cv2.VideoCapture(file_path)
-#     except Exception as e:
-#         if DEV_MODE:
-#             traceback.print_exc()
-#         logger.error(f"Error initializing interactive frame streaming: {e}")
-#         await websocket.send_json({"error": str(e)})
-#         await websocket.close()
-#         return
-
-#     is_playing = True
-#     rotate = None
-
-#     try:
-#         while True:
-#             # Check for incoming commands (non-blocking)
-#             try:
-#                 msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.01)
-
-#                 if msg.get("type") == "command":
-#                     command = msg.get("command")
-
-#                     if command == FrameStreamCommand.PLAY:
-#                         is_playing = True
-#                         logger.debug("Play command received")
-
-#                     elif command == FrameStreamCommand.PAUSE:
-#                         is_playing = False
-#                         logger.debug("Pause command received")
-
-#                     elif command == FrameStreamCommand.STOP:
-#                         break
-
-#                     elif command == FrameStreamCommand.SEEK:
-#                         target_frame = msg.get("frame", 0)
-#                         current_frame = max(0, min(target_frame, total_frames - 1))
-#                         cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
-#                         logger.debug(f"Seek to frame {current_frame}")
-
-#                     elif command == FrameStreamCommand.FORWARD:
-#                         if current_frame < total_frames - 1:
-#                             current_frame += 1
-#                             cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
-#                             logger.debug(f"Forward to frame {current_frame}")
-
-#                     elif command == FrameStreamCommand.REWIND:
-#                         if current_frame > 0:
-#                             current_frame -= 1
-#                             cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
-#                         logger.debug(f"Rewind to frame {current_frame}")
-
-#                     elif command == "set_rotate":
-#                         rotate = msg.get("rotate")
-#                         logger.debug(f"Rotate set to {rotate}")
-
-#             except asyncio.TimeoutError:
-#                 # No message received, continue streaming if playing
-#                 pass
-
-#             # Stream frame if playing
-#             if is_playing and current_frame < total_frames:
-#                 print(f"Streaming frame {current_frame}/{total_frames}")
-#                 success, io_buf = get_frame_from_cap(cap, rotate)
-
-#                 if not success:
-#                     print(f"Failed to read frame {current_frame}. Stopping playback.")
-#                     # End of video reached
-#                     is_playing = False
-#                     await websocket.send_json(
-#                         {
-#                             "type": "state",
-#                             "current_frame": current_frame,
-#                             "is_playing": False,
-#                             "message": "End of video",
-#                         }
-#                     )
-#                 else:
-#                     # Send frame data as base64
-#                     # import base64
-
-#                     # io_buf.seek(0)
-#                     # frame_data = base64.b64encode(io_buf.read()).decode("utf-8")
-
-#                     await websocket.send_json(
-#                         {
-#                             "type": "frame_header",
-#                             "current_frame": current_frame,
-#                             "total_frames": total_frames,
-#                             # "frame_data": frame_data,  # Base64 encoded JPEG
-#                             "is_playing": is_playing,
-#                         }
-#                     )
-#                     io_buf.seek(0)
-#                     # send io buffer separately and directly as binary blob
-#                     await websocket.send_bytes(io_buf.read())
-
-#                     current_frame += 1
-#                     # Small delay to simulate playback speed (adjust as needed)
-#                     # await asyncio.sleep(0.033)  # ~30 FPS
-
-#             else:
-#                 # Not playing, just check for commands
-#                 await asyncio.sleep(0.01)
-
-#     except Exception as e:
-#         logger.error(f"WebSocket error: {e}")
-#         if DEV_MODE:
-#             traceback.print_exc()
-#         conn_manager.disconnect(websocket)
-#     except asyncio.CancelledError:
-#         logger.info("WebSocket cancelled")
-#         conn_manager.disconnect(websocket)
-#     finally:
-#         cap.release()
-
-
 @router.websocket("/{id}/frames_interactive/")
 async def frames_control_ws(websocket: WebSocket, id: int):
     """Control WebSocket - only handles play/pause/seek commands."""
@@ -1020,9 +871,11 @@ async def frames_control_ws(websocket: WebSocket, id: int):
                         "total_frames": total_frames,
                     }
                 )
-
+    except WebSocketDisconnect:
+        logger.info(f"Control WebSocket {websocket} for video {id} disconnected cleanly.")
     except Exception as e:
-        logger.error(f"Control WebSocket error: {e}")
+        # show additional output when in DEV MODE
+        logger.error(f"Control WebSocket error: {e}", exc_info=DEV_MODE)
     finally:
         if id in _frame_stream_states:
             del _frame_stream_states[id]

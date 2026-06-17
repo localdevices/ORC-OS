@@ -14,15 +14,15 @@ import {TbCameraCancel, TbCameraCheck, TbCameraPin} from "react-icons/tb";
 export const getStatusIcon = (status) => {
   switch (status) {
     case 3:
-      return <div><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> running</div>// Spinner for processing
+      return <div className="cell-icon-text"><FaSpinner style={{color: "blue", animation: "spin 1s linear infinite"}}/> running</div>// Spinner for processing
     case 4:
-      return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
+      return <div className="cell-icon-text"><FaCheck style={{color: "green"}}/> done</div>; // Success
     case 5:
-      return <div><FaTimes style={{color: "red"}}/> error</div>; // Error
+      return <div className="cell-icon-text"><FaTimes style={{color: "red"}}/> error</div>; // Error
     case 1:
-      return <div><FaStar style={{color: "gold"}}/> new</div>; // Warning
+      return <div className="cell-icon-text"><FaStar style={{color: "gold"}}/> new</div>; // Warning
     case 2:
-      return <div><FaHourglass style={{color: "purple"}}/> queue</div>; // Pending
+      return <div className="cell-icon-text"><FaHourglass style={{color: "purple"}}/> queue</div>; // Pending
     default:
       return <FaSpinner style={{color: "gray", animation: "spin 1s linear infinite"}}/>; // Default spinner
   }
@@ -30,13 +30,13 @@ export const getStatusIcon = (status) => {
 export const getSyncStatusIcon = (status) => {
   switch (status) {
     case 1:
-      return <div><FaSync style={{color: "grey"}}/> not synced</div>
+      return <div className="cell-icon-text"><FaSync style={{color: "grey"}}/> not synced</div>
     case 2:
-      return <div><FaCheck style={{color: "green"}}/> done</div>; // Success
+      return <div className="cell-icon-text"><FaCheck style={{color: "green"}}/> done</div>; // Success
     case 3:
-      return <div><FaSync style={{color: "cadetblue", animation: "spin 1s linear infinite"}}/> updated</div>; // Error
+      return <div className="cell-icon-text"><FaSync style={{color: "cadetblue", animation: "spin 1s linear infinite"}}/> updated</div>; // Error
     case 5:
-      return <div><FaHourglass style={{color: "purple", animation: "spin 5s linear infinite"}}/> queue</div>; // Error
+      return <div className="cell-icon-text"><FaHourglass style={{color: "purple", animation: "spin 5s linear infinite"}}/> queue</div>; // Error
     default:
       return <FaSync style={{color: "grey"}}/>;
   }

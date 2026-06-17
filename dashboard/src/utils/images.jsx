@@ -11,12 +11,14 @@ export const isImageCached = (url) => {
   return img.complete;
 };
 
-// Build the frame URL for a given video/frame/rotate
-export const getFrameUrl = (video, frameNr, rotate) => {
+// Build the frame URL for playing a given video with given rotation as MJPEG stream
+export const getFrameUrl = (video, rotate) => {
   if (!video) return "";
   const apiHost = api.defaults.baseURL.replace(/\/$/, "");
   const frameUrl = `${apiHost}/video/${String(video.id)}/frames_with_state/`;
-  return rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
+  const url = rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
+  console.log(`Constructed frame URL: ${url}`);
+  return url;
 };
 
 
@@ -62,7 +64,23 @@ export const useInteractiveFrameStream = (videoId) => {
 
     return () => {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
+        // Send stop command before closing for graceful shutdown
+        try {
+          ws.send(
+            JSON.stringify({
+              type: "command",
+              command: "stop",
+            })
+          );
+        } catch (e) {
+          console.warn("Failed to send stop command:", e);
+        }
+        // Give server time to process the stop command before closing
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, "Component unmounting");
+          }
+        }, 100);
       }
     };
   }, [videoId]);

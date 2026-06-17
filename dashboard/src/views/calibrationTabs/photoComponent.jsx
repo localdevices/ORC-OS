@@ -162,10 +162,12 @@ const PhotoComponent = (
   useDebouncedImageUrl({
     setImageUrl,
     deps: [rotate, video, frameNr],
-    urlBuilder: () => getFrameUrl(video, frameNr, rotate),
+    urlBuilder: () => getFrameUrl(video, rotate),
     onUrlReady: (url, { cached }) => {
       if (cached) {
         setLoading(false);
+      } else {
+        setLoading(true);
       }
     },
     delayMs: 300

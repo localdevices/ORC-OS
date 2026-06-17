@@ -383,6 +383,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 <td style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{video.timestamp.slice(0, 19)}</td>
                 <td>
                   <img
+                    className="mx-auto"  // centers images in their cell
                     loading="lazy"
                     src={`${api.defaults.baseURL}/video/${video.id}/thumbnail/`}
                     onError={(e) => {

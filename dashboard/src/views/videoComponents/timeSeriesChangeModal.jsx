@@ -7,7 +7,9 @@ import SideView from "../VideoConfigComponents/sideView.jsx";
 import {patchTimeSeries, postTimeSeries} from "../../utils/apiCalls/timeSeries.jsx";
 import {getWettedSurface, getWaterLines} from "../../utils/apiCalls/crossSection.jsx";
 import {run_video} from "../../utils/apiCalls/video.jsx"
-import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
+import FrameControls from '../../utils/frameControls.jsx';
+
+import { getFrameUrl, useDebouncedImageUrl, useInteractiveFrameStream, PolygonDrawer } from "../../utils/images.jsx";
 import {FaSpinner} from "react-icons/fa";
 
 
@@ -32,6 +34,19 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
   const imageRef = useRef(null);
 
 
+  // activate frame controls via websocket
+  const {
+      current_frame,
+      total_frames,
+      is_playing,
+      play,
+      pause,
+      seek,
+      forward,
+      rewind,
+      setRotate,
+  } = useInteractiveFrameStream(video?.id);
+
   const rescale_coords = (coords, imgDims, bBoxImg, bBoxParent) => {
     // rescale coordinates to fit the image dimensions as shown on screen
     const offsetX = bBoxImg.left - bBoxParent.left;
@@ -49,9 +64,9 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
     setImageUrl,
     deps: [video],
     urlBuilder: () => {
-      const frameNr = video?.video_config?.recipe?.start_frame ?? 0;
       const rotate = video?.video_config?.camera_config?.rotation ?? null;
-      return getFrameUrl(video, frameNr, rotate);
+      console.log(`Building frame URL for video ${video?.id} with rotation ${rotate}`);
+      return getFrameUrl(video, rotate);
     },
     onUrlReady: (url, { cached }) => {
       if (cached) {
@@ -83,6 +98,32 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
       })
   }, [])
 
+  // Cleanup WebSocket on modal unmount or when video changes
+  useEffect(() => {
+    return () => {
+      // Ensure graceful WebSocket shutdown when modal closes
+      if (video?.id) {
+        const connectionId = `video_${video.id}_frame_stream`;
+        // The WebSocket cleanup is handled by useInteractiveFrameStream hook
+        // but we explicitly manage it here to ensure proper closure
+        try {
+          // Get the stored WebSocket instance if accessible
+          const ws = window.webSocketInstances?.[connectionId];
+          if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "command", command: "stop" }));
+            setTimeout(() => {
+              if (ws?.readyState === WebSocket.OPEN) {
+                ws.close(5000, "Modal closed");
+              }
+            }, 50);
+          }
+        } catch (e) {
+          console.warn("Error closing WebSocket on modal unmount:", e);
+        }
+      }
+    };
+  }, [video?.id])
+
 
   useEffect(() => {
     if (crossSection) {
@@ -109,30 +150,6 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
     }
   }, [crossSection, imageRef.current, imgDims, videoConfig?.camera_config?.gcps])
 
-  // useEffect(() => {
-  //   // If the image URL is already loaded from cache, the <img> may be complete
-  //   // before React attaches the onLoad handler. Ensure we clear the loading
-  //   // spinner and set dimensions in that case.
-  //   if (!imageUrl) return;
-  //   const img = imageRef.current;
-  //   if (!img) return;
-
-  //   if (img.complete) {
-  //     handleImageLoad();
-  //   } else {
-  //     const onLoad = () => handleImageLoad();
-  //     const onError = () => {
-  //       setLoading(false);
-  //       console.error('Image failed to load.');
-  //     };
-  //     img.addEventListener('load', onLoad);
-  //     img.addEventListener('error', onError);
-  //     return () => {
-  //       img.removeEventListener('load', onLoad);
-  //       img.removeEventListener('error', onError);
-  //     };
-  //   }
-  // }, [imageUrl]);
 
   useEffect(() => {
     if (crossSection && videoConfig && imageRef?.current && !loading && imgDims.width > 0 && imgDims.height > 0) {
@@ -347,62 +364,76 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
               )}
               </>
             )}
-            <div style={{ height: '400px' }}>
+            <div>
             {/* <div className="h-96"> */}
-            <div className="image-container">
-              <span>
-              <img
-                style={{width: '100%', height: '100%', maxHeight: '400px', objectFit: 'contain'}}
-                className="img-calibration"
-                ref={imageRef}
-                onLoad={() => {
-                  // setLoading(true);
-                  handleImageLoad()
-                }}
-                onError={() => {
-                  setLoading(false); // Always unset loading on error
-                  console.error('Image failed to load.');
-                }}
+                  <FrameControls
+                    totalFrames={total_frames}
+                    currentFrame={current_frame}
+                    isPlaying={is_playing}
+                    play={play}
+                    pause={pause}
+                    seek={seek}
+                    forward={forward}
+                    rewind={rewind}
+                  />              <div className="image-container">
+                {imageUrl && (
+                  <div>
+                <span>
 
-                src={imageUrl}
-                alt="img-set-water-level"
-              />
-              {CSDischargePolygon && (
-                <PolygonDrawer
-                  points={CSDischargePolygon}
-                  fill={"rgba(75, 192, 192, 0.3)"}
-                  stroke={"white"}
-                  strokeWidth={2}
-                  zIndex={0}
-                />
-              )}
-              {CSWettedSurfacePolygon && (
-                <PolygonDrawer
-                  points={CSWettedSurfacePolygon}
-                  fill={"rgba(75, 130, 192, 0.3)"}
-                  stroke={"white"}
-                  strokeWidth={2}
-                  zIndex={100}
-                />
-              )}
-              {CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (
-                <PolygonDrawer
-                  points={line}
-                  key={`water line ${idx}`}
-                  fill={"rgba(75, 130, 192, 0.3)"}
-                  stroke={"red"}
-                  strokeWidth={4}
-                  zIndex={100}
-                />
-              ))}
-              {loading && (
-                <div style={{"backgroundColor": "rgba(1, 1, 1, 0)"}} className="spinner-container">
-                  <div style={{"color": "rgba(100, 100, 100, 0))"}} className="spinner"/>
-                  <div>Please wait...</div>
+                  <img
+                    // style={{width: '100%', height: '100%', maxHeight: '400px', objectFit: 'contain'}}
+                    className="img-calibration"
+                    ref={imageRef}
+                    onLoad={() => {
+                      // setLoading(true);
+                      handleImageLoad()
+                    }}
+                    onError={() => {
+                      setLoading(false); // Always unset loading on error
+                      console.error('Image failed to load.');
+                    }}
+                    key={imageUrl}  // Force re-render when URL changes
+                    src={imageUrl}
+                    alt="img-set-water-level"
+                  />
+                  {CSDischargePolygon && (
+                    <PolygonDrawer
+                      points={CSDischargePolygon}
+                      fill={"rgba(75, 192, 192, 0.3)"}
+                      stroke={"white"}
+                      strokeWidth={2}
+                      zIndex={0}
+                    />
+                  )}
+                  {CSWettedSurfacePolygon && (
+                    <PolygonDrawer
+                      points={CSWettedSurfacePolygon}
+                      fill={"rgba(75, 130, 192, 0.3)"}
+                      stroke={"white"}
+                      strokeWidth={2}
+                      zIndex={100}
+                    />
+                  )}
+                  {CSWaterLines && CSWaterLines.length > 0 && CSWaterLines.map((line, idx) => (
+                    <PolygonDrawer
+                      points={line}
+                      key={`water line ${idx}`}
+                      fill={"rgba(75, 130, 192, 0.3)"}
+                      stroke={"red"}
+                      strokeWidth={4}
+                      zIndex={100}
+                    />
+                  ))}
+                </span>
                 </div>
-              )}
-            </span>
-            </div>
+                )}
+                  {imageUrl === "" && (
+                    <div style={{"backgroundColor": "rgba(1, 1, 1, 0)"}} className="spinner-container">
+                      <div style={{"color": "rgba(100, 100, 100, 0))"}} className="spinner"/>
+                      <div>Please wait...</div>
+                    </div>
+                  )}
+              </div>
             </div>
             <div className="modal-footer">
               <button
