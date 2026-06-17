@@ -834,14 +834,11 @@ class FrameStreamCommand(str, Enum):
 async def frames_control_ws(websocket: WebSocket, id: int):
     """Control WebSocket - only handles play/pause/seek commands."""
     try:
-        await websocket.accept()
+        await conn_manager.connect(websocket)
         logger.info(f"Accepted control WebSocket for video {id}")
     except Exception as e:
         logger.error(f"Failed to accept WebSocket for video {id}: {e}")
         return
-
-    await conn_manager.connect(websocket)
-    logger.info(f"Connected control WebSocket for video {id}")
 
     # Initialize state
     _frame_stream_states[id] = {
