@@ -137,9 +137,19 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     db.close()
     # open video
     cap = cv2.VideoCapture(file_path)
-    # set to frame
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
     # Read the frame
+    # check if video has proper metadata
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    if frame_count <= 0:
+        # read frames until the selected one (slow but needed for videos with improper metadata!)
+        for _ in range(frame_nr):
+            success, _ = cap.read()
+            if not success:
+                raise HTTPException(status_code=500, detail="Failed to read frame")
+    else:
+        # set to frame
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
+
     success, io_buf = get_frame_from_cap(cap, rotate)
 
     if not success:

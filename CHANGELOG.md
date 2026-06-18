@@ -17,11 +17,18 @@ Feedback and bug reports are highly appreciated to improve future versions.
 - Bounding boxes can now only be drawn when a discharge cross section is selected. Also, a new `estimate bounding box`
   button is available, which automatically draws a suitable and large enough bounding box around the entire cross
   section. Most users likely will only need this button to get a satisfactory bounding box.
+- The video edit window and frame preview window in the video configuration view now have frame control to select
+  a certain frame in the video with good view on the situation.
 
 ### Changed
+
+- Tab buttons now have a much nicer layout
+
 ### Deprecated
 ### Removed
 ### Fixed
+- Videos with improperly written or incomplete metadata (typically occurring when videos are streamed or suddenly
+  closed due to power loss to the camera) can now be properly handled in the interface.
 
 ## [0.7.0] Ngwerere - 2026-05-27
 This is a **testing beta release**, not yet fit for production and operational environments.
