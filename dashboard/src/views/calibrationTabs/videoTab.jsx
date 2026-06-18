@@ -4,7 +4,7 @@ import PhotoComponent from './photoComponent';
 import ControlPanel from './controlPanel';
 import PropTypes from 'prop-types';
 import {useMessage} from "../../messageContext.jsx";
-import { useInteractiveFrameStream } from "../../utils/images.jsx";
+import { useInteractiveVideoControls } from "../../utils/images.jsx";
 import FrameControls from '../../utils/frameControls.jsx';
 
 const VideoTab = (
@@ -40,14 +40,11 @@ const VideoTab = (
   const {
       current_frame,
       total_frames,
-      is_playing,
-      play,
-      pause,
       seek,
       forward,
       rewind,
       setRotate,
-  } = useInteractiveFrameStream(video?.id);
+  } = useInteractiveVideoControls(video?.id);
 
   const handleGCPClick = (adjustedX, adjustedY, normalizedX, normalizedY, originalRow, originalCol) => {
     // Add the new dot to the state with the ID of the associated widget
@@ -112,9 +109,6 @@ const VideoTab = (
       <FrameControls
         totalFrames={total_frames}
         currentFrame={current_frame}
-        isPlaying={is_playing}
-        play={play}
-        pause={pause}
         seek={seek}
         forward={forward}
         rewind={rewind}
@@ -133,7 +127,7 @@ const VideoTab = (
       >
         <PhotoComponent
           video={video}
-          frameNr={frameNr}
+          frameNr={current_frame}
           imageRef={imageRef}
           widgets={widgets}
           cameraConfig={cameraConfig}

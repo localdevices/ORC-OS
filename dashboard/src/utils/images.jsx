@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import api, {createWebSocketConnection} from "../api/api.js";
-
+import {getFrameCount} from "./apiCalls/video.jsx";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createDebounce } from "./helpers.jsx";
 
@@ -12,12 +12,11 @@ export const isImageCached = (url) => {
 };
 
 // Build the frame URL for playing a given video with given rotation as MJPEG stream
-export const getFrameUrl = (video, rotate) => {
+export const getFrameUrl = (video, frameNr, rotate) => {
   if (!video) return "";
   const apiHost = api.defaults.baseURL.replace(/\/$/, "");
-  const frameUrl = `${apiHost}/video/${String(video.id)}/frames_with_state/`;
+  const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
   const url = rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
-  console.log(`Constructed frame URL: ${url}`);
   return url;
 };
 
@@ -29,135 +28,106 @@ export const getFrameUrl = (video, rotate) => {
  * @returns {object} State and control methods
  */
 
-export const useInteractiveFrameStream = (videoId) => {
+export const useInteractiveVideoControls = (videoId) => {
   const [state, setState] = useState({
     current_frame: 0,
     total_frames: 0,
-    is_playing: false,
-    isReady: false,  // Add ready flag
-    error: null,     // Add error state
   });
 
-  const wsRef = useRef(null);
-  const callbackRef = useRef(null);
 
-  // Initialize WebSocket
+  // define controls here
+  const seek = (frame) => {
+    // only make sure the frame is not out of bounds
+    if (frame < 0) {
+      setState((prev) =>({
+        ...prev,
+        current_frame: 0,
+      }));
+    } else if (frame >= state.total_frames) {
+      setState((prev) =>({
+        ...prev,
+        current_frame: prev.total_frames - 1,
+      }));
+    } else {
+      setState((prev) =>({
+        ...prev,
+        current_frame: frame,
+      }));
+    }
+    return;
+  };
+
+  const forward = () => {
+    // move one frame forward, or move to start when end is reached
+    if (state.current_frame >= state.total_frames - 1) {
+      // at the end of video, move to start of video
+      setState((prev) =>({
+        ...prev,
+        current_frame: 0,
+      }));
+    } else {
+      setState((prev) =>({
+        ...prev,
+        current_frame: state.current_frame + 1,
+      }));
+    }
+    return;
+  };
+
+  const rewind = () => {
+    // move one frame backward, or move to end when start is reached
+    if (state.current_frame <= 0) {
+      // at the start of video, move to end of video
+      setState((prev) =>({
+        ...prev,
+        current_frame: prev.total_frames - 1,
+      }));
+    } else {
+      setState((prev) =>({
+        ...prev,
+        current_frame: state.current_frame - 1,
+      }));
+    }
+    return;
+  };
+
+  // at mounting and change of videoId, fetch total frames from backend
   useEffect(() => {
     if (!videoId) {
-      setState((prev) => ({ ...prev, isReady: false, error: "No video ID provided" }));
       return;
     }
-
-    const connectionId = `video_${videoId}_frame_stream`;
-
-    // Define callback BEFORE creating the connection
-    const callbackVideoPlayerStates = (message, ws) => {
+      // Reset current_frame and fetch total frames
+    setState((prev) => ({
+      ...prev,
+      current_frame: 0,  // Reset frame when video changes
+      total_frames: 0,   // Clear total until loaded
+    }));
+    // Fetch total frames from backend when videoId changes
+    const fetchTotalFrames = async () => {
       try {
-        if (message.type === "state" || message.type === "heartbeat") {
-          setState((prev) => ({
-            ...prev,
-            current_frame: message.current_frame ?? prev.current_frame,
-            total_frames: message.total_frames ?? prev.total_frames,
-            is_playing: message.is_playing ?? prev.is_playing,
-            isReady: true,  // Mark as ready once we get first state
-            error: null,
-          }));
-        }
-      } catch (e) {
-        console.error("Error processing WebSocket message:", e);
-        setState((prev) => ({ ...prev, error: e.message }));
+        const response = await getFrameCount(videoId);
+        setState((prev) => ({
+          ...prev,
+          total_frames: response,
+        }));
+      } catch (error) {
+        console.error(error);
       }
     };
+  fetchTotalFrames();
 
-    callbackRef.current = callbackVideoPlayerStates;
-
-    try {
-      const ws = createWebSocketConnection(
-        connectionId,
-        `/video/${videoId}/frames_interactive/`,
-        callbackVideoPlayerStates,
-        true,
-      );
-      wsRef.current = ws;
-
-      // Add onopen handler to log successful connection
-      const originalOnopen = ws.onopen;
-      ws.onopen = () => {
-        console.log(`WebSocket for video ${videoId} connected`);
-        if (originalOnopen) originalOnopen();
-      };
-
-      // Add onerror handler
-      const originalOnerror = ws.onerror;
-      ws.onerror = (event) => {
-        console.error(`WebSocket error for video ${videoId}:`, event);
-        setState((prev) => ({ ...prev, error: "WebSocket connection failed" }));
-        if (originalOnerror) originalOnerror(event);
-      };
-    } catch (e) {
-      console.error(`Failed to create WebSocket for video ${videoId}:`, e);
-      setState((prev) => ({ ...prev, error: e.message }));
-    }
-
-    return () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        // Send stop command before closing for graceful shutdown
-        try {
-          wsRef.current.send(
-            JSON.stringify({
-              type: "command",
-              command: "stop",
-            })
-          );
-        } catch (e) {
-          console.warn("Failed to send stop command:", e);
-        }
-        // Give server time to process the stop command before closing
-        setTimeout(() => {
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.close(1000, "Component unmounting");
-          }
-        }, 100);
-      }
-    };
   }, [videoId]);
-
-  // Send command to backend
-  const sendCommand = useCallback((command, params = {}) => {
-    if (!wsRef.current) {
-      console.warn(`WebSocket not initialized for command: ${command}`);
-      return;
-    }
-
-    if (wsRef.current.readyState !== WebSocket.OPEN) {
-      console.warn(`WebSocket not open (state=${wsRef.current.readyState}) for command: ${command}`);
-      return;
-    }
-
-    try {
-      wsRef.current.send(
-        JSON.stringify({
-          type: "command",
-          command,
-          ...params,
-        })
-      );
-    } catch (e) {
-      console.error(`Failed to send command ${command}:`, e);
-    }
-  }, []);
 
   return {
     ...state,
-    play: () => sendCommand("play"),
-    pause: () => sendCommand("pause"),
-    seek: (frame) => sendCommand("seek", { frame }),
-    forward: () => sendCommand("forward"),
-    rewind: () => sendCommand("rewind"),
-    setRotate: (rotate) => sendCommand("set_rotate", { rotate }),
+    // play: () => sendCommand("play"),
+    // pause: () => sendCommand("pause"),
+    seek: (frame) => seek(frame),
+    forward: () => forward(),
+    rewind: () => rewind(),
+    setRotate: (rotate) => setRotate(rotate),
   };
 };
-
 
 
 export const useDebouncedImageUrl = ({

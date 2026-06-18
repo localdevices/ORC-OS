@@ -206,10 +206,10 @@ const VideoConfigForm = (
 };
 
 VideoConfigForm.propTypes = {
-  selectedVideoConfig: PropTypes.object.isRequired,
-  video: PropTypes.object.isRequired,
-  cameraConfig: PropTypes.object.isRequired,
-  ws: PropTypes.object.isRequired,
+  selectedVideoConfig: PropTypes.object,
+  video: PropTypes.object,
+  cameraConfig: PropTypes.object,
+  ws: PropTypes.object,
 };
 
 export default VideoConfigForm;

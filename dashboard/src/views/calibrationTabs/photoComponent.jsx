@@ -162,7 +162,7 @@ const PhotoComponent = (
   useDebouncedImageUrl({
     setImageUrl,
     deps: [rotate, video, frameNr],
-    urlBuilder: () => getFrameUrl(video, rotate),
+    urlBuilder: () => getFrameUrl(video, frameNr, rotate),
     onUrlReady: (url, { cached }) => {
       if (cached) {
         setLoading(false);
@@ -438,7 +438,7 @@ const PhotoComponent = (
           }}
           onError={() => {
             setLoading(false); // Always unset loading on error
-            console.error('Image failed to load.');
+            // console.log('Image not yet available.');
           }}
 
           onMouseMove={handleMouseMove} // Track mouse movement

@@ -9,7 +9,7 @@ import {getWettedSurface, getWaterLines} from "../../utils/apiCalls/crossSection
 import {run_video} from "../../utils/apiCalls/video.jsx"
 import FrameControls from '../../utils/frameControls.jsx';
 
-import { getFrameUrl, useDebouncedImageUrl, useInteractiveFrameStream, PolygonDrawer } from "../../utils/images.jsx";
+import { getFrameUrl, useDebouncedImageUrl, useInteractiveVideoControls, PolygonDrawer } from "../../utils/images.jsx";
 import {FaSpinner} from "react-icons/fa";
 
 
@@ -38,16 +38,11 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
   const {
       current_frame,
       total_frames,
-      is_playing,
-      isReady,
-      error,
-      play,
-      pause,
       seek,
       forward,
       rewind,
       setRotate,
-  } = useInteractiveFrameStream(video?.id);
+  } = useInteractiveVideoControls(video?.id);
 
   const rescale_coords = (coords, imgDims, bBoxImg, bBoxParent) => {
     // rescale coordinates to fit the image dimensions as shown on screen
@@ -64,11 +59,10 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
   // load the image
   useDebouncedImageUrl({
     setImageUrl,
-    deps: [video],
+    deps: [video, current_frame],
     urlBuilder: () => {
       const rotate = video?.video_config?.camera_config?.rotation ?? null;
-      console.log(`Building frame URL for video ${video?.id} with rotation ${rotate}`);
-      return getFrameUrl(video, rotate);
+      return getFrameUrl(video, current_frame, rotate);
     },
     onUrlReady: (url, { cached }) => {
       if (cached) {
@@ -99,32 +93,6 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
         setLoadingConfig(false);
       })
   }, [])
-
-  // Cleanup WebSocket on modal unmount or when video changes
-  useEffect(() => {
-    return () => {
-      // Ensure graceful WebSocket shutdown when modal closes
-      if (video?.id) {
-        const connectionId = `video_${video.id}_frame_stream`;
-        // The WebSocket cleanup is handled by useInteractiveFrameStream hook
-        // but we explicitly manage it here to ensure proper closure
-        try {
-          // Get the stored WebSocket instance if accessible
-          const ws = window.webSocketInstances?.[connectionId];
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: "command", command: "stop" }));
-            setTimeout(() => {
-              if (ws?.readyState === WebSocket.OPEN) {
-                ws.close(5000, "Modal closed");
-              }
-            }, 50);
-          }
-        } catch (e) {
-          console.warn("Error closing WebSocket on modal unmount:", e);
-        }
-      }
-    };
-  }, [video?.id])
 
 
   useEffect(() => {
@@ -371,11 +339,6 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                   <FrameControls
                     totalFrames={total_frames}
                     currentFrame={current_frame}
-                    isPlaying={is_playing}
-                    isReady={isReady}
-                    error={error}
-                    play={play}
-                    pause={pause}
                     seek={seek}
                     forward={forward}
                     rewind={rewind}
@@ -389,14 +352,14 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                     className="img-calibration"
                     ref={imageRef}
                     onLoad={() => {
-                      // setLoading(true);
+                      setLoading(true);
                       handleImageLoad()
                     }}
                     onError={() => {
                       setLoading(false); // Always unset loading on error
                       console.error('Image failed to load.');
                     }}
-                    key={imageUrl}  // Force re-render when URL changes
+                    // key={imageUrl}  // Force re-render when URL changes
                     src={imageUrl}
                     alt="img-set-water-level"
                   />
@@ -431,7 +394,7 @@ export const TimeSeriesChangeModal = ({video, setVideo, closeModal}) => {
                 </span>
                 </div>
                 )}
-                  {imageUrl === "" && (
+                  {loading && (
                     <div style={{"backgroundColor": "rgba(1, 1, 1, 0)"}} className="spinner-container">
                       <div style={{"color": "rgba(100, 100, 100, 0))"}} className="spinner"/>
                       <div>Please wait...</div>

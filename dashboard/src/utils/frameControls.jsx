@@ -1,19 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useInteractiveFrameStream } from "./images.jsx";
 
 const FrameControls = (
   {
     totalFrames,
     currentFrame,
-    isPlaying,
-    play,
-    pause,
     seek,
     forward,
     rewind,
     isReady = true,  // Default to true for backward compatibility
-    error = null,
   }
 ) => {
     const [sliderValue, setSliderValue] = useState(currentFrame);
@@ -71,20 +66,6 @@ const FrameControls = (
                 ⏮
                 </button>
                 <button
-                onClick={play}
-                disabled={isPlaying || !isReady}
-                className="control-btn"
-                >
-                ▶
-                </button>
-                <button
-                onClick={pause}
-                disabled={!isPlaying || !isReady}
-                className="control-btn"
-                >
-                ⏸
-                </button>
-                <button
                 onClick={forward}
                 className="control-btn"
                 disabled={!isReady}
@@ -102,12 +83,7 @@ export default FrameControls;
 FrameControls.propTypes = {
     totalFrames: PropTypes.number.isRequired,
     currentFrame: PropTypes.number.isRequired,
-    isPlaying: PropTypes.bool.isRequired,
-    play: PropTypes.func.isRequired,
-    pause: PropTypes.func.isRequired,
     seek: PropTypes.func.isRequired,
     forward: PropTypes.func.isRequired,
     rewind: PropTypes.func.isRequired,
-    isReady: PropTypes.bool,
-    error: PropTypes.string,
 }
