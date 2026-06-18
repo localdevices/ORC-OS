@@ -396,7 +396,7 @@ class WSVideoState(BaseModel):
         gdf = gpd.read_file(string_io_buffer)
         cs = CrossSection(camera_config=cc, cross_section=gdf)
         # get minimum value of outermost left and right bank
-        z_max = min(cs.z[0], cs.z[-1])
+        z_max = min(cs.z[0], cs.z[-1]) - 0.001  # remove one mm to ensure line crosses at two points
         h_max = cc.z_to_h(z_max)
         bbox = cs.get_bbox(h=h_max, length=5)
         self.set_bbox(bbox)
