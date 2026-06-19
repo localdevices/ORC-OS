@@ -4,7 +4,7 @@ import os
 import socket
 import warnings
 
-__version__ = "0.7.0"  # version number
+__version__ = "0.8.0"  # version number
 __release__ = "Ngwerere"  # major version name
 
 
