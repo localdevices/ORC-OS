@@ -57,7 +57,8 @@ test = [
 	"pytest",
 	"pytest-cov",
     "pytest-mock",
-    "pytest-asyncio"
+    "pytest-asyncio",
+    "pytest=timeout"
 ]
 
 [project.urls]

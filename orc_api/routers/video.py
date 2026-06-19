@@ -140,14 +140,14 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     # Read the frame
     # check if video has proper metadata
     frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    if frame_count <= 0:
+    if frame_count <= 0 and frame_nr < 900:  # 900 is a reasonable maximum limit, about 30 seconds of video at 30 fps
         # read frames until the selected one (slow but needed for videos with improper metadata!)
         for _ in range(frame_nr):
             success, _ = cap.read()
             if not success:
                 raise HTTPException(status_code=500, detail="Failed to read frame")
     else:
-        # set to frame
+        # set to frame, if frame_nr very large, attempt to read anyway, likely it will return the 0 frame
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
 
     success, io_buf = get_frame_from_cap(cap, rotate)
@@ -161,8 +161,8 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     return StreamingResponse(io_buf, media_type="image/jpeg")
 
 
-@router.get("/{id}/frames/")  # , response_class=FileResponse, status_code=200)
-async def get_frames(
+@router.get("/{id}/stream/")  # , response_class=FileResponse, status_code=200)
+async def get_stream(
     id: int,
     start_frame: Optional[int] = None,
     end_frame: Optional[int] = None,

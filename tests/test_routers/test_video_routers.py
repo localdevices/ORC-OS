@@ -1,7 +1,9 @@
 import copy
 import os
+import signal
 from datetime import datetime, timedelta
 
+import cv2
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -57,7 +59,7 @@ def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
     db_session = next(get_db_override())
     video1 = models.Video(
         timestamp=datetime.now(),
-        file=os.path.join(upload_dir, "test_video.mp4"),
+        file="test_video.mp4",
         thumbnail="thumbnail.jpg",
         image="image.jpg",
     )
@@ -78,6 +80,7 @@ def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
     log_file = os.path.join(upload_dir, "pyorc.log")
     image_file = os.path.join(upload_dir, "image.jpg")
     thumbnail_file = os.path.join(upload_dir, "thumbnail.jpg")
+    video_file = os.path.join(upload_dir, "test_video.mp4")
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     img = np.array([[0, 255], [255, 0]], np.uint8)
     img = Image.fromarray(np.stack([img, img, img], axis=-1))
@@ -85,6 +88,15 @@ def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
         f.write("log test")
     img.save(image_file)
     img.save(thumbnail_file)
+
+    # use opencv to write a real video file with some frames
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(video_file, fourcc, 30.0, (640, 480))
+    for _i in range(30):
+        frame = np.random.randint(0, 256, (480, 640, 3), dtype=np.uint8)
+        out.write(frame)
+    out.release()
+
     r = auth_client.get("/api/video/1/log/")
     assert r.status_code == 200
     # let's try to get a thumbnail, frame and play
@@ -92,6 +104,30 @@ def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
     assert r.status_code == 200
     r = auth_client.get("/api/video/1/image/")
     assert r.status_code == 200
+    r = auth_client.get("/api/video/1/frame/0")
+    assert r.status_code == 200
+    # also check 404 on a too high frame
+    r = auth_client.get("/api/video/1/frame/1000")
+    assert r.status_code == 500
+    # check if we can also get a streaming response
+    # Use timeout to prevent infinite hang
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Stream endpoint took too long")
+
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(2)  # 2 second timeout
+    try:
+        r = auth_client.get("/api/video/1/stream/")
+        assert r.status_code == 200
+        # Try to consume just first chunk
+        try:
+            first_chunk = next(r.iter_bytes())
+            assert first_chunk  # Should have data
+        except StopIteration:
+            pass  # Empty stream is acceptable
+    finally:
+        signal.alarm(0)  # Cancel alarm
     # finally delete video, also check if log file is removed
     r = auth_client.delete("/api/video/1/")
     assert r.status_code == 204
@@ -201,6 +237,44 @@ def test_sync_video(auth_client, mocker):
     assert response.status_code == 200
     # call should only return status
     assert response.json()["id"] == 1
+
+
+@pytest.mark.timeout(5)
+def test_video_stream_status_only(auth_client, tmpdir, monkeypatch, mocker):
+    """Test video stream endpoint - just verify response status without consuming stream."""
+    upload_dir = os.path.join(tmpdir, "uploads")
+    monkeypatch.setattr("orc_api.routers.video.UPLOAD_DIRECTORY", upload_dir)
+
+    db_session = next(get_db_override())
+    video = models.Video(
+        timestamp=datetime.now(),
+        file="test_video.mp4",
+    )
+    db_session.add(video)
+    db_session.commit()
+
+    os.makedirs(upload_dir, exist_ok=True)
+    video_file = os.path.join(upload_dir, "test_video.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(video_file, fourcc, 30.0, (640, 480))
+    for _i in range(3):
+        frame = np.random.randint(0, 256, (480, 640, 3), dtype=np.uint8)
+        out.write(frame)
+    out.release()
+
+    # Mock to return just 1 frame quickly
+    def mock_yield_frames(*args, **kwargs):
+        yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\ndata\r\n"
+
+    mocker.patch("orc_api.routers.video.yield_frames_from_fn", side_effect=mock_yield_frames)
+
+    # Get response and check headers
+    r = auth_client.get("/api/video/1/stream/")
+    assert r.status_code == 200
+    assert "multipart/x-mixed-replace" in r.headers.get("content-type", "")
+
+    db_session.query(models.Video).delete()
+    db_session.commit()
 
 
 @pytest.mark.asyncio
