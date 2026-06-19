@@ -87,7 +87,12 @@ const Login = ({apiStatus}) => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               style={{ marginTop: "8px" }}
             />
-            <button className="btn btn-primary" type="submit">Create password</button>
+            <button
+              className="btn btn-primary"
+              disabled={!passwordsMatch || password.length === 0}
+              type="submit">
+                Create password
+            </button>
             {confirmPassword.length > 0 && (
               <p style={{ color: passwordsMatch ? "green" : "red", margin: "6px 0" }}>
                 {passwordsMatch ? "Passwords match" : "Passwords do not match"}
