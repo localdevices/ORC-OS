@@ -129,9 +129,11 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
           </button>
           <div className="navbar-message" style={{ marginRight: 'auto', marginLeft: '10px'}}>
             {videoRunState?.video_file !== "" && (
-              <span style={{ fontWeight: 'bold', position: 'absolute', overflow: 'hidden', zIndex: 0, width: 'calc(100vw - 200px)', whiteSpace: 'nowrap', display: 'inline-block', textOverflow: 'ellipsis'}}>
-                        {getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}
-                      </span>
+              <span
+                className="cell-icon-text overflow-hidden whitespace-nowrap text-ellipsis font-bold absolute w-[calc(100vw-200px)]"
+              >
+                {getStatusIcon(videoRunState.status)} {getSyncStatusIcon(videoRunState.sync_status)} {videoRunState.video_file} - {videoRunState.message}
+              </span>
             )}
           </div>
           <div className="navbar-right">

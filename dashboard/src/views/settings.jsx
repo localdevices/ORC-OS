@@ -153,24 +153,23 @@ const Settings = ({setRequiresRestart}) => {
             </div>
           </div>
 
-          <div className='mb-3 mt-3'>
+          <div className='checkbox-group'>
             <input
               type='checkbox'
-              className='form-check-input'
+              className="checkbox"
               id='parse_dates_from_file'
               name='parse_dates_from_file'
               onChange={handleInputChange}
               value={formData.parse_dates_from_file}
               checked={formData.parse_dates_from_file}
-              style={{marginRight: '10px'}}
             />
-            <label htmlFor='parse_dates_from_file' className='form-label'>
+            <label htmlFor='parse_dates_from_file' className='checkbox-label'>
               Parse dates from the video file name
             </label>
+          </div>
             <div className="help-block">
               File must have a name template such as &#34;{"{%Y%m%dT%H%M%S}.mp4"}&#34;
             </div>
-          </div>
             {formData.video_file_fmt && settings?.sample_file && (
               <div className="mb-3 mt-3 form-horizontal">
                   <div role="alert" style={{color: "red", fontStyle: "italic"}}>
@@ -193,24 +192,23 @@ const Settings = ({setRequiresRestart}) => {
               detection is allowed. Select an optical water level cross section in your video configuration.
             </div>
           </div>
-          <div className='mb-3 mt-3'>
+          <div className='checkbox-group'>
             <input
               type='checkbox'
-              className='form-check-input'
+              className='checkbox'
               id='shutdown_after_task'
               name='shutdown_after_task'
               onChange={handleInputChange}
               value={formData.shutdown_after_task}
               checked={formData.shutdown_after_task}
-              style={{marginRight: '10px'}}
             />
-            <label htmlFor='shutdown_after_task' className='form-label'>
+            <label htmlFor='shutdown_after_task' className='checkbox-label'>
               Shutdown the device after an automated task
             </label>
-            <div className="help-block">
-              Choosing this implies that you use power cycling and one video per cycle in processing. Please check this
-              carefully.
-            </div>
+          </div>
+          <div className="help-block">
+            Choosing this implies that you use power cycling and one video per cycle in processing. Please check this
+            carefully.
           </div>
           <div className='mb-3 mt-3'>
             <label htmlFor='reboot_after' className='form-label'>
@@ -233,33 +231,31 @@ const Settings = ({setRequiresRestart}) => {
           </div>
 
           <h5>LiveORC file syncing</h5>
-          <div className='mb-3 mt-3'>
+          <div className='checkbox-group'>
             <input
               type='checkbox'
-              className='form-check-input'
+              className='checkbox'
               id='sync_file'
               name='sync_file'
               onChange={handleInputChange}
               value={formData.sync_file}
               checked={formData.sync_file}
-              style={{marginRight: '10px'}}
             />
-            <label htmlFor='sync_file' className='form-label'>
+            <label htmlFor='sync_file' className='checkbox-label'>
               Synchronize video file with LiveORC server (if configured)
             </label>
           </div>
-          <div className='mb-3 mt-3'>
+          <div className='checkbox-group'>
             <input
               type='checkbox'
-              className='form-check-input'
+              className='checkbox'
               id='sync_image'
               name='sync_image'
               onChange={handleInputChange}
               value={formData.sync_image}
               checked={formData.sync_image}
-              style={{marginRight: '10px'}}
             />
-            <label htmlFor='sync_image' className='form-label'>
+            <label htmlFor='sync_image' className='checkbox-label'>
               Synchronize result image file with LiveORC server (if configured)
             </label>
           </div>

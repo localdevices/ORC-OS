@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import click
-
 from alembic import command
 from alembic.config import Config as AlembicConfig
 

@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
-
-import api from "../api/api.js";
-import { useEffect, useMemo } from "react";
+import api, {createWebSocketConnection} from "../api/api.js";
+import {getFrameCount} from "./apiCalls/video.jsx";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createDebounce } from "./helpers.jsx";
 
 // Check if an image URL is already cached by the browser
@@ -11,13 +11,124 @@ export const isImageCached = (url) => {
   return img.complete;
 };
 
-// Build the frame URL for a given video/frame/rotate
+// Build the frame URL for playing a given video with given rotation as MJPEG stream
 export const getFrameUrl = (video, frameNr, rotate) => {
   if (!video) return "";
   const apiHost = api.defaults.baseURL.replace(/\/$/, "");
   const frameUrl = `${apiHost}/video/${String(video.id)}/frame/${String(frameNr)}`;
-  return rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
+  const url = rotate !== null && rotate !== undefined ? `${frameUrl}?rotate=${rotate}` : frameUrl;
+  return url;
 };
+
+
+/**
+ * Hook for interactive frame streaming via WebSocket
+ * @param {number} videoId - The video ID to stream
+ * @param {function} onFrameUpdate - Callback when frame updates
+ * @returns {object} State and control methods
+ */
+
+export const useInteractiveVideoControls = (videoId) => {
+  const [state, setState] = useState({
+    current_frame: 0,
+    total_frames: 0,
+  });
+
+
+  // define controls here
+  const seek = (frame) => {
+    // only make sure the frame is not out of bounds
+    if (frame < 0) {
+      setState((prev) =>({
+        ...prev,
+        current_frame: 0,
+      }));
+    } else if (frame >= state.total_frames) {
+      setState((prev) =>({
+        ...prev,
+        current_frame: prev.total_frames - 1,
+      }));
+    } else {
+      setState((prev) =>({
+        ...prev,
+        current_frame: frame,
+      }));
+    }
+    return;
+  };
+
+  const forward = () => {
+    // move one frame forward, or move to start when end is reached
+    if (state.current_frame >= state.total_frames - 1) {
+      // at the end of video, move to start of video
+      setState((prev) =>({
+        ...prev,
+        current_frame: 0,
+      }));
+    } else {
+      setState((prev) =>({
+        ...prev,
+        current_frame: state.current_frame + 1,
+      }));
+    }
+    return;
+  };
+
+  const rewind = () => {
+    // move one frame backward, or move to end when start is reached
+    if (state.current_frame <= 0) {
+      // at the start of video, move to end of video
+      setState((prev) =>({
+        ...prev,
+        current_frame: prev.total_frames - 1,
+      }));
+    } else {
+      setState((prev) =>({
+        ...prev,
+        current_frame: state.current_frame - 1,
+      }));
+    }
+    return;
+  };
+
+  // at mounting and change of videoId, fetch total frames from backend
+  useEffect(() => {
+    if (!videoId) {
+      return;
+    }
+      // Reset current_frame and fetch total frames
+    setState((prev) => ({
+      ...prev,
+      current_frame: 0,  // Reset frame when video changes
+      total_frames: 0,   // Clear total until loaded
+    }));
+    // Fetch total frames from backend when videoId changes
+    const fetchTotalFrames = async () => {
+      try {
+        const response = await getFrameCount(videoId);
+        setState((prev) => ({
+          ...prev,
+          total_frames: response,
+        }));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+  fetchTotalFrames();
+
+  }, [videoId]);
+
+  return {
+    ...state,
+    // play: () => sendCommand("play"),
+    // pause: () => sendCommand("pause"),
+    seek: (frame) => seek(frame),
+    forward: () => forward(),
+    rewind: () => rewind(),
+    setRotate: (rotate) => setRotate(rotate),
+  };
+};
+
 
 export const useDebouncedImageUrl = ({
   setImageUrl,

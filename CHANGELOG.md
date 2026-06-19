@@ -1,3 +1,36 @@
+## [0.8.0] Ngwerere - 2026-06-19
+This is a **testing beta release**, not yet fit for production and operational environments.
+This release should only be used for:
+- testing
+- piloting
+- evaluation purposes
+
+Feedback and bug reports are highly appreciated to improve future versions.
+
+> [!IMPORTANT]
+> Since version 0.6.0 any connected LiveORC server MUST be version >= 0.3.0
+> Since version 0.7.0 several new service files are required. You cannot automatically update via OTA if these
+> files are not in place. Contact your system administrator to update the service file structure following the
+> README of https://github.com/localdevices/ORC-OS
+
+### Added
+- Bounding boxes can now only be drawn when a discharge cross section is selected. Also, a new `estimate bounding box`
+  button is available, which automatically draws a suitable and large enough bounding box around the entire cross
+  section. Most users likely will only need this button to get a satisfactory bounding box.
+- The video edit window and frame preview window in the video configuration view now have frame control to select
+  a certain frame in the video with good view on the situation.
+
+### Changed
+- Tab buttons now have a much nicer layout and have clearly recognizable icons for non-English users.
+
+### Deprecated
+### Removed
+### Fixed
+- Videos with improperly written or incomplete metadata (typically occurring when videos are streamed or suddenly
+  closed due to power loss to the camera) can now be properly handled in the interface.
+- Password setting on first login and during reset could be done even with non-matching passwords. This is now fixed.
+  The submit button cannot be pressed until both password fields match.
+
 ## [0.7.0] Ngwerere - 2026-05-27
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:

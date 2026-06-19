@@ -19,7 +19,7 @@ ORC_COOKIE_MAX_AGE = 3600  # one hour
 ALGORITHM = "HS256"
 
 # only allow direct children
-ORIGINS = []
+ORIGINS = ["*"]
 
 __home__ = os.getenv("ORC_HOME")
 UPLOAD_DIRECTORY = os.getenv("ORC_UPLOAD_DIRECTORY")

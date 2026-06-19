@@ -1,6 +1,5 @@
 import {useState, useEffect} from 'react';
 import api from "../api/api.js"
-import './cameraAim.scss'
 
 import {FaRaspberryPi} from "react-icons/fa6";
 import { PiRecordFill } from "react-icons/pi"

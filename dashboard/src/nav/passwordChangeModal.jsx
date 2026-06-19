@@ -80,7 +80,7 @@ export const PasswordChangeModal = ({setShowModal}) => {
                 <button
                   className="btn"
                   type="submit"
-                  disabled={changing || missingFields}
+                  disabled={changing || missingFields || !passwordsMatch}
                 >Change password
                 </button>
                 {confirmPassword.length > 0 && (

@@ -88,33 +88,31 @@ const VideoConfigFilterModal = ({showModal, setShowModal, selectedVideoConfigIds
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <div className="mb-2">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={selectedVideoConfigIds && selectedVideoConfigIds.includes(0)}
-                          onChange={() => handleToggle(0)}
-                          className="me-2"
-                        />
-                        <strong>No video attached</strong>
-                      </label>
+                  <div className="checkbox-group">
+                    {/* <div className="mb-2"> */}
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selectedVideoConfigIds && selectedVideoConfigIds.includes(0)}
+                        onChange={() => handleToggle(0)}
+                      />
+                      <label className="checkbox-label"><strong>No video attached</strong></label>
                     </div>
 
                     {videoConfigs.map(vc => (
-                      <div key={vc.id} className="mb-2">
-                        <label>
+                      <div key={vc.id} className="checkbox-group">
                           <input
                             type="checkbox"
                             checked={selectedVideoConfigIds && selectedVideoConfigIds.includes(vc.id)}
                             onChange={() => handleToggle(vc.id)}
-                            className="me-2"
+                            className="checkbox"
                           />
+                        <label className="checkbox-label">
                           Video Config ID: {vc.id} {vc.name && `- ${vc.name}`}
                         </label>
                       </div>
                     ))}
-                  </div>
+                  {/* </div> */}
                 </>
               )}
             </div>

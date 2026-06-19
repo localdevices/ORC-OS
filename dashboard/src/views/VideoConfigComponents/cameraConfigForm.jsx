@@ -1,7 +1,6 @@
 import {useDebouncedWsSender} from "../../api/api.js";
 import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
-import '../cameraAim.scss'
 import {safelyParseJSON} from "../../utils/helpers.jsx";
 
 const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.29.7",
+    "@tailwindcss/vite": "^4.3.1",
     "axios": "^1.7.9",
     "chart.js": "^4.4.9",
     "chartjs-adapter-date-fns": "^3.0.0",
@@ -26,18 +27,19 @@
     "react-modal": "^3.16.3",
     "react-router-dom": "^7.1.5",
     "react-slider": "^2.0.6",
-    "react-zoom-pan-pinch": "^3.7.0"
+    "react-zoom-pan-pinch": "^3.7.0",
+    "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "@types/react": "^18.3.18",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.2",
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "sass-embedded": "^1.87.0",
-    "vite": "^6.0.5"
+    "vite": "^8.0.16"
   }
 }

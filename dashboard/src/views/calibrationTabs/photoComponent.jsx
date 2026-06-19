@@ -3,7 +3,7 @@ import {TransformComponent, useTransformEffect, useTransformInit} from 'react-zo
 
 import './photoComponent.css';
 import PropTypes from 'prop-types';
-import api, {useDebouncedWsSender} from "../../api/api.js";
+import {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 import { getFrameUrl, useDebouncedImageUrl, PolygonDrawer } from "../../utils/images.jsx";
 
@@ -39,9 +39,6 @@ const PhotoComponent = (
   const [hoverCoordinates, setHoverCoordinates] = useState(null);
   const [lineCoordinates, setLineCoordinates] = useState(null);
   const [imageUrl, setImageUrl] = useState('');  ///frame_001.jpg
-  const debounceTimeoutRef = useRef(null);  // state for timeout checking
-  const abortControllerRef = useRef(null);  // state for aborting requests to api
-  const lastResponse = useRef(null);  // store last API response
   const [CSDischargePolygon, setCSDischargePolygon] = useState([]);
   const [CSWettedSurfacePolygon, setCSWettedSurfacePolygon] = useState([]);
   const [CSWaterLevelPolygon, setCSWaterLevelPolygon] = useState([]);
@@ -72,12 +69,6 @@ const PhotoComponent = (
     })
   }
 
-  // useEffect(() => {
-  //   // ensure if click count is 3, the camera config is updated with the set bbox
-  //   if (bboxClickCount === 3) {
-  //     setCameraConfig(lastResponse.current.data)
-  //   }
-  // }, [bboxClickCount])
 
   useEffect(() => {
     // check if image and dimensions are entirely intialized
@@ -167,6 +158,7 @@ const PhotoComponent = (
     updateTransform();
   });
 
+
   useDebouncedImageUrl({
     setImageUrl,
     deps: [rotate, video, frameNr],
@@ -174,6 +166,8 @@ const PhotoComponent = (
     onUrlReady: (url, { cached }) => {
       if (cached) {
         setLoading(false);
+      } else {
+        setLoading(true);
       }
     },
     delayMs: 300
@@ -286,30 +280,7 @@ const PhotoComponent = (
         }
       }
       sendDebouncedMsg(msg);
-      // debounceTimeoutRef.current = setTimeout(async () => {
-      //   // make simple list of lists for API call
-      //   const points = bboxMarkers.map(p => [p.col, p.row]);
-      //   points.push([col, row]);
-      //   const url = "/camera_config/bounding_box/";
-      //   const response = await api.post(
-      //     url,
-      //     {
-      //       "camera_config": cameraConfig,
-      //       "points": points,
-      //     }
-      //   )
-      //     .then(response => {
-      //       lastResponse.current = response;
-      //       const bbox = response.data.bbox_camera;
-      //       // set the bbox_camera on the current cameraConfig
-      //       bboxPoints = bbox.map(p => {
-      //         const x = p[0] / imgDims.width * photoBbox.width / transformState.scale;
-      //         const y = p[1] / imgDims.height * photoBbox.height/ transformState.scale;
-      //         return {x, y};
-      //       })
-      //       setBBoxPolygon(bboxPoints);
-      //     })
-      // }, 100);
+
       setLineCoordinates(null);
     }
 
@@ -377,6 +348,7 @@ const PhotoComponent = (
     const y = row / imgDims.height * photoBbox.height / transformState.scale;
     return {x, y};
   };
+
 
   const handleImageLoad = () => {
     if (imageRef.current && imageUrl) {
@@ -455,27 +427,27 @@ const PhotoComponent = (
     <>
     <TransformComponent>
       <div className="image-container">
-      <img
-        style={{width: '100%', height: '100%'}}
-        className="img-calibration"
-        ref={imageRef}
-        // onClick={handleMouseClick}
-        onLoad={() => {
-          setLoading(true);
-          handleImageLoad()
-        }}
-        onError={() => {
-          setLoading(false); // Always unset loading on error
-          console.error('Image failed to load.');
-        }}
+        <img
+          style={{width: '100%', height: '100%'}}
+          className="img-calibration"
+          ref={imageRef}
+          // onClick={handleMouseClick}
+          onLoad={() => {
+            setLoading(true);
+            handleImageLoad()
+          }}
+          onError={() => {
+            setLoading(false); // Always unset loading on error
+            // console.log('Image not yet available.');
+          }}
 
-        onMouseMove={handleMouseMove} // Track mouse movement
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        src={imageUrl}
-        alt="img-calibration"
-      />
+          onMouseMove={handleMouseMove} // Track mouse movement
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          src={imageUrl}
+          alt="img-calibration"
+        />
       </div>
       {/* Render colored dots */}
       {Object.entries(dots).map(([widgetId, dot]) => {
@@ -538,7 +510,7 @@ const PhotoComponent = (
           points={bBoxPolygon}
           fill={"rgba(255, 255, 255, 0.3)"}
           stroke={"white"}
-          strokeWidth={2 / transformState.scale}
+          strokeWidth={1 / transformState.scale}
           zIndex={0}
 
         />
@@ -579,9 +551,8 @@ const PhotoComponent = (
         <PolygonDrawer
           points={line}
           key={`bbox wet pol ${idx}`}
-          fill={"rgba(75, 75, 192, 0.3)"}
-          stroke={"rgba(75, 75, 192, 1)"}
-          strokeWidth={2 / transformState.scale}
+          fill={"rgba(0, 0, 0, 0.3)"}
+          strokeWidth={0 / transformState.scale}
           zIndex={1}
         />
 
@@ -645,7 +616,7 @@ const PhotoComponent = (
         <div
           style={{
             position: 'absolute',
-            top: "40px",
+            top: "105px",
             left: "5px",
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             color: 'white',
@@ -671,7 +642,6 @@ const PhotoComponent = (
           </span>
         </div>
       )}
-
 
     </>
   );

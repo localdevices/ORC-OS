@@ -5,7 +5,7 @@ import {run_video} from "../utils/apiCalls/video.jsx";
 import {deepMerge} from "../utils/deepMerge.js";
 import {toNumberOrNull} from "../utils/helpers.jsx";
 import RecipeForm from "./recipeComponents/recipeForm.jsx";
-import {FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
+import { FaVideo, FaQuestion, FaCog, FaRegMap, FaFilm, FaCrosshairs, FaSave, FaTrash, FaPlay, FaSpinner, FaHourglass} from "react-icons/fa";
 import CameraConfigForm from "./VideoConfigComponents/cameraConfigForm.jsx";
 import PoseDetails from "./VideoConfigComponents/poseDetails.jsx";
 import VideoConfigForm from "./VideoConfigComponents/VideoConfigForm.jsx";
@@ -284,7 +284,6 @@ const VideoConfig = ({devStatus}) => {
         border: 'none',
         cursor: videoConfig?.ready_to_run ? 'pointer' : 'not-allowed',
         color: color,
-        padding: '5px'
       }}
       onClick={runVideo}
       disabled={!videoConfig?.ready_to_run}
@@ -357,6 +356,14 @@ const VideoConfig = ({devStatus}) => {
     setActiveView(view);
   };
 
+  const handleEstimateBbox = () => {
+    const msg = {
+      action: 'update_video_config',
+      op: 'set_bbox_from_cross_section',
+    }
+    sendDebouncedMsg(msg);
+  }
+
   const handleBboxStart = () => {
     setBboxSelected(true);
     const msg = {
@@ -373,10 +380,12 @@ const VideoConfig = ({devStatus}) => {
       <div className="split-screen flex">
         <div className="flex-container column no-padding">
           <div className="flex-container column" style={{height: "calc(100vh - 200px)", minHeight: "600px"}}>
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
-              <h5 style={{margin: 0}}>Image view</h5>
+
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+              <h5 style={{margin: 0}}>Frame preview</h5>
             </div>
             <div className="tabs-row">
+              {/* <nav class="-mb-px flex space-x-8"> */}
               <button
                 className={activeView === 'camView' ? 'active-tab' : ''}
                 onClick={(e) => {
@@ -384,7 +393,11 @@ const VideoConfig = ({devStatus}) => {
                   handleViewChange('camView');
                 }}
               >
+              <span>
+                <FaFilm/>
                 Camera view
+              </span>
+
               </button>
               <button
                 className={activeView === 'topView' ? 'active-tab' : ''}
@@ -393,8 +406,12 @@ const VideoConfig = ({devStatus}) => {
                   handleViewChange('topView');
                 }}
               >
+              <span>
+                <FaRegMap/>
                 Top view
+              </span>
               </button>
+              {/* </nav> */}
             </div>
 
             {video && activeView === 'camView' && recipe?.start_frame !== undefined && recipe?.start_frame !== null && (
@@ -437,8 +454,8 @@ const VideoConfig = ({devStatus}) => {
             <div className="tabbed-form-container">
               <div className="tabs-header">
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                  <h5>Manage configuration</h5>
-                  <div style={{display: 'flex', gap: '10px'}}>
+                  <h5 style={{margin: 0}}>Manage configuration</h5>
+                  <div style={{display: 'flex', gap: '15px'}}>
                     <button
                       type="submit"
                       title={save ? "Save video configuration" : "No changes to save"}
@@ -448,7 +465,6 @@ const VideoConfig = ({devStatus}) => {
                         border: 'none',
                         cursor: save ? 'pointer' : 'not-allowed',
                         color: save ? '#0d6efd' : '#6c757d',
-                        padding: '5px'
                       }}
                       disabled={!save}
                     >
@@ -464,7 +480,6 @@ const VideoConfig = ({devStatus}) => {
                         border: 'none',
                         cursor: 'pointer',
                         color: '#dc3545',
-                        padding: '5px'
                       }}
                       onClick={deleteVideoConfig}
                     >
@@ -481,7 +496,10 @@ const VideoConfig = ({devStatus}) => {
                       handleTabChange('configDetails');
                     }}
                   >
+                  <span>
+                    <FaQuestion/>
                     Name + details
+                  </span>
                   </button>
                   {/* only show load/save config tab if in devmode */}
                   {devStatus && (
@@ -493,7 +511,10 @@ const VideoConfig = ({devStatus}) => {
                       }}
                       disabled={!cameraConfig?.isPoseReady()}
                     >
+                    <span>
+                      <FaSave/>
                       Load/Save config
+                    </span>
                     </button>
                   )}
                   <button
@@ -504,7 +525,10 @@ const VideoConfig = ({devStatus}) => {
                     }}
                     disabled={!cameraConfig?.isPoseReady()}
                   >
+                  <span>
+                    <FaVideo/>
                     Camera pose
+                  </span>
                   </button>
                   <button
                     className={activeTab === 'crossSection' ? 'active-tab' : ''}
@@ -514,7 +538,10 @@ const VideoConfig = ({devStatus}) => {
                     }}
                     disabled={!cameraConfig?.isCalibrated()}
                   >
+                  <span>
+                    <FaCrosshairs/>
                     Cross sections
+                  </span>
                   </button>
                   <button
                     className={activeTab === 'recipe' ? 'active-tab' : ''}
@@ -523,7 +550,10 @@ const VideoConfig = ({devStatus}) => {
                       handleTabChange('recipe');
                     }}
                   >
+                  <span>
+                    <FaCog/>
                     Processing
+                  </span>
                   </button>
 
                 </div>
@@ -565,6 +595,7 @@ const VideoConfig = ({devStatus}) => {
                         setCSWaterLevel={setCSWaterLevel}
                         setBboxSelected={setBboxSelected}
                         handleBboxStart={handleBboxStart}
+                        handleEstimateBbox={handleEstimateBbox}
                         setMessageInfo={setMessageInfo}
                         ws={ws.current}
                       />

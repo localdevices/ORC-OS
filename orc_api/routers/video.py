@@ -1,7 +1,6 @@
 """Video routers."""
 
 import asyncio
-import io
 import mimetypes
 import os
 import traceback  # only used in DEV_MODE
@@ -42,6 +41,7 @@ from orc_api.schemas.video import (
 )
 from orc_api.schemas.video_config import VideoConfigResponse
 from orc_api.utils import queue, websockets
+from orc_api.utils.image import get_frame_count, get_frame_from_cap, yield_frames_from_fn
 from orc_api.utils.redis_pubsub import get_redis_pubsub_manager
 from orc_api.utils.states import SyncRunStatus, VideoRunStatus
 
@@ -52,6 +52,9 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 # start a websockets connection manager
 conn_manager = websockets.ConnectionManager()
+
+# Add state manager for tracking playback per video
+_frame_stream_states = {}
 
 
 async def redis_available() -> None:
@@ -134,32 +137,64 @@ async def get_frame(id: int, frame_nr: int, rotate: Optional[int] = None, db: Se
     db.close()
     # open video
     cap = cv2.VideoCapture(file_path)
-    # set to frame
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
     # Read the frame
-    success, frame = cap.read()
+    # check if video has proper metadata
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    if frame_count <= 0 and frame_nr < 900:  # 900 is a reasonable maximum limit, about 30 seconds of video at 30 fps
+        # read frames until the selected one (slow but needed for videos with improper metadata!)
+        for _ in range(frame_nr):
+            success, _ = cap.read()
+            if not success:
+                raise HTTPException(status_code=500, detail="Failed to read frame")
+    else:
+        # set to frame, if frame_nr very large, attempt to read anyway, likely it will return the 0 frame
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nr)
+
+    success, io_buf = get_frame_from_cap(cap, rotate)
+
     if not success:
         raise HTTPException(status_code=500, detail="Failed to read frame")
 
-    # Validate and apply rotation if specified
-    if rotate is not None:
-        if rotate not in [90, 180, 270]:
-            raise HTTPException(status_code=400, detail="Rotation must be None, 90, 180 or 270 degrees")
-        if rotate == 90:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        elif rotate == 180:
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
-        elif rotate == 270:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-
-    # Convert the frame to jpg format
-    _, buffer = cv2.imencode(".jpg", frame)
-    io_buf = io.BytesIO(buffer.tobytes())
     # Clean up
     cap.release()
-
     # Return the frame as a streaming response
     return StreamingResponse(io_buf, media_type="image/jpeg")
+
+
+@router.get("/{id}/stream/")  # , response_class=FileResponse, status_code=200)
+async def get_stream(
+    id: int,
+    start_frame: Optional[int] = None,
+    end_frame: Optional[int] = None,
+    rotate: Optional[int] = None,
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
+    """Retrieve frames with repetition from video."""
+    # convert into schema and return data
+    if start_frame is None:
+        start_frame = 0
+    video = get_video_record(db, id)
+    if not video.file:
+        raise HTTPException(status_code=404, detail="Video record is found, but video file is not found.")
+    file_path = video.get_video_file(base_path=UPLOAD_DIRECTORY)
+    # check for physical presence
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Video file not found on local data store.")
+    if end_frame is None:
+        end_frame = get_frame_count(file_path)
+
+    # prevent unnecessarily long database connection, close!
+    db.close()
+
+    async def frame_generator():
+        for frame in yield_frames_from_fn(file_path, rotate, start_frame, end_frame):
+            if await request.is_disconnected():
+                logger.info(f"Client disconnected while streaming frames for video {id}. Stopping generator.")
+                break
+            yield frame
+
+    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 
 @router.get("/", response_model=List[VideoListResponse], status_code=200)
@@ -233,10 +268,11 @@ async def get_video_end_frame(id: int, db: Session = Depends(get_db)):
     # close db connection
     db.close()
     # open video
-    cap = cv2.VideoCapture(file_path)
-    # check amount of frames
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    return frame_count
+    return get_frame_count(file_path)
+    # cap = cv2.VideoCapture(file_path)
+    # # check amount of frames
+    # frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    # return frame_count
 
 
 @router.delete("/{id}/", status_code=204, response_model=None)

@@ -10,6 +10,16 @@ export const getVideoId = async (videoId) => {
   }
 }
 
+export const getFrameCount = async (videoId) => {
+  // retrieve the total number of frames for a video with the given ID
+  try {
+    const response = await api.get(`/video/${videoId}/frame_count/`);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 export const get_videos_ids = async (api, selectedIds, setMessageInfo) => {
   try {
     const response = await api.post(

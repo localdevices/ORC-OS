@@ -77,17 +77,23 @@ export const createWebSocketConnection = (connectionId, url, onMessageCallback, 
 
     // Event: When a message is received
     webSocket.onmessage = (event) => {
-      let msg;
+      // handling of text only messages
       try {
-        msg = json ? JSON.parse(event.data) : event.data;
-        // uncomment below to debug
-        // console.log(`Message on connection Id "${connectionId}":`, msg);
+        let msg;
+        if (typeof event.data === "string") {
+          msg = json ? JSON.parse(event.data) : event.data;
+          // uncomment below to debug
+          // console.log(`Message on connection Id "${connectionId}":`, msg);
+        } else if (event.data instanceof Blob) {
+          msg = event.data;
+          // handle binary data (Blob)
+        }
         if (onMessageCallback) onMessageCallback(msg, webSocket, ...callbackArgs);
-      } catch (e) {
-        console.error("WS parsing error:", e);
-      }
-    };
 
+      } catch (e) {
+          console.error("WS parsing error:", e);
+      };
+    }
     // Event: When the WebSocket connection is closed
     webSocket.onclose = (e) => {
       // uncomment below to debug

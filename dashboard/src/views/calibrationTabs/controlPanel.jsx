@@ -12,14 +12,14 @@ import {
   MdArrowForward
 } from 'react-icons/md';
 
-import { IoMdResize } from "react-icons/io";
+import { IoMdExpand, IoMdContract } from "react-icons/io";
 
 import './photoComponent.css';
 import {useMessage} from "../../messageContext.jsx";
 import {useDebouncedWsSender} from "../../api/api.js";
 
 
-const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
+const ControlPanel = ({ cameraConfig, bboxSelected, ws }) => {
   const prevCameraConfig = useRef(cameraConfig);
   // allow for setting messages
   const {setMessageInfo} = useMessage();
@@ -88,6 +88,16 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
     transformBbox(params);
   };
 
+  const handleIncreaseUpDown = () => {
+    const params = {"x_add": 0.1}
+    transformBbox(params);
+  };
+
+  const handleDecreaseUpDown = () => {
+    const params = {"x_add": -0.1}
+    transformBbox(params);
+  };
+
   const handleMoveDown = () => {
     const params = {"xoff": 0.1}
     transformBbox(params);
@@ -107,14 +117,6 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
     <div className="control-styles">
       <div className="button-group-styles">
         <button
-          className={`button-styles ${bboxSelected ? 'selected' : ''}`}
-          onClick={() => onBoundingBox()}
-          title="Draw Bounding Box (you must validate control points and set water level first)"
-          disabled={!validateBboxReady()}
-        >
-          <MdCropFree size={20} />
-        </button>
-        <button
           className="button-styles"
           onClick={handleRotateCounterClock}
           title="Rotate bounding box counter-clockwise"
@@ -130,22 +132,24 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
         >
           <MdRotateRight size={20} />
         </button>
-        {/*<button*/}
-        {/*  className="button-styles"*/}
-        {/*  onClick={handleEnlargeUpDown}*/}
-        {/*  title="Resize up/downstream"*/}
-        {/*  disabled={!validateBboxSet()}*/}
-        {/*>*/}
-        {/*  <IoMdResize style={{"rotate": "45deg"}} size={20} />*/}
-        {/*</button>*/}
-        {/*<button*/}
-        {/*  className="button-styles"*/}
-        {/*  onClick={() => onMove('up')}*/}
-        {/*  title="Resize left/right bank"*/}
-        {/*  disabled={!validateBboxSet()}*/}
-        {/*>*/}
-        {/*  <IoMdResize style={{"rotate": "135deg"}} size={20} />*/}
-        {/*</button>*/}
+        <button
+          className="button-styles"
+          onClick={handleIncreaseUpDown}
+          title="Resize up/downstream"
+         disabled={!validateBboxSet()}
+        >
+          <IoMdExpand style={{"rotate": "45deg"}} size={20} />
+        </button>
+        <button
+          className="button-styles"
+          onClick={handleDecreaseUpDown}
+          title="Resize up/downstream"
+         disabled={!validateBboxSet()}
+        >
+          <IoMdContract style={{"rotate": "45deg"}} size={20} />
+        </button>
+      </div>
+      <div className="button-group-styles">
         <button
           className="button-styles"
           onClick={handleMoveUp}
@@ -183,7 +187,6 @@ const ControlPanel = ({ onBoundingBox,cameraConfig, bboxSelected, ws }) => {
   );
 };
 ControlPanel.propTypes = {
-  onBoundingBox: PropTypes.func.isRequired,
   cameraConfig: PropTypes.object.isRequired,
   bboxSelected: PropTypes.bool.isRequired,
 };

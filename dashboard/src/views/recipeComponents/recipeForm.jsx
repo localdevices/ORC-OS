@@ -3,7 +3,6 @@ import {safelyParseJSON} from "../../utils/helpers.jsx";
 import {useEffect, useState} from "react";
 import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";
-import '../cameraAim.scss'
 import './recipeComponents.css'
 
 const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel, CSDischarge, ws}) => {
@@ -290,29 +289,29 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
             <label htmlFor="lazy" className="form-label">
               Read frames in one go or in smaller chunks?
             </label>
-            <div className="form-check">
+            <div className="checkbox-group">
               <input
-                className="form-check-input"
+                className="checkbox"
                 type="radio"
                 name="lazy"
                 id="false"
                 value="false"
                 checked={!formData.lazy}
               />
-              <label className="form-check-label" htmlFor="grayscale">
+              <label className="checkbox-label" htmlFor="grayscale">
                 In one go
               </label>
             </div>
-            <div className="form-check">
+            <div className="checkbox-group">
               <input
-                className="form-check-input"
+                className="checkbox"
                 type="radio"
                 name="lazy"
                 id="true"
                 value="true"
                 checked={formData.lazy}
               />
-              <label className="form-check-label" htmlFor="hue">
+              <label className="checkbox-label" htmlFor="hue">
                 In chunks (less reliable with some video formats)
               </label>
             </div>
@@ -366,29 +365,29 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
             <label htmlFor="correlation_average" className="form-label">
               Produce one velocity estimate over entire frame-range?
             </label>
-            <div className="form-check">
+            <div className="checkbox-group">
               <input
-                className="form-check-input"
+                className="checkbox"
                 type="radio"
                 name="correlation_average"
                 id="true"
                 value="true"
                 checked={formData.correlation_average}
               />
-              <label className="form-check-label" htmlFor="correlation_average">
+              <label className="checkbox-label" htmlFor="correlation_average">
                 Yes (no error estimates but cleaner velocities)
               </label>
             </div>
-            <div className="form-check">
+            <div className="checkbox-group">
               <input
-                className="form-check-input"
+                className="checkbox"
                 type="radio"
                 name="correlation_average"
                 id="false"
                 value="false"
                 checked={!formData.correlation_average}
               />
-              <label className="form-check-label" htmlFor="hue">
+              <label className="checkbox-label" htmlFor="hue">
                 No (may give less clean velocity but with error estimates)
               </label>
             </div>
@@ -473,29 +472,29 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
                   Best visible bank for detection (if in doubt, select far)
                 </label>
                 {/*<div onChange={(e) => setFrameExtractionMethod(e.target.value)}>*/}
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="bank"
                     id="far"
                     value="far"
                     checked={formData.bank === "far"}
                   />
-                  <label className="form-check-label" htmlFor="grayscale">
+                  <label className="checkbox-label" htmlFor="far">
                     Far bank
                   </label>
                 </div>
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="bank"
                     id="near"
                     value="near"
                     checked={formData.bank === "near"}
                   />
-                  <label className="form-check-label" htmlFor="hue">
+                  <label className="checkbox-label" htmlFor="near">
                     Near bank
                   </label>
                 </div>
@@ -504,68 +503,68 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
                 <label htmlFor="wl_preprocess" className="form-label">
                   Stream characteristics (determines land/water segmentation strategy)
                 </label>
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="wl_preprocess"
                     id="manmade"
                     value="manmade"
                     checked={formData.wl_preprocess === "manmade"}
                   />
-                  <label className="form-check-label" htmlFor="manmade" style={{width: "100%"}}>
+                  <label className="checkbox-label" htmlFor="manmade" style={{width: "100%"}}>
                     Man-made canal
                   </label>
                 </div>
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="wl_preprocess"
                     id="natural"
                     value="natural"
                     checked={formData.wl_preprocess === "natural"}
                   />
-                  <label className="form-check-label" htmlFor="natural"  style={{width: "100%"}}>
+                  <label className="checkbox-label" htmlFor="natural"  style={{width: "100%"}}>
                     Natural
                   </label>
                 </div>
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="wl_preprocess"
                     id="movements"
                     value="movements"
                     checked={formData.wl_preprocess === "movements"}
                   />
-                  <label className="form-check-label" htmlFor="movements" style={{width: "100%"}}>
+                  <label className="checkbox-label" htmlFor="movements" style={{width: "100%"}}>
                     Always turbulent
                   </label>
                 </div>
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="wl_preprocess"
                     id="grayscale"
                     value="grayscale"
                     checked={formData.wl_preprocess === "grayscale"}
                   />
-                  <label className="form-check-label" htmlFor="grayscale" style={{width: "100%"}}>
+                  <label className="checkbox-label" htmlFor="grayscale" style={{width: "100%"}}>
                     Dark water
                   </label>
                 </div>
-                <div className="form-check">
+                <div className="checkbox-group">
                   <input
-                    className="form-check-input"
+                    className="checkbox"
                     type="radio"
                     name="wl_preprocess"
                     id="saturation"
                     value="saturation"
                     checked={formData.wl_preprocess === "saturation"}
                   />
-                  <label className="form-check-label" htmlFor="saturation" style={{width: "100%"}}>
+                  <label className="checkbox-label" htmlFor="saturation" style={{width: "100%"}}>
                     Vegetated banks
                   </label>
                 </div>
