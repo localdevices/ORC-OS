@@ -8,6 +8,18 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  build: {
+    // Ensure assets have content hash for cache-busting
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
+    },
+    // Source maps for debugging
+    sourcemap: false,
+  },
   server: {
     host: '0.0.0.0',
     proxy: {
@@ -18,7 +30,6 @@ export default defineConfig({
         ws: true
       },
     },
-
     allowedHosts: ['.local', '.home']
   }
 })

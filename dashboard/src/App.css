@@ -59,6 +59,16 @@ input {
   @apply border border-gray-300 rounded px-3 py-2 bg-white;
 }
 
+.checkbox-group {
+  @apply flex items-center py-1 gap-2;
+}
+.checkbox {
+  @apply w-4 h-4 border border-gray-300 rounded bg-white items-center justify-center;
+}
+
+.checkbox-label {
+  @apply select-none text-sm font-medium items-center justify-center;
+}
 /* container styles */
 .flex-container {
   display: flex;
@@ -183,6 +193,9 @@ input {
 
 }
 .help-block {
+  /* @apply block w-full; */
+  width: 100%
+  display: block;
   padding-left: 10px;
   font-size: 0.7875rem;
   margin-top: 0;
@@ -268,52 +281,37 @@ input {
 }
 /* tab row layout */
 .tabs-row {
-  display: flex;
-  justify-content: start; /* Align tabs to the left */
+  @apply border-b-2 border-gray-300;
+  /*display: flex;
+  justify-content: start;
   padding: 5px;
-  background-color: #f8f9fa; /* Light background for tabs row */
-  border-bottom: 2px solid #ccc; /* Underline divider */
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #ccc; Underline divider */
 }
 
 /* Style for individual tabs */
 .tabs-row button {
-  border: 0 solid #ccc;
-  border-radius: 5px 5px 0 0; /* Rounded top corners */
-  padding: 10px 20px;
-  margin-right: 5px; /* Space between tabs */
-  background: #2196F3; /* Default background color */
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 13px;
-  font-weight: 600;
+  @apply text-sm text-gray-800 -mb-[2px] py-2 disabled:opacity-200 disabled:cursor-not-allowed disabled:text-gray-400;
 }
-
-/* Disabled button style */
-.tabs-row button:disabled {
-  background: #d69a20; /* Light gray background for disabled state */
-  cursor: not-allowed; /* Indicate no interaction is possible */
-  opacity: 0.6; /* Slightly transparent effect */
-}
-
-
-/* Hover effect for tabs */
-.tabs-row button:hover:enabled {
-  /*background: #d6dade; !* Slightly darker hover color *!*/
-  /*opacity: 0.6;*/
-  font-weight: bold;
-}
-
-
 
 /* Active tab styling */
 .tabs-row .active-tab {
-  background: #fff; /* Active tab matches content background */
-  /*border-bottom: 2px solid black; !* Matches the background *!*/
-  font-weight: bold; /* Highlight active tab with bold text */
+  /* @apply text-sm text-gray-800 -mb-[2px] py-2 */
+  @apply -mb-[2px] border-b-2 border-blue-500 text-sm font-extrabold text-blue-600
+  /* background: #fff;
+  font-weight: bold;
   color: #000;
-  border: 2px solid #aaa;
+  border: 2px solid #aaa; */
 }
+
+.tabs-row button:disabled span {
+  @apply flex items-center gap-2 rounded-md px-4 py-2;
+}
+
+.tabs-row button:not(:disabled) span {
+  @apply flex items-center gap-2 rounded-md px-4 py-2 hover:bg-gray-200;
+}
+
 
 .tab-container {
   flex-grow: 1;

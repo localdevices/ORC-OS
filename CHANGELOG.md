@@ -1,4 +1,4 @@
-## [0.8.0] Ngwerere - 2026-xx-x
+## [0.8.0] Ngwerere - 2026-06-19
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:
 - testing
@@ -21,14 +21,15 @@ Feedback and bug reports are highly appreciated to improve future versions.
   a certain frame in the video with good view on the situation.
 
 ### Changed
-
-- Tab buttons now have a much nicer layout
+- Tab buttons now have a much nicer layout and have clearly recognizable icons for non-English users.
 
 ### Deprecated
 ### Removed
 ### Fixed
 - Videos with improperly written or incomplete metadata (typically occurring when videos are streamed or suddenly
   closed due to power loss to the camera) can now be properly handled in the interface.
+- Password setting on first login and during reset could be done even with non-matching passwords. This is now fixed.
+  The submit button cannot be pressed until both password fields match.
 
 ## [0.7.0] Ngwerere - 2026-05-27
 This is a **testing beta release**, not yet fit for production and operational environments.

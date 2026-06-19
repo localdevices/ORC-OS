@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Line } from 'react-chartjs-2';
+import { FaChartLine } from "react-icons/fa";
+import { LuChartScatter } from "react-icons/lu";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -596,7 +598,10 @@ const DisplayTimeSeries = () => {
               handleViewModeChange('timeSeries');
             }}
           >
+          <span>
+            <FaChartLine/>
             Time series
+          </span>
           </button>
           <button
             className={viewMode === 'ratingCurve' ? 'active-tab' : ''}
@@ -605,7 +610,10 @@ const DisplayTimeSeries = () => {
               handleViewModeChange('ratingCurve');
             }}
           >
+          <span>
+            <LuChartScatter/>
             Rating curve
+          </span>
           </button>
         </div>
 

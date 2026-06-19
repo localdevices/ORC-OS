@@ -51,28 +51,26 @@ const VariablesFilterModal = ({ setShowModal, variables, setVariables }) => {
                       Deselect All
                     </button>
                   </div>
-                  <div className="form-group">
-                    {(variables ?? []).map((variable) => (
-                      <div className="form-check" key={variable.name}>
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id={`${variable.name}`}
-                          checked={variable.show}
-                          onChange={() =>
-                            setVariables((prev) =>
-                              prev.map((v) =>
-                                v.name === variable.name ? { ...v, show: !v.show } : v
-                              )
+                  {(variables ?? []).map((variable) => (
+                    <div className="checkbox-group">
+                      <input
+                        className="checkbox"
+                        type="checkbox"
+                        id={`${variable.name}`}
+                        checked={variable.show}
+                        onChange={() =>
+                          setVariables((prev) =>
+                            prev.map((v) =>
+                              v.name === variable.name ? { ...v, show: !v.show } : v
                             )
-                          }
-                        />
-                        <label className="form-check-label" htmlFor={`variable-${variable.name}`}>
-                          {variable.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                          )
+                        }
+                      />
+                      <label className="checkbox-label" htmlFor={`variable-${variable.name}`}>
+                        {variable.name}
+                      </label>
+                    </div>
+                  ))}
 
                 </>
               )}

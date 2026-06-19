@@ -137,21 +137,21 @@ const WaterLevel = ({ setRequiresRestart }) => {
                         {/*                     <input type='text' className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }}/> */}
                         <textarea className='form-control' id='script' name='script' placeholder="#!/bin/bash&#10;...write your script" onChange={handleInputChange} value={formData.script} style={{ height: '300px' }} />
                     </div>
-                    <div className='mb-3 mt-3'>
+                    {/* allowing is default when optical cross section is set in video configuration, so we don't need to allow this */}
+                    {/* <div className='flex items-center mb-2'>
                         <input
                             type='checkbox'
-                            className='form-check-input'
+                            className='checkbox'
                             id='optical'
                             name='optical'
                             onChange={handleInputChange}
                             value={formData.optical}
                             checked={formData.optical}
-                            style={{ marginRight: '10px' }}
                         />
-                        <label htmlFor='optical' className='form-label'>
+                        <label htmlFor='optical' className='checkbox-label'>
                             Allow attempting to resolve water levels optically
                         </label>
-                    </div>
+                    </div> */}
                     <div className='mb-3 mt-3'>Activate the water level retrieval daemon
                         <div className="form-check form-switch">
                             <label className="form-label" htmlFor="enabled" style={{ marginLeft: '0' }}></label>
