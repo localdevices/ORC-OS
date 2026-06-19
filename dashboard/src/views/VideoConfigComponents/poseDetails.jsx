@@ -1,7 +1,6 @@
 import api from "../../api/api.js";
 import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
-import '../cameraAim.scss'
 import {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
 import XYZWidget from "../calibrationTabs/XyzWidget.jsx";

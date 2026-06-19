@@ -3,7 +3,6 @@ import {safelyParseJSON} from "../../utils/helpers.jsx";
 import {useEffect, useState} from "react";
 import ReactSlider from 'react-slider';
 import PropTypes from "prop-types";
-import '../cameraAim.scss'
 import './recipeComponents.css'
 
 const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel, CSDischarge, ws}) => {
