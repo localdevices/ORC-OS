@@ -1,6 +1,5 @@
 import copy
 import os
-import signal
 from datetime import datetime, timedelta
 
 import cv2
@@ -54,6 +53,7 @@ def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
     upload_dir = os.path.join(tmpdir, "uploads")
     monkeypatch.setattr("orc_api.routers.video.UPLOAD_DIRECTORY", upload_dir)
     monkeypatch.setattr("orc_api.UPLOAD_DIRECTORY", upload_dir)
+    monkeypatch.setattr("orc_api.db.video.UPLOAD_DIRECTORY", upload_dir)
 
     # add some videos
     db_session = next(get_db_override())
@@ -109,25 +109,6 @@ def test_video_details_log_delete(auth_client, tmpdir, monkeypatch):
     # also check 404 on a too high frame
     r = auth_client.get("/api/video/1/frame/1000")
     assert r.status_code == 500
-    # check if we can also get a streaming response
-    # Use timeout to prevent infinite hang
-
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Stream endpoint took too long")
-
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(2)  # 2 second timeout
-    try:
-        r = auth_client.get("/api/video/1/stream/")
-        assert r.status_code == 200
-        # Try to consume just first chunk
-        try:
-            first_chunk = next(r.iter_bytes())
-            assert first_chunk  # Should have data
-        except StopIteration:
-            pass  # Empty stream is acceptable
-    finally:
-        signal.alarm(0)  # Cancel alarm
     # finally delete video, also check if log file is removed
     r = auth_client.delete("/api/video/1/")
     assert r.status_code == 204
@@ -237,6 +218,11 @@ def test_sync_video(auth_client, mocker):
     assert response.status_code == 200
     # call should only return status
     assert response.json()["id"] == 1
+    # cleanup
+    db_session.query(models.Video).delete()
+    db_session.query(models.CallbackUrl).delete()
+    db_session.commit()
+    db_session.flush()
 
 
 @pytest.mark.timeout(5)
@@ -268,8 +254,12 @@ def test_video_stream_status_only(auth_client, tmpdir, monkeypatch, mocker):
 
     mocker.patch("orc_api.routers.video.yield_frames_from_fn", side_effect=mock_yield_frames)
 
+    # check what the latest id is (can depend on earlier run test in the scope of this test file)
+    r = auth_client.get("/api/video/")
+    assert len(r.json()) == 1  # first check if there is exactly one record.
+    latest_id = r.json()[0]["id"]
     # Get response and check headers
-    r = auth_client.get("/api/video/1/stream/")
+    r = auth_client.get(f"/api/video/{latest_id}/stream/")
     assert r.status_code == 200
     assert "multipart/x-mixed-replace" in r.headers.get("content-type", "")
 
