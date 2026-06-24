@@ -2,9 +2,20 @@ import {useEffect, useState, useRef, useCallback} from 'react';
 import PropTypes from "prop-types";
 import {useDebouncedWsSender} from "../../api/api.js";
 import { getFrameUrl } from "../../utils/images.jsx";
-import { projectLine } from "../../utils/computerVision.js"
+import { projectLine } from "../../utils/computerVision.js";
+import { MdModeEdit } from 'react-icons/md';
 
 const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, selectedVideo, ws}) => {
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [customLines, setCustomLines] = useState([]);
+
+  // When a new line is added, turn off drawing mode
+  useEffect(() => {
+    if (customLines.length > 0 && drawingMode) {
+      setDrawingMode(false);
+    }
+  }, [customLines]);
+
   return (
     <>
       <div className="sidebar-overlay"></div> {/*make background grey*/}
@@ -13,6 +24,54 @@ const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, sel
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">{`Camera parameters`}</h5>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  background: drawingMode ? 'rgba(0, 157, 211, 0.8)' : 'rgba(108, 117, 125, 0.8)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: 'white',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  marginRight: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'background 0.2s'
+                }}
+                onClick={() => {
+                  setDrawingMode(!drawingMode);
+                  if (drawingMode) {
+                    setCustomLines([]);
+                  }
+                }}
+                title="Draw custom lines on image"
+              >
+                <MdModeEdit size={16} />
+                {drawingMode ? 'Drawing' : 'Draw Lines'}
+              </button>
+              {customLines.length > 0 && (
+                <button
+                  onClick={() => setCustomLines([])}
+                  style={{
+                    background: 'rgba(220, 53, 69, 0.8)',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: 'white',
+                    padding: '5px 10px',
+                    cursor: 'pointer',
+                    marginRight: '10px',
+                    transition: 'background 0.2s',
+                    fontSize: '14px'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = 'rgba(220, 53, 69, 1)'}
+                  onMouseOut={(e) => e.target.style.background = 'rgba(220, 53, 69, 0.8)'}
+                  title="Clear all custom lines"
+                >
+                  Clear Lines ({customLines.length})
+                </button>
+              )}
               <button
                 type="button"
                 className="btn-close"
@@ -25,6 +84,9 @@ const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, sel
                 setCameraConfig={setCameraConfig}
                 selectedVideo={selectedVideo}
                 ws={ws}
+                drawingMode={drawingMode}
+                customLines={customLines}
+                setCustomLines={setCustomLines}
               />
             </div>
           </div>
@@ -34,12 +96,13 @@ const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, sel
   )
 }
 
-const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) => {
+const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, drawingMode, customLines, setCustomLines}) => {
   const [camLocationAuto, setCamLocationAuto] = useState(false);
   const [camRotationAuto, setCamRotationAuto] = useState(false);
   const [camLensAuto, setCamLensAuto] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
+  const [currentDrawingPoints, setCurrentDrawingPoints] = useState([]);
 
   const [formData, setFormData] = useState({
     camX: '',
@@ -141,17 +204,40 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
     await updateCamConfig(updatedFields);
   }
 
+  const handleImageClick = (event) => {
+    if (!drawingMode) return;
+
+    const img = imgRef.current;
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Normalize to image coordinates
+    const normalizedX = (x / rect.width) * img.naturalWidth;
+    const normalizedY = (y / rect.height) * img.naturalHeight;
+
+    const newPoints = [...currentDrawingPoints, [normalizedX, normalizedY]];
+    setCurrentDrawingPoints(newPoints);
+
+    if (newPoints.length === 2) {
+      // Add completed line to custom lines
+      setCustomLines([...customLines, newPoints]);
+      setCurrentDrawingPoints([]);
+      // Turn off drawing mode after completing a line
+      // This will be handled by parent component when it receives the update
+    }
+  }
+
   const drawDistortionOverlay = () => {
     const distCoeffs = cameraConfig.data.dist_coeffs
     const cameraMatrix = cameraConfig.data.camera_matrix
     if (!cameraMatrix || !distCoeffs) {
       return;
     }
-    console.log(canvasRef.current?.width, canvasRef.current?.height);
     const canvas = canvasRef.current;
     const img = imgRef.current;
-    console.log("IMG:", img);
-    console.log("IMAGE SIZE:", imageSize)
     if (!canvas || !img) return;
     if (!imageSize.width || !imageSize.height) return;
 
@@ -163,12 +249,17 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
     if (!ctx) return;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'white';
     ctx.zIndex = 1e31;
 
     // Normalize so that the image center is (0,0) and the shorter side is in [-1,1]
-    const drawLine = (line) => {
+    const drawLine = (line, color = 'white', thickness = 2, dashed = false) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = thickness;
+      if (dashed) {
+        ctx.setLineDash([5, 5]);
+      } else {
+        ctx.setLineDash([]);
+      }
       ctx.beginPath();
       line.map((d, i) => {
         if (i === 0) {
@@ -178,7 +269,10 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
         }
       })
       ctx.stroke();
+      ctx.setLineDash([]);
     };
+
+    // Draw grid lines
     const X = [0.25 * width, 0.5 * width, 0.75 * width];
     const Y = [0.25 * height, 0.5 * height, 0.75 * height];
     let lines = [];
@@ -193,16 +287,41 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
         return projectLine(line[0], line[1], cameraMatrix, distCoeffs);
       }
     )
-    console.log(linesDistort);
     linesDistort.forEach((line) => {
-      drawLine(line);
+      drawLine(line, 'white', 2);
     })
+
+    // Draw custom lines with distortion
+    customLines.forEach((line) => {
+      // Draw straight line as thin dashed
+      drawLine(line, '#00d4ff', 3, true);
+      // Draw distorted line as thicker
+      const distortedLine = projectLine(line[0], line[1], cameraMatrix, distCoeffs);
+      drawLine(distortedLine, '#00d4ff', 4);
+      // Draw endpoint dots
+      ctx.fillStyle = '#00d4ff';
+      line.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point[0], point[1], 12, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    });
+
+    // Draw current drawing in progress
+    if (currentDrawingPoints.length > 0) {
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.6)';
+      currentDrawingPoints.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point[0], point[1], 12, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    }
   }
 
   useEffect(() => {
 
     drawDistortionOverlay();
-  }, [drawDistortionOverlay, imageSize, imgRef.current, canvasRef.current]);
+  }, [drawDistortionOverlay, imageSize, imgRef.current, canvasRef.current, customLines, currentDrawingPoints]);
 
   return (
     <div>
@@ -210,6 +329,8 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
         <div className="mb-2 mt-2">
           <label style={{minWidth: "800px", fontWeight: "bold"}}>Video frame:</label>
           <i className="text-success">The horizontal and vertical lines show the impact of lens distortion on straight lines</i>
+          {drawingMode && <i style={{color: "#00d4ff", marginLeft: "10px"}}>Custom lines (cyan) will be drawn. Click on the image to draw points.</i>}
+          {customLines.length > 0 && <i style={{color: "#00d4ff", marginLeft: "10px", display: "block"}}>{customLines.length} custom line(s) drawn. </i>}
           <div className="readonly">
             {imageError ? (
               <div>-</div>
@@ -219,10 +340,15 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
                 ref={imgRef}
                 src={imageUrl}
                 width="100%"
+                onClick={handleImageClick}
+                style={{
+                  cursor: drawingMode ? 'crosshair' : 'default',
+                  userSelect: 'none'
+                }}
                 onLoad={(e) => {
                   if (imageError) setImageError(false);
                   const {naturalWidth, naturalHeight} = e.target;
-                  console.log("naturalWidth, naturalHeight:", naturalWidth, naturalHeight);
+                  // console.log("naturalWidth, naturalHeight:", naturalWidth, naturalHeight);
                   setImageSize({width: naturalWidth, height: naturalHeight});
                   // drawDistortionOverlay();
                 }}
@@ -439,11 +565,17 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws}) =>
 CameraParameters.propTypes = {
   cameraConfig: PropTypes.object.isRequired,
   setCameraConfig: PropTypes.func.isRequired,
+  drawingMode: PropTypes.bool.isRequired,
+  customLines: PropTypes.array.isRequired,
+  setCustomLines: PropTypes.func.isRequired,
 };
 
 CameraParametersModal.propTypes = {
   cameraConfig: PropTypes.object.isRequired,
   setCameraConfig: PropTypes.func.isRequired,
+  setShowModal: PropTypes.func.isRequired,
+  selectedVideo: PropTypes.object.isRequired,
+  ws: PropTypes.object
 };
 
 // export default CameraParameters;

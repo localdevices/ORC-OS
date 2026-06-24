@@ -50,13 +50,35 @@ const VideoConfig = ({devStatus}) => {
     if (config == null) return config; // allow null to pass through
     return {
       ...config,
+      hasBarrelCoeffs: function () {
+        // check if camera config has lens distortion coefficients
+        return this.k1 !== null && this.k2 !== null;
+      },
+      hasFocalLength: function () {
+        // check if camera config has focal length set
+        return this.f !== null;
+      },
+      hasIntrinsicParams: function () {
+        // check if camera config has intrinsic parameters set
+        return this.hasFocalLength() && this.hasBarrelCoeffs();
+      },
+      hasCameraLocation: function () {
+        // check if camera config location is set
+        return this.camera_position !== null;
+      },
+      hasCameraRotation: function () {
+        // check if camera config rotation is set
+        return this.camera_rotation !== null;
+      },
+      hasCameraPose: function () {
+        // check if camera config has both location and rotation set
+        return this.hasCameraLocation() && this.hasCameraRotation();
+      },
       isCalibrated: function () {
+        // check if camera config is entirely complete, intrinsic and camera pose should both be complete
         return (
-          this.f !== null &&
-          this.k1 !== null &&
-          this.k2 !== null &&
-          this.camera_position !== null &&
-          this.camera_rotation !== null
+          this.hasIntrinsicParams() &&
+          this.hasCameraPose()
         );
       },
       isPoseReady: function () {
@@ -67,6 +89,7 @@ const VideoConfig = ({devStatus}) => {
         );
       },
       isReadyForProcessing: function () {
+        // all information should be complete for processing to be possible, including the bounding box
         return (
           this.isCalibrated() &&
           this.isPoseReady() &&

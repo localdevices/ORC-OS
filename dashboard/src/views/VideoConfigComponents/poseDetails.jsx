@@ -322,12 +322,13 @@ const PoseDetails = (
             <input type='file' className='form-control' id='file' name='file'
                    accept=".geojson,.csv" onChange={handleFileChange} required/>
           </div>
-          <div className='mb-2 mt-0'>
+{/*          <div className='mb-2 mt-0'>
             <label htmlFor='crs' className='form-label small'>
               Coordinate reference system (only for GPS)
             </label>
             <input type='number' className='form-control' id='crs' name='crs' onChange={handleCrsChange} value={cameraConfig?.gcps?.crs ? cameraConfig.gcps.crs : ''}/>
           </div>
+*/}
         </div>
         <div className="flex-container no-padding">
       <div className='mb-2 mt-0'>
