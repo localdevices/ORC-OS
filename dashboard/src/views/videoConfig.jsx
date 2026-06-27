@@ -39,6 +39,9 @@ const VideoConfig = ({devStatus}) => {
   const [imgDims, setImgDims] = useState(null);
   const [save, setSave] = useState(true);
   const [frameCount, setFrameCount] = useState(0);
+  // user drawn custom lines to help determine distortion
+  const [customLines, setCustomLines] = useState([]);
+  const [distortionLocked, setDistortionLocked] = useState(true);
 
   // allow for sending debounced msgs
   const sendDebouncedMsg = useDebouncedWsSender(ws.current, 400);
@@ -96,6 +99,14 @@ const VideoConfig = ({devStatus}) => {
           this.bbox !== null
         );
       },
+      distCoeffs: function () {
+        // return the distortion coefficients as an array, or null if not set
+        if (this.hasBarrelCoeffs()) {
+          return {"k1": this.k1, "k2": this.k2};
+        } else {
+          return null;
+        }
+      }
     };
   };
 
@@ -634,6 +645,10 @@ const VideoConfig = ({devStatus}) => {
                       setCameraConfig={setCameraConfig}
                       setWidgets={setWidgets}
                       setSelectedWidgetId={setSelectedWidgetId}
+                      customLines={customLines}
+                      setCustomLines={setCustomLines}
+                      distortionLocked={distortionLocked}
+                      setDistortionLocked={setDistortionLocked}
                       setMessageInfo={setMessageInfo}
                       selectedVideo={video}
                       ws={ws.current}

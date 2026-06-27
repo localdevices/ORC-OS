@@ -1,6 +1,6 @@
 """Router for control points, in memory only."""
 
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 import pyorc
@@ -10,7 +10,7 @@ from pyorc import cv
 from pyorc.cli.cli_utils import get_gcps_optimized_fit, read_shape_as_gdf
 from pyproj import CRS
 
-from orc_api.schemas.control_points import ControlPointSet, FittedPoints
+from orc_api.schemas.control_points import ControlPointSet, DistortionCoefficients, FittedPoints
 
 router: APIRouter = APIRouter(prefix="/control_points", tags=["control_points"])
 
@@ -88,6 +88,7 @@ async def fit_perspective(
     gcps: ControlPointSet = Body(..., description="src as [column, row], dst as [x, y, z] and crs"),
     height: int = Body(..., description="height of the video"),
     width: int = Body(..., description="width of the video"),
+    distCoeffs: Optional[DistortionCoefficients] = Body(None, description="distortion coefficients k1, k2"),
 ):
     """Fit perspective parameters on source and target points."""
     src, dst = gcps.parse()
@@ -116,7 +117,7 @@ async def fit_perspective(
     # Example response (you can customize this behavior)
     try:
         src_est, dst_est, camera_matrix, dist_coeffs, rvec, tvec, error = get_gcps_optimized_fit(
-            src, dst, height, width
+            src=src, dst=dst, height=height, width=width, dist_coeffs=distCoeffs.parse() if distCoeffs else None
         )
         # reverse rvec and tvec
         camera_rotation, camera_position = cv.pose_world_to_camera(rvec, tvec)

@@ -1,13 +1,25 @@
 import {useEffect, useState, useRef, useCallback} from 'react';
 import PropTypes from "prop-types";
+import ReactSlider from 'react-slider';
 import {useDebouncedWsSender} from "../../api/api.js";
 import { getFrameUrl } from "../../utils/images.jsx";
 import { projectLine } from "../../utils/computerVision.js";
 import { MdModeEdit } from 'react-icons/md';
+import '../recipeComponents/recipeComponents.css';
 
-const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, selectedVideo, ws}) => {
+const CameraParametersModal = ({
+  setShowModal,
+  cameraConfig,
+  setCameraConfig,
+  customLines,
+  setCustomLines,
+  distortionLocked,
+  setDistortionLocked,
+  selectedVideo,
+  ws
+}) => {
   const [drawingMode, setDrawingMode] = useState(false);
-  const [customLines, setCustomLines] = useState([]);
+  // const [distortionLocked, setDistortionLocked] = useState(true);
 
   // When a new line is added, turn off drawing mode
   useEffect(() => {
@@ -87,6 +99,8 @@ const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, sel
                 drawingMode={drawingMode}
                 customLines={customLines}
                 setCustomLines={setCustomLines}
+                distortionLocked={distortionLocked}
+                setDistortionLocked={setDistortionLocked}
               />
             </div>
           </div>
@@ -96,7 +110,7 @@ const CameraParametersModal = ({setShowModal, cameraConfig, setCameraConfig, sel
   )
 }
 
-const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, drawingMode, customLines, setCustomLines}) => {
+const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, drawingMode, customLines, setCustomLines, distortionLocked, setDistortionLocked}) => {
   const [camLocationAuto, setCamLocationAuto] = useState(false);
   const [camRotationAuto, setCamRotationAuto] = useState(false);
   const [camLensAuto, setCamLensAuto] = useState(false);
@@ -121,6 +135,42 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, dra
   const [imageSize, setImageSize] = useState({width: 0, height: 0});
 
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
+
+  const resolveLensValue = (value, fallback, defaultValue = 0) => {
+    const parsedValue = parseFloat(value);
+    if (Number.isFinite(parsedValue)) return parsedValue;
+    if (Number.isFinite(fallback)) return fallback;
+    return Number.isFinite(defaultValue) ? defaultValue : 0;
+  };
+
+  // Constrain k2 based on k1 to ensure realistic combinations
+  // Rule: |k2| should not exceed 3x |k1|, and they should generally have the same sign
+  const constrainK2 = (k1Value, k2Value) => {
+    const maxK2Magnitude = Math.abs(k1Value) * 3;
+    if (Math.abs(k2Value) > maxK2Magnitude) {
+      // Constrain k2 to the maximum allowed magnitude, keeping sign
+      return Math.sign(k2Value) * maxK2Magnitude;
+    }
+    return k2Value;
+  };
+
+  // Constrain k1 based on k2 to ensure realistic combinations
+  const constrainK1 = (k1Value, k2Value) => {
+    const minK1Magnitude = Math.abs(k2Value) / 3;
+    if (Math.abs(k1Value) < minK1Magnitude && Math.abs(k2Value) > 0) {
+      // Ensure k1 is large enough to support k2
+      return Math.sign(k1Value || 1) * minK1Magnitude;
+    }
+    return k1Value;
+  };
+
+  const getActiveDistCoeffs = useCallback(() => {
+    const baseCoeffs = cameraConfig?.data?.dist_coeffs || [0, 0, 0, 0, 0, 0, 0, 0];
+    const coeffs = [...baseCoeffs];
+    coeffs[0] = resolveLensValue(formData.camK1, cameraConfig?.k1, coeffs[0]);
+    coeffs[1] = resolveLensValue(formData.camK2, cameraConfig?.k2, coeffs[1]);
+    return coeffs;
+  }, [cameraConfig, formData.camK1, formData.camK2]);
 
   useEffect(() => {
     if (cameraConfig) {
@@ -204,6 +254,34 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, dra
     await updateCamConfig(updatedFields);
   }
 
+  const handleLensSliderChange = async (name, value) => {
+    // Unlock distortion controls when user starts adjusting
+    if (distortionLocked) {
+      setDistortionLocked(false);
+    }
+
+    let updatedK1 = name === 'camK1' ? value : resolveLensValue(formData.camK1, cameraConfig?.k1, 0);
+    let updatedK2 = name === 'camK2' ? value : resolveLensValue(formData.camK2, cameraConfig?.k2, 0);
+
+    // Apply constraints based on which parameter is being adjusted
+    if (name === 'camK1') {
+      updatedK2 = constrainK2(updatedK1, updatedK2);
+    } else {
+      updatedK1 = constrainK1(updatedK1, updatedK2);
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      camK1: updatedK1,
+      camK2: updatedK2
+    }));
+
+    await updateCamConfig({
+      k1: updatedK1,
+      k2: updatedK2
+    });
+  }
+
   const handleImageClick = (event) => {
     if (!drawingMode) return;
 
@@ -230,9 +308,9 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, dra
     }
   }
 
-  const drawDistortionOverlay = () => {
-    const distCoeffs = cameraConfig.data.dist_coeffs
-    const cameraMatrix = cameraConfig.data.camera_matrix
+  const drawDistortionOverlay = useCallback(() => {
+    const distCoeffs = getActiveDistCoeffs();
+    const cameraMatrix = cameraConfig?.data?.camera_matrix;
     if (!cameraMatrix || !distCoeffs) {
       return;
     }
@@ -288,21 +366,21 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, dra
       }
     )
     linesDistort.forEach((line) => {
-      drawLine(line, 'white', 2);
+      drawLine(line, 'white', 4);
     })
 
     // Draw custom lines with distortion
     customLines.forEach((line) => {
       // Draw straight line as thin dashed
-      drawLine(line, '#00d4ff', 3, true);
+      drawLine(line, '#00d4ff', 6, true);
       // Draw distorted line as thicker
       const distortedLine = projectLine(line[0], line[1], cameraMatrix, distCoeffs);
-      drawLine(distortedLine, '#00d4ff', 4);
+      drawLine(distortedLine, '#00d4ff', 6);
       // Draw endpoint dots
       ctx.fillStyle = '#00d4ff';
       line.forEach(point => {
         ctx.beginPath();
-        ctx.arc(point[0], point[1], 12, 0, 2 * Math.PI);
+        ctx.arc(point[0], point[1], 16, 0, 2 * Math.PI);
         ctx.fill();
       });
     });
@@ -316,21 +394,36 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, dra
         ctx.fill();
       });
     }
-  }
+  }, [cameraConfig, customLines, currentDrawingPoints, getActiveDistCoeffs, imageSize]);
+
+  // Ensure image dimensions are captured when component mounts or image ref changes
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      // Image is already loaded (cached), set dimensions manually
+      setImageSize({width: img.naturalWidth, height: img.naturalHeight});
+    }
+  }, []);
+
+  // Ensure canvas redraws when component mounts with existing customLines
+  useEffect(() => {
+    if (imageSize.width > 0 && imageSize.height > 0 && customLines.length > 0) {
+      drawDistortionOverlay();
+    }
+  }, []);
 
   useEffect(() => {
-
     drawDistortionOverlay();
-  }, [drawDistortionOverlay, imageSize, imgRef.current, canvasRef.current, customLines, currentDrawingPoints]);
+  }, [drawDistortionOverlay, imageSize, customLines, currentDrawingPoints]);
 
   return (
     <div>
       <div className="flex-container no-padding" style={{overflow: "auto"}}>
         <div className="mb-2 mt-2">
           <label style={{minWidth: "800px", fontWeight: "bold"}}>Video frame:</label>
-          <i className="text-success">The horizontal and vertical lines show the impact of lens distortion on straight lines</i>
-          {drawingMode && <i style={{color: "#00d4ff", marginLeft: "10px"}}>Custom lines (cyan) will be drawn. Click on the image to draw points.</i>}
-          {customLines.length > 0 && <i style={{color: "#00d4ff", marginLeft: "10px", display: "block"}}>{customLines.length} custom line(s) drawn. </i>}
+          <div className="text-sm font-medium">The horizontal and vertical lines show the impact of lens distortion on straight lines</div>
+          {drawingMode && <div className="text-medium font-bold" style={{color: "#00d4ff", display: "block"}}>Click on the image to draw two points that form a straight line in the real world. Check if the distorted lines follow the line in the camera view.</div>}
+          {customLines.length > 0 && <div className="text-medium font-bold" style={{color: "#00d4ff", display: "block"}}>{customLines.length} custom line(s) drawn. </div>}
           <div className="readonly">
             {imageError ? (
               <div>-</div>
@@ -369,6 +462,74 @@ const CameraParameters = ({cameraConfig, setCameraConfig, selectedVideo, ws, dra
               </div>
             )
             }
+          </div>
+          <div style={{width: "90%", marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px"}}>
+            <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+              <div>
+                <label style={{fontWeight: "bold"}}>Lens distortion sliders</label>
+                <div className="text-sm font-medium">
+                  Adjust k1 and k2 to bend the guide lines interactively.
+                </div>
+              </div>
+              <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                <input
+                  type="checkbox"
+                  id="distortionLockCheckbox"
+                  checked={!distortionLocked}
+                  onChange={(e) => setDistortionLocked(!e.target.checked)}
+                  style={{cursor: "pointer", width: "18px", height: "18px"}}
+                />
+                <label htmlFor="distortionLockCheckbox" style={{cursor: "pointer", margin: "0", fontSize: "13px", fontWeight: "500"}}>
+                  Manual adjustment
+                </label>
+              </div>
+            </div>
+            <div className="mb-2" style={{opacity: distortionLocked ? 0.5 : 1, pointerEvents: distortionLocked ? "none" : "auto"}}>
+              <label className="form-label" style={{fontWeight: "bold", marginBottom: "4px"}}>k1</label>
+              <div className="slider-container" style={{width: "100%"}}>
+                <div className="slider-min">-0.5</div>
+                <div className="slider-max">0.5</div>
+                <ReactSlider
+                  className="horizontal-slider"
+                  thumbClassName="thumb"
+                  trackClassName="track"
+                  value={Number.isFinite(parseFloat(formData.camK1)) ? parseFloat(formData.camK1) : 0}
+                  min={-0.5}
+                  max={0.5}
+                  step={0.001}
+                  disabled={distortionLocked}
+                  renderThumb={(props, state) => (
+                    <div {...props}>
+                      <div className="thumb-value">{state.valueNow.toFixed(3)}</div>
+                    </div>
+                  )}
+                  onChange={(value) => handleLensSliderChange("camK1", value)}
+                />
+              </div>
+            </div>
+            <div className="mb-2" style={{opacity: distortionLocked ? 0.5 : 1, pointerEvents: distortionLocked ? "none" : "auto"}}>
+              <label className="form-label" style={{fontWeight: "bold", marginBottom: "4px"}}>k2</label>
+              <div className="slider-container" style={{width: "100%"}}>
+                <div className="slider-min">-0.5</div>
+                <div className="slider-max">0.5</div>
+                <ReactSlider
+                  className="horizontal-slider"
+                  thumbClassName="thumb"
+                  trackClassName="track"
+                  value={Number.isFinite(parseFloat(formData.camK2)) ? parseFloat(formData.camK2) : 0}
+                  min={-0.5}
+                  max={0.5}
+                  step={0.001}
+                  disabled={distortionLocked}
+                  renderThumb={(props, state) => (
+                    <div {...props}>
+                      <div className="thumb-value">{state.valueNow.toFixed(3)}</div>
+                    </div>
+                  )}
+                  onChange={(value) => handleLensSliderChange("camK2", value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
         <div className={"flex-container row no-padding"} style={{flexDirection: "row", justifyContent: "start", textAlign: "left"}}>
@@ -568,6 +729,8 @@ CameraParameters.propTypes = {
   drawingMode: PropTypes.bool.isRequired,
   customLines: PropTypes.array.isRequired,
   setCustomLines: PropTypes.func.isRequired,
+  distortionLocked: PropTypes.bool.isRequired,
+  setDistortionLocked: PropTypes.func.isRequired,
 };
 
 CameraParametersModal.propTypes = {
@@ -575,7 +738,9 @@ CameraParametersModal.propTypes = {
   setCameraConfig: PropTypes.func.isRequired,
   setShowModal: PropTypes.func.isRequired,
   selectedVideo: PropTypes.object.isRequired,
-  ws: PropTypes.object
+  ws: PropTypes.object,
+  distortionLocked: PropTypes.bool.isRequired,
+  setDistortionLocked: PropTypes.func.isRequired,
 };
 
 // export default CameraParameters;

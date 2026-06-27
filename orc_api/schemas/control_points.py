@@ -90,6 +90,25 @@ class ControlPointSet(BaseModel):
         return src, dst
 
 
+class DistortionCoefficients(BaseModel):
+    """Model for distortion coefficients."""
+
+    k1: Optional[float] = None
+    k2: Optional[float] = None
+
+    def parse(self):
+        """Parse distortion coefficients into a list."""
+        if self.k1 is None or self.k2 is None:
+            return None
+        return [
+            [self.k1],
+            [self.k2],
+            [0.0],
+            [0.0],
+            [0.0],
+        ]  # we only condition k1 and k2 to prevent overparameterization
+
+
 class FittedPoints(BaseModel):
     """Response model for fitted points for a camera configuration."""
 

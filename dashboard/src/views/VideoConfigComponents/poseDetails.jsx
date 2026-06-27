@@ -17,9 +17,13 @@ const PoseDetails = (
     setCameraConfig,
     setWidgets,
     setSelectedWidgetId,
+    customLines,
+    setCustomLines,
+    distortionLocked,
+    setDistortionLocked,
     setMessageInfo,
     selectedVideo,
-    ws
+    ws,
   }) => {
 
   const [fileFormData, setFileFormData] = useState({
@@ -228,7 +232,13 @@ const PoseDetails = (
   const handleFitGcps = async () => {
     setIsLoading(true);  // show loading spinner
     try {
-      const GcpFit = await fitGcps(imgDims, cameraConfig.gcps, setMessageInfo)
+      const GcpFit = await fitGcps(
+        imgDims,
+        cameraConfig.gcps,
+        !distortionLocked ? cameraConfig.distCoeffs() : null, // if distortion is unlocked, assume user wnats to fit these,
+        // otherwise use those set manually
+        setMessageInfo
+      )
       const {src_est, dst_est, error} = GcpFit;
       const err_round = Math.round(error * 1000) / 1000;
       console.log(src_est, dst_est, error);
@@ -240,7 +250,8 @@ const PoseDetails = (
       } else {
         setFitPoseData({
           status: 'success',
-          message: `GCPs successfully fitted to image, average error: ${err_round} m.`});
+          message: `GCPs successfully fitted to image, average error: ${err_round} m. You can refine the camera parameters in the camera parameters modal.`
+        });
       }
       // Map the fitted coordinates back to the widgets
       setWidgets((prevWidgets) =>
@@ -397,6 +408,10 @@ const PoseDetails = (
               setShowModal={setShowCamParamsModal}
               cameraConfig={cameraConfig}
               setCameraConfig={setCameraConfig}
+              customLines={customLines}
+              setCustomLines={setCustomLines}
+              distortionLocked={distortionLocked}
+              setDistortionLocked={setDistortionLocked}
               selectedVideo={selectedVideo}
               ws={ws}
             />
@@ -424,4 +439,6 @@ PoseDetails.propTypes = {
   setMessageInfo: PropTypes.func.isRequired,
   selectedVideo: PropTypes.object.isRequired,
   ws: PropTypes.object.isRequired,
+  distortionLocked: PropTypes.bool.isRequired,
+  setDistortionLocked: PropTypes.func.isRequired,
 };
