@@ -126,10 +126,10 @@ const PhotoComponent = (
     }
   }, [CSDischarge, cameraConfig, imgDims, transformState, photoBbox]);
 
+  // create projected polygon of cross section with water level
   useEffect(() => {
     if (
       checkImageReady() &&
-      // CSWaterLevel &&
       CSWaterLevel?.bottom_surface
     ) {
 
@@ -174,6 +174,7 @@ const PhotoComponent = (
   });
 
 
+  // set the fitted "+" markers
   const updateFittedPoints = () => {
     const fP = widgets.map(({id, fit, color}) => {
       if (!fit) return null; // Skip widgets without the `fit` property
