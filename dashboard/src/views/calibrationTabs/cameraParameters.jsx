@@ -35,7 +35,7 @@ const CameraParametersModal = ({
     <>
       <div className="sidebar-overlay"></div> {/*make background grey*/}
       <div className="modal fade show d-block" tabIndex="-1">
-        <div className="modal-dialog" style={{ maxWidth: "1280px", marginTop: "30px", height: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}>  {/*ensure modal spans a broad screen size*/}
+        <div className="modal-dialog" style={{ maxWidth: "1280px", marginTop: "30px", height: "calc(110vh - 60px)", display: "flex", flexDirection: "column" }}>  {/*ensure modal spans a broad screen size*/}
           <div className="modal-content" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
             <div className="modal-header">
               <h5 className="modal-title">{`Camera parameters`}</h5>
@@ -317,6 +317,7 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
   const [transformState, setTransformState] = useState(null);  // zoom/pan state
   const [imageBbox, setImageBbox] = useState(null);  // bounding box of displayed image
   const [overlayVisible, setOverlayVisible] = useState(true);  // toggle for showing parameter overlay
+  const [isLoading, setIsLoading] = useState(true);  // loading state for camera config data
 
   const [formData, setFormData] = useState({
     camX: '',
@@ -331,6 +332,9 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
   });
   // Refs & state for overlay drawing
   const imgRef = useRef(null);
+  const cameraMatrix = cameraConfig?.data?.camera_matrix || null;
+  const distCoeffs = cameraConfig?.data?.dist_coeffs || null;
+
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   const sendDebouncedMsg = useDebouncedWsSender(ws, 400);
@@ -368,6 +372,7 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
     const coeffs = [...baseCoeffs];
     coeffs[0] = resolveLensValue(formData.camK1, cameraConfig?.k1, coeffs[0]);
     coeffs[1] = resolveLensValue(formData.camK2, cameraConfig?.k2, coeffs[1]);
+    console.log("COEFFS:", coeffs);
     return coeffs;
   }, [cameraConfig, formData.camK1, formData.camK2]);
 
@@ -385,6 +390,10 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
         camK1: cameraConfig?.k1 || '',
         camK2: cameraConfig?.k2 || ''
       });
+      // Only set loading to false when we have the camera matrix and distortion coefficients
+      if (cameraConfig?.data?.camera_matrix && cameraConfig?.data?.dist_coeffs) {
+        setIsLoading(false);
+      }
     } else {
       setFormData({
         camX: '',
@@ -394,8 +403,8 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
         camPitch: '',
         camRoll: '',
         camF: '',
-        camK1: '',
-        camK2: ''
+        camK1: 0,
+        camK2: 0
       })
     }
 
@@ -521,7 +530,13 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
           <div>
 
             <label style={{ fontWeight: "bold" }}>Video frame:</label>
-            <div className="text-sm font-medium">The horizontal and vertical lines show the impact of lens distortion on straight lines</div>
+            {isLoading ? (
+              <div className="text-sm font-medium">Loading camera configuration...</div>
+            ) : cameraMatrix && distCoeffs ? (
+              <div className="text-sm font-medium">The horizontal and vertical lines show the impact of lens distortion on straight lines</div>
+            ) : (
+              <div className="text-sm font-medium">Camera matrix or distortion coefficients are missing.</div>
+            )}
             {drawingMode && <div className="text-medium font-bold" style={{ color: "#00d4ff", display: "block" }}>Click on the image to draw two points that form a straight line in the real world. Check if the distorted lines follow the line in the camera view.</div>}
             {customLines.length > 0 && <div className="text-medium font-bold" style={{ color: "#00d4ff", display: "block" }}>{customLines.length} custom line(s) drawn. </div>}
           </div>
@@ -596,9 +611,9 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
 
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <FaLocationArrow />
-                        <div><strong>Y:</strong> {Number.isFinite(formData.camYaw) ? parseFloat(formData.camYaw).toFixed(3) : formData.camYaw}</div>
-                        <div><strong>P:</strong> {Number.isFinite(formData.camPitch) ? parseFloat(formData.camPitch).toFixed(3) : formData.camPitch}</div>
-                        <div><strong>R:</strong> {Number.isFinite(formData.camRoll) ? parseFloat(formData.camRoll).toFixed(3) : formData.camRoll}</div>
+                        <div><strong>y:</strong> {Number.isFinite(formData.camYaw) ? parseFloat(formData.camYaw).toFixed(3) : formData.camYaw}</div>
+                        <div><strong>p:</strong> {Number.isFinite(formData.camPitch) ? parseFloat(formData.camPitch).toFixed(3) : formData.camPitch}</div>
+                        <div><strong>r:</strong> {Number.isFinite(formData.camRoll) ? parseFloat(formData.camRoll).toFixed(3) : formData.camRoll}</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <RiCameraLensFill />
@@ -606,12 +621,6 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
                         <div><strong>k1:</strong> {Number.isFinite(formData.camK1) ? parseFloat(formData.camK1).toFixed(4) : formData.camK1}</div>
                         <div><strong>k2:</strong> {Number.isFinite(formData.camK2) ? parseFloat(formData.camK2).toFixed(4) : formData.camK2}</div>
                       </div>
-                      {/* {transformState && (
-                        <div style={{marginTop: "5px", fontSize: "10px", opacity: 0.8}}>
-                          Zoom: {(transformState.scale * 100).toFixed(0)}%
-                        </div>
-                      )} */}
-
                     </div>
                   )}
                 </>
@@ -628,7 +637,11 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
             <div>
               <label style={{ fontWeight: "bold" }}>Lens distortion sliders</label>
               <div className="text-sm font-medium">
-                Adjust k1 and k2 to bend the guide lines interactively. Use scroll or pinch to zoom.
+                {cameraMatrix && distCoeffs ? (
+                  <span>Adjust k1 and k2 to bend the guide lines interactively. Use scroll or pinch to zoom.</span>
+                ) : (
+                  <span>Constrain the camera matrix and distortion coefficients using GCPs first. Then come back here to refine them.</span>
+                )}
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -636,8 +649,9 @@ const CameraParameters = ({ cameraConfig, setCameraConfig, selectedVideo, ws, dr
                 type="checkbox"
                 id="distortionLockCheckbox"
                 checked={!distortionLocked}
+                disabled={!cameraMatrix || !distCoeffs}
                 onChange={(e) => setDistortionLocked(!e.target.checked)}
-                style={{ cursor: "pointer", width: "18px", height: "18px" }}
+                style={{ cursor: (!cameraMatrix || !distCoeffs) ? "not-allowed" : "pointer", width: "18px", height: "18px" }}
               />
               <label htmlFor="distortionLockCheckbox" style={{ cursor: "pointer", margin: "0", fontSize: "13px", fontWeight: "500" }}>
                 Manual adjustment
