@@ -231,28 +231,41 @@ const PoseDetails = (
 
   const handleFitGcps = async () => {
     setIsLoading(true);  // show loading spinner
+    // check distortionLocked
     try {
       const GcpFit = await fitGcps(
         imgDims,
         cameraConfig.gcps,
-        !distortionLocked ? cameraConfig.distCoeffs() : null, // if distortion is unlocked, assume user wnats to fit these,
+        !distortionLocked ? cameraConfig.distCoeffs() : null, // if distortion is unlocked, assume user wants to fit these,
         // otherwise use those set manually
         setMessageInfo
       )
       const {src_est, dst_est, error} = GcpFit;
       const err_round = Math.round(error * 1000) / 1000;
-      console.log(src_est, dst_est, error);
-      if (err_round > 0.1) {
-        setFitPoseData({
-          status: 'warning',
-          message: `GCPs fitted, but with a large average error: ${err_round} m.`
-        });
+      console.log(err_round, "GCP Fit Error");
+
+      let poseStatus;
+      let poseMsg;
+
+      if (err_round > 0.25) {
+        poseStatus = 'warning';
+        poseMsg = `Hmmm, I attempted to fit the GCPs, but found a very large average error: ${err_round} m. Are you sure you didn't mix up points? Or have errors in the measurements? Did your RTK GPS should "FIX" at all times? Please improve your results before continuing!`;
+      } else if (err_round > 0.1) {
+        poseStatus = 'warning';
+        poseMsg = `Ok, I managed to get a reasonable fit, but with a considerable error: ${err_round} m. Any chance you could improve? You can zoom in and out with your scroll wheel to get a more precise click! If you scene is very large (>100 m wide), then this error may be acceptable.`;
       } else {
-        setFitPoseData({
-          status: 'success',
-          message: `GCPs successfully fitted to image, average error: ${err_round} m. You can refine the camera parameters in the camera parameters modal.`
-        });
+        poseStatus = 'success';
+        poseMsg = `Great job! GCPs successfully fitted to image, average error: ${err_round} m.`;
+        if (distortionLocked) {
+          poseMsg += " You can fine-tune lens parameters now by drawing straight lines and fitting the barrel distortion parameters manually.";
+        }
       }
+      console.log(poseStatus, poseMsg);
+      setFitPoseData({
+        status: poseStatus,
+        message: poseMsg
+      });
+
       // Map the fitted coordinates back to the widgets
       setWidgets((prevWidgets) =>
         prevWidgets.map((widget, index) => {
@@ -287,7 +300,7 @@ const PoseDetails = (
       });
 
     } catch (error) {
-      setMessageInfo('error', `Failed to fit GCPs: ${error.response.data.detail || error.message}`);
+      setMessageInfo('error', `Failed to fit GCPs: ${error || error.message}`);
 
     } finally {
       setIsLoading(false);
@@ -353,8 +366,14 @@ const PoseDetails = (
             className="btn btn-primary"
             disabled={!validateWidgets()}
           >Validate</button>
-          <button type='submit' className='btn btn-secondary' onClick={() => {setShowCamParamsModal(true)}} style={{marginRight: '10px'}}>
-            Camera parameters
+          <button
+            type='submit'
+            className='btn btn-secondary'
+            onClick={() => {setShowCamParamsModal(true)}}
+            style={{marginRight: '10px'}}
+            disabled={!cameraConfig?.data?.camera_matrix || !cameraConfig?.data?.dist_coeffs}
+          >
+            Fine-tune lens
           </button>
         </div>
 

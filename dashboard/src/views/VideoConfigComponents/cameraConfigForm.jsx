@@ -134,7 +134,7 @@ const CameraConfigForm = ({selectedCameraConfig, setMessageInfo, ws}) => {
           </label>
           <input type='str' className='form-control' id='name' name='name' onChange={handleInputChange} value={formData.name} required />
         </div>
-        <button type='submit' className='btn'>
+        <button type='submit' className='btn btn-primary'>
           Save
         </button>
         <div className='mb-3 mt-3'>Toggle JSON edits (advanced users only)

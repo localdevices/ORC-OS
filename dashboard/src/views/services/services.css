@@ -636,12 +636,12 @@ Service description content
 }
 
 .btn-secondary {
-  background: #757575;
+  background: #00ad09;
   color: white;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #616161;
+  background: #007f06;
 }
 
 .btn-success {
