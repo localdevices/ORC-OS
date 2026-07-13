@@ -170,6 +170,47 @@ def cross_section_with_crs():
 
 
 @pytest.fixture
+def cross_section_with_crs_latlon():
+    return """
+{
+    "type": "FeatureCollection",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "EPSG:4326"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [5.913700, 50.80715, 0]
+            },
+            "properties": {}
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [5.91364, 50.80718, 1]
+            },
+            "properties": {}
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [5.91361, 50.80710, 2]
+            },
+            "properties": {}
+        }
+    ]
+}
+"""
+
+
+@pytest.fixture
 def cross_section_without_crs():
     return """
 {
