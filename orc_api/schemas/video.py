@@ -297,11 +297,17 @@ class VideoResponse(VideoBase, RemoteModel):
                 # check if h_a is above lowest point in cross section for discharge estimation
                 output = os.path.join(self.get_path(base_path=base_path), "output")
                 cameraconfig = self.video_config.camera_config.data.model_dump()
+                # remove any crs info if present
+                cameraconfig.pop("crs", None)
                 # get the rotated/translated cross-section
                 cross = self.video_config.cross_section_rt.features
+                # remove any crs info if present
+                cross.pop("crs", None)
                 # if h_a is not available and a cross section is available, make cross section file for water level
                 if h_a is None and self.video_config.cross_section_wl:
                     cross_wl = self.video_config.cross_section_wl_rt.features
+                    # remove any crs info if present
+                    cross_wl.pop("crs", None)
                 else:
                     cross_wl = None
                 # get the recipe with any required fields filled

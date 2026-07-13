@@ -71,7 +71,10 @@ class CameraConfigBase(BaseModel):
     @property
     def obj(self):
         """Return the camera configuration as pyorc camera config object."""
-        return pyorcCameraConfig(**self.data.model_dump())
+        cam_config = pyorcCameraConfig(**self.data.model_dump())
+        if getattr(cam_config, "crs", None) is not None:
+            cam_config.crs = None  # remove the crs to ensure the link with cross sections can be made.
+        return cam_config
 
     def patch_post(self, db):
         """Patch or post the camera configuration depending on whether an ID is set."""
