@@ -242,7 +242,6 @@ const PoseDetails = (
       )
       const {src_est, dst_est, error} = GcpFit;
       const err_round = Math.round(error * 1000) / 1000;
-      console.log(err_round, "GCP Fit Error");
 
       let poseStatus;
       let poseMsg;
@@ -260,7 +259,6 @@ const PoseDetails = (
           poseMsg += " You can fine-tune lens parameters now by drawing straight lines and fitting the barrel distortion parameters manually.";
         }
       }
-      console.log(poseStatus, poseMsg);
       setFitPoseData({
         status: poseStatus,
         message: poseMsg
