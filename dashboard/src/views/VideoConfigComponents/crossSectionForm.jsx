@@ -135,38 +135,10 @@ const CrossSectionForm = (
   return (
     <div className="split-screen" style={{overflow: 'auto'}}>
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
-        <h5>Cross sections</h5>
-        <button className='btn btn-primary' onClick={() => setShowCrossSectionUploadModal(true)}>
-          Upload new
-        </button>
-        <div className='container' style={{marginTop: '5px'}}>
-          <h5>Select discharge cross section</h5>
-          <DropdownMenu
-            dropdownLabel="Discharge cross section"
-            name="discharge"
-            callbackFunc={(event) => handleCS(event, setCSDischarge)}
-            data={availableCrossSections}
-            value={CSDischarge?.id}
-            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
-          />
-        </div>
-        <div className='container' style={{marginTop: '5px'}}>
-          <h5>Select optical water level cross section</h5>
-          <DropdownMenu
-            dropdownLabel="Optical water level cross section"
-            name="water level"
-            callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
-            data={availableCrossSections}
-            value={CSWaterLevel?.id}
-            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
-          />
-        </div>
-      </div>
-      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Set water levels</h5>
         <div className='mb-3 mt-3'>
           <label htmlFor='z_0' className='form-label small'>
-            Water level in GCP coordinate system [m]
+            Water level in GCP coordinate system [m]. Measured in the same coordinate system as your control points.
           </label>
           <input
             type='number' className='form-control'
@@ -191,8 +163,34 @@ const CrossSectionForm = (
             disabled={!validatez0()}
           />
         </div>
-        <span
-          title={validateBboxReady() ? "Draw Bounding box around cross section" : "you must set water levels and a discharge cross section first"}
+      </div>
+
+      <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
+        <h5>Cross sections</h5>
+        <button className='btn btn-primary' onClick={() => setShowCrossSectionUploadModal(true)}>
+          Upload new
+        </button>
+        <div className='container' style={{marginTop: '5px'}}>
+          <h5>Select cross sections</h5>
+          <DropdownMenu
+            dropdownLabel="For discharge"
+            name="discharge"
+            callbackFunc={(event) => handleCS(event, setCSDischarge)}
+            data={availableCrossSections}
+            value={CSDischarge?.id}
+            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
+          />
+          <DropdownMenu
+            dropdownLabel="For optical water level"
+            name="water level"
+            callbackFunc={(event) => handleCS(event, setCSWaterLevel)}
+            data={availableCrossSections}
+            value={CSWaterLevel?.id}
+            disabled={!cameraConfig?.gcps?.z_0}  // only enable when a water level is set
+          />
+        </div>
+                <span
+          title={validateBboxReady() ? "Automatically estimate bounding box around cross section" : "you must set water levels and a discharge cross section first"}
           className="d-inline-block"
           data-bs-toggle="tooltip"
         >
@@ -205,7 +203,7 @@ const CrossSectionForm = (
         </button>
         </span>
         <span
-          title={validateBboxReady() ? "Draw Bounding box around the selected cross section" : "you must set water levels and a discharge cross section first"}
+          title={validateBboxReady() ? "Manually draw Bounding box around the selected cross section" : "you must set water levels and a discharge cross section first"}
           className="d-inline-block"
           data-bs-toggle="tooltip"
         >
@@ -217,7 +215,6 @@ const CrossSectionForm = (
           Draw bounding box
         </button>
         </span>
-
       </div>
       {showCrossSectionUploadModal && (
         <CrossSectionUploadModal

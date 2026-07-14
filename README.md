@@ -233,18 +233,18 @@ linux.
     ```
 3. Build and start all services:
    ```bash
-   docker-compose up --build -d
+   docker compose up --build -d
    ```
    You should now be able to reach the web interface at http://localhost:3000
   This also starts Redis, one Celery worker, and one Celery beat process for recurring background jobs.
 
 4. View logs
     ```bash
-    docker-compose logs -f
+    docker compose logs -f
     ```
 5. Stop services
     ```bash
-    docker-compose down
+    docker compose down
     ```
 
 # Installation on your own device

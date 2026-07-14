@@ -1,3 +1,61 @@
+## [1.0.0] Ngwerere - 2026-07-14
+
+We are pleased to announce the first major release of OpenRiverCam Operating System (ORC-OS). This release aims
+to allow any user to setup and maintain river velocimetry measurement sites with their own station equipment.
+
+The release is named "Ngwerere", after the first river in Zambia, monitored continuously by a camera system maintained
+by a local company "Local Devices Technologies Ltd. Zambia". The Ngwerere is a notoriously flashy river, and a frequent
+cause of flooding in neighbourhoods and agricultural fields in Lusaka - Zambia. The river is also very difficult to
+measure with other means than camera systems.
+
+The major features of this release are:
+
+1. A fully-fledged web-interface for interactive data management and video configuration. With a VPN service or other
+   network tool such as Pangolin, Remoteit or Tailscale, the station can be entirely remotely managed with a user
+   friendly, light weight and fast interface. No VNC or other heavy-load remote desktop solution needed.
+2. Interactive and intuitive video configuration including aiming, and setting up of camera pose and lens
+   characteristics using typically field-measured control points. Lens characteristics can be fine-tuned with a highly
+   intuitive line tool: interactively plot one or multiple straight lines in the objective of your camera, and tune the
+   barrel distortion parameters until the straight line follows the distorted projection.
+3. Fully automated processing of incoming videos in a pre-designated folder. Any incoming file following a user
+   configured file naming template will be processed by the defined video configuration.
+4. Script-based retrieval of water levels, e.g. from a connected device (e.g. over USB, SDI-12, RS485 or RS323) or from
+   any available online API.
+5. Ability to add additional micro-services that automatically run scripts, e.g. to monitor battery levels, read an
+   additional sensor, log to any additional logger, manage power settings or cycles, switch on or off relay systems
+   or anything you can come up with for your own use case.
+6. Plotting, filtering and downloading of videos, water levels and discharge time series. We also have stage-discharge
+   plot ready for you.
+7. Excellent documentation with how-tos for building your own device, how to survey cross sections and control points
+   and software user guide.
+
+> [!NOTE]
+> For installation instructions, please read the README.md or consider supporting us by acquiring one of our
+> ready-to-use images to get started real quickly. If you support us, we support you through online support.
+> For all other documentation, please visit https://localdevices.github.io/ORC-OS-docs.
+
+> [!IMPORTANT]
+> Any connected LiveORC server MUST be version >= 0.3.0
+> Several new service files are required. You cannot automatically update via OTA if these
+> files are not in place. Contact your system administrator to ensure all service files are correctly installed
+> following the README of https://github.com/localdevices/ORC-OS
+
+### Added
+- Fully interactive and intuitive fine-tuning of the barrel distortion parameters, using real-world known straight lines
+
+### Changed
+- Projection codes of GCPs and/or cross sections are discarded after reprojection to nearest UTM zone to prevent
+  issues with mismatches between cross section and GCP coordinates.
+- Layout in video configuration is made more logical with selection of water levels first, and selection of cross
+  sections after.
+
+### Deprecated
+### Removed
+### Fixed
+- Automatic selection of bounding box was sometimes not working due to conflicts in coordinate reference systems. This
+  is now fixed.
+
+
 ## [0.8.0] Ngwerere - 2026-06-19
 This is a **testing beta release**, not yet fit for production and operational environments.
 This release should only be used for:
