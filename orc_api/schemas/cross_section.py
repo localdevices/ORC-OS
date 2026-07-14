@@ -185,7 +185,10 @@ class CrossSectionResponseCameraConfig(CrossSectionResponse):
         """Return the cross section as a pyorc CrossSection object."""
         if self.camera_config is None:
             return None
-        return pyorcCrossSection(camera_config=self.camera_config.obj, cross_section=self.gdf)
+        # strip the crs to avoid issues with the cross section and camera config not matching
+        return pyorcCrossSection(
+            camera_config=self.camera_config.obj, cross_section=self.gdf.set_crs(None, allow_override=True)
+        )
 
     def get_wetted_surface(self, h: float, camera: bool = True) -> Optional[List[List[float]]]:
         """Return the wetted surface of the cross section in serializable coordinates."""

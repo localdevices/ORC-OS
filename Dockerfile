@@ -11,17 +11,22 @@ ENV ORC_UPLOAD_DIRECTORY=/app/data/uploads
 # Install system dependencies required for rasterio, opencv, and other packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gdal-bin \
     libgdal-dev \
     libgeos-dev \
     libproj-dev \
     libffi-dev \
+    libfftw3-dev \
+    libjpeg-dev \
     libpq-dev \
     ffmpeg \
     libsm6 \
     libxext6 \
     libgl1 \
+    python3-typing-extensions \
     git \
     curl \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Set GDAL environment variables
@@ -46,8 +51,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 #    pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir .
 
-# Create data directories
-RUN mkdir -p /app/data/uploads /app/data/uploads/videos /app/data/uploads/incoming /app/data/logs /app/data/tmp
+# # Create data directories
+# RUN mkdir -p /app/data/uploads /app/data/uploads/videos /app/data/uploads/incoming /app/data/logs /app/data/tmp
+
+# run the orc app once, just to compile the underlying ffpiv code
+RUN orc --help
 
 # Expose the FastAPI port
 EXPOSE 5000

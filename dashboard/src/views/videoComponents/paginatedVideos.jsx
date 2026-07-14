@@ -9,12 +9,11 @@ import PropTypes from "prop-types";
 import Modal from "react-modal";
 import api from "../../api/api.js";
 import {
-  FaPlay,
+  FaPhotoVideo,
   FaTrash,
   FaExclamationTriangle, FaSync,
 } from "react-icons/fa";
 import { HiDocumentMagnifyingGlass } from "react-icons/hi2";
-
 import {RiPencilFill} from "react-icons/ri";
 import Paginate from "../../utils/paginate.jsx";
 import ActionVideos from "./actionVideos.jsx";
@@ -420,7 +419,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                   <button className="btn-icon"
                           onClick={() => handleView(video)}
                   >
-                    <FaPlay className="run"/>
+                    <FaPhotoVideo className="run"/>
                   </button>
                   <button className="btn-icon"
                     // disabled when video config is not ready, or task is already queued (2) or running (3)

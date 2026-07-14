@@ -1,14 +1,11 @@
 """WebSocket video config interactive operations."""
 
-import io
-import json
 import traceback
 from typing import Any, Dict, Literal, Optional
 
-import geopandas as gpd
 import numpy as np
 from pydantic import BaseModel
-from pyorc import CameraConfig, CrossSection
+from pyorc import CameraConfig
 from shapely import Polygon
 
 from orc_api import DEV_MODE, UPLOAD_DIRECTORY, crud
@@ -390,11 +387,7 @@ class WSVideoState(BaseModel):
         if self.video.video_config.cross_section is None:
             raise ValueError("No discharge cross section selected. Cannot set bounding box from cross section.")
         cc = CameraConfig(**self.video.video_config.camera_config.data.model_dump())
-
-        feats = self.video.video_config.cross_section.features
-        string_io_buffer = io.StringIO(json.dumps(feats))
-        gdf = gpd.read_file(string_io_buffer)
-        cs = CrossSection(camera_config=cc, cross_section=gdf)
+        cs = self.video.video_config.cross_section.obj  # load pyorc representation
         # get minimum value of outermost left and right bank
         z_max = min(cs.z[0], cs.z[-1]) - 0.001  # remove one mm to ensure line crosses at two points
         h_max = cc.z_to_h(z_max)

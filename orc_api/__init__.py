@@ -1,10 +1,8 @@
 """Backend API for operations and configuration for NodeORC front end."""
 
 import os
-import socket
-import warnings
 
-__version__ = "0.8.0"  # version number
+__version__ = "1.0.0_dev"  # version number
 __release__ = "Ngwerere"  # major version name
 
 
@@ -49,5 +47,9 @@ SECRET_KEY = os.getenv("ORC_SECRET_KEY", ORC_DEFAULT_KEY)
 DEV_MODE = os.getenv("ORC_DEV_MODE", "0") == "1"
 if not SECRET_KEY and not DEV_MODE:
     raise ValueError("ORC_SECRET_KEY not set and not running in development mode. Exiting")
+
+# make all directories if they don't exist
+for directory in [LOG_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, INCOMING_DIRECTORY, SERVICE_DIRECTORY]:
+    os.makedirs(directory, exist_ok=True)
 
 from . import crud, db, routers, schemas, utils

@@ -1,7 +1,9 @@
+import json
 import os
 from datetime import datetime
 from pathlib import Path
 
+import geopandas as gpd
 import pytest
 
 from orc_api.utils import disk_management, io
@@ -43,20 +45,28 @@ def test_read_cross_section_csv(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "json_string_def",
+    ("json_string_def", "crs_expected", "parse_crs"),
     [
-        "cross_section_with_crs",
-        "cross_section_without_crs",
+        ("cross_section_with_crs", 32636, True),
+        ("cross_section_without_crs", None, True),
+        ("cross_section_with_crs_latlon", 32631, True),  # latlon shouild automatically be converted to nearest UTM zone
+        ("cross_section_with_crs_latlon", None, False),  # again latlon, but now no parsing of crs
     ],
 )
-def test_read_cross_section_geojson(request, tmpdir, json_string_def):
+def test_read_cross_section_geojson(request, tmpdir, json_string_def, crs_expected, parse_crs):
     json_string = request.getfixturevalue(json_string_def)
     # Create a temporary CSV file for testing
     test_json_path = Path(tmpdir) / "test_cross_section.geojson"
     with open(test_json_path, "w") as f:
         f.write(json_string)
     # Test the function
-    cs = io.read_cross_section_from_geojson(test_json_path)
+    cs = io.read_cross_section_from_geojson(test_json_path, parse_crs=parse_crs)
     assert "features" in cs
+    if "crs" in cs:
+        gdf = gpd.read_file(json.dumps(cs))
+        crs = gdf.crs.to_epsg()
+    else:
+        crs = None
+    assert crs == crs_expected
     # Clean up the temporary file
     os.remove(test_json_path)

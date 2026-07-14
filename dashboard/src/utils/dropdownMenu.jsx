@@ -30,6 +30,7 @@ export const DropdownMenu = ({dropdownLabel, callbackFunc, data, value, defaultV
         disabled={disabled}
         onChange={callbackFunc}
         className='form-control'
+        style={{marginBottom: '10px'}}
         value={disabled ? 0 : (value || "")}
       >
         {allowNoSelection && (
