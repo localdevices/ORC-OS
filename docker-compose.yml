@@ -3,9 +3,14 @@ services:
     image: redis:8.6.2-alpine
     container_name: orc-redis
     restart: unless-stopped
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    command: ["redis-server", "--bind", "0.0.0.0", "--save", "", "--appendonly", "no"]
     networks:
       - orc-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   orcapi:
     build:
@@ -29,7 +34,7 @@ services:
       - "3001:5000"
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     networks:
       - orc-network
     healthcheck:
@@ -58,7 +63,7 @@ services:
     command: ["celery", "-A", "orc_api.celery_app", "worker", "-Q", "sync,periodic", "--loglevel=info"]
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       orcapi:
         condition: service_healthy
     networks:
@@ -84,7 +89,7 @@ services:
     command: ["celery", "-A", "orc_api.celery_app", "worker", "-Q", "video", "--pool=solo", "--concurrency=1", "--loglevel=info"]
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       orcapi:
         condition: service_healthy
     networks:
@@ -109,7 +114,7 @@ services:
     command: ["celery", "-A", "orc_api.celery_app", "beat", "--loglevel=info"]
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       orcapi:
         condition: service_healthy
     networks:

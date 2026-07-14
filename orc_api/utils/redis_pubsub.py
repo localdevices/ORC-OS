@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Callable, Optional
 
 import redis.asyncio as aioredis
@@ -125,7 +126,8 @@ class RedisPubSubManager:
 
 
 # Global Redis pub/sub manager instance
-redis_pubsub_manager = RedisPubSubManager()
+CELERY_BROKER_URL = os.getenv("ORC_CELERY_BROKER_URL", "redis://localhost:6379/0")
+redis_pubsub_manager = RedisPubSubManager(redis_url=CELERY_BROKER_URL)
 
 
 async def get_redis_pubsub_manager() -> RedisPubSubManager:
