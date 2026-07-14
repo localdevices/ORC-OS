@@ -18,7 +18,7 @@ dependencies = [
     "pillow==9.5.0; python_version < '3.10'",  # for compatibility with picamera2 on Bullseye
     "pillow; python_version >= '3.10'",
     "rocket-fft",
-    "pydantic<2.12",  # 2026-07-14, from 2.12 onwards @model_validator(mode="after") should be replaced by an instance method. See https://docs.pydantic.dev/2.13/concepts/validators/#model-after-validator.
+    "pydantic<=2.13",  # 2026-07-14, from 2.12 onwards @model_validator(mode="after") should be replaced by an instance method. See https://docs.pydantic.dev/2.13/concepts/validators/#model-after-validator.
     "PyJWT",
     "pyopenrivercam>=0.9.9",
     "pyyaml",
@@ -82,7 +82,8 @@ testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
 filterwarnings = [
-    "ignore:.*Using default ORC_SECRET_KEY.*:UserWarning"
+    "ignore:.*Using default ORC_SECRET_KEY.*:UserWarning",
+    "ignore:.*The HMAC key is 15 bytes long.*:UserWarning"
 ]
 
 [tool.ruff]
