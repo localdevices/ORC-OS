@@ -1,7 +1,7 @@
 ## [1.0.0] Ngwerere - 2026-07-14
 
-We are pleased to announce the first major release of OpenRiverCam Operating System (ORC-OS). This release aims
-to allow any user to setup and maintain river velocimetry measurement sites with their own station equipment.
+We are pleased to announce the first major release of OpenRiverCam Operating System (ORC-OS). This release
+allows any user to setup and maintain river velocimetry measurement sites with their own station equipment.
 
 The release is named "Ngwerere", after the first river in Zambia, monitored continuously by a camera system maintained
 by a local company "Local Devices Technologies Ltd. Zambia". The Ngwerere is a notoriously flashy river, and a frequent
@@ -14,18 +14,20 @@ The major features of this release are:
    network tool such as Pangolin, Remoteit or Tailscale, the station can be entirely remotely managed with a user
    friendly, light weight and fast interface. No VNC or other heavy-load remote desktop solution needed.
 2. Interactive and intuitive video configuration including aiming, and setting up of camera pose and lens
-   characteristics using typically field-measured control points. Lens characteristics can be fine-tuned with a highly
-   intuitive line tool: interactively plot one or multiple straight lines in the objective of your camera, and tune the
+   characteristics using field-measured control points. Lens characteristics can be fine-tuned with a unique highly
+   intuitive line tool: interactively draw one or multiple straight lines in the objective of your camera, and tune the
    barrel distortion parameters until the straight line follows the distorted projection.
-3. Fully automated processing of incoming videos in a pre-designated folder. Any incoming file following a user
-   configured file naming template will be processed by the defined video configuration.
+3. Fully automated processing of incoming videos. Any incoming file following a user configured file naming
+   template will be processed by the defined video configuration.
 4. Script-based retrieval of water levels, e.g. from a connected device (e.g. over USB, SDI-12, RS485 or RS323) or from
-   any available online API.
-5. Ability to add additional micro-services that automatically run scripts, e.g. to monitor battery levels, read an
+   any available online API. If these are not available, and you have a straight clean bank or other perimater, then
+   our automated optical water level estimation may also work for you.
+5. Additional micro-services that automatically run scripts, e.g. to monitor battery levels, read an
    additional sensor, log to any additional logger, manage power settings or cycles, switch on or off relay systems
-   or anything you can come up with for your own use case.
+   or anything you can come up with for your own use case. Scripts can be configured and controlled with front-end
+   configurable environment variables.
 6. Plotting, filtering and downloading of videos, water levels and discharge time series. We also have stage-discharge
-   plot ready for you.
+   plots.
 7. Excellent documentation with how-tos for building your own device, how to survey cross sections and control points
    and software user guide.
 
