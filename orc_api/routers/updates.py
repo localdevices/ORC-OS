@@ -408,8 +408,18 @@ async def do_update(tag_name, backup_distribution=False):
                     )
                     await modify_state_update_event(True, "Updating dependencies...")
                     await asyncio.sleep(1)
+                    # NOTE:  Replace pip lines below for major releases (like 2.0.0) if major updates of dependencies
+                    # are needed.
+                    # In the next development cycle, replace again for pip without the --eager strategy.
+                    # subprocess.run(
+                    #     [
+                    #         sys.executable, "-m", "pip", "install", "--upgrade",
+                    #         "--upgrade-strategy", "eager", repo_url
+                    #     ],
+                    #     check=True,
+                    # )
                     subprocess.run(
-                        [sys.executable, "-m", "pip", "install", "--upgrade", "--upgrade-strategy", "eager", repo_url],
+                        [sys.executable, "-m", "pip", "install", "--upgrade", repo_url],
                         check=True,
                     )
                     # perform database migrations from the temporary install location of the orc api

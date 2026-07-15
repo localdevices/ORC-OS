@@ -56,6 +56,7 @@ The major features of this release are:
 ### Fixed
 - Automatic selection of bounding box was sometimes not working due to conflicts in coordinate reference systems. This
   is now fixed.
+- Update view did not show the progress of ongoing updates, unless clicked twice. This is now corrected.
 
 
 ## [0.8.0] Ngwerere - 2026-06-19

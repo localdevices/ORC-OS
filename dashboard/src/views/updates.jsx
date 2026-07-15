@@ -146,16 +146,19 @@ const Updates = ({ currentVersion }) => {
 
     setIsLoading(true);
     fetchInitialData();
+
+    let ws = null;
     const timeout = setTimeout(() => {
-      const ws = createWebSocketConnection("updates", "/updates/status_ws/", setMessages);
-      return () => {
-        if (ws) {
-          ws.close();
-          console.log("WebSocket connection closed.");
-        }
-      };
+      ws = createWebSocketConnection("updates", "/updates/status_ws/", setMessages);
     }, 100);
-    return () => clearTimeout(timeout);
+
+    return () => {
+      clearTimeout(timeout);
+      if (ws) {
+        ws.close();
+        console.log("WebSocket connection closed.");
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -192,15 +195,21 @@ const Updates = ({ currentVersion }) => {
   }
 
   async function handleUpdate() {
-    setButtonDisabled(true);
+    // Immediately show the update spinner while the backend processes the request
+    setMessages({
+      is_updating: true,
+      status: "Starting update..."
+    });
     try {
       console.log("Starting update for release tag: ", selectedReleaseTag);
       await startUpdate(selectedReleaseTag);
     } catch (error) {
       setUpdateStatusMessages(error?.message || String(error));
-      // setButtonDisabled(false);
-    } finally {
-      setButtonDisabled(false);
+      // Reset the update state on error
+      setMessages({
+        is_updating: false,
+        status: "Update failed"
+      });
     }
   }
 
