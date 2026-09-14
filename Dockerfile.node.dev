@@ -1,0 +1,58 @@
+# Dockerfile for ORC-OS FastAPI Backend - Development Mode
+# This Dockerfile installs the package in editable mode to support live development in copmbination with LiveORC
+# This should only be used in combination with LiveORCs docker-compose for development.
+FROM python:3.14-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV ORC_HOME=/app/data
+ENV ORC_UPLOAD_DIRECTORY=/app/data/uploads
+
+WORKDIR /app
+
+# Install system dependencies required for rasterio, opencv, and other packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    libffi-dev \
+    libfftw3-dev \
+    libjpeg-dev \
+    libpq-dev \
+    git \
+    gdal-bin \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libgl1 \
+    supervisor \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GDAL environment variables
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Copy entrypoint script, make executable
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+
+# get the supervisord config file in place for running API and worker side-by-side
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Expose the FastAPI port
+EXPOSE 5000
+
+# remove cached stuff
+RUN rm -rf /root/.cache/pip
+
+# Set the entrypoint script
+ENTRYPOINT ["./entrypoint.sh"]
+
+# Run API and a celery worker side-by-side using supervisord
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

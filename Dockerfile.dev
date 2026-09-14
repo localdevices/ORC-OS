@@ -1,0 +1,58 @@
+# Development Dockerfile for ORC-OS with editable installs. This Dockerfile is meant for development of ORC-OS only
+# without any interactions with LiveORC. For interoperability with LiveORC, use the Dockerfile.node.dev instead and
+# check the README of LiveORC for more details.
+# Usage: Mount your local code to /app and use `pip install -e .` for live code changes
+
+FROM python:3.14-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV ORC_HOME=/app/data
+ENV ORC_UPLOAD_DIRECTORY=/app/data/uploads
+
+WORKDIR /app
+
+# Install system dependencies required for rasterio, opencv, and other packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    libffi-dev \
+    libfftw3-dev \
+    libjpeg-dev \
+    libpq-dev \
+    git \
+    gdal-bin \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libgl1 \
+    supervisor \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GDAL environment variables
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Copy only pyproject.toml and metadata for dependency installation
+# These should be mounted or copied before running pip install
+# Note: The actual installation of -e . should happen via docker-compose volume mount
+
+# Copy entrypoint script
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+
+# Expose the FastAPI port
+EXPOSE 5000
+
+# Set the entrypoint script
+ENTRYPOINT ["./entrypoint.sh"]
+
+# Run API and a celery worker side-by-side using supervisord
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

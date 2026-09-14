@@ -28,8 +28,9 @@ services:
       - ORC_DEV_MODE=${ORC_DEV_MODE:-0}
       - ORC_CELERY_BROKER_URL=redis://redis:6379/0
       - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - ORC_PASSWORD=${ORC_PASSWORD}
     volumes:
-      - ${ORC_DATA_PATH:-./data}:/app/data
+      - ${ORC_HOME:-./data}:/app/data
     ports:
       - "3001:5000"
     depends_on:
@@ -59,7 +60,7 @@ services:
       - ORC_CELERY_BROKER_URL=redis://redis:6379/0
       - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
     volumes:
-      - ${ORC_DATA_PATH:-./data}:/app/data
+      - ${ORC_HOME:-./data}:/app/data
     command: ["celery", "-A", "orc_api.celery_app", "worker", "-Q", "sync,periodic", "--loglevel=info"]
     depends_on:
       redis:
@@ -84,7 +85,7 @@ services:
       - ORC_CELERY_BROKER_URL=redis://redis:6379/0
       - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
     volumes:
-      - ${ORC_DATA_PATH:-./data}:/app/data
+      - ${ORC_HOME:-./data}:/app/data
     # Use a non-forking pool for OpenMP-based workloads (numba/dask/pyorc).
     command: ["celery", "-A", "orc_api.celery_app", "worker", "-Q", "video", "--pool=solo", "--concurrency=1", "--loglevel=info"]
     depends_on:
@@ -110,7 +111,7 @@ services:
       - ORC_CELERY_BROKER_URL=redis://redis:6379/0
       - ORC_CELERY_RESULT_BACKEND=redis://redis:6379/1
     volumes:
-      - ${ORC_DATA_PATH:-./data}:/app/data
+      - ${ORC_HOME:-./data}:/app/data
     command: ["celery", "-A", "orc_api.celery_app", "beat", "--loglevel=info"]
     depends_on:
       redis:

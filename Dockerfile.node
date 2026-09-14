@@ -1,4 +1,6 @@
-# Dockerfile for ORC-OS FastAPI Backend
+# Dockerfile for ORC-OS FastAPI Backend only. This dockerfile is needed to create an additional LiveORC processing node
+# The largest difference compared to the main is that this file runs one single supervisor for running the FastAPI
+# backend (for REST API communication) and the worker node or nodes connected to it (for processing).
 FROM python:3.14-slim AS builder
 
 

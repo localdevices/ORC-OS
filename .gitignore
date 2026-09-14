@@ -1,4 +1,5 @@
 data/*
+supervisord.pid
 
 .vscode
 .idea
