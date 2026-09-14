@@ -27,11 +27,13 @@ import {OptionsMenu} from "./optionsMenu.jsx";
 import {PasswordChangeModal} from "./passwordChangeModal.jsx";
 import api from "../api/api.js";
 import { useAuth } from "../auth/useAuth.jsx";
+import { useUnits } from "../unitsContext.jsx";
 
 const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, videoRunState}) => {
 
   const [isOpen, setIsOpen] = useState(false); // track if the navbar is open / closed
   const { logout } = useAuth();
+  const { units, changeUnits } = useUnits();
   // states for handling password changes
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -184,6 +186,43 @@ const Navbar = ({requiresRestart, setRequiresRestart, devStatus, setIsLoading, v
               {/* </span> */}
               {userMenuOpen && (
                 <div className="user-menu">
+                  <div className="user-menu-item no-hover-bg" style={{ gap: '8px' }}>
+                    <FaChartLine style={{ marginRight: '0px', verticalAlign: 'middle', flexShrink: 0 }} />
+                    <button
+                      className={`units-toggle-btn ${units === 'metric' ? 'active' : ''}`}
+                      onClick={() => changeUnits('metric')}
+                      title="Metric units (m, m³/s, m/s)"
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: units === 'metric' ? '#0a4777' : 'transparent',
+                        color: 'white',
+                        borderRadius: '3px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Metric
+                    </button>
+                    <button
+                      className={`units-toggle-btn ${units === 'imperial' ? 'active' : ''}`}
+                      onClick={() => changeUnits('imperial')}
+                      title="Imperial units (ft, ft³/s, ft/s)"
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: units === 'imperial' ? '#0a4777' : 'transparent',
+                        color: 'white',
+                        borderRadius: '3px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Imperial
+                    </button>
+                  </div>
                   <div
                     className="user-menu-item"
                     onClick={() => {

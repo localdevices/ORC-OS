@@ -18,6 +18,8 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 
 import VideoConfigFilterModal from "./videoConfigFilterModal.jsx";
 import { useMessage } from "../../messageContext.jsx";
+import { useUnits } from "../../unitsContext.jsx";
+import { convertWaterLevel, convertDischarge, convertVelocity, getWaterLevelUnit, getDischargeUnit, getVelocityUnit } from "../../utils/unitConversions.js";
 import api from "../../api/api.js";
 import { TimeSeriesChangeModal } from "../videoComponents/timeSeriesChangeModal.jsx";
 import { getVideoId } from "../../utils/apiCalls/video.jsx";
@@ -43,6 +45,7 @@ const DisplayTimeSeries = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  const { units } = useUnits();
   // default set v_av and v_bulk to false, as these may cause clutter
   const [variables, setVariables] = useState([
 
@@ -309,7 +312,7 @@ const DisplayTimeSeries = () => {
     datasets: [
       variables[0].show && {
         label: 'Water Level',
-        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.h || NaN })),
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: convertWaterLevel(d.h, units) || NaN })),
         borderColor: 'rgba(30,63,192,0.8)',
         backgroundColor: 'rgba(30, 63, 192, 0.3)',
         yAxisID: 'y',
@@ -318,7 +321,7 @@ const DisplayTimeSeries = () => {
       },
       variables[1].show && {
         label: 'Discharge (median)',
-        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.discharge || NaN })),
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: convertDischarge(d.discharge, units) || NaN })),
         borderColor: 'rgb(255,99,99)',
         backgroundColor: 'rgba(255,99,99,0.5)',
         yAxisID: 'y1',
@@ -326,7 +329,7 @@ const DisplayTimeSeries = () => {
       },
       variables[2].show && {
         label: 'Surface Velocity',
-        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_av || NaN })),
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: convertVelocity(d.v_av, units) || NaN })),
         borderColor: 'rgb(85,218,53)',
         backgroundColor: 'rgba(85,218,53, 0.5)',
         yAxisID: 'y2',
@@ -334,7 +337,7 @@ const DisplayTimeSeries = () => {
       },
       variables[3].show && {
         label: 'Bulk Velocity',
-        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: d.v_bulk || NaN })),
+        data: filteredData.map(d => ({ x: new Date(d.timestamp + "Z"), y: convertVelocity(d.v_bulk, units) || NaN })),
         borderColor: 'rgb(33,81,21)',
         backgroundColor: 'rgba(33,81,21, 0.5)',
         yAxisID: 'y3',
@@ -345,7 +348,7 @@ const DisplayTimeSeries = () => {
     // Rating curve: x = h (water level), y = discharge
     datasets: [{
       label: 'Rating Curve',
-      data: filteredData.map(d => ({ x: d.h, y: d.discharge || NaN })).filter(d => d.y !== null),
+      data: filteredData.map(d => ({ x: convertWaterLevel(d.h, units), y: convertDischarge(d.discharge, units) || NaN })).filter(d => d.y !== null),
       borderColor: 'rgb(30, 63, 192)',
       backgroundColor: 'rgba(30, 63, 192, 0.5)',
       showLine: false,
@@ -392,11 +395,11 @@ const DisplayTimeSeries = () => {
             let l = '';
             l += `${context.dataset.label}: ${context.parsed.y.toFixed(3)}`;
             if (l.includes("Velocity")) {
-              l += " m/s";
+              l += ` ${getVelocityUnit(units)}`;
             } else if (l.includes("Discharge")) {
-              l += ' m³/s';
+              l += ` ${getDischargeUnit(units)}`;
             } else {
-              l += ' m';
+              l += ` ${getWaterLevelUnit(units)}`;
             }
             return l
           },
@@ -432,7 +435,7 @@ const DisplayTimeSeries = () => {
         position: 'left',
         title: {
           display: true,
-          text: 'Water Level (m)',
+          text: `Water Level (${getWaterLevelUnit(units)})`,
         },
       },
       y1: {
@@ -442,7 +445,7 @@ const DisplayTimeSeries = () => {
         min: 0,
         title: {
           display: true,
-          text: 'Discharge (m³/s)',
+          text: `Discharge (${getDischargeUnit(units)})`,
         },
         grid: {
           drawOnChartArea: false,
@@ -455,7 +458,7 @@ const DisplayTimeSeries = () => {
         min: 0,
         title: {
           display: true,
-          text: 'Surface Velocity (m/s)',
+          text: `Surface Velocity (${getVelocityUnit(units)})`,
         },
         grid: {
           drawOnChartArea: false,
@@ -468,7 +471,7 @@ const DisplayTimeSeries = () => {
         min: 0,
         title: {
           display: true,
-          text: 'Bulk Velocity (m/s)',
+          text: `Bulk Velocity (${getVelocityUnit(units)})`,
         },
         grid: {
           drawOnChartArea: false,
@@ -521,7 +524,7 @@ const DisplayTimeSeries = () => {
           label: (context) => {
             const h = context.parsed.x.toFixed(2);
             const q = context.parsed.y.toFixed(3);
-            return [`Water level: ${h} m`, `Discharge: ${q} m³/s`];
+            return [`Water level: ${h} ${getWaterLevelUnit(units)}`, `Discharge: ${q} ${getDischargeUnit(units)}`];
           }
         }
       },
@@ -532,7 +535,7 @@ const DisplayTimeSeries = () => {
         // min: 0,
         title: {
           display: true,
-          text: 'Water Level (m)',
+          text: `Water Level (${getWaterLevelUnit(units)})`,
         },
       },
       y: {
@@ -540,7 +543,7 @@ const DisplayTimeSeries = () => {
         min: 0,
         title: {
           display: true,
-          text: 'Discharge (m³/s)',
+          text: `Discharge (${getDischargeUnit(units)})`,
         },
       },
     },

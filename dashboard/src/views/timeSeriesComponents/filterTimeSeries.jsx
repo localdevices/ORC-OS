@@ -1,11 +1,17 @@
 import ReactSlider from "react-slider";
 import FilterDates from "../../utils/filterDates.jsx";
 import { useEffect } from "react";
+import { useUnits } from "../../unitsContext.jsx";
+import { convertWaterLevel, convertDischarge, getWaterLevelUnit, getDischargeUnit, convertWaterLevelToMetric, convertDischargeToMetric } from "../../utils/unitConversions.js";
+import { useMessage } from "../../messageContext.jsx";
 
 const FiltersTimeSeries = ({
     filterH, setFilterH, filterDischarge, setFilterDischarge, filterFractionVel, setFilterFractionVel, setShowVideoConfigModal,
     setShowVariablesModal, selectedVideoConfigIds, allVideoConfigIds, dateRange, setStartDate, setEndDate,
     data }) => {
+
+    const { units } = useUnits();
+    const { setMessageInfo } = useMessage();
 
 
     // helper functions to get the min / max values for the sliders, without getting Inf
@@ -33,23 +39,28 @@ const FiltersTimeSeries = ({
 
     const handlefilterHChange = async (values) => {
         let [minH, maxH] = values;
+        // Convert back to metric if displaying in imperial
+        const minHMetric = units === 'imperial' ? convertWaterLevelToMetric(minH) : minH;
+        const maxHMetric = units === 'imperial' ? convertWaterLevelToMetric(maxH) : maxH;
         // Ensure values are at least `minimumDifference` apart
         const updatedFilterH = {
             ...filterH,
-            min: minH,
-            max: maxH
+            min: minHMetric,
+            max: maxHMetric
         }
         setFilterH(updatedFilterH);
     }
 
     const handlefilterDischargeChange = async (values) => {
         let [minDischarge, maxDischarge] = values;
-
+        // Convert back to metric if displaying in imperial
+        const minDischargeMetric = units === 'imperial' ? convertDischargeToMetric(minDischarge) : minDischarge;
+        const maxDischargeMetric = units === 'imperial' ? convertDischargeToMetric(maxDischarge) : maxDischarge;
         // Ensure values are at least `minimumDifference` apart
         const updatedFilterDischarge = {
             ...filterDischarge,
-            min: minDischarge,
-            max: maxDischarge
+            min: minDischargeMetric,
+            max: maxDischargeMetric
         }
         setFilterDischarge(updatedFilterDischarge);
     }
@@ -127,20 +138,20 @@ const FiltersTimeSeries = ({
                                 className="me-1"
                             />
 
-                            Water level (m)
+                            Water level ({getWaterLevelUnit(units)})
                         </label>
                         <div className="slider-container">
-                            <div className="slider-min">{Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0}</div>
-                            <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1}</div>
+                            <div className="slider-min">{Math.floor(convertWaterLevel(safeMin(data.map(d => d.h), 0), units) * 1000) / 1000 || 0}</div>
+                            <div className="slider-max">{Math.ceil(convertWaterLevel(safeMax(data.map(d => d.h), 1), units) * 1000) / 1000 || 1}</div>
                             <ReactSlider
                                 className="horizontal-slider small"
                                 disabled={!filterH.enabled}
                                 value={[
-                                    filterH.min || Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0,
-                                    filterH.max || Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1
+                                    convertWaterLevel(filterH.min || Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0, units),
+                                    convertWaterLevel(filterH.max || Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1, units)
                                 ]} // Default values if unset
-                                min={Math.floor(safeMin(data.map(d => d.h), 0) * 1000) / 1000 || 0}
-                                max={Math.ceil(safeMax(data.map(d => d.h), 1) * 1000) / 1000 || 1}
+                                min={Math.floor(convertWaterLevel(safeMin(data.map(d => d.h), 0), units) * 1000) / 1000 || 0}
+                                max={Math.ceil(convertWaterLevel(safeMax(data.map(d => d.h), 1), units) * 1000) / 1000 || 1}
                                 step={0.001}
                                 renderThumb={(props, state) => {
                                     const { key, ...rest } = props;
@@ -172,20 +183,20 @@ const FiltersTimeSeries = ({
                                 onChange={(e) => setFilterDischarge({ ...filterDischarge, enabled: e.target.checked })}
                                 className="me-1"
                             />
-                            Discharge (m³/s)
+                            Discharge ({getDischargeUnit(units)})
                         </label>
                         <div className="slider-container">
-                            <div className="slider-min">{Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0}</div>
-                            <div className="slider-max">{Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1}</div>
+                            <div className="slider-min">{Math.floor(convertDischarge(safeMin(data.map(d => d.discharge), 0), units) * 1000) / 1000 || 0}</div>
+                            <div className="slider-max">{Math.ceil(convertDischarge(safeMax(data.map(d => d.discharge), 1), units) * 1000) / 1000 || 1}</div>
                             <ReactSlider
                                 className="horizontal-slider small"
                                 disabled={!filterDischarge.enabled}
                                 value={[
-                                    filterDischarge.min || Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0,
-                                    filterDischarge.max || Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1
+                                    convertDischarge(filterDischarge.min || Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0, units),
+                                    convertDischarge(filterDischarge.max || Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1, units)
                                 ]} // Default values if unset
-                                min={Math.floor(safeMin(data.map(d => d.discharge), 0) * 1000) / 1000 || 0}
-                                max={Math.ceil(safeMax(data.map(d => d.discharge), 1) * 1000) / 1000 || 1}
+                                min={Math.floor(convertDischarge(safeMin(data.map(d => d.discharge), 0), units) * 1000) / 1000 || 0}
+                                max={Math.ceil(convertDischarge(safeMax(data.map(d => d.discharge), 1), units) * 1000) / 1000 || 1}
                                 step={0.001}
                                 renderThumb={(props, state) => {
                                     const { key, ...rest } = props;

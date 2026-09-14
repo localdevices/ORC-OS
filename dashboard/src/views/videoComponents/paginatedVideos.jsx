@@ -3,6 +3,8 @@ import {sync_video, patchVideo, getVideoId} from "../../utils/apiCalls/video.jsx
 import {getLogLineStyle} from "../../utils/helpers.jsx";
 import {VideoDetailsModal} from "./videoDetailsModal.jsx";
 import {getStatusIcon, getSyncStatusIcon, getVideoConfigIcon, getVideoConfigTitle} from "./videoHelpers.jsx";
+import { useUnits } from "../../unitsContext.jsx";
+import { convertWaterLevel, convertDischarge, convertVelocity, getWaterLevelUnit, getDischargeUnit, getVelocityUnit } from "../../utils/unitConversions.js";
 
 import PropTypes from "prop-types";
 
@@ -28,6 +30,7 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
   const [isLoading, setIsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const { units } = useUnits();
   const [data, setData] = useState([]);  // initialize data
   const [totalDataCount, setTotalDataCount] = useState(0); // total amount of records with filtering
   const [currentPage, setCurrentPage] = useState(1); // Tracks current page
@@ -408,10 +411,10 @@ const PaginatedVideos = ({startDate, endDate, setStartDate, setEndDate, videoRun
                 </td>
                 <td style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{video.video_config ? video.video_config.id + ": " + video.video_config.name : "N/A"}</td>
                 <td style={{minWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
-                  <strong><i>h</i></strong>: {video.time_series && video.time_series?.h ? Math.round(video.time_series.h * 1000) / 1000 + " m " : "N/A "}
-                  | <strong><i>Q</i></strong>: {video.time_series && video.time_series?.discharge ? Math.round(video.time_series.discharge * 100) / 100 + " m3/s " : "N/A "}
-                  | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series && video.time_series?.v_av ? Math.round(video.time_series.v_av * 100) / 100 + " m/s " : "N/A "}
-                  | <strong><i>v<sub>bulk</sub></i></strong>: {video.time_series && video.time_series?.v_bulk ? Math.round(video.time_series.v_bulk * 100) / 100 + " m/s " : "N/A "}
+                  <strong><i>h</i></strong>: {video.time_series && video.time_series?.h ? Math.round(convertWaterLevel(video.time_series.h, units) * 1000) / 1000 + ` ${getWaterLevelUnit(units)} ` : "N/A "}
+                  | <strong><i>Q</i></strong>: {video.time_series && video.time_series?.discharge ? Math.round(convertDischarge(video.time_series.discharge, units) * 100) / 100 + ` ${getDischargeUnit(units)} ` : "N/A "}
+                  | <strong><i>v<sub>surf</sub></i></strong>: {video.time_series && video.time_series?.v_av ? Math.round(convertVelocity(video.time_series.v_av, units) * 100) / 100 + ` ${getVelocityUnit(units)} ` : "N/A "}
+                  | <strong><i>v<sub>bulk</sub></i></strong>: {video.time_series && video.time_series?.v_bulk ? Math.round(convertVelocity(video.time_series.v_bulk, units) * 100) / 100 + ` ${getVelocityUnit(units)} ` : "N/A "}
                 </td>
                 <td>{getStatusIcon(video.status)}</td>
                 <td>{getSyncStatusIcon(video.sync_status)}</td>
