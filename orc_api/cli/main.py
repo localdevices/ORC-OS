@@ -4,6 +4,7 @@ import click
 
 from .db import db as db_group
 from .misc import disk_management_cmd, password_reset_cmd
+from .password import password as password_group
 from .service import service as service_group
 from .video import video as video_group
 
@@ -18,6 +19,7 @@ def orc():
 orc.add_command(service_group)
 orc.add_command(video_group)
 orc.add_command(db_group)
+orc.add_command(password_group)
 
 # register top-level commands
 orc.add_command(password_reset_cmd, name="password_reset")
