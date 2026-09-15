@@ -1,9 +1,11 @@
 import api from "../../api/api.js";
 import React, {useEffect, useRef, useState} from "react";
+import {FaExclamationTriangle} from 'react-icons/fa';
 import {DropdownMenu} from "../../utils/dropdownMenu.jsx";
 import {useDebouncedWsSender} from "../../api/api.js";
 import CrossSectionUploadModal from "./crossSectionUploadModal.jsx";
 import PropTypes   from "prop-types";
+import { convertWaterLevel, convertWaterLevelToMetric, getWaterLevelUnit } from "../../utils/unitConversions.js";
 
 const CrossSectionForm = (
   {
@@ -24,6 +26,7 @@ const CrossSectionForm = (
 
   const [availableCrossSections, setAvailableCrossSections] = useState([]);
   const [showCrossSectionUploadModal, setShowCrossSectionUploadModal] = useState(false);
+  const [h_refUnit, setH_refUnit] = useState('metric'); // 'metric' or 'imperial'
   const prevCameraConfig = useRef(cameraConfig);
 
 
@@ -94,7 +97,9 @@ const CrossSectionForm = (
         h_ref = cameraConfig?.data?.gcps?.h_ref;
       }
     } else {
-      h_ref = inputValue === '' ? cameraConfig.gcps.z_0 : parseFloat(value);
+      // For h_ref: convert from imperial to metric if needed before storing
+      const parsedValue = inputValue === '' ? null : parseFloat(value);
+      h_ref = parsedValue === null ? null : (h_refUnit === 'imperial' ? convertWaterLevelToMetric(parsedValue) : parsedValue);
       z_0 = cameraConfig.gcps.z_0 ?? null;
     }
     const updateCameraConfig = {
@@ -137,8 +142,9 @@ const CrossSectionForm = (
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Set water levels</h5>
         <div className='mb-3 mt-3'>
+          <p className="icon-warning"><FaExclamationTriangle color="orange"/><i>The water level in GCP coordinate system is also in meters.</i></p>
           <label htmlFor='z_0' className='form-label small'>
-            Water level in GCP coordinate system [m]. Measured in the same coordinate system as your control points.
+            Water level in GCP coordinate system [m].
           </label>
           <input
             type='number' className='form-control'
@@ -152,16 +158,37 @@ const CrossSectionForm = (
 
         <div className='mb-3 mt-3'>
           <label htmlFor='h_ref' className='form-label small'>
-            Water level in local gauge reference [m]. Defaults to GCP coordinate. Only set this if you plan to process several videos with different locally measured water levels.
+            Water level in local gauge reference [{h_refUnit === 'metric' ? 'm' : 'ft'}]. Defaults to GCP coordinate.
+            You may set this in feet if desired. When collecting water levels for new videos, these must be collected
+            with the same vertical datum as used here.
           </label>
-          <input
-            type='number' className='form-control'
-            id='h_ref' name='h_ref'
-            step={0.01}
-            onChange={handleWaterLevelChange}
-            value={cameraConfig?.gcps?.h_ref !== null ? cameraConfig.gcps.h_ref : ''}
-            disabled={!validatez0()}
-          />
+          <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+            <input
+              type='number' className='form-control'
+              id='h_ref' name='h_ref'
+              step={0.01}
+              onChange={handleWaterLevelChange}
+              value={
+                cameraConfig?.gcps?.h_ref !== null && cameraConfig?.gcps?.h_ref !== undefined
+                  ? h_refUnit === 'imperial'
+                    ? convertWaterLevel(cameraConfig.gcps.h_ref, 'imperial')
+                    : cameraConfig.gcps.h_ref
+                  : ''
+              }
+              disabled={!validatez0()}
+              style={{flex: 1}}
+            />
+            <select
+              className='form-control'
+              value={h_refUnit}
+              onChange={(e) => setH_refUnit(e.target.value)}
+              style={{flex: '0 0 auto', width: '100px'}}
+              disabled={!validatez0()}
+            >
+              <option value='metric'>Meters</option>
+              <option value='imperial'>Feet</option>
+            </select>
+          </div>
         </div>
       </div>
 

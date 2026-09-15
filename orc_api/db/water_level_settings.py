@@ -3,6 +3,7 @@
 import enum
 import re
 from datetime import datetime
+from typing import Literal, cast
 
 from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, event
 from sqlalchemy.orm import Mapped, mapped_column, validates
@@ -16,6 +17,13 @@ class ScriptType(enum.Enum):
 
     PYTHON = 0
     BASH = 1
+
+
+class WaterLevelUnit(enum.Enum):
+    """Unit in which water levels are retrieved from the device or API."""
+
+    METRIC = 0
+    IMPERIAL = 1
 
 
 class WaterLevelSettings(Base):
@@ -50,9 +58,14 @@ class WaterLevelSettings(Base):
     enabled: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, comment="Whether to enable water level retrieval using the script."
     )
+    water_level_unit: Mapped[enum.Enum] = mapped_column(
+        Enum(WaterLevelUnit),
+        default=WaterLevelUnit.METRIC,
+        comment="Unit in which water levels are retrieved. Either 'METRIC' (meters) or 'IMPERIAL' (feet).",
+    )
 
     def __str__(self):
-        return "WaterLevel: {} ({})".format(self.created_at, self.id)
+        return "WaterLevelSettings: {} ({})".format(self.created_at, self.id)
 
     def __repr__(self):
         return "{}".format(self.__str__())
@@ -104,8 +117,18 @@ class WaterLevelSettings(Base):
             if self.script_type is None or self.script is None:
                 logger.error("script_type and script must be set.")
                 raise ValueError("script_type and script must be set.")
-            timestamp, value = water_level.execute_water_level_script(self.script, self.script_type)
-            logger.info(f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m.")
+            timestamp, value = water_level.execute_water_level_script(
+                self.script, cast(Literal["BASH", "PYTHON"], self.script_type.name)
+            )
+            # Convert from imperial (feet) to metric (meters) if needed
+            if self.water_level_unit == WaterLevelUnit.IMPERIAL:
+                # Convert feet to meters: 1 foot = 0.3048 meters
+                value = value * 0.3048
+                logger.info(
+                    f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m (converted from feet)."
+                )
+            else:
+                logger.info(f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m.")
             # first check if water level at time stamp already exists
             wl = db.query(TimeSeries).filter_by(timestamp=timestamp).first()
             if not wl:
@@ -130,7 +153,9 @@ def validate_script(mapper, connection, target):
     if target.script:
         try:
             # Execute the script and capture its output
-            _ = water_level.execute_water_level_script(target.script, target.script_type)
+            _ = water_level.execute_water_level_script(
+                target.script, cast(Literal["BASH", "PYTHON"], target.script_type.name)
+            )
         except Exception as e:
             raise ValueError(f"Error while validating script: {str(e)}")
     print("Script validated successfully.")

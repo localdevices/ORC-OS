@@ -4,6 +4,7 @@ import { useMessage } from '../messageContext';
 
 const WaterLevel = ({ setRequiresRestart }) => {
     const [scriptTypeStatus, setScriptTypeStatus] = useState([]);
+    const [waterLevelUnitStatus, setWaterLevelUnitStatus] = useState('0');
     const [waterLevel, updateWaterLevel] = useState([]);
     const [formData, setFormData] = useState({
         created_at: '',
@@ -12,6 +13,7 @@ const WaterLevel = ({ setRequiresRestart }) => {
         script: '',
         optical: false,
         enabled: false,
+        water_level_unit: '',
     });
     // set up message box
     const { setMessageInfo } = useMessage();
@@ -35,7 +37,9 @@ const WaterLevel = ({ setRequiresRestart }) => {
                 script: waterLevel.script,
                 optical: waterLevel.optical || false,
                 enabled: waterLevel.enabled || false,
+                water_level_unit: waterLevel.water_level_unit || '0',
             });
+            setWaterLevelUnitStatus(waterLevel.water_level_unit || '0');
         }
     }, [waterLevel]);
 
@@ -70,6 +74,10 @@ const WaterLevel = ({ setRequiresRestart }) => {
         setScriptTypeStatus(e.target.value); // Update selected status in state
         handleInputIntChange(e); // Pass the change event to the parent handler
     };
+    const handleWaterLevelUnitChange = (e) => {
+        setWaterLevelUnitStatus(e.target.value); // Update selected unit in state
+        handleInputIntChange(e); // Pass the change event to the parent handler
+    };
 
     const handleFormSubmit = async (event) => {
         event.preventDefault();
@@ -77,7 +85,12 @@ const WaterLevel = ({ setRequiresRestart }) => {
         // get rid of created_at field as this must be autocompleted
         try {
             delete formData.created_at;
-            const response = await api.post('/water_level/', formData);
+            // Convert water_level_unit from string to the expected format if needed
+            const submitData = {
+                ...formData,
+                water_level_unit: formData.water_level_unit ? parseInt(formData.water_level_unit) : 0
+            };
+            const response = await api.post('/water_level/', submitData);
             if (response.status === 500) {
                 const errorData = await response.json()
                 console.log(response);
@@ -95,7 +108,8 @@ const WaterLevel = ({ setRequiresRestart }) => {
                 script_type: '',
                 script: '',
                 optical: '',
-                enabled: ''
+                enabled: '',
+                water_level_unit: ''
             });
         } catch (err) {
             setMessageInfo("error", err.response.data);
@@ -127,6 +141,15 @@ const WaterLevel = ({ setRequiresRestart }) => {
                         <select name="script_type" id="script_type" className="form-select" onChange={handleScriptTypeChange} value={scriptTypeStatus}>
                             <option value="0">PYTHON</option>
                             <option value="1">BASH</option>
+                        </select>
+                    </div>
+                    <div className='mb-3 mt-3'>
+                        <label htmlFor='water_level_unit' className='form-label'>
+                            Water level unit - select the unit in which your script retrieves water levels
+                        </label>
+                        <select name="water_level_unit" id="water_level_unit" className="form-select" onChange={handleWaterLevelUnitChange} value={waterLevelUnitStatus}>
+                            <option value="0">Meters</option>
+                            <option value="1">Feet</option>
                         </select>
                     </div>
                     <div className='mb-3 mt-3'>

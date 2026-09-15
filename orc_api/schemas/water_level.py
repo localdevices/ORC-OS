@@ -5,7 +5,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from orc_api.db import ScriptType
+from orc_api.db import ScriptType, WaterLevelUnit
 
 
 # Pydantic model for responses
@@ -26,6 +26,10 @@ class WaterLevelBase(BaseModel):
     optical: Optional[bool] = Field(default=False, description="Allow optical water level detection (false/true)")
     enabled: Optional[bool] = Field(
         default=False, description="Whether to enable water level retrieval using the script."
+    )
+    water_level_unit: Optional[WaterLevelUnit] = Field(
+        default=WaterLevelUnit.METRIC,
+        description="Unit in which water levels are retrieved. Can be 'METRIC' (meters) or 'IMPERIAL' (feet).",
     )
 
 

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {FaExclamationTriangle} from 'react-icons/fa';
 import PropTypes from "prop-types";
 import {useDebouncedWsSender} from "../../api/api.js";
 import api from "../../api/api.js";
@@ -127,6 +128,11 @@ const CrossSectionUpload = ({setShowModal, setMessageInfo, callback, ws}) => {
       <div className="flex-container no-padding" style={{overflow: "auto"}}>
         <div className='container tab'>
           <form onSubmit={handleSubmit}>
+            <p className="icon-warning"><FaExclamationTriangle color="orange"/><i>
+              Ensure your cross section is measured in the control points' meter coordinate system.
+              </i>
+            </p>
+
             <div className='mb-3 mt-3'>
               <label htmlFor='name' className='form-label'>
                 Name of cross section
