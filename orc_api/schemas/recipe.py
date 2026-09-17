@@ -96,7 +96,7 @@ class PlotData(BaseModel):
                     "add_text": True,
                     "scale": 1.0,
                     "width": 1.0,
-                    "plot_units": "metric",
+                    "units": "metric",
                 },
             },
             "mode": "camera",
@@ -221,7 +221,7 @@ class RecipeResponse(RecipeRemote):
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default="medium", description="Quality of the generated images."
     )
-    plot_units: Optional[Literal["metric", "imperial"]] = Field(default="metric", description="Units for plotting.")
+    units: Optional[Literal["metric", "imperial"]] = Field(default="metric", description="Units for plotting.")
 
     @model_validator(mode="after")
     def populate_fields_from_data(cls, instance):
@@ -258,10 +258,10 @@ class RecipeResponse(RecipeRemote):
                     instance.quiver_scale_cs = 1 / data.plot.plot_quiver["transect"]["transect_1"]["scale"]
                 if "width" in data.plot.plot_quiver["transect"]["transect_1"]:
                     instance.quiver_width_cs = data.plot.plot_quiver["transect"]["transect_1"]["width"]
-                if "plot_units" in data.plot.plot_quiver["transect"]["transect_1"]:
-                    instance.plot_units = data.plot.plot_quiver["transect"]["transect_1"]["plot_units"]
+                if "units" in data.plot.plot_quiver["transect"]["transect_1"]:
+                    instance.units = data.plot.plot_quiver["transect"]["transect_1"]["units"]
                 else:
-                    instance.plot_units = "metric"  # default to metric if not specified`
+                    instance.units = "metric"  # default to metric if not specified`
 
         # fill the optical level estimation parameters
         if data.water_level:
@@ -385,7 +385,7 @@ class RecipeUpdate(RecipeRemote):
     image_quality: Optional[Literal["low", "medium", "high"]] = Field(
         default=None, description="Quality of the generated images."
     )
-    plot_units: Optional[Literal["metric", "imperial"]] = Field(default="metric", description="Units for plotting.")
+    units: Optional[Literal["metric", "imperial"]] = Field(default="metric", description="Units for plotting.")
 
     @model_validator(mode="after")
     def populate_data_from_fields(cls, instance):
@@ -420,8 +420,8 @@ class RecipeUpdate(RecipeRemote):
         data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["width"] = getattr(
             instance, "quiver_width_cs", 1.0
         )
-        data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["plot_units"] = getattr(
-            instance, "plot_units", "metric"
+        data.plot.plot_quiver.setdefault("transect", {}).setdefault("transect_1", {})["units"] = getattr(
+            instance, "units", "metric"
         )
 
         data.water_level.water_level_options = WaterLevelOptions(

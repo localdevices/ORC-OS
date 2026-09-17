@@ -8,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 from orc_api import crud
 from orc_api.database import get_db
 from orc_api.db import Base
+from orc_api.db.water_level_settings import ScriptType, WaterLevelUnit
 from orc_api.main import app
 from orc_api.schemas.water_level import WaterLevelCreate, WaterLevelResponse
 
@@ -46,8 +47,8 @@ def test_get_wl_settings_empty(auth_client):
 
 
 def test_post_wl_settings(auth_client):
-    wl_settings = WaterLevelCreate()
-    wl = wl_settings.model_dump(exclude_none=True)
+    wl_settings = WaterLevelCreate(script_type=ScriptType.PYTHON, water_level_unit=WaterLevelUnit.IMPERIAL)
+    wl = wl_settings.model_dump(exclude_none=True, mode="json")
     response = auth_client.post("/api/water_level/", json=wl)
     assert response.status_code == 201
     # check if database is updated
@@ -55,4 +56,7 @@ def test_post_wl_settings(auth_client):
     assert crud.water_level.get(session).id == 1
     # check if a Response model is returned from get
     response = auth_client.get("/api/water_level/")
-    WaterLevelResponse.model_validate(response.json())
+    wl_round_trip = WaterLevelResponse.model_validate(response.json())
+    # check if the enum fields are correctly parsed
+    assert wl_round_trip.script_type == ScriptType.PYTHON
+    assert wl_round_trip.water_level_unit == WaterLevelUnit.IMPERIAL

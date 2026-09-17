@@ -52,7 +52,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
         wl_s2n_thres: selectedRecipe.wl_s2n_thres,
         padding: selectedRecipe.padding,
         length: selectedRecipe.length,
-        bank: selectedRecipe.bank
+        bank: selectedRecipe.bank,
+        units: selectedRecipe.units || 'metric'
 
       });
     } else {
@@ -79,7 +80,7 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
         length: '',
         bank: '',
         data: '',
-        plot_units: 'metric'
+        units: ''
       })
     }
   }, [selectedRecipe]);
@@ -660,14 +661,14 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
           <hr></hr>
           <h5>Plotting</h5>
           <div className="mb-3 mt-3 form-horizontal">
-            <label htmlFor="plot_units" className="form-label">
+            <label htmlFor="units" className="form-label">
               Plot units
             </label>
             <select
               className="form-control"
-              id="plot_units"
-              value={formData.plot_units || "metric"}
-              onChange={(e) => handleSliderChange("plot_units", e.target.value)}
+              id="units"
+              value={formData.units || "metric"}
+              onChange={(e) => handleSliderChange("units", e.target.value)}
             >
               <option value="metric">Metric (m)</option>
               <option value="imperial">Imperial (ft)</option>
