@@ -1,3 +1,32 @@
+## [1.1.0] Ngwerere - 2026-09-17
+
+> [!NOTE]
+> For installation instructions, please read the README.md or consider supporting us by acquiring one of our
+> ready-to-use images to get started real quickly. If you support us, we support you through online support.
+> For all other documentation, please visit https://localdevices.github.io/ORC-OS-docs.
+
+> [!IMPORTANT]
+> Any connected LiveORC server MUST be version >= 0.3.0
+> Several new service files are required. You cannot automatically update via OTA if these
+> files are not in place. Contact your system administrator to ensure all service files are correctly installed
+> following the README of https://github.com/localdevices/ORC-OS
+
+### Added
+- Support for imperial units. These can be used in the graphical displays of tables and graphs. Also
+  'feet' can be used as unit for water level collection.
+
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- Issue with water level retrieval causing retrieval scripts that occasionally did not return a valid string
+  to flood open sessions of the database. This is fixed by ensuring database connection are gracefully closed
+  regardless of the success of the water level retrieval script.
+- Issue with temporary files not being removed from temporary storage by daemon processor. This occurred only when
+  daemon files were not ready for processing as that resulted in the queue manager raising an exception. Temporary
+  files are now deleted as soon as they are successfully added to the database.
+
+
 ## [1.0.0] Ngwerere - 2026-07-14
 
 We are pleased to announce the first major release of OpenRiverCam Operating System (ORC-OS). This release

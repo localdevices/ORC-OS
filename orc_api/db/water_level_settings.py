@@ -114,27 +114,33 @@ class WaterLevelSettings(Base):
         from orc_api.log import logger
 
         with get_session() as db:
-            if self.script_type is None or self.script is None:
-                logger.error("script_type and script must be set.")
-                raise ValueError("script_type and script must be set.")
-            timestamp, value = water_level.execute_water_level_script(
-                self.script, cast(Literal["BASH", "PYTHON"], self.script_type.name)
-            )
-            # Convert from imperial (feet) to metric (meters) if needed
-            if self.water_level_unit == WaterLevelUnit.IMPERIAL:
-                # Convert feet to meters: 1 foot = 0.3048 meters
-                value = value * 0.3048
-                logger.info(
-                    f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m (converted from feet)."
+            try:
+                if self.script_type is None or self.script is None:
+                    logger.error("script_type and script must be set.")
+                    raise ValueError("script_type and script must be set.")
+                timestamp, value = water_level.execute_water_level_script(
+                    self.script, cast(Literal["BASH", "PYTHON"], self.script_type.name)
                 )
-            else:
-                logger.info(f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m.")
-            # first check if water level at time stamp already exists
-            wl = db.query(TimeSeries).filter_by(timestamp=timestamp).first()
-            if not wl:
-                # Create a new instance of WaterLevelSettings with given data
-                time_series = TimeSeries(timestamp=timestamp, h=value)
-                crud.time_series.add(db, time_series)
+                # Convert from imperial (feet) to metric (meters) if needed
+                if self.water_level_unit == WaterLevelUnit.IMPERIAL:
+                    # Convert feet to meters: 1 foot = 0.3048 meters
+                    value = value * 0.3048
+                    logger.info(
+                        f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value}"
+                        f" m (converted from feet)."
+                    )
+                else:
+                    logger.info(f"Found water level: {timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')}, {value} m.")
+                # first check if water level at time stamp already exists
+                wl = db.query(TimeSeries).filter_by(timestamp=timestamp).first()
+                if not wl:
+                    # Create a new instance of WaterLevelSettings with given data
+                    time_series = TimeSeries(timestamp=timestamp, h=value)
+                    crud.time_series.add(db, time_series)
+            except Exception as e:
+                logger.error(f"Error while getting new water level: {str(e)}")
+                raise ValueError(f"Error while getting new water level: {str(e)}")
+                # after this, the session will close automatically
 
 
 @event.listens_for(WaterLevelSettings, "before_insert")
