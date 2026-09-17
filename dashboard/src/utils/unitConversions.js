@@ -8,6 +8,7 @@ export const CONVERSIONS = {
   waterLevel: 3.28084,      // m to ft
   discharge: 35.3147,       // m³/s to ft³/s
   velocity: 3.28084,        // m/s to ft/s
+  surface: 10.7639,          // m² to ft²
 };
 
 /**
@@ -53,6 +54,21 @@ export const convertVelocity = (valueInMetersPerSecond, units) => {
 };
 
 /**
+ * Convert surface areafrom metric to imperial units
+ * @param {number} valueInSquareMeters - Surface area in m²
+ * @param {string} units - 'metric' or 'imperial'
+ * @returns {number} Converted value
+ */
+export const convertSurface = (valueInSquareMeters, units) => {
+  if (!valueInSquareMeters || valueInSquareMeters === null) return valueInSquareMeters;
+  if (units === 'imperial') {
+    return valueInSquareMeters * CONVERSIONS.surface;
+  }
+  return valueInSquareMeters;
+};
+
+
+/**
  * Get the unit label for water level
  * @param {string} units - 'metric' or 'imperial'
  * @returns {string} Unit label
@@ -68,6 +84,16 @@ export const getWaterLevelUnit = (units) => {
  */
 export const getDischargeUnit = (units) => {
   return units === 'imperial' ? 'ft³/s' : 'm³/s';
+};
+
+
+/**
+ * Get the unit label for surface
+ * @param {string} units - 'metric' or 'imperial'
+ * @returns {string} Unit label
+ */
+export const getSurfaceUnit = (units) => {
+  return units === 'imperial' ? 'ft²' : 'm²';
 };
 
 /**
