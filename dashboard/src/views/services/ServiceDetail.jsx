@@ -247,7 +247,7 @@ const ServiceDetail = ({ devStatus }) => {
           click on <code>Update Parameters</code> to save them.</p>
         {devStatus && (
           <div>
-            <p><FaExclamationTriangle color="red"/> <i>You are in development mode. With great powers comes great
+            <p className="icon-warning"><FaExclamationTriangle color="red"/> <i>You are in development mode. With great powers comes great
               responsibility. Modify parameters and deployment scripts at your own risk. </i></p>
               <p>You may alter the service parameters by
               selecing <code>+Add Parameter</code> or <code>Edit</code>. Click on <code>Deploy</code> to

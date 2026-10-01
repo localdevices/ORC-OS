@@ -2,7 +2,7 @@
 
 import os
 
-__version__ = "1.0.0"  # version number
+__version__ = "1.1.0"  # version number
 __release__ = "Ngwerere"  # major version name
 
 

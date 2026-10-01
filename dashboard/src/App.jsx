@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 
 import './App.css'
 import { MessageProvider } from './messageContext';
+import { UnitsProvider } from './unitsContext';
 import Navbar from './nav/Navbar';
 import Footer from './nav/Footer';
 import Login from './views/login';
@@ -196,17 +197,18 @@ const App = () => {
         );
     }
     return (
-        <MessageProvider>
-          <Router>
-            <Layout
-              requiresRestart={requiresRestart}
-              setRequiresRestart={setRequiresRestart}
-              devStatus={devStatus}
-              setIsLoading={setIsLoading}
-              videoRunState={videoRunState}
-              setVideoRunState={setVideoRunState}
-              apiStatus={apiStatus}
-            >
+        <UnitsProvider>
+          <MessageProvider>
+            <Router>
+              <Layout
+                requiresRestart={requiresRestart}
+                setRequiresRestart={setRequiresRestart}
+                devStatus={devStatus}
+                setIsLoading={setIsLoading}
+                videoRunState={videoRunState}
+                setVideoRunState={setVideoRunState}
+                apiStatus={apiStatus}
+              >
               <Routes>
                 <Route path="*" element={<div>Snap!! 404 Page Not Found</div>} />
                 <Route path="/login" element={
@@ -316,6 +318,7 @@ const App = () => {
             </Layout>
           </Router>
         </MessageProvider>
+        </UnitsProvider>
     )
 }
 Layout.propTypes = {

@@ -2,12 +2,15 @@ import {useState, useEffect} from "react";
 import api from "../../api/api.js";
 import {getCallbackUrl} from "../../utils/apiCalls/callbackUrl.jsx";
 import {getStatusIcon, getSyncStatusIcon} from "./videoHelpers.jsx";
+import { useUnits } from "../../unitsContext.jsx";
+import { convertWaterLevel, convertDischarge, getWaterLevelUnit, getDischargeUnit } from "../../utils/unitConversions.js";
 import PropTypes from 'prop-types'
 
 export const VideoDetails = ({selectedVideo}) => {
   const [videoError, setVideoError] = useState(false);  // tracks errors in finding video in modal display
   const [imageError, setImageError] = useState(false);  // tracks errors in finding image in modal display
   const [callbackUrl, setCallbackUrl] = useState(null);
+  const { units } = useUnits();
 
   useEffect(() => {
     const fetchCallbackUrl = async () => {
@@ -78,9 +81,9 @@ export const VideoDetails = ({selectedVideo}) => {
             </label>
             <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
               <div className="readonly">Water
-                level: {`${selectedVideo?.time_series?.h ? selectedVideo.time_series.h.toFixed(3) : "-"} m`}</div>
+                level: {`${selectedVideo?.time_series?.h ? convertWaterLevel(selectedVideo.time_series.h, units).toFixed(3) : "-"} ${getWaterLevelUnit(units)}`}</div>
               <div
-                className="readonly">Discharge: {`${selectedVideo?.time_series?.discharge ? selectedVideo.time_series.discharge.toFixed(3) : "-"} m3/s`}</div>
+                className="readonly">Discharge: {`${selectedVideo?.time_series?.discharge ? convertDischarge(selectedVideo.time_series.discharge, units).toFixed(3) : "-"} ${getDischargeUnit(units)}`}</div>
             </div>
           </div>
           <div className="mb-0 mt-0">

@@ -46,6 +46,17 @@
   pointer-events: none;
 }
 
+/* Warning message with icon - for displaying inline alerts */
+.icon-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-warning svg {
+  flex-shrink: 0;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

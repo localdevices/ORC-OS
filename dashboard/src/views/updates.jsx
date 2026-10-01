@@ -251,7 +251,7 @@ const Updates = ({ currentVersion }) => {
             <div className="flex-container no-padding">
               <div style={{width: "100%"}}>
               <div className="service-warning">
-                <p><FaExclamationTriangle color="red"/> Before updating consider the following:
+                <p className="icon-warning"><FaExclamationTriangle color="red"/> Before updating consider the following:
                 <ul>
                   <li>make sure you first STOP and DISABLE any power management mode or any other mode causing
                     autonomous shutdowns or reboots. This is because during updating the device should not shutdown,

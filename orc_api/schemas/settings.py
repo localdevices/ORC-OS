@@ -154,16 +154,17 @@ class SettingsResponse(SettingsBase):
                         db=session, file=file, timestamp=timestamp, video_config_id=self.video_config_id
                     )
                     video_response = VideoResponse.model_validate(video_instance)
-                # move video to queue
-                video_response = await queue.process_video(
-                    session=session,
-                    video=video_response,
-                    logger=logger,
-                    shutdown_after_task=self.shutdown_after_task if self.shutdown_after_task else False,
-                    priority=1,  # highest priority for tasks that are initiated from daemon settings
-                )
-                # whatever happens, remove the file if not successful, prevent clogging
-                os.remove(tmp_file)
+                    # as soon as video is picked up and written to databse, remove the tmp file
+                    os.remove(tmp_file)
+                    # move video to queue
+                    video_response = await queue.process_video(
+                        session=session,
+                        video=video_response,
+                        logger=logger,
+                        shutdown_after_task=self.shutdown_after_task if self.shutdown_after_task else False,
+                        priority=1,  # highest priority for tasks that are initiated from daemon settings
+                    )
+        # we do not return anything from this function. Result is an added video, and processing if video is ready.
 
 
 class SettingsCreate(SettingsBase):

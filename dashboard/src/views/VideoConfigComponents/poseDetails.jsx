@@ -1,5 +1,6 @@
 import api from "../../api/api.js";
 import {useEffect, useState} from "react";
+import {FaExclamationTriangle} from 'react-icons/fa';
 import PropTypes from "prop-types";
 import {useDebouncedWsSender} from "../../api/api.js";
 import {rainbowColors} from "../../utils/helpers.jsx";
@@ -334,6 +335,12 @@ const PoseDetails = (
       <h5>Control points</h5>
       <label htmlFor='addWidget' className='form-label'>
         Add and provide x, y, z control points manually one by one or load points from a GeoJSON or CSV file with x, y, z header
+        <div className="icon-warning">
+          <FaExclamationTriangle color="orange"/><i>
+            Ensure GCPs are measured in a unit meter coordinate system.
+          </i>
+        </div>
+
       </label>
       <div className="flex-container row">
         <div className="flex-container no-padding">

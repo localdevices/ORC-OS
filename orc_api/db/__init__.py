@@ -22,7 +22,7 @@ from .settings import Settings
 from .time_series import TimeSeries
 from .video import Video, VideoStatus
 from .video_config import VideoConfig
-from .water_level_settings import ScriptType, WaterLevelSettings
+from .water_level_settings import ScriptType, WaterLevelSettings, WaterLevelUnit
 
 __all__ = [
     "Base",
@@ -46,6 +46,7 @@ __all__ = [
     "VideoStatus",
     "WaterLevelSettings",
     "ScriptType",
+    "WaterLevelUnit",
 ]
 
 db_path_config = os.path.join(__home__, "orc-os.db")

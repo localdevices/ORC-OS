@@ -108,6 +108,11 @@
     background-color: transparent !important;
     cursor: default;
 }
+
+.units-toggle-btn:hover {
+    background-color: #495057 !important;
+}
+
 a {
     color: #FFFFFF;
 }
