@@ -52,4 +52,4 @@ if not SECRET_KEY and not DEV_MODE:
 for directory in [LOG_DIRECTORY, TMP_DIRECTORY, UPLOAD_DIRECTORY, INCOMING_DIRECTORY, SERVICE_DIRECTORY]:
     os.makedirs(directory, exist_ok=True)
 
-from . import crud, db, routers, schemas, utils
+# from . import crud, db, routers, schemas, utils

@@ -21,25 +21,29 @@ def test_task_routes_are_configured_per_workload():
 
     assert celery_app.conf.task_default_queue == "sync"
     assert routes["orc_api.tasks.run_video"]["queue"] == "video"
-    assert routes["orc_api.tasks.sync_video"]["queue"] == "sync"
-    assert routes["orc_api.tasks.sync_videos_batch"]["queue"] == "sync"
+    assert routes["orc_api.tasks.sync_video"]["queue"] == "video"
+    assert routes["orc_api.tasks.sync_videos_batch"]["queue"] == "video"
+    assert routes["orc_api.tasks.check_new_videos"]["queue"] == "periodic"
+    assert routes["orc_api.tasks.queue_video"]["queue"] == "video"
     assert routes["orc_api.tasks.run_water_level_job"]["queue"] == "periodic"
     assert routes["orc_api.tasks.run_disk_maintenance_job"]["queue"] == "periodic"
 
 
 def test_configure_beat_schedule_supports_service_sender(mocker, session_context):
     mocker.patch("orc_api.database.get_session", return_value=session_context)
-    mocker.patch("orc_api.crud.water_level.get", return_value=SimpleNamespace(enabled=True, frequency=60))
-    mocker.patch("orc_api.crud.disk_management.get", return_value=SimpleNamespace(frequency=120))
-    mocker.patch(
-        "orc_api.crud.settings.get",
-        return_value=SimpleNamespace(
+    results = {
+        "WaterLevelSettings": SimpleNamespace(enabled=True, frequency=60),
+        "DiskManagement": SimpleNamespace(frequency=120),
+        "Settings": SimpleNamespace(
             id=1,
             created_at=datetime(2000, 1, 1, 0, 0, 0),
             active=True,
             shutdown_after_task=False,
             video_file_fmt="video_{unix}.mp4",
         ),
+    }
+    session_context.__enter__.return_value.query.side_effect = lambda model: SimpleNamespace(
+        first=lambda: results[model.__name__]
     )
 
     app_mock = MagicMock()

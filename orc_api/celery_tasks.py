@@ -7,11 +7,10 @@ import shutil
 from orc_api import UPLOAD_DIRECTORY, crud
 from orc_api.celery_app import celery_app
 from orc_api.database import get_session
-from orc_api.db.video import Video
 from orc_api.log import logger
-from orc_api.schemas.disk_management import DiskManagementResponse
-from orc_api.schemas.settings import SettingsResponse
-from orc_api.schemas.video import VideoResponse
+
+# NOTE: The "periodic" tasks run in the light general worker, which must not load pyorc. Anything heavy (video schemas,
+# settings schemas, Video model) is therefore imported inside the tasks that run in the "video" worker.
 
 
 def async_job_wrapper(func, kwargs):
@@ -50,6 +49,8 @@ def run_disk_maintenance_job() -> dict:
             logger.warning("Skipping disk maintenance job: no disk management settings found.")
             return {"status": "skipped", "reason": "missing_settings"}
 
+        from orc_api.schemas.disk_management import DiskManagementResponse
+
         dm_settings = DiskManagementResponse.model_validate(dm)
         dm_settings.cleanup(home_folder=UPLOAD_DIRECTORY)
         logger.info("Disk maintenance job executed.")
@@ -62,6 +63,8 @@ def run_disk_maintenance_job() -> dict:
 def check_new_videos(path_incoming: str, settings_dict: dict, start_time: float) -> dict:
     """Check for new videos in the incoming directory and add them to the database."""
     try:
+        from orc_api.schemas.settings import SettingsResponse
+
         settings = SettingsResponse.model_validate(settings_dict)
         async_job_wrapper(
             settings.check_new_videos, {"path_incoming": path_incoming, "start_time": start_time, "logger": logger}
@@ -71,6 +74,39 @@ def check_new_videos(path_incoming: str, settings_dict: dict, start_time: float)
         error_msg = f"Error checking for new videos: {str(e)}"
         logger.error(error_msg, exc_info=True)
         return {"status": "error", "message": error_msg}
+
+
+@celery_app.task(name="orc_api.tasks.queue_video")
+def queue_video(video_id: int, shutdown_after_task: bool = False, priority: int = 0) -> dict:
+    """Check if a newly added video is ready to run and if so, submit it for processing.
+
+    This runs in the video worker because validating a video requires the (heavy) video schemas.
+    """
+    try:
+        from orc_api.db.video import Video
+        from orc_api.schemas.video import VideoResponse
+        from orc_api.utils import queue
+
+        with get_session() as db:
+            video = db.get(Video, video_id)
+            if not video:
+                logger.error(f"Video with id={video_id} not found")
+                return {"status": "error", "video_id": video_id, "message": "Video not found"}
+            video_response = VideoResponse.model_validate(video)
+            asyncio.run(
+                queue.process_video(
+                    session=db,
+                    video=video_response,
+                    logger=logger,
+                    shutdown_after_task=shutdown_after_task,
+                    priority=priority,
+                )
+            )
+        return {"status": "ok", "video_id": video_id}
+    except Exception as e:
+        error_msg = f"Error queueing video {video_id}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"status": "error", "video_id": video_id, "message": error_msg}
 
 
 @celery_app.task(name="orc_api.tasks.run_video")
@@ -92,6 +128,9 @@ def run_video(video_id: int, shutdown_after_task: bool = False) -> dict:
     """
     logger.info(f"Starting video processing for video_id={video_id}")
     try:
+        from orc_api.db.video import Video
+        from orc_api.schemas.video import VideoResponse
+
         with get_session() as db:
             video = db.get(Video, video_id)
             if not video:
@@ -135,6 +174,9 @@ def sync_video_task(video_id: int, site: int, sync_file: bool, sync_image: bool)
     """
     logger.info(f"Starting video sync for video_id={video_id}, site={site}")
     try:
+        from orc_api.db.video import Video
+        from orc_api.schemas.video import VideoResponse
+
         with get_session() as db:
             video = db.get(Video, video_id)
             if not video:

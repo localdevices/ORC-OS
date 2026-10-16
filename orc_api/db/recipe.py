@@ -1,6 +1,5 @@
 """Model for ORC recipe."""
 
-from pyorc.cli.cli_utils import validate_recipe
 from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
@@ -36,6 +35,8 @@ class Recipe(RemoteBase):
         """Validate that the provided JSON is a valid recipe."""
         # try to read the config with pyorc
         try:
+            from pyorc.cli.cli_utils import validate_recipe  # lazy: keeps pyorc out of light processes
+
             _ = validate_recipe(value)
             return value
         except Exception as e:

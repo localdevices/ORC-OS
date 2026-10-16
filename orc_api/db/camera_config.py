@@ -1,6 +1,5 @@
 """Model for camera configuration."""
 
-import pyorc
 from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
@@ -37,6 +36,8 @@ class CameraConfig(RemoteBase):
         """Validate that the provided JSON is a valid camera configuration."""
         # try to read the config with pyorc
         try:
+            import pyorc  # lazy: keeps pyorc out of light processes (celery beat)
+
             _ = pyorc.CameraConfig(**value)
             return value
         except Exception as e:

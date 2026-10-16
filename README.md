@@ -478,7 +478,7 @@ WantedBy=orc-os.target
 ```ini
 [Unit]
 type=simple
-Description=ORC-OS Celery Worker for sync and periodic schedulers
+Description=ORC-OS Celery Worker for periodic light jobs
 After=redis.service orc-api.service
 PartOf=orc-os.target orc-api.service
 BindsTo=orc-api.service
@@ -489,7 +489,7 @@ WorkingDirectory=/home/YOUR_USERNAME
 Environment="PATH=/home/YOUR_USERNAME/venv/orc-os/bin:/usr/bin"
 Environment="ORC_INCOMING_DIRECTORY=/home/YOUR_USERNAME/.ORC-OS/incoming"
 Environment="ORC_HOME=/home/YOUR_USERNAME/.ORC-OS"
-ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/celery -A orc_api.celery_app:celery_app worker -Q sync,periodic --loglevel=info
+ExecStart=/home/YOUR_USERNAME/venv/orc-os/bin/celery -A orc_api.celery_app:celery_app worker -Q sync,periodic --pool=solo --concurrency=1 --loglevel=info
 Restart=always
 RestartSec=10
 TimeoutStopSec=10

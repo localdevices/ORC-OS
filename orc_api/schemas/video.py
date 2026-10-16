@@ -10,9 +10,7 @@ from typing import Optional
 
 import numpy as np
 import redis
-import xarray as xr
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from pyorc.service import velocity_flow_subprocess
 from sqlalchemy.orm import Session
 
 from orc_api import crud, timeout_before_shutdown
@@ -125,7 +123,7 @@ class VideoResponse(VideoBase, RemoteModel):
 
     @property
     def ready_to_run(self):
-        """Must be called by AP scheduler to check if video is ready to run."""
+        """Must be called by celery worker to check if video is ready to run."""
         # if the video has already been run, or is already in process, also return False
         if self.status in [models.VideoStatus.QUEUE, models.VideoStatus.TASK]:
             return False, "Video already in process or queued for processing."
@@ -338,6 +336,8 @@ class VideoResponse(VideoBase, RemoteModel):
                 # make a new logger for the subprocess
                 fn_log = self.get_log_file(base_path=base_path)
                 logger_sub = setuplog(name="pyorc", path=fn_log, append=False)
+                from pyorc.service import velocity_flow_subprocess  # lazy: heavy import
+
                 res = velocity_flow_subprocess(
                     recipe=recipe,
                     videofile=videofile,
@@ -613,6 +613,8 @@ class VideoResponse(VideoBase, RemoteModel):
         fn = self.get_discharge_file(base_path=base_path)
         if fn is None:
             return
+
+        import xarray as xr  # lazy: heavy import
 
         ds = xr.open_dataset(fn)
         h = float(ds.h_a)

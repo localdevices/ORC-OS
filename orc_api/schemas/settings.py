@@ -9,10 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validat
 from typing_extensions import Self
 
 from orc_api import INCOMING_DIRECTORY, TMP_DIRECTORY, crud
+from orc_api.celery_app import celery_app
 from orc_api.database import get_session
-from orc_api.schemas.video import VideoResponse
-from orc_api.schemas.video_config import VideoConfigResponse
-from orc_api.utils import disk_management, queue, sys_utils
+from orc_api.utils import disk_management, sys_utils
 
 
 # Pydantic model for responses
@@ -61,6 +60,9 @@ class SettingsResponse(SettingsBase):
     @property
     def video_config(self):
         """Return the VideoConfigResponse."""
+        # lazy import: video config schemas depend on pyorc, which light celery workers should not load
+        from orc_api.schemas.video_config import VideoConfigResponse
+
         with get_session() as session:
             vc = crud.video_config.get(db=session, id=self.video_config_id)
             return VideoConfigResponse.model_validate(vc) if vc else None
@@ -153,17 +155,15 @@ class SettingsResponse(SettingsBase):
                     video_instance = await crud.video.create_from_upload(
                         db=session, file=file, timestamp=timestamp, video_config_id=self.video_config_id
                     )
-                    video_response = VideoResponse.model_validate(video_instance)
+                    video_id = video_instance.id
                     # as soon as video is picked up and written to databse, remove the tmp file
                     os.remove(tmp_file)
-                    # move video to queue
-                    video_response = await queue.process_video(
-                        session=session,
-                        video=video_response,
-                        logger=logger,
-                        shutdown_after_task=self.shutdown_after_task if self.shutdown_after_task else False,
-                        priority=1,  # highest priority for tasks that are initiated from daemon settings
-                    )
+                # Operations on video require pyorc, therefore delegated to the video worker.
+                celery_app.send_task(
+                    "orc_api.tasks.queue_video",
+                    args=(video_id, self.shutdown_after_task if self.shutdown_after_task else False),
+                    kwargs={"priority": 1},  # highest priority for tasks that are initiated from daemon settings
+                )
         # we do not return anything from this function. Result is an added video, and processing if video is ready.
 
 

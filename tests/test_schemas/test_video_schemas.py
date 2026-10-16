@@ -84,7 +84,7 @@ def test_video_run_daemon_shutdown(tmpdir, video_response_no_ts, session_video_c
     mock_shutdown = mock.Mock(side_effect=mock_subprocess_call)
     monkeypatch.setattr("subprocess.call", mock_shutdown)
     monkeypatch.setattr("time.sleep", mock_timeout)
-    monkeypatch.setattr("orc_api.schemas.video.velocity_flow_subprocess", mock_velocity_flow_subprocess)
+    monkeypatch.setattr("pyorc.service.velocity_flow_subprocess", mock_velocity_flow_subprocess)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.update_timeseries", mock_update_timeseries)
     monkeypatch.setattr("orc_api.schemas.video.VideoResponse.sync_remote", mock_update_timeseries)
     with pytest.raises(ShutdownException):
@@ -122,7 +122,7 @@ def test_video_update_timeseries(video_response_no_ts, session_video_config, mon
     xr_open_dataset = MagicMock(return_value=ds_mock)
 
     with pytest.MonkeyPatch().context() as mp:
-        mp.setattr("orc_api.schemas.video.xr.open_dataset", xr_open_dataset)
+        mp.setattr("xarray.open_dataset", xr_open_dataset)
         mock_video.update_timeseries(session_video_config, "mock_base_path")
     # delete all records before closing
     session_video_config.query(models.Video).delete()

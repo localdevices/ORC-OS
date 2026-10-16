@@ -77,7 +77,7 @@ def test_add_sample_filename_unix_timestamp(mock_incoming_directory):
 
 @pytest.mark.asyncio
 async def test_check_new_videos_no_video(mock_incoming_directory, mocker):
-    process_video_mock = mocker.patch("orc_api.utils.queue.process_video")
+    send_task_mock = mocker.patch("orc_api.schemas.settings.celery_app.send_task")
     settings = SettingsResponse(
         id=1,
         created_at=datetime.now(),
@@ -86,7 +86,7 @@ async def test_check_new_videos_no_video(mock_incoming_directory, mocker):
         reboot_after=False,
     )
     await settings.check_new_videos(path_incoming=mock_incoming_directory, start_time=None, logger=logging)
-    process_video_mock.assert_not_called()
+    send_task_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -103,7 +103,7 @@ async def test_check_new_videos_with_video(
 
     monkeypatch.setattr("orc_api.schemas.settings.get_session", lambda: session_video_config)
     monkeypatch.setattr("orc_api.db.video.create_thumbnail_listener", mock_create_thumbnail_listener)
-    process_video_mock = mocker.patch("orc_api.utils.queue.process_video")
+    send_task_mock = mocker.patch("orc_api.schemas.settings.celery_app.send_task")
 
     settings = SettingsResponse(
         id=1,
@@ -118,4 +118,5 @@ async def test_check_new_videos_with_video(
     with open(os.path.join(mock_incoming_directory, "video_20230101_123456.mp4"), "w") as f:
         f.write("test_video_file")
     await settings.check_new_videos(path_incoming=mock_incoming_directory, start_time=None, logger=logging)
-    process_video_mock.assert_called_once()
+    send_task_mock.assert_called_once()
+    assert send_task_mock.call_args.args[0] == "orc_api.tasks.queue_video"

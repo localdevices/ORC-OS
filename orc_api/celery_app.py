@@ -1,6 +1,7 @@
 """Celery application configuration for ORC-OS background jobs."""
 
 import os
+import sys
 import time
 
 from celery import Celery
@@ -14,11 +15,14 @@ CELERY_TIMEZONE = os.getenv("ORC_CELERY_TIMEZONE", "UTC")
 
 # Keep these configurable so deployment can tune schedule frequencies without code changes.
 
+# Beat only sends tasks by name and never executes them, so it must not import the (heavy) task module.
+_IS_BEAT = "beat" in sys.argv[1:]
+
 celery_app = Celery(
     "orc_api",
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
-    include=["orc_api.celery_tasks"],  # all tasks must be defined here
+    include=[] if _IS_BEAT else ["orc_api.celery_tasks"],  # all tasks must be defined here
 )
 
 celery_app.conf.update(
@@ -26,32 +30,52 @@ celery_app.conf.update(
     accept_content=["json"],
     result_serializer="json",
     timezone=CELERY_TIMEZONE,
-    # Route tasks by workload so heavy video jobs do not block periodic maintenance.
+    # Route tasks by workload. The "video" queue is served by the heavy worker (pyorc loaded), and takes everything that
+    # needs the video schemas. The "sync" and "periodic" queues are served by a light general worker without pyorc.
     task_default_queue="sync",
     task_routes={
         "orc_api.tasks.run_video": {"queue": "video"},
-        "orc_api.tasks.sync_video": {"queue": "sync"},
-        "orc_api.tasks.sync_videos_batch": {"queue": "sync"},
+        "orc_api.tasks.sync_video": {"queue": "video"},
+        "orc_api.tasks.sync_videos_batch": {"queue": "video"},
         "orc_api.tasks.run_water_level_job": {"queue": "periodic"},
         "orc_api.tasks.check_new_videos": {"queue": "periodic"},
+        "orc_api.tasks.queue_video": {"queue": "video"},
         "orc_api.tasks.run_disk_maintenance_job": {"queue": "periodic"},
     },
 )
 
 
+# fields of the settings record passed to the worker, where they are validated with SettingsResponse
+# serialized tuple is used to prevent unnecessary heavy memory imports
+_SETTINGS_FIELDS = (
+    "id",
+    "created_at",
+    "parse_dates_from_file",
+    "video_file_fmt",
+    "allowed_dt",
+    "shutdown_after_task",
+    "reboot_after",
+    "video_config_id",
+    "sync_file",
+    "sync_image",
+    "active",
+)
+
+
 def _build_beat_schedule() -> dict:
     """Build beat schedule entries from database settings."""
-    from orc_api import crud
+    # Only import light-weight DB models here. Importing crud or schemas would pull in pyorc, xarray, cv2, fastapi etc.
+    # which makes the beat process very heavy for no reason.
+    from orc_api import db as models
     from orc_api.database import get_session
-    from orc_api.schemas.settings import SettingsResponse
 
     beat_schedule = {}
     start_time = time.time()
     with get_session() as session:
         # Only set up beat schedule if the settings are adequate
-        wl_settings = crud.water_level.get(session)
-        settings = crud.settings.get(session)
-        dm_settings = crud.disk_management.get(session)
+        wl_settings = session.query(models.WaterLevelSettings).first()
+        settings = session.query(models.Settings).first()
+        dm_settings = session.query(models.DiskManagement).first()
 
         if not wl_settings:
             print("Skipping water level job: no water level settings found.")
@@ -77,8 +101,7 @@ def _build_beat_schedule() -> dict:
             }
         if settings and dm_settings:
             if settings.active:
-                # validate the settings model instance
-                settings = SettingsResponse.model_validate(settings)
+                settings_dict = {key: getattr(settings, key, None) for key in _SETTINGS_FIELDS}
                 print(
                     f'Daemon settings found: setting up interval job "video_check_job" with path: {INCOMING_DIRECTORY} '
                     f"and file template: {settings.video_file_fmt}"
@@ -86,7 +109,7 @@ def _build_beat_schedule() -> dict:
                 beat_schedule["video_check_job"] = {
                     "task": "orc_api.tasks.check_new_videos",
                     "schedule": 5,
-                    "args": (INCOMING_DIRECTORY, settings.model_dump(mode="dict"), start_time),
+                    "args": (INCOMING_DIRECTORY, settings_dict, start_time),
                     "options": {"queue": "periodic", "expires": 30},
                 }
             else:

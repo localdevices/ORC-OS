@@ -64,7 +64,7 @@ def test_run_disk_maintenance_job_try_path(mocker):
 
     mocker.patch("orc_api.celery_tasks.get_session", return_value=session)
     mocker.patch("orc_api.celery_tasks.crud.disk_management.get", return_value=dm)
-    mocker.patch("orc_api.celery_tasks.DiskManagementResponse.model_validate", return_value=dm_settings)
+    mocker.patch("orc_api.schemas.disk_management.DiskManagementResponse.model_validate", return_value=dm_settings)
 
     result = run_disk_maintenance_job()
 
@@ -75,7 +75,7 @@ def test_run_disk_maintenance_job_try_path(mocker):
 
 def test_run_disk_maintenance_job_missing_settings_path(mocker):
     session = MagicMock()
-    model_validate = mocker.patch("orc_api.celery_tasks.DiskManagementResponse.model_validate")
+    model_validate = mocker.patch("orc_api.schemas.disk_management.DiskManagementResponse.model_validate")
 
     mocker.patch("orc_api.celery_tasks.get_session", return_value=session)
     mocker.patch("orc_api.celery_tasks.crud.disk_management.get", return_value=None)
@@ -90,7 +90,7 @@ def test_run_disk_maintenance_job_missing_settings_path(mocker):
 def test_check_new_videos_try_path(mocker):
     settings = MagicMock()
 
-    model_validate = mocker.patch("orc_api.celery_tasks.SettingsResponse.model_validate", return_value=settings)
+    model_validate = mocker.patch("orc_api.schemas.settings.SettingsResponse.model_validate", return_value=settings)
     wrapper = mocker.patch("orc_api.celery_tasks.async_job_wrapper", return_value=None)
     # check with a random path and start time, as the actual values are not relevant for this test
     result = check_new_videos(path_incoming="/incoming", settings_dict={"x": 1}, start_time=1.2)
@@ -102,7 +102,7 @@ def test_check_new_videos_try_path(mocker):
 
 def test_check_new_videos_exception_path(mocker):
     _ = mocker.patch("orc_api.celery_tasks.logger.error")
-    mocker.patch("orc_api.celery_tasks.SettingsResponse.model_validate", side_effect=RuntimeError("mocked failure"))
+    mocker.patch("orc_api.schemas.settings.SettingsResponse.model_validate", side_effect=RuntimeError("mocked failure"))
 
     result = check_new_videos(path_incoming="/incoming", settings_dict={"x": 1}, start_time=1.2)
 
@@ -120,7 +120,7 @@ def test_run_video_try_path(mocker):
     video_response.get_path.return_value = "/tmp/video_1"
 
     mocker.patch("orc_api.celery_tasks.get_session", return_value=session)
-    mocker.patch("orc_api.celery_tasks.VideoResponse.model_validate", return_value=video_response)
+    mocker.patch("orc_api.schemas.video.VideoResponse.model_validate", return_value=video_response)
     mocker.patch("orc_api.celery_tasks.os.path.exists", return_value=False)
 
     result = run_video(video_id=1, shutdown_after_task=False)
@@ -135,7 +135,7 @@ def test_run_video_missing_video_path(mocker):
     session = _mock_context_session(db)
 
     mocker.patch("orc_api.celery_tasks.get_session", return_value=session)
-    model_validate = mocker.patch("orc_api.celery_tasks.VideoResponse.model_validate")
+    model_validate = mocker.patch("orc_api.schemas.video.VideoResponse.model_validate")
 
     result = run_video(video_id=1, shutdown_after_task=False)
 
@@ -161,7 +161,7 @@ def test_sync_video_task_try_path(mocker):
     video_response = MagicMock()
 
     mocker.patch("orc_api.celery_tasks.get_session", return_value=session)
-    mocker.patch("orc_api.celery_tasks.VideoResponse.model_validate", return_value=video_response)
+    mocker.patch("orc_api.schemas.video.VideoResponse.model_validate", return_value=video_response)
 
     result = sync_video_task(video_id=2, site=9, sync_file=True, sync_image=False)
 
@@ -175,7 +175,7 @@ def test_sync_video_task_missing_video_path(mocker):
     session = _mock_context_session(db)
 
     mocker.patch("orc_api.celery_tasks.get_session", return_value=session)
-    model_validate = mocker.patch("orc_api.celery_tasks.VideoResponse.model_validate")
+    model_validate = mocker.patch("orc_api.schemas.video.VideoResponse.model_validate")
 
     result = sync_video_task(video_id=2, site=9, sync_file=True, sync_image=False)
 

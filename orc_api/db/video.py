@@ -6,7 +6,6 @@ import shutil
 from datetime import datetime
 from typing import Optional
 
-import cv2
 from PIL import Image
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,6 +16,8 @@ from orc_api.db import RemoteBase
 
 def create_thumbnail(image_path: str, size=(50, 50)) -> Image:
     """Create thumbnail for image."""
+    import cv2  # lazy: keeps cv2 out of light processes (celery beat)
+
     cap = cv2.VideoCapture(image_path)
     res, image = cap.read()
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
