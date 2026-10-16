@@ -670,8 +670,8 @@ const RecipeForm = ({selectedRecipe, setSelectedRecipe, frameCount, CSWaterLevel
               value={formData.units || "metric"}
               onChange={(e) => handleSliderChange("units", e.target.value)}
             >
-              <option value="metric">Metric (m)</option>
-              <option value="imperial">Imperial (ft)</option>
+              <option value="metric">Metric</option>
+              <option value="imperial">Imperial</option>
             </select>
           </div>
           <div className="mb-3 mt-3 form-horizontal">

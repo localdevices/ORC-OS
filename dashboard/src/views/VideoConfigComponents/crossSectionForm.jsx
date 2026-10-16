@@ -142,7 +142,7 @@ const CrossSectionForm = (
       <div className='container' style={{marginTop: '5px', overflow: 'auto'}}>
         <h5>Set water levels</h5>
         <div className='mb-3 mt-3'>
-          <p className="icon-warning"><FaExclamationTriangle color="orange"/><i>The water level in GCP coordinate system is also in meters.</i></p>
+          <p className="icon-warning"><FaExclamationTriangle color="orange"/><i>The water level in GCP coordinate system is ALWAYS in meters.</i></p>
           <label htmlFor='z_0' className='form-label small'>
             Water level in GCP coordinate system [m].
           </label>
@@ -159,7 +159,8 @@ const CrossSectionForm = (
         <div className='mb-3 mt-3'>
           <label htmlFor='h_ref' className='form-label small'>
             Water level in local gauge reference [{h_refUnit === 'metric' ? 'm' : 'ft'}]. Defaults to GCP coordinate.
-            You may set this in feet if desired. When collecting water levels for new videos, these must be collected
+            Change {h_refUnit === 'metric' ? '"Meters"' : '"Feet"'} to {h_refUnit === 'metric' ? '"Feet"' : '"Meters" '}
+            as needed. When collecting water levels for new videos, these must be collected
             with the same vertical datum as used here.
           </label>
           <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
