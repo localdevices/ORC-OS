@@ -18,6 +18,8 @@ const Settings = ({setRequiresRestart}) => {
     video_config_id: '',
     sync_file: false,
     sync_image: false,
+    sync_netcdf: false,
+    sync_log: false,
     active: false
 
   });
@@ -50,6 +52,8 @@ const Settings = ({setRequiresRestart}) => {
         video_config_id: settings.video_config_id || '',
         sync_file: settings.sync_file || false,
         sync_image: settings.sync_image || false,
+        sync_netcdf: settings.sync_netcdf || false,
+        sync_log: settings.sync_log || false,
         active: settings.active || false
 
       });
@@ -120,6 +124,8 @@ const Settings = ({setRequiresRestart}) => {
         video_config_id: '',
         sync_file: false,
         sync_image: false,
+        sync_netcdf: false,
+        sync_log: false,
         active: false
       });
     } catch (err) {
@@ -259,7 +265,35 @@ const Settings = ({setRequiresRestart}) => {
               Synchronize result image file with LiveORC server (if configured)
             </label>
           </div>
-          {!formData.sync_image && !formData.sync_file && (
+          <div className='checkbox-group'>
+            <input
+              type='checkbox'
+              className='checkbox'
+              id='sync_netcdf'
+              name='sync_netcdf'
+              onChange={handleInputChange}
+              value={formData.sync_netcdf}
+              checked={formData.sync_netcdf}
+            />
+            <label htmlFor='sync_netcdf' className='checkbox-label'>
+              Synchronize NetCDF result files with LiveORC server (if configured)
+            </label>
+          </div>
+          <div className='checkbox-group'>
+            <input
+              type='checkbox'
+              className='checkbox'
+              id='sync_log'
+              name='sync_log'
+              onChange={handleInputChange}
+              value={formData.sync_log}
+              checked={formData.sync_log}
+            />
+            <label htmlFor='sync_log' className='checkbox-label'>
+              Synchronize processing log file with LiveORC server (if configured)
+            </label>
+          </div>
+          {!formData.sync_image && !formData.sync_file && !formData.sync_netcdf && !formData.sync_log && (
             <i className="text-danger">Only time series records will be synced as you did not select any files to sync</i>
           )}
 

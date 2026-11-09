@@ -1,3 +1,16 @@
+## [Unreleased]
+
+### Added
+- Option to send the netcdf result files and the processing log file along with a video to LiveORC. Both can be
+  switched on in the daemon settings and in the manual sync dialog. Within one upload, the image goes first and the
+  video last. Requires a LiveORC version that accepts result files (LiveORC #13).
+
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+
 ## [1.1.0] Ngwerere - 2026-09-17
 
 > [!NOTE]

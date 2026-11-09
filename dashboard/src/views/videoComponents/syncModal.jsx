@@ -8,8 +8,8 @@ const SyncModal = ({showSyncModal, setShowSyncModal, urlSite, setMessageInfo}) =
   const [syncSettings, setSyncSettings] = useState({
     "syncImage": true,
     "syncFile": true,
-    // "downloadNetcdf": true,
-    // "downloadLog": true,
+    "syncNetcdf": true,
+    "syncLog": true,
   });
   const closeSyncModal = () => {
     setShowSyncModal(false); // Close the download modal
@@ -90,6 +90,24 @@ const SyncModal = ({showSyncModal, setShowSyncModal, urlSite, setMessageInfo}) =
                     onChange={() => handleCheckboxChange("syncImage")}
                   />
                   <label style={{paddingLeft: "10px"}} htmlFor="syncImage"> Image</label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="syncNetcdf"
+                    checked={syncSettings.syncNetcdf}
+                    onChange={() => handleCheckboxChange("syncNetcdf")}
+                  />
+                  <label style={{paddingLeft: "10px"}} htmlFor="syncNetcdf"> NetCDF result files</label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="syncLog"
+                    checked={syncSettings.syncLog}
+                    onChange={() => handleCheckboxChange("syncLog")}
+                  />
+                  <label style={{paddingLeft: "10px"}} htmlFor="syncLog"> Log file</label>
                 </div>
                 <div>
                   <input

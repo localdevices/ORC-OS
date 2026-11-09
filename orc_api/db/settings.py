@@ -69,6 +69,12 @@ class Settings(Base):
         Boolean, default=False, comment="Flag for syncing video files to remote server"
     )
     sync_image: Mapped[bool] = mapped_column(Boolean, default=False, comment="Flag for syncing images to remote server")
+    sync_netcdf: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="Flag for syncing netcdf result files to remote server"
+    )
+    sync_log: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="Flag for syncing log files to remote server"
+    )
     active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,

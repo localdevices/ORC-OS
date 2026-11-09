@@ -113,7 +113,9 @@ def run_video(video_id: int, shutdown_after_task: bool = False) -> dict:
 
 
 @celery_app.task(name="orc_api.tasks.sync_video")
-def sync_video_task(video_id: int, site: int, sync_file: bool, sync_image: bool) -> dict:
+def sync_video_task(
+    video_id: int, site: int, sync_file: bool, sync_image: bool, sync_netcdf: bool = False, sync_log: bool = False
+) -> dict:
     """Sync a video to a remote site.
 
     Parameters
@@ -126,6 +128,10 @@ def sync_video_task(video_id: int, site: int, sync_file: bool, sync_image: bool)
         Whether to sync the video file
     sync_image : bool
         Whether to sync the image
+    sync_netcdf : bool
+        Whether to sync the netcdf result files
+    sync_log : bool
+        Whether to sync the processing log file
 
     Returns
     -------
@@ -148,6 +154,8 @@ def sync_video_task(video_id: int, site: int, sync_file: bool, sync_image: bool)
             site=site,
             sync_file=sync_file,
             sync_image=sync_image,
+            sync_netcdf=sync_netcdf,
+            sync_log=sync_log,
         )
         logger.info(f"Video {video_id} synced successfully to site {site}")
         return {"status": "ok", "video_id": video_id, "site": site}
@@ -158,7 +166,9 @@ def sync_video_task(video_id: int, site: int, sync_file: bool, sync_image: bool)
 
 
 @celery_app.task(name="orc_api.tasks.sync_videos_batch")
-def sync_videos_batch(video_ids: list, site: int, sync_file: bool, sync_image: bool) -> dict:
+def sync_videos_batch(
+    video_ids: list, site: int, sync_file: bool, sync_image: bool, sync_netcdf: bool = False, sync_log: bool = False
+) -> dict:
     """Sync multiple videos to a remote site.
 
     Parameters
@@ -171,6 +181,10 @@ def sync_videos_batch(video_ids: list, site: int, sync_file: bool, sync_image: b
         Whether to sync the video files
     sync_image : bool
         Whether to sync the images
+    sync_netcdf : bool
+        Whether to sync the netcdf result files
+    sync_log : bool
+        Whether to sync the processing log files
 
     Returns
     -------
@@ -181,6 +195,13 @@ def sync_videos_batch(video_ids: list, site: int, sync_file: bool, sync_image: b
     logger.info(f"Starting batch sync for {len(video_ids)} videos to site {site}")
     results = []
     for video_id in video_ids:
-        result = sync_video_task(video_id=video_id, site=site, sync_file=sync_file, sync_image=sync_image)
+        result = sync_video_task(
+            video_id=video_id,
+            site=site,
+            sync_file=sync_file,
+            sync_image=sync_image,
+            sync_netcdf=sync_netcdf,
+            sync_log=sync_log,
+        )
         results.append(result)
     return {"status": "completed", "total": len(video_ids), "results": results}

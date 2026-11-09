@@ -46,6 +46,12 @@ class SettingsBase(BaseModel):
     sync_image: Optional[bool] = Field(
         default=None, description="Flag for syncing the result image file with the remote site."
     )
+    sync_netcdf: Optional[bool] = Field(
+        default=False, description="Flag for syncing the netcdf result files with the remote site."
+    )
+    sync_log: Optional[bool] = Field(
+        default=False, description="Flag for syncing the processing log file with the remote site."
+    )
     active: Optional[bool] = Field(default=None, description="Flag for enabling/disabling the daemon.")
     sample_file: Optional[str] = Field(default=None, description="Sample expected filename used for testing.")
 

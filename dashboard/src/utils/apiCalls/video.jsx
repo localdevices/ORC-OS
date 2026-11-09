@@ -122,7 +122,9 @@ export const sync_videos = async (api, syncStartDate, syncEndDate, syncSettings,
         start: syncStartDate,
         stop: syncEndDate,
         sync_file: syncSettings.syncFile,
-        sync_image: syncSettings.syncImage
+        sync_image: syncSettings.syncImage,
+        sync_netcdf: syncSettings.syncNetcdf,
+        sync_log: syncSettings.syncLog
       }
     )
     if ( response.status === 200 ) {

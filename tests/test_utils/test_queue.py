@@ -136,11 +136,13 @@ async def test_sync_videos_start_stop(videos, session_mock, mock_send_task, mock
         site=42,
         sync_file=True,
         sync_image=False,
+        sync_netcdf=True,
+        sync_log=False,
     )
 
     assert returned == videos
     assert session_mock.commit.call_count == 3
     mock_send_task.assert_called_once_with(
         "orc_api.tasks.sync_videos_batch",
-        args=([1, 2, 3], 42, True, False),
+        args=([1, 2, 3], 42, True, False, True, False),
     )

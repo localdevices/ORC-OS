@@ -250,3 +250,67 @@ def test_video_sync_real_server(session_video_with_config, video_response, monke
         site=1,
     )
     print(video_update)
+
+
+def test_video_sync_result_files(session_video_with_config, video_response, monkeypatch, tmp_path):
+    """Netcdf and log files are only sent when asked, under LiveORC field names, image first and video last."""
+    base_path = str(tmp_path)
+    video_file = video_response.get_video_file(base_path=base_path)
+    output = video_response.get_output_path(base_path=base_path)
+    os.makedirs(output)
+    video_response.image = "image.jpg"
+    for fn in [
+        video_file,
+        video_response.get_image_file(base_path=base_path),
+        video_response.get_log_file(base_path=base_path),
+        *[
+            os.path.join(output, n)
+            for n in ["transect_transect_1.nc", "piv.nc", "piv_mask.nc", "piv_ugrid.nc", "piv_mask_ugrid.nc"]
+        ],
+    ]:
+        with open(fn, "wb") as f:
+            f.write(b"x")
+    sent = []
+
+    def mock_post(self, endpoint: str, data=None, json=None, files=None, timeout=None):
+        sent.append({k: v[0] for k, v in files.items()})
+
+        class MockResponse:
+            status_code = 201
+
+            def json(self):
+                return {"id": 7, "timestamp": video_response.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+        return MockResponse()
+
+    video_response.video_config.sync_status = models.SyncStatus.SYNCED
+    video_response.video_config.remote_id = 5
+    video_response.time_series.sync_status = models.SyncStatus.SYNCED
+    video_response.time_series.remote_id = 7
+    monkeypatch.setattr(CallbackUrlResponse, "post", mock_post)
+
+    video_response.status = models.VideoStatus.DONE
+    video_response.sync_remote(session=session_video_with_config, base_path=base_path, site=1)
+    video_response.sync_remote(
+        session=session_video_with_config, base_path=base_path, site=1, sync_netcdf=True, sync_log=True
+    )
+    assert list(sent[0]) == ["image", "file"]
+    assert list(sent[1]) == [
+        "image",
+        "result_1d",
+        "result_2d",
+        "result_2d_mask",
+        "result_2d_ugrid",
+        "log_file",
+        "file",
+    ]
+    assert sent[1]["result_2d_ugrid"] == "piv_mask_ugrid.nc"
+    # a failed run may have left netcdf files of an earlier run: only its log goes along
+    video_response.status = models.VideoStatus.ERROR
+    video_response.sync_remote(
+        session=session_video_with_config, base_path=base_path, site=1, sync_netcdf=True, sync_log=True
+    )
+    assert list(sent[2]) == ["image", "log_file", "file"]
+    # recipe without masks: the unmasked ugrid file is sent instead
+    os.remove(os.path.join(output, "piv_mask_ugrid.nc"))
+    assert video_response.get_result_files(base_path=base_path)["result_2d_ugrid"].endswith("piv_ugrid.nc")
