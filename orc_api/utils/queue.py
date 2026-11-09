@@ -92,6 +92,8 @@ async def sync_video(
     site: Optional[int] = None,
     sync_file: bool = True,
     sync_image: bool = True,
+    sync_netcdf: bool = False,
+    sync_log: bool = False,
 ):
     """Submit a video for synchronization to a remote site using Celery."""
     if not site:
@@ -117,7 +119,7 @@ async def sync_video(
             try:
                 celery_app.send_task(
                     "orc_api.tasks.sync_video",
-                    args=(video.id, site, sync_file, sync_image),
+                    args=(video.id, site, sync_file, sync_image, sync_netcdf, sync_log),
                 )
                 logger.info(f"Video {video.file} submitted to Celery queue for synchronization.")
             except Exception as e:
@@ -141,6 +143,8 @@ async def sync_videos_start_stop(
     site: Optional[int] = None,
     sync_file: bool = True,
     sync_image: bool = True,
+    sync_netcdf: bool = False,
+    sync_log: bool = False,
 ):
     """Retrieve list of videos and submit for synchronization to a remote site using Celery."""
     if not site:
@@ -168,7 +172,14 @@ async def sync_videos_start_stop(
         return []
     logger.info(f"Syncing {video_count} video records between {start_str} and {stop_str}")
     return await sync_videos_list(
-        videos=videos, session=session, site=site, sync_file=sync_file, sync_image=sync_image, logger=logger
+        videos=videos,
+        session=session,
+        site=site,
+        sync_file=sync_file,
+        sync_image=sync_image,
+        sync_netcdf=sync_netcdf,
+        sync_log=sync_log,
+        logger=logger,
     )
 
 
@@ -178,6 +189,8 @@ async def sync_videos_list(
     site: Optional[int] = None,
     sync_file: bool = True,
     sync_image: bool = True,
+    sync_netcdf: bool = False,
+    sync_log: bool = False,
     logger: logging.Logger = logging.getLogger(__name__),
 ):
     """Submit a list of videos for synchronization to a remote site using Celery."""
@@ -198,7 +211,7 @@ async def sync_videos_list(
         try:
             celery_app.send_task(
                 "orc_api.tasks.sync_videos_batch",
-                args=(video_ids, site, sync_file, sync_image),
+                args=(video_ids, site, sync_file, sync_image, sync_netcdf, sync_log),
             )
             logger.info(f"Batch of {len(video_ids)} videos submitted to Celery queue for synchronization.")
         except Exception as e:

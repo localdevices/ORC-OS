@@ -111,6 +111,8 @@ def check_and_restore_queued_syncs(db: Session):
         settings = crud.settings.get(db)
         sync_file = settings.sync_file if settings else True
         sync_image = settings.sync_image if settings else True
+        sync_netcdf = settings.sync_netcdf if settings else True
+        sync_log = settings.sync_log if settings else True
 
         # Collect video IDs to batch submit
         video_ids = [v.id for v in queued_syncs]
@@ -119,7 +121,7 @@ def check_and_restore_queued_syncs(db: Session):
             try:
                 celery_app.send_task(
                     "orc_api.tasks.sync_videos_batch",
-                    args=(video_ids, site_id, sync_file, sync_image),
+                    args=(video_ids, site_id, sync_file, sync_image, sync_netcdf, sync_log),
                     priority=5,  # Low priority
                 )
                 logger.info(f"Re-submitted {len(video_ids)} videos to Celery sync queue")

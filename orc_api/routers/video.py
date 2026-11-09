@@ -510,6 +510,8 @@ async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
     # if no settings found assume everything should be synced
     sync_file = True
     sync_image = True
+    sync_netcdf = True
+    sync_log = True
 
     video = get_video_record(db, id)
     # check if a valid callback url with site id is available.
@@ -531,6 +533,8 @@ async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
     if settings is not None:
         sync_file = settings.sync_file
         sync_image = settings.sync_image
+        sync_netcdf = settings.sync_netcdf
+        sync_log = settings.sync_log
 
     # Submit to Celery queue
     video_patch = await queue.sync_video(
@@ -540,6 +544,8 @@ async def sync_video(id: int, request: Request, db: Session = Depends(get_db)):
         site=callback_url.remote_site_id,
         sync_file=sync_file,
         sync_image=sync_image,
+        sync_netcdf=sync_netcdf,
+        sync_log=sync_log,
     )
     return video_patch
 
@@ -573,6 +579,8 @@ async def sync_list_videos(request: Request, params: SyncVideosRequest, db: Sess
             site=site,
             sync_file=sync_file,
             sync_image=sync_image,
+            sync_netcdf=params.sync_netcdf,
+            sync_log=params.sync_log,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error syncing videos: {str(e)}")

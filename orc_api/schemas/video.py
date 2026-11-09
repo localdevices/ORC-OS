@@ -398,6 +398,8 @@ class VideoResponse(VideoBase, RemoteModel):
                     site=callback_url.remote_site_id,
                     sync_file=settings.sync_file,
                     sync_image=settings.sync_image,
+                    sync_netcdf=settings.sync_netcdf,
+                    sync_log=settings.sync_log,
                     timeout=timeout,
                 )
 
@@ -427,6 +429,8 @@ class VideoResponse(VideoBase, RemoteModel):
         site: int,
         sync_file: bool = True,
         sync_image: bool = True,
+        sync_netcdf: bool = False,
+        sync_log: bool = False,
         timeout: float = 120,
     ):
         """Send the video to LiveORC API."""
@@ -465,7 +469,16 @@ class VideoResponse(VideoBase, RemoteModel):
             )
             # only sync if image is required and available
             sync_image_required = self.image and os.path.exists(self.get_image_file(base_path=base_path)) and sync_image
-            if sync_file_required or sync_image_required:
+            # result files that LiveORC accepts, as {LiveORC field: local path}, only the ones that exist
+            result_files = {}
+            if self.file:
+                # netcdf files only after a successful run, a failed run may have left those of an earlier run
+                if sync_netcdf and self.status == models.VideoStatus.DONE:
+                    result_files.update(self.get_result_files(base_path=base_path))
+                fn_log = self.get_log_file(base_path=base_path)
+                if sync_log and os.path.exists(fn_log):
+                    result_files["log_file"] = fn_log
+            if sync_file_required or sync_image_required or result_files:
                 if self.remote_id is None:
                     # committing a new video always occurs on a central end point (not site specific)
                     endpoint = "/api/video/"
@@ -482,11 +495,14 @@ class VideoResponse(VideoBase, RemoteModel):
                 if self.time_series:
                     data["time_series"] = self.time_series.remote_id  # only if time series is available
                 # make a dict for files to send
+                # image first and video last, so that the small files come first in the request
                 files = {}
-                if sync_file_required:
-                    files["file"] = (self.file, open(self.get_video_file(base_path=base_path), "rb"))
                 if sync_image_required:
                     files["image"] = (self.image, open(self.get_image_file(base_path=base_path), "rb"))
+                for key, fn in result_files.items():
+                    files[key] = (os.path.basename(fn), open(fn, "rb"))
+                if sync_file_required:
+                    files["file"] = (self.file, open(self.get_video_file(base_path=base_path), "rb"))
                 # we take a little bit longer to try and sync the video (15sec time out instead of 5sec)
                 logger.debug(f"Syncing video {self.id} - {self.file} to remote site {site}.")
                 response_data = super().sync_remote(
@@ -525,7 +541,7 @@ class VideoResponse(VideoBase, RemoteModel):
                 return None
             # if no syncing of video is needed, only update the sync status back to LOCAL
             logger.debug(
-                f"Skipping syncing of video {self.id} - {self.file}. No image or video file requested to sync."
+                f"Skipping syncing of video {self.id} - {self.file}. No image, video or result file requested to sync."
             )
             self._publish_status(
                 message=f"Syncing to remote site {site} without video sucessful.",
@@ -547,7 +563,14 @@ class VideoResponse(VideoBase, RemoteModel):
             logger.exception("Traceback: ")
 
     def sync_remote_wrapper(
-        self, base_path: str, site: int, sync_file: bool = True, sync_image: bool = True, timeout: float = 150
+        self,
+        base_path: str,
+        site: int,
+        sync_file: bool = True,
+        sync_image: bool = True,
+        sync_netcdf: bool = False,
+        sync_log: bool = False,
+        timeout: float = 150,
     ):
         """Wrap remote sync from queue without a required database input.
 
@@ -560,6 +583,8 @@ class VideoResponse(VideoBase, RemoteModel):
                 site=site,
                 sync_file=sync_file,
                 sync_image=sync_image,
+                sync_netcdf=sync_netcdf,
+                sync_log=sync_log,
                 timeout=timeout,
             )
 
@@ -598,6 +623,19 @@ class VideoResponse(VideoBase, RemoteModel):
         """Get list of netcdf files in output directory."""
         path = os.path.join(self.get_path(base_path=base_path), "output", "*.nc")
         return glob.glob(path)
+
+    def get_result_files(self, base_path: str) -> dict:
+        """Get netcdf result files that exist, keyed by their LiveORC upload field name."""
+        output = self.get_output_path(base_path=base_path)
+        names = {
+            "result_1d": "transect_transect_1.nc",
+            "result_2d": "piv.nc",
+            "result_2d_mask": "piv_mask.nc",
+            "result_2d_ugrid": "piv_mask_ugrid.nc",
+        }
+        if not os.path.exists(os.path.join(output, names["result_2d_ugrid"])):
+            names["result_2d_ugrid"] = "piv_ugrid.nc"  # recipe without masks
+        return {k: os.path.join(output, n) for k, n in names.items() if os.path.exists(os.path.join(output, n))}
 
     def get_discharge_file(self, base_path: str):
         """Get discharge file name."""
@@ -692,6 +730,8 @@ class SyncVideosRequest(BaseModel):
     stop: Optional[datetime] = None
     sync_file: Optional[bool] = True
     sync_image: Optional[bool] = True
+    sync_netcdf: Optional[bool] = False
+    sync_log: Optional[bool] = False
     site: Optional[int] = None
 
 
